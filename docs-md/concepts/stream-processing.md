@@ -70,7 +70,7 @@ CREATE STREAM products_changelog AS
     SELECT * FROM products EMIT CHANGES;
 ```
 
-The `products_changelog` stream will emit a new row any time a row in the `products` table is
+The `products_changelog` stream emits a new row any time a row in the `products` table is
 added or modified.
 
 Deriving a new table from an existing stream

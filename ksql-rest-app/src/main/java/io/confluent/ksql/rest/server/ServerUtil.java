@@ -29,21 +29,15 @@ public final class ServerUtil {
   public static URI getServerAddress(final KsqlRestConfig restConfig) {
     final List<String> listeners = restConfig.getList(RestConfig.LISTENERS_CONFIG);
     final String address = listeners.stream()
-            .map(String::trim)
-            .findFirst()
-            .orElseThrow(() -> invalidAddressException(listeners, "value cannot be empty"));
+        .map(String::trim)
+        .findFirst()
+        .orElseThrow(() ->
+            new ConfigException(RestConfig.LISTENERS_CONFIG, listeners, "value cannot be empty"));
 
     try {
       return new URL(address).toURI();
     } catch (final Exception e) {
-      throw invalidAddressException(listeners, e.getMessage());
+      throw new ConfigException(RestConfig.LISTENERS_CONFIG, listeners, e.getMessage());
     }
-  }
-
-  private static RuntimeException invalidAddressException(
-          final List<String> serverAddresses,
-          final String message
-  ) {
-    return new ConfigException(RestConfig.LISTENERS_CONFIG, serverAddresses, message);
   }
 }

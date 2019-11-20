@@ -46,9 +46,6 @@
           "enum" : [ "createStreamV1" ],
           "default" : "createStreamV1"
         },
-        "sqlExpression" : {
-          "type" : "string"
-        },
         "sourceName" : {
           "type" : "string"
         },
@@ -79,7 +76,7 @@
         }
       },
       "title" : "createStreamV1",
-      "required" : [ "@type", "sqlExpression", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
     },
     "MetadataTimestampExtractionPolicy" : {
       "type" : "object",
@@ -204,9 +201,6 @@
           "enum" : [ "createTableV1" ],
           "default" : "createTableV1"
         },
-        "sqlExpression" : {
-          "type" : "string"
-        },
         "sourceName" : {
           "type" : "string"
         },
@@ -237,7 +231,7 @@
         }
       },
       "title" : "createTableV1",
-      "required" : [ "@type", "sqlExpression", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
     },
     "RegisterTypeCommand" : {
       "type" : "object",

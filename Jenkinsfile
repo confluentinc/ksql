@@ -96,15 +96,40 @@ def job = {
     ]
 
     if (params.PROMOTE_TO_PRODUCTION) {
-        withDockerServer([uri: dockerHost()]) {
-            config.dockerRepos.each { dockerRepo ->
-                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
-                sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
-                sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+        withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
+            withDockerServer([uri: dockerHost()]) {
+                writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                sh '''
+                    bash extract-iam-credential.sh
 
-                if (params.UPDATE_LATEST_TAG) {
-                    sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION} ${dockerRepo}:latest"
-                    sh "docker push ${dockerRepo}:latest"
+                    # Hide login credential from below
+                    set +x
+
+                    LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
+
+                    $LOGIN_CMD
+                '''
+                config.dockerRepos.each { dockerRepo ->
+                    sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
+                }
+            }
+        }
+
+        dockerHubCreds = usernamePassword(
+            credentialsId: 'Jenkins Docker Hub Account',
+            passwordVariable: 'DOCKER_PASSWORD',
+            usernameVariable: 'DOCKER_USERNAME')
+        withCredentials([dockerHubCreds]) {
+            withDockerServer([uri: dockerHost()]) {
+                config.dockerRepos.each { dockerRepo ->
+                    sh "docker login --username $DOCKER_USERNAME --password \'$DOCKER_PASSWORD\'"
+                    sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+                    sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+
+                    if (params.UPDATE_LATEST_TAG) {
+                        sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION} ${dockerRepo}:latest"
+                        sh "docker push ${dockerRepo}:latest"
+                    }
                 }
             }
         }

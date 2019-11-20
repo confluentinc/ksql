@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.name;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 
@@ -59,6 +60,7 @@ public final class ColumnName extends Name<ColumnName> {
         .orElseGet(ref::name);
   }
 
+  @JsonCreator
   public static ColumnName of(final String name) {
     return new ColumnName(name);
   }

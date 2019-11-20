@@ -71,7 +71,7 @@ within the defined window boundary. Old records in the state store are
 purged after the specified window retention period.
 
 For more information on windows, see
-[Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
+[Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
 
 Join Requirements
 -----------------

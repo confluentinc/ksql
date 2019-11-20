@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
@@ -27,10 +29,10 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> right;
 
   public TableTableJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final ExecutionStep<KTableHolder<K>> left,
-      final ExecutionStep<KTableHolder<K>> right) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "joinType", required = true) JoinType joinType,
+      @JsonProperty(value = "left", required = true) ExecutionStep<KTableHolder<K>> left,
+      @JsonProperty(value = "right", required = true) ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
@@ -43,6 +45,7 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return ImmutableList.of(left, right);
   }
@@ -60,19 +63,19 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitTableTableJoin(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableTableJoin<?> that = (TableTableJoin<?>) o;
+    TableTableJoin<?> that = (TableTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(left, that.left)

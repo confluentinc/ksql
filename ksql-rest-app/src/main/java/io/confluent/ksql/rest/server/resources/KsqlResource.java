@@ -56,6 +56,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
@@ -97,7 +98,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
-  private final KsqlAuthorizationValidator authorizationValidator;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
 
@@ -107,7 +108,7 @@ public class KsqlResource implements KsqlConfigurable {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final KsqlAuthorizationValidator authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
   ) {
     this(
         ksqlEngine,
@@ -125,7 +126,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final KsqlAuthorizationValidator authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -157,8 +158,7 @@ public class KsqlResource implements KsqlConfigurable {
             commandQueue,
             distributedCmdResponseTimeout,
             injectorFactory,
-            authorizationValidator,
-            this.validator
+            authorizationValidator
         ),
         ksqlEngine,
         config,
@@ -182,12 +182,9 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     try {
-      final KsqlEntityList entities = handler.execute(
-          serviceContext,
-          TERMINATE_CLUSTER,
-          request.getStreamsProperties()
-      );
-      return Response.ok(entities).build();
+      return Response.ok(
+          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
+      ).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());

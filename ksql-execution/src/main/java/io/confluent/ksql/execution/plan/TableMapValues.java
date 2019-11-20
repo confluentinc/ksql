@@ -16,6 +16,8 @@ package io.confluent.ksql.execution.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
@@ -31,10 +33,11 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   private final String selectNodeName;
 
   public TableMapValues(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KTableHolder<K>> source,
-      final List<SelectExpression> selectExpressions,
-      final String selectNodeName
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "selectExpressions", required = true)
+      List<SelectExpression> selectExpressions,
+      @JsonProperty(value = "selectNodeName", required = true) String selectNodeName
   ) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
@@ -48,6 +51,7 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -65,19 +69,19 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitTableMapValues(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableMapValues<?> that = (TableMapValues<?>) o;
+    TableMapValues<?> that = (TableMapValues<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions)

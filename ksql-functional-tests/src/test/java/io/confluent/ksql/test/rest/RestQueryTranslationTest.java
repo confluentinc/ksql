@@ -69,6 +69,7 @@ public class RestQueryTranslationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -106,7 +107,7 @@ public class RestQueryTranslationTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    try (RestTestExecutor testExecutor = textExecutor()) {
+    try (RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final AssertionError e) {
       throw new AssertionError(e.getMessage()
@@ -119,7 +120,7 @@ public class RestQueryTranslationTest {
     }
   }
 
-  private static RestTestExecutor textExecutor() {
+  private static RestTestExecutor testExecutor() {
     return new RestTestExecutor(
         REST_APP.getListeners().get(0),
         TEST_HARNESS.getKafkaCluster(),

@@ -83,7 +83,7 @@ class QueryEngine {
     return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
   }
 
-  PhysicalPlan<?> buildPhysicalPlan(
+  PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,

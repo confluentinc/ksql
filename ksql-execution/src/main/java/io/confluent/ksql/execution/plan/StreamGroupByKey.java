@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.List;
@@ -27,9 +29,10 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   private final Formats formats;
 
   public StreamGroupByKey(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<Struct>> source,
-      final Formats formats) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
+      ExecutionStep<KStreamHolder<Struct>> source,
+      @JsonProperty(value = "formats", required = true) Formats formats) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
@@ -41,6 +44,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -54,19 +58,19 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(final PlanBuilder builder) {
+  public KGroupedStreamHolder build(PlanBuilder builder) {
     return builder.visitStreamGroupByKey(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamGroupByKey that = (StreamGroupByKey) o;
+    StreamGroupByKey that = (StreamGroupByKey) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats);

@@ -155,21 +155,26 @@ public final class QueryExecutor {
       final OptionalInt limit
   ) {
     final TransientQueryQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
-    final String transientQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+
     final String applicationId = addTimeSuffix(getQueryApplicationId(
         getServiceId(),
-        transientQueryPrefix,
+        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
         queryId
     ));
+
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+
     final KafkaStreams streams =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+
     streams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
+
+    final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
+
     return new TransientQueryMetadata(
         statementText,
         streams,
-        schema,
+        transientSchema,
         sources,
         queue::setLimitHandler,
         planSummary,
@@ -374,5 +379,17 @@ public final class QueryExecutor {
             queryId,
             contextStacker
         ));
+  }
+
+  /*
+   * Transient queries only return value columns, so the schema of a transient query should
+   * only have the value columns.
+   */
+  private static LogicalSchema buildTransientQuerySchema(final LogicalSchema fullSchema) {
+    final LogicalSchema.Builder builder = LogicalSchema.builder()
+        .noImplicitColumns();
+
+    builder.valueColumns(fullSchema.value());
+    return builder.build();
   }
 }

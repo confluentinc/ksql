@@ -111,7 +111,6 @@ public class CommandFactories implements DdlCommandFactory {
       final CreateStream statement
   ) {
     return createSourceFactory.createStreamCommand(
-        callInfo.sqlExpression,
         statement,
         callInfo.ksqlConfig
     );
@@ -122,7 +121,6 @@ public class CommandFactories implements DdlCommandFactory {
       final CreateTable statement
   ) {
     return createSourceFactory.createTableCommand(
-        callInfo.sqlExpression,
         statement,
         callInfo.ksqlConfig
     );

@@ -103,24 +103,22 @@ docker run --network tutorials_default --rm --interactive --tty \
 Your output should resemble:
 
 ```
-===========================================
-=        _  __ _____  ____  _             =
-=       | |/ // ____|/ __ \| |            =
-=       | ' /| (___ | |  | | |            =
-=       |  <  \___ \| |  | | |            =
-=       | . \ ____) | |__| | |____        =
-=       |_|\_\_____/ \___\_\______|       =
-=                                         =
-=  Streaming SQL Engine for Apache Kafka® =
-===========================================
+                  ===========================================
+                  =       _              _ ____  ____       =
+                  =      | | _____  __ _| |  _ \| __ )      =
+                  =      | |/ / __|/ _` | | | | |  _ \      =
+                  =      |   <\__ \ (_| | | |_| | |_) |     =
+                  =      |_|\_\___/\__, |_|____/|____/      =
+                  =                   |_|                   =
+                  =  Event Streaming Database purpose-built =
+                  =        for stream processing apps       =
+                  ===========================================
 
-Copyright 2019 Confluent Inc.
+Copyright 2017-2019 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at
-<http://localhost:8088>
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksqldb-server:8088
 
-Having trouble? Type 'help' (case-insensitive) for a rundown of
-how things work!
+Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
 ksql>
 ```

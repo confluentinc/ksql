@@ -98,7 +98,7 @@ public class StreamSelectKeyBuilderTest {
   );
 
   private PlanBuilder planBuilder;
-  private StreamSelectKey<?> selectKey;
+  private StreamSelectKey selectKey;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -123,7 +123,7 @@ public class StreamSelectKeyBuilderTest {
   }
 
   private void givenUpdateRowkey() {
-    selectKey = new StreamSelectKey<>(
+    selectKey = new StreamSelectKey(
         properties,
         sourceStep,
         KEY,
@@ -132,7 +132,7 @@ public class StreamSelectKeyBuilderTest {
   }
 
   private void givenUpdateRowkeyFalse() {
-    selectKey = new StreamSelectKey<>(
+    selectKey = new StreamSelectKey(
         properties,
         sourceStep,
         KEY,

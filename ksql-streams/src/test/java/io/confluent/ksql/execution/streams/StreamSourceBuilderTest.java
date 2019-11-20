@@ -44,6 +44,7 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -164,6 +165,7 @@ public class StreamSourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void setup() {
     when(extractionPolicy.create(anyInt())).thenReturn(extractor);
+    when(extractionPolicy.getTimestampField()).thenReturn(ColumnRef.withoutSource(ColumnName.of("field2")));
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);

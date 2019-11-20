@@ -16,6 +16,8 @@ package io.confluent.ksql.execution.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
@@ -31,11 +33,11 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String selectNodeName;
 
   public StreamMapValues(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<K>> source,
-      final List<SelectExpression> selectExpressions,
-      final String selectNodeName
-  ) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "selectExpressions", required = true)
+      List<SelectExpression> selectExpressions,
+      @JsonProperty(value = "selectNodeName", required = true) String selectNodeName) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
@@ -48,6 +50,7 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -65,19 +68,19 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
+  public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamMapValues(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamMapValues<?> that = (StreamMapValues<?>) o;
+    StreamMapValues<?> that = (StreamMapValues<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions)

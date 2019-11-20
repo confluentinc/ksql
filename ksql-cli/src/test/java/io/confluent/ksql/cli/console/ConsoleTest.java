@@ -1426,6 +1426,6 @@ public class ConsoleTest {
 
     final LogicalSchema schema = schemaBuilder.build();
 
-    return EntityUtil.buildSourceSchemaEntity(schema, false);
+    return EntityUtil.buildSourceSchemaEntity(schema);
   }
 }

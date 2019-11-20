@@ -64,7 +64,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RequestHandlerTest {
 
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
-  
+
   @Mock KsqlEngine ksqlEngine;
   @Mock KsqlConfig ksqlConfig;
   @Mock ServiceContext serviceContext;
@@ -83,7 +83,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -130,7 +130,6 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(statements.get(0)),
             eq(ImmutableMap.of()),
             eq(ksqlEngine),
             eq(serviceContext)
@@ -154,13 +153,11 @@ public class RequestHandlerTest {
     // Then
     assertThat(entities, contains(entity));
     verify(distributor, times(1))
-        .execute(
-            argThat(is(configured(
-                preparedStatement(instanceOf(CreateStream.class)),
-                    ImmutableMap.of("x", "y"),
-                    ksqlConfig))),
-            eq(statements.get(0)),
-            eq(ImmutableMap.of("x", "y")),
+        .execute(argThat(is(configured(
+            preparedStatement(instanceOf(CreateStream.class)),
+            ImmutableMap.of("x", "y"),
+            ksqlConfig))),
+            any(),
             eq(ksqlEngine),
             eq(serviceContext)
         );

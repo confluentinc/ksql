@@ -31,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -47,16 +48,21 @@ public class DdlCommandExec {
   /**
    * execute on metaStore
    */
-  public DdlCommandResult execute(final DdlCommand ddlCommand) {
-    return new Executor().execute(ddlCommand);
+  public DdlCommandResult execute(final String sql, final DdlCommand ddlCommand) {
+    return new Executor(sql).execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
+    private final String sql;
+
+    private Executor(final String sql) {
+      this.sql = Objects.requireNonNull(sql, "sql");
+    }
 
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
       final KsqlStream<?> ksqlStream = new KsqlStream<>(
-          createStream.getSqlExpression(),
+          sql,
           createStream.getSourceName(),
           createStream.getSchema(),
           createStream.getSerdeOptions(),
@@ -71,7 +77,7 @@ public class DdlCommandExec {
     @Override
     public DdlCommandResult executeCreateTable(final CreateTableCommand createTable) {
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
-          createTable.getSqlExpression(),
+          sql,
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getSerdeOptions(),

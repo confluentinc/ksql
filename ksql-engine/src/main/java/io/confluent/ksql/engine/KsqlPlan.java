@@ -15,50 +15,36 @@
 
 package io.confluent.ksql.engine;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
-import java.util.Objects;
 import java.util.Optional;
 
-public final class KsqlPlan {
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = As.PROPERTY
+)
+@JsonSubTypes({
+    @Type(value = KsqlPlanV1.class, name = "ksqlPlanV1")
+})
+public interface KsqlPlan {
+  Optional<DdlCommand> getDdlCommand();
 
-  private final String statementText;
-  private final Optional<DdlCommand> ddlCommand;
-  private final Optional<QueryPlan> queryPlan;
+  Optional<QueryPlan> getQueryPlan();
 
-  static KsqlPlan ddlPlan(
-      final String statementText,
-      final DdlCommand ddlCommand
-  ) {
-    return new KsqlPlan(statementText, Optional.of(ddlCommand), Optional.empty());
+  String getStatementText();
+
+  static KsqlPlan ddlPlanCurrent(final String statementText, final DdlCommand ddlCommand) {
+    return new KsqlPlanV1(statementText, Optional.of(ddlCommand), Optional.empty());
   }
 
-  static KsqlPlan queryPlan(
+  static KsqlPlan queryPlanCurrent(
       final String statementText,
       final Optional<DdlCommand> ddlCommand,
       final QueryPlan queryPlan
   ) {
-    return new KsqlPlan(statementText, ddlCommand, Optional.of(queryPlan));
-  }
-
-  private KsqlPlan(
-      final String statementText,
-      final Optional<DdlCommand> ddlCommand,
-      final Optional<QueryPlan> queryPlan
-  ) {
-    this.statementText = Objects.requireNonNull(statementText, "statementText");
-    this.ddlCommand = Objects.requireNonNull(ddlCommand, "ddlCommand");
-    this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
-  }
-
-  Optional<DdlCommand> getDdlCommand() {
-    return ddlCommand;
-  }
-
-  Optional<QueryPlan> getQueryPlan() {
-    return queryPlan;
-  }
-
-  public String getStatementText() {
-    return statementText;
+    return new KsqlPlanV1(statementText, ddlCommand, Optional.of(queryPlan));
   }
 }

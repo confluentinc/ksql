@@ -1,0 +1,1056 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "Ksql Plan",
+  "oneOf" : [ {
+    "$ref" : "#/definitions/KsqlPlanV1"
+  } ],
+  "definitions" : {
+    "KsqlPlanV1" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "ksqlPlanV1" ],
+          "default" : "ksqlPlanV1"
+        },
+        "statementText" : {
+          "type" : "string"
+        },
+        "ddlCommand" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/CreateStreamCommand"
+          }, {
+            "$ref" : "#/definitions/CreateTableCommand"
+          }, {
+            "$ref" : "#/definitions/RegisterTypeCommand"
+          }, {
+            "$ref" : "#/definitions/DropSourceCommand"
+          }, {
+            "$ref" : "#/definitions/DropTypeCommand"
+          } ]
+        },
+        "queryPlan" : {
+          "$ref" : "#/definitions/QueryPlan"
+        }
+      },
+      "title" : "ksqlPlanV1",
+      "required" : [ "@type", "statementText", "ddlCommand", "queryPlan" ]
+    },
+    "CreateStreamCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "createStreamV1" ],
+          "default" : "createStreamV1"
+        },
+        "sourceName" : {
+          "type" : "string"
+        },
+        "schema" : {
+          "type" : "string"
+        },
+        "keyField" : {
+          "type" : "string"
+        },
+        "timestampExtractionPolicy" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
+          } ]
+        },
+        "serdeOptions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
+          }
+        },
+        "topic" : {
+          "$ref" : "#/definitions/KsqlTopic"
+        }
+      },
+      "title" : "createStreamV1",
+      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+    },
+    "MetadataTimestampExtractionPolicy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "metadatav1" ],
+          "default" : "metadatav1"
+        },
+        "timestampField" : {
+          "type" : "string"
+        }
+      },
+      "title" : "metadatav1",
+      "required" : [ "@type" ]
+    },
+    "StringTimestampExtractionPolicy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "stringColumnv1" ],
+          "default" : "stringColumnv1"
+        },
+        "timestampField" : {
+          "type" : "string"
+        },
+        "format" : {
+          "type" : "string"
+        }
+      },
+      "title" : "stringColumnv1",
+      "required" : [ "@type", "timestampField" ]
+    },
+    "LongColumnTimestampExtractionPolicy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "longColumnv1" ],
+          "default" : "longColumnv1"
+        },
+        "timestampField" : {
+          "type" : "string"
+        }
+      },
+      "title" : "longColumnv1",
+      "required" : [ "@type", "timestampField" ]
+    },
+    "KsqlTopic" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "kafkaTopicName" : {
+          "type" : "string"
+        },
+        "keyFormat" : {
+          "$ref" : "#/definitions/KeyFormat"
+        },
+        "valueFormat" : {
+          "$ref" : "#/definitions/FormatInfo"
+        },
+        "ksqlSink" : {
+          "type" : "boolean"
+        }
+      },
+      "required" : [ "kafkaTopicName", "keyFormat", "valueFormat", "ksqlSink" ]
+    },
+    "KeyFormat" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "formatInfo" : {
+          "$ref" : "#/definitions/FormatInfo"
+        },
+        "windowInfo" : {
+          "$ref" : "#/definitions/WindowInfo"
+        }
+      },
+      "required" : [ "formatInfo", "windowInfo" ]
+    },
+    "FormatInfo" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "format" : {
+          "type" : "string",
+          "enum" : [ "JSON", "AVRO", "DELIMITED", "KAFKA" ]
+        },
+        "delimiter" : {
+          "type" : "string"
+        },
+        "avroFullSchemaName" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "format" ]
+    },
+    "WindowInfo" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "type" : {
+          "type" : "string",
+          "enum" : [ "SESSION", "HOPPING", "TUMBLING" ]
+        },
+        "size" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "type", "size" ]
+    },
+    "CreateTableCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "createTableV1" ],
+          "default" : "createTableV1"
+        },
+        "sourceName" : {
+          "type" : "string"
+        },
+        "schema" : {
+          "type" : "string"
+        },
+        "keyField" : {
+          "type" : "string"
+        },
+        "timestampExtractionPolicy" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
+          } ]
+        },
+        "serdeOptions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
+          }
+        },
+        "topic" : {
+          "$ref" : "#/definitions/KsqlTopic"
+        }
+      },
+      "title" : "createTableV1",
+      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+    },
+    "RegisterTypeCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "registerTypeV1" ],
+          "default" : "registerTypeV1"
+        },
+        "type" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        }
+      },
+      "title" : "registerTypeV1",
+      "required" : [ "@type", "type", "name" ]
+    },
+    "DropSourceCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "dropSourceV1" ],
+          "default" : "dropSourceV1"
+        },
+        "sourceName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "dropSourceV1",
+      "required" : [ "@type", "sourceName" ]
+    },
+    "DropTypeCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "dropTypeV1" ],
+          "default" : "dropTypeV1"
+        },
+        "typeName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "dropTypeV1",
+      "required" : [ "@type", "typeName" ]
+    },
+    "QueryPlan" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "sources" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "sink" : {
+          "type" : "string"
+        },
+        "physicalPlan" : {
+          "$ref" : "#/definitions/PhysicalPlan"
+        }
+      },
+      "required" : [ "sources", "sink", "physicalPlan" ]
+    },
+    "PhysicalPlan" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "queryId" : {
+          "type" : "string"
+        },
+        "physicalPlan" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "planSummary" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "queryId", "physicalPlan", "planSummary" ]
+    },
+    "StreamAggregate" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamAggregateV1" ],
+          "default" : "streamAggregateV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "nonFuncColumnCount" : {
+          "type" : "integer"
+        },
+        "aggregations" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "streamAggregateV1",
+      "required" : [ "@type", "properties", "source", "formats", "nonFuncColumnCount", "aggregations" ]
+    },
+    "DefaultExecutionStepProperties" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "default" ],
+          "default" : "default"
+        },
+        "schema" : {
+          "type" : "string"
+        },
+        "queryContext" : {
+          "type" : "string"
+        }
+      },
+      "title" : "default",
+      "required" : [ "@type", "schema", "queryContext" ]
+    },
+    "StreamFilter" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamFilterV1" ],
+          "default" : "streamFilterV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "filterExpression" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamFilterV1",
+      "required" : [ "@type", "properties", "source", "filterExpression" ]
+    },
+    "StreamFlatMap" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamFlatMapV1" ],
+          "default" : "streamFlatMapV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "tableFunctions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "streamFlatMapV1",
+      "required" : [ "@type", "properties", "source", "tableFunctions" ]
+    },
+    "StreamGroupBy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamGroupByV1" ],
+          "default" : "streamGroupByV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "groupByExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "streamGroupByV1",
+      "required" : [ "@type", "properties", "source", "formats", "groupByExpressions" ]
+    },
+    "StreamGroupByKey" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamGroupByKeyV1" ],
+          "default" : "streamGroupByKeyV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        }
+      },
+      "title" : "streamGroupByKeyV1",
+      "required" : [ "@type", "properties", "source", "formats" ]
+    },
+    "StreamMapValues" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamMapValuesV1" ],
+          "default" : "streamMapValuesV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "selectExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "selectNodeName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamMapValuesV1",
+      "required" : [ "@type", "properties", "source", "selectExpressions", "selectNodeName" ]
+    },
+    "StreamSelectKey" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamSelectKeyV1" ],
+          "default" : "streamSelectKeyV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "fieldName" : {
+          "type" : "string"
+        },
+        "updateRowKey" : {
+          "type" : "boolean"
+        }
+      },
+      "title" : "streamSelectKeyV1",
+      "required" : [ "@type", "properties", "source", "fieldName", "updateRowKey" ]
+    },
+    "StreamSink" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamSinkV1" ],
+          "default" : "streamSinkV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamSinkV1",
+      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
+    },
+    "StreamSource" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamSourceV1" ],
+          "default" : "streamSourceV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "timestampPolicy" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
+          } ]
+        },
+        "timestampIndex" : {
+          "type" : "integer"
+        },
+        "offsetReset" : {
+          "type" : "string",
+          "enum" : [ "EARLIEST", "LATEST" ]
+        },
+        "sourceSchema" : {
+          "type" : "string"
+        },
+        "alias" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamSourceV1",
+      "required" : [ "@type", "properties", "topicName", "formats", "timestampPolicy", "timestampIndex", "offsetReset", "sourceSchema", "alias" ]
+    },
+    "FormatsV1" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "formatsV1" ],
+          "default" : "formatsV1"
+        },
+        "keyFormat" : {
+          "$ref" : "#/definitions/KeyFormat"
+        },
+        "valueFormat" : {
+          "$ref" : "#/definitions/FormatInfo"
+        },
+        "options" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
+          }
+        }
+      },
+      "title" : "formatsV1",
+      "required" : [ "@type", "keyFormat", "valueFormat", "options" ]
+    },
+    "WindowedStreamSource" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "windowedStreamSourceV1" ],
+          "default" : "windowedStreamSourceV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "timestampPolicy" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
+          }, {
+            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
+          } ]
+        },
+        "timestampIndex" : {
+          "type" : "integer"
+        },
+        "offsetReset" : {
+          "type" : "string",
+          "enum" : [ "EARLIEST", "LATEST" ]
+        },
+        "sourceSchema" : {
+          "type" : "string"
+        },
+        "alias" : {
+          "type" : "string"
+        }
+      },
+      "title" : "windowedStreamSourceV1",
+      "required" : [ "@type", "properties", "topicName", "formats", "timestampPolicy", "timestampIndex", "offsetReset", "sourceSchema", "alias" ]
+    },
+    "StreamStreamJoin" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamStreamJoinV1" ],
+          "default" : "streamStreamJoinV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "joinType" : {
+          "type" : "string",
+          "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "leftFormats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "rightFormats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "left" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "right" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "before" : {
+          "type" : "integer"
+        },
+        "after" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "streamStreamJoinV1",
+      "required" : [ "@type", "properties", "joinType", "leftFormats", "rightFormats", "left", "right", "before", "after" ]
+    },
+    "StreamTableJoin" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamTableJoinV1" ],
+          "default" : "streamTableJoinV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "joinType" : {
+          "type" : "string",
+          "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "left" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "right" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        }
+      },
+      "title" : "streamTableJoinV1",
+      "required" : [ "@type", "properties", "joinType", "formats", "left", "right" ]
+    },
+    "StreamToTable" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamToTableV1" ],
+          "default" : "streamToTableV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        }
+      },
+      "title" : "streamToTableV1",
+      "required" : [ "@type", "source", "formats", "properties" ]
+    },
+    "StreamWindowedAggregate" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamWindowedAggregateV1" ],
+          "default" : "streamWindowedAggregateV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "nonFuncColumnCount" : {
+          "type" : "integer"
+        },
+        "aggregations" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "windowExpression" : {
+          "type" : "string"
+        }
+      },
+      "title" : "streamWindowedAggregateV1",
+      "required" : [ "@type", "properties", "source", "formats", "nonFuncColumnCount", "aggregations", "windowExpression" ]
+    },
+    "TableAggregate" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableAggregateV1" ],
+          "default" : "tableAggregateV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "nonFuncColumnCount" : {
+          "type" : "integer"
+        },
+        "aggregations" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "tableAggregateV1",
+      "required" : [ "@type", "properties", "source", "formats", "nonFuncColumnCount", "aggregations" ]
+    },
+    "TableFilter" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableFilterV1" ],
+          "default" : "tableFilterV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "filterExpression" : {
+          "type" : "string"
+        }
+      },
+      "title" : "tableFilterV1",
+      "required" : [ "@type", "properties", "source", "filterExpression" ]
+    },
+    "TableGroupBy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableGroupByV1" ],
+          "default" : "tableGroupByV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "groupByExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "tableGroupByV1",
+      "required" : [ "@type", "properties", "source", "formats", "groupByExpressions" ]
+    },
+    "TableMapValues" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableMapValuesV1" ],
+          "default" : "tableMapValuesV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "selectExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "selectNodeName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "tableMapValuesV1",
+      "required" : [ "@type", "properties", "source", "selectExpressions", "selectNodeName" ]
+    },
+    "TableSink" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSinkV1" ],
+          "default" : "tableSinkV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        }
+      },
+      "title" : "tableSinkV1",
+      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
+    },
+    "TableTableJoin" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableTableJoinV1" ],
+          "default" : "tableTableJoinV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "joinType" : {
+          "type" : "string",
+          "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "left" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "right" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        }
+      },
+      "title" : "tableTableJoinV1",
+      "required" : [ "@type", "properties", "joinType", "left", "right" ]
+    },
+    "ExecutionStep" : {
+      "oneOf" : [ {
+        "$ref" : "#/definitions/StreamAggregate"
+      }, {
+        "$ref" : "#/definitions/StreamFilter"
+      }, {
+        "$ref" : "#/definitions/StreamFlatMap"
+      }, {
+        "$ref" : "#/definitions/StreamGroupBy"
+      }, {
+        "$ref" : "#/definitions/StreamGroupByKey"
+      }, {
+        "$ref" : "#/definitions/StreamMapValues"
+      }, {
+        "$ref" : "#/definitions/StreamSelectKey"
+      }, {
+        "$ref" : "#/definitions/StreamSink"
+      }, {
+        "$ref" : "#/definitions/StreamSource"
+      }, {
+        "$ref" : "#/definitions/WindowedStreamSource"
+      }, {
+        "$ref" : "#/definitions/StreamStreamJoin"
+      }, {
+        "$ref" : "#/definitions/StreamTableJoin"
+      }, {
+        "$ref" : "#/definitions/StreamToTable"
+      }, {
+        "$ref" : "#/definitions/StreamWindowedAggregate"
+      }, {
+        "$ref" : "#/definitions/TableAggregate"
+      }, {
+        "$ref" : "#/definitions/TableFilter"
+      }, {
+        "$ref" : "#/definitions/TableGroupBy"
+      }, {
+        "$ref" : "#/definitions/TableMapValues"
+      }, {
+        "$ref" : "#/definitions/TableSink"
+      }, {
+        "$ref" : "#/definitions/TableTableJoin"
+      } ]
+    }
+  }
+}

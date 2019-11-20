@@ -19,7 +19,7 @@ For more information on setting properties, see
     name by converting to uppercase, replacing periods with underscores, and
     prepending with `KSQL_`. For example, the name of the `ksql.service.id`
     environment variable is `KSQL_KSQL_SERVICE_ID`. For more information,
-    see [Install ksqlDB with Docker](../install-ksql-with-docker.md).
+    see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
 
 Kafka Streams and Kafka Client Settings
 ---------------------------------------
@@ -70,7 +70,7 @@ and
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS` or `KSQL_BOOTSTRAP_SERVERS`. For
-more information, see [Install ksqlDB with Docker](../install-ksql-with-docker.md).
+more information, see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
 
 ### ksql.streams.commit.interval.ms
 
@@ -371,7 +371,7 @@ is `KSQL_LISTENERS`.
 ### ksql.metrics.tags.custom
 
 A list of tags to be included with emitted
-[JMX metrics](../../operations.md#monitoring-and-metrics), formatted as
+[JMX metrics](../../index.md#monitoring-and-metrics), formatted as
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 

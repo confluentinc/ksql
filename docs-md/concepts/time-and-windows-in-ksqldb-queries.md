@@ -365,15 +365,4 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 For more information on joins, see
 [Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
-Next Steps
-----------
-
--   [Create a ksqlDB Stream](../developer-guide/create-a-stream.md)
--   [Confluent Platform Quick Start (Docker)](https://docs.confluent.io/current/quickstart/ce-docker-quickstart.html)
--   [Stream Processing Cookbook: Event Time Processing](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/event-time-processing)
--   [Stream Processing Cookbook: Detecting and Analyzing Suspicious Network Activity](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/detecting-analyzing-suspicious-network-activity)
--   For a realistic example that manipulates timestamps and uses windows
-    in SQL queries, see
-    [KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data](https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data).
-
 Page last revised on: {{ git_revision_date }}

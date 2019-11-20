@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
@@ -27,9 +29,9 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   private final Expression filterExpression;
 
   public TableFilter(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KTableHolder<K>> source,
-      final Expression filterExpression
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "filterExpression", required = true) Expression filterExpression
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -42,6 +44,7 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -55,19 +58,19 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitTableFilter(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableFilter<?> that = (TableFilter<?>) o;
+    TableFilter<?> that = (TableFilter<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(filterExpression, that.filterExpression);

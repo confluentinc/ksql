@@ -19,6 +19,7 @@ import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
@@ -29,22 +30,20 @@ public final class KsqlAuthorizationValidatorFactory {
   private static final Logger LOG = LoggerFactory
       .getLogger(KsqlAuthorizationValidatorFactory.class);
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
-  private static final KsqlAuthorizationValidator DUMMY_VALIDATOR =
-      (sc, metastore, statement) -> { };
 
   private KsqlAuthorizationValidatorFactory() {
   }
 
-  public static KsqlAuthorizationValidator create(
+  public static Optional<KsqlAuthorizationValidator> create(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext
   ) {
     final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
     if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
       LOG.info("Forcing topic access validator");
-      return new KsqlAuthorizationValidatorImpl();
+      return Optional.of(new KsqlAuthorizationValidatorImpl());
     } else if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
-      return DUMMY_VALIDATOR;
+      return Optional.empty();
     }
 
     final Admin adminClient = serviceContext.getAdminClient();
@@ -52,14 +51,14 @@ public final class KsqlAuthorizationValidatorFactory {
     if (isKafkaAuthorizerEnabled(adminClient)) {
       if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
         LOG.info("KSQL topic authorization checks enabled.");
-        return new KsqlAuthorizationValidatorImpl();
+        return Optional.of(new KsqlAuthorizationValidatorImpl());
       }
 
       LOG.warn("The Kafka broker has an authorization service enabled, but the Kafka "
           + "version does not support authorizedOperations(). "
           + "KSQL topic authorization checks will not be enabled.");
     }
-    return DUMMY_VALIDATOR;
+    return Optional.empty();
   }
 
   private static boolean isKafkaAuthorizerEnabled(final Admin adminClient) {

@@ -15,16 +15,29 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = As.PROPERTY
+)
+@JsonSubTypes({
+    @Type(value = MetadataTimestampExtractionPolicy.class, name = "metadatav1"),
+    @Type(value = StringTimestampExtractionPolicy.class, name = "stringColumnv1"),
+    @Type(value = LongColumnTimestampExtractionPolicy.class, name = "longColumnv1")
+})
 public interface TimestampExtractionPolicy {
 
   TimestampExtractor create(int columnIndex);
 
-  default ColumnRef timestampField() {
+  default ColumnRef getTimestampField() {
     return null;
   }
 }

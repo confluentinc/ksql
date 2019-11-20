@@ -210,6 +210,7 @@
 
 ### BREAKING CHANGES
 
+* Introduced [`EMIT CHANGES`](https://docs.ksqldb.io/en/latest/operate-and-deploy/ksql-vs-ksqldb/#syntax) syntax to signify streaming queries. Persistent streaming queries do not yet require an `EMIT CHANGES` clause, but transient streaming queries do.
 * the response from the RESTful API for push queries has changed: it is now a valid JSON document containing a JSON array, where each element is JSON object containing either a row of data, an error message, or a final message.  The `terminal` field has been removed.
 * the response from the RESTful API for push queries has changed: it now returns a line with the schema and query id in a `header` field and null fields are not included in the payload.
 The CLI is backwards compatible with older versions of the server, though it won't output column headings from older versions.

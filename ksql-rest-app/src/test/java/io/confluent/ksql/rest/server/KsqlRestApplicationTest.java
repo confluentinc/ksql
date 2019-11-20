@@ -53,6 +53,7 @@ import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -269,7 +270,8 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotCreateLogStreamIfValidationFails() {
     // Given:
-    when(sandBox.execute(any(), any())).thenThrow(new KsqlException("error"));
+    when(sandBox.execute(any(), any(ConfiguredStatement.class)))
+        .thenThrow(new KsqlException("error"));
 
     // When:
     app.startKsql();

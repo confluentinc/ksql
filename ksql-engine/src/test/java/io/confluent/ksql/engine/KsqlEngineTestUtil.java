@@ -23,6 +23,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
@@ -32,6 +33,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +84,25 @@ public final class KsqlEngineTestUtil {
       final Map<String, Object> overriddenProperties
   ) {
     return execute(serviceContext, engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
+  }
+
+  public static TransientQueryMetadata executeQuery(
+      final ServiceContext serviceContext,
+      final KsqlEngine engine,
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties) {
+    final ParsedStatement stmt = engine.parse(sql).get(0);
+    final PreparedStatement<?> prepared = engine.prepare(stmt);
+    final ConfiguredStatement<Query> configured = ConfiguredStatement.of(
+        prepared, overriddenProperties, ksqlConfig).cast();
+    try {
+      return engine.executeQuery(serviceContext, configured);
+    } catch (final KsqlStatementException e) {
+      // use the original statement text in the exception so that tests
+      // can easily check that the failed statement is the input statement
+      throw new KsqlStatementException(e.getRawMessage(), stmt.getStatementText(), e.getCause());
+    }
   }
 
   /**

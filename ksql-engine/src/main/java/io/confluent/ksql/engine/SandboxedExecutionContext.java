@@ -20,11 +20,14 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,13 +83,56 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public KsqlPlan plan(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getConfig(),
+        statement.getOverrides()
+    ).plan(statement);
+  }
+
+  @Override
+  public ExecuteResult execute(
+      final ServiceContext serviceContext,
+      final ConfiguredKsqlPlan ksqlPlan
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        ksqlPlan.getConfig(),
+        ksqlPlan.getOverrides()
+    ).execute(ksqlPlan.getPlan());
+  }
+
+  @Override
   public ExecuteResult execute(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
-    final EngineExecutor executor = EngineExecutor
-        .create(engineContext, serviceContext, statement.getConfig(), statement.getOverrides());
+    return execute(
+        serviceContext,
+        ConfiguredKsqlPlan.of(
+            plan(serviceContext, statement),
+            statement.getOverrides(),
+            statement.getConfig()
+        )
+    );
+  }
 
-    return executor.execute(statement);
+  @Override
+  public TransientQueryMetadata executeQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getConfig(),
+        statement.getOverrides()
+    ).executeQuery(statement);
   }
 }

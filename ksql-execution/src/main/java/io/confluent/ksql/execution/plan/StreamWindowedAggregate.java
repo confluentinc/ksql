@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import java.util.Collections;
@@ -33,12 +35,14 @@ public class StreamWindowedAggregate
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedStreamHolder> source,
-      final Formats formats,
-      final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations,
-      final KsqlWindowExpression windowExpression) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
+      ExecutionStep<KGroupedStreamHolder> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
+      @JsonProperty(value = "aggregations", required = true) List<FunctionCall> aggregations,
+      @JsonProperty(value = "windowExpression", required = true)
+      KsqlWindowExpression windowExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -53,6 +57,7 @@ public class StreamWindowedAggregate
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -78,19 +83,19 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
+  public KTableHolder<Windowed<Struct>> build(PlanBuilder builder) {
     return builder.visitStreamWindowedAggregate(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamWindowedAggregate that = (StreamWindowedAggregate) o;
+    StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

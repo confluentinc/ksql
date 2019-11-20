@@ -15,29 +15,53 @@
 
 package io.confluent.ksql.execution.context;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@Immutable
 public final class QueryContext {
+  private static final String DELIMITER = "/";
 
-  private final List<String> context;
+  private final ImmutableList<String> context;
 
   private QueryContext() {
     this(Collections.emptyList());
   }
 
   private QueryContext(List<String> context) {
-    this.context = Objects.requireNonNull(context);
+    this.context = ImmutableList.copyOf(Objects.requireNonNull(context));
+    for (final String frame : context) {
+      if (frame.contains(DELIMITER)) {
+        throw new IllegalArgumentException("Cannot use string with delimiter in context");
+      }
+    }
+  }
+
+  @JsonCreator
+  private QueryContext(final String context) {
+    this(ImmutableList.copyOf(context.split(DELIMITER)));
   }
 
   public List<String> getContext() {
     return context;
   }
 
-  private QueryContext push(String... context) {
+  @JsonValue
+  public String formatContext() {
+    return String.join(DELIMITER, context);
+  }
+
+  public String toString() {
+    return formatContext();
+  }
+
+  private QueryContext push(String ...context) {
     return new QueryContext(
         new ImmutableList.Builder<String>()
             .addAll(this.context)

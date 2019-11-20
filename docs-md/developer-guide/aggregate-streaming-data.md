@@ -121,7 +121,7 @@ CREATE TABLE pageviews_per_region_per_session AS
 ```
 
 For more information, see
-[Time and Windows in ksqlDB](../concepts/time-and-windows-in-ksql-queries.md).
+[Time and Windows in ksqlDB](../concepts/time-and-windows-in-ksqldb-queries.md).
 
 Next Steps
 ----------

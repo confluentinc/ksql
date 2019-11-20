@@ -530,7 +530,7 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 
 #### Interactive ksqlDB clusters
 
-[Interactive ksqlDB clusters](../../../concepts/ksql-architecture.md#interactive-deployment)
+[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment)
 accept SQL statements from users and hence may require access to a wide
 variety of input and output topics. Add ACLs to appropriate literal and
 prefixed resource patterns to allow ksqlDB access to the input and output
@@ -680,7 +680,7 @@ user.
 
 #### Interactive ksqlDB clusters pre Kafka 2.0
 
-[Interactive ksqlDB clusters](../../../concepts/ksql-architecture.md#interactive-deployment),
+[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment),
 (which is the default configuration), require that the authenticated
 ksqlDB user has open access to create, read, write, delete topics, and use
 any consumer group:

@@ -14,6 +14,9 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -24,9 +27,10 @@ public class DefaultExecutionStepProperties implements ExecutionStepProperties {
   private final QueryContext queryContext;
   private final LogicalSchema schema;
 
+  @JsonCreator
   public DefaultExecutionStepProperties(
-      final LogicalSchema schema,
-      final QueryContext queryContext) {
+      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
+      @JsonProperty(value = "queryContext", required = true) final QueryContext queryContext) {
     this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
@@ -37,6 +41,7 @@ public class DefaultExecutionStepProperties implements ExecutionStepProperties {
   }
 
   @Override
+  @JsonIgnore
   public String getId() {
     return queryContext.toString();
   }

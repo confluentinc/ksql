@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.name;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.Immutable;
 
 /**
@@ -23,6 +24,7 @@ import com.google.errorprone.annotations.Immutable;
 @Immutable
 public final class SourceName extends Name<SourceName> {
 
+  @JsonCreator
   public static SourceName of(final String name) {
     return new SourceName(name);
   }

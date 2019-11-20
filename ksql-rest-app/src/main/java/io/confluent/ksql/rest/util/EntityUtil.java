@@ -35,16 +35,10 @@ public final class EntityUtil {
   private EntityUtil() {
   }
 
-  public static List<FieldInfo> buildSourceSchemaEntity(
-      final LogicalSchema schema,
-      final boolean valueSchemaOnly
-  ) {
-
+  public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
     final List<FieldInfo> allFields = new ArrayList<>();
-    if (!valueSchemaOnly) {
-      allFields.addAll(getFields(schema.metadata(), "meta"));
-      allFields.addAll(getFields(schema.key(), "key"));
-    }
+    allFields.addAll(getFields(schema.metadata(), "meta"));
+    allFields.addAll(getFields(schema.key(), "key"));
     allFields.addAll(getFields(schema.value(), "value"));
 
     if (allFields.isEmpty()) {

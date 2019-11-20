@@ -24,8 +24,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Arrays;
@@ -134,6 +136,15 @@ public final class StreamedRow {
     return Objects.hash(header, row, errorMessage, finalMessage);
   }
 
+  @Override
+  public String toString() {
+    try {
+      return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
+    } catch (JsonProcessingException e) {
+      return super.toString();
+    }
+  }
+
   private static void checkUnion(final Optional<?>... fs) {
     final long count = Arrays.stream(fs)
         .filter(Optional::isPresent)
@@ -188,6 +199,15 @@ public final class StreamedRow {
     @Override
     public int hashCode() {
       return Objects.hash(queryId, schema);
+    }
+
+    @Override
+    public String toString() {
+      try {
+        return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
+      } catch (JsonProcessingException e) {
+        return super.toString();
+      }
     }
   }
 }

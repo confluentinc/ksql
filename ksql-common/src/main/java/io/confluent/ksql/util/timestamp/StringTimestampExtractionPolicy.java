@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
@@ -24,11 +25,12 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
   private final ColumnRef timestampField;
+  @JsonProperty("format")
   private final String format;
 
   public StringTimestampExtractionPolicy(
-      final ColumnRef timestampField,
-      final String format) {
+      @JsonProperty(value = "timestampField", required = true) final ColumnRef timestampField,
+      @JsonProperty(value = "format", required = true) final String format) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
     Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;
@@ -41,7 +43,7 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
   }
 
   @Override
-  public ColumnRef timestampField() {
+  public ColumnRef getTimestampField() {
     return timestampField;
   }
 

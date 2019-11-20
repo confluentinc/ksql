@@ -60,7 +60,7 @@ ksqlDB and Kafka Streams
 ksqlDB is built on {{ site.kstreams }}, a robust stream processing framework
 that is part of {{ site.aktm }}. You can use ksqlDB and {{ site.kstreams }}
 together in your event streaming applications. For more information on
-their relationship, see [ksqlDB and Kafka Streams](ksql-and-kafka-streams.md).
+their relationship, see [ksqlDB and Kafka Streams](ksqldb-and-kafka-streams.md).
 For more information on {{ site.kstreams }}, see
 [Streams Architecture](https://docs.confluent.io/current/streams/architecture.html).
 

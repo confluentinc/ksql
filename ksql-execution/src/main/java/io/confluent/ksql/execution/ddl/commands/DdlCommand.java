@@ -15,6 +15,22 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = As.PROPERTY
+)
+@JsonSubTypes({
+    @Type(value = CreateStreamCommand.class, name = "createStreamV1"),
+    @Type(value = CreateTableCommand.class, name = "createTableV1"),
+    @Type(value = RegisterTypeCommand.class, name = "registerTypeV1"),
+    @Type(value = DropSourceCommand.class, name = "dropSourceV1"),
+    @Type(value = DropTypeCommand.class, name = "dropTypeV1")
+})
 public interface DdlCommand {
   DdlCommandResult execute(Executor executor);
 }

@@ -67,6 +67,10 @@ public class TransientQueryMetadata extends QueryMetadata {
     );
     this.limitHandlerSetter = Objects.requireNonNull(limitHandlerSetter, "limitHandlerSetter");
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+
+    if (!logicalSchema.metadata().isEmpty() || !logicalSchema.key().isEmpty()) {
+      throw new IllegalArgumentException("Transient queries only support value columns");
+    }
   }
 
   public boolean isRunning() {

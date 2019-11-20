@@ -100,7 +100,7 @@ SESSION, and WITHIN clauses.
 -   MILLISECOND, MILLISECONDS
 
 For more information, see
-[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
+[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
 
 ### ksqlDB Timestamp Formats
 

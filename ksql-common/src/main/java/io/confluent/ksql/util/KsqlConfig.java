@@ -65,9 +65,6 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
-      "ksql.internal.topic.min.insync.replicas";
-
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
@@ -198,6 +195,13 @@ public class KsqlConfig extends AbstractConfig {
           + "\"off\" disables the validator. If set to \"auto\", KSQL will attempt to discover "
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
+  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG =
+      "ksql.query.pull.skip.access.validator";
+  public static final boolean KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT = false;
+  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC = "If \"true\", KSQL will "
+      + " NOT enforce access validation checks for pull queries, which could expose Kafka topics"
+      + " which are secured with ACLs. Please enable only after careful consideration."
+      + " If \"false\", KSQL pull queries will fail against a secure Kafka cluster";
 
   public static final String KSQL_QUERY_PULL_ENABLE_CONFIG = "ksql.query.pull.enable";
   public static final String KSQL_QUERY_PULL_ENABLE_DOC =
@@ -511,14 +515,8 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
             Type.SHORT,
             (short) 1,
-            ConfigDef.Importance.MEDIUM,
+            ConfigDef.Importance.LOW,
             "The replication factor for the internal topics of KSQL server."
-        ).define(
-            KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY,
-            Type.SHORT,
-            (short) 1,
-            ConfigDef.Importance.MEDIUM,
-            "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,
@@ -604,6 +602,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG,
+            Type.BOOLEAN,
+            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT,
+            Importance.LOW,
+            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

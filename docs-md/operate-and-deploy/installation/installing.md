@@ -17,7 +17,7 @@ Docker support
 --------------
 
 You can deploy ksqlDB by using
-[Docker containers](install-ksql-with-docker.md).
+[Docker containers](install-ksqldb-with-docker.md).
 Starting with {{ site.cp }} 4.1.2, Confluent maintains images at
 [Docker Hub](https://hub.docker.com/r/confluentinc/cp-ksql-server/).
 To start ksqlDB containers in configurations like "ksqlDB Headless
@@ -143,24 +143,22 @@ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql http://localhost:8088
 After ksqlDB is started, your terminal should resemble this.
 
 ```
-===========================================
-=        _  __ _____  ____  _             =
-=       | |/ // ____|/ __ \| |            =
-=       | ' /| (___ | |  | | |            =
-=       |  <  \___ \| |  | | |            =
-=       | . \ ____) | |__| | |____        =
-=       |_|\_\_____/ \___\_\______|       =
-=                                         =
-=  Streaming SQL Engine for Apache Kafka® =
-===========================================
+                  ===========================================
+                  =       _              _ ____  ____       =
+                  =      | | _____  __ _| |  _ \| __ )      =
+                  =      | |/ / __|/ _` | | | | |  _ \      =
+                  =      |   <\__ \ (_| | | |_| | |_) |     =
+                  =      |_|\_\___/\__, |_|____/|____/      =
+                  =                   |_|                   =
+                  =  Event Streaming Database purpose-built =
+                  =        for stream processing apps       =
+                  ===========================================
 
-Copyright 2019 Confluent Inc.
+Copyright 2017-2019 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at
-<http://localhost:8088>
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksqldb-server:8088
 
-Having trouble? Type 'help' (case-insensitive) for a rundown of how
-things work!
+Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
 ksql>
 ```

@@ -232,7 +232,7 @@ final class EngineExecutor {
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
-          outputNode.getTimestampExtractionPolicy(),
+          outputNode.getTimestampColumn(),
           outputNode.getSerdeOptions(),
           outputNode.getKsqlTopic()
       );
@@ -241,7 +241,7 @@ final class EngineExecutor {
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
-          outputNode.getTimestampExtractionPolicy(),
+          outputNode.getTimestampColumn(),
           outputNode.getSerdeOptions(),
           outputNode.getKsqlTopic()
       );

@@ -83,7 +83,7 @@ public class SourceDescriptionFactoryTest {
         schema,
         SerdeOption.none(),
         KeyField.of(schema.value().get(0).ref()),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         topic
     );

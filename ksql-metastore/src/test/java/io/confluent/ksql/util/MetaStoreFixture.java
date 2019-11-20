@@ -34,6 +34,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.Optional;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public final class MetaStoreFixture {
@@ -49,9 +50,6 @@ public final class MetaStoreFixture {
       final FunctionRegistry functionRegistry,
       final ValueFormat valueFormat
   ) {
-    final MetadataTimestampExtractionPolicy timestampExtractionPolicy
-        = new MetadataTimestampExtractionPolicy();
-
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
@@ -77,8 +75,8 @@ public final class MetaStoreFixture {
         test1Schema,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
-        timestampExtractionPolicy,
-        false,
+        Optional.empty(),
+        false, 
         ksqlTopic0
     );
 
@@ -97,7 +95,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopic1
     );
@@ -124,7 +122,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopic2
     );
@@ -173,7 +171,7 @@ public final class MetaStoreFixture {
         ordersSchema,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopicOrders
     );
@@ -200,7 +198,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopic3
     );
@@ -237,7 +235,7 @@ public final class MetaStoreFixture {
         nestedArrayStructMapSchema,
         SerdeOption.none(),
         KeyField.none(),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         nestedArrayStructMapTopic
     );
@@ -256,7 +254,7 @@ public final class MetaStoreFixture {
         test1Schema,
         SerdeOption.none(),
         KeyField.none(),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopic4
     );
@@ -284,7 +282,7 @@ public final class MetaStoreFixture {
         sensorReadingsSchema,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID"))),
-        timestampExtractionPolicy,
+        Optional.empty(),
         false,
         ksqlTopicSensorReadings
     );

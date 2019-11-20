@@ -72,7 +72,7 @@ public class DdlCommandExec {
           createStream.getSchema(),
           createStream.getSerdeOptions(),
           getKeyField(createStream.getKeyField()),
-          createStream.getTimestampExtractionPolicy(),
+          createStream.getTimestampColumn(),
           withQuery,
           createStream.getTopic()
       );
@@ -88,7 +88,7 @@ public class DdlCommandExec {
           createTable.getSchema(),
           createTable.getSerdeOptions(),
           getKeyField(createTable.getKeyField()),
-          createTable.getTimestampExtractionPolicy(),
+          createTable.getTimestampColumn(),
           withQuery,
           createTable.getTopic()
       );

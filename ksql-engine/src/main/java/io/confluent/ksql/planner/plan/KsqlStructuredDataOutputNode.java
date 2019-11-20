@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -31,7 +32,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -51,7 +51,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Optional<TimestampColumn> timestampColumn,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
       final Optional<ColumnRef> partitionByField,
@@ -69,7 +69,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This leads to strange behaviour, but changing it is a breaking change.
         schema.withoutMetaAndKeyColsInValue(),
         limit,
-        timestampExtractionPolicy
+        timestampColumn
     );
 
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));

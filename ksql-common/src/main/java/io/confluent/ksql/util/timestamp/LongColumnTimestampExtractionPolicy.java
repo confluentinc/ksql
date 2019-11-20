@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
@@ -26,8 +25,7 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
 
   private final ColumnRef timestampField;
 
-  public LongColumnTimestampExtractionPolicy(
-      @JsonProperty(value = "timestampField", required = true) final ColumnRef timestampField) {
+  public LongColumnTimestampExtractionPolicy(final ColumnRef timestampField) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
     this.timestampField = timestampField;
   }

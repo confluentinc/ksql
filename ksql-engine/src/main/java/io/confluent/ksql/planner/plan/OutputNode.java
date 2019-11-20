@@ -19,13 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import javax.annotation.concurrent.Immutable;
 
@@ -37,22 +38,22 @@ public abstract class OutputNode
   private final PlanNode source;
   private final LogicalSchema schema;
   private final OptionalInt limit;
-  private final TimestampExtractionPolicy timestampExtractionPolicy;
+  private final Optional<TimestampColumn> timestampColumn;
 
   protected OutputNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
       final OptionalInt limit,
-      final TimestampExtractionPolicy timestampExtractionPolicy
+      final Optional<TimestampColumn> timestampColumn
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
     this.limit = requireNonNull(limit, "limit");
-    this.timestampExtractionPolicy =
-        requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy");
+    this.timestampColumn =
+        requireNonNull(timestampColumn, "timestampColumn");
   }
 
   @Override
@@ -88,8 +89,8 @@ public abstract class OutputNode
     return visitor.visitOutput(this, context);
   }
 
-  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return timestampExtractionPolicy;
+  public Optional<TimestampColumn> getTimestampColumn() {
+    return timestampColumn;
   }
 
   public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator);

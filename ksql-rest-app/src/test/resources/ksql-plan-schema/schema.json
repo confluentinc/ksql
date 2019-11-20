@@ -55,14 +55,8 @@
         "keyField" : {
           "type" : "string"
         },
-        "timestampExtractionPolicy" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
-          } ]
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         },
         "serdeOptions" : {
           "type" : "array",
@@ -76,58 +70,20 @@
         }
       },
       "title" : "createStreamV1",
-      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "serdeOptions", "topic" ]
     },
-    "MetadataTimestampExtractionPolicy" : {
+    "TimestampColumn" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "metadatav1" ],
-          "default" : "metadatav1"
-        },
-        "timestampField" : {
-          "type" : "string"
-        }
-      },
-      "title" : "metadatav1",
-      "required" : [ "@type" ]
-    },
-    "StringTimestampExtractionPolicy" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "stringColumnv1" ],
-          "default" : "stringColumnv1"
-        },
-        "timestampField" : {
+        "column" : {
           "type" : "string"
         },
         "format" : {
           "type" : "string"
         }
       },
-      "title" : "stringColumnv1",
-      "required" : [ "@type", "timestampField" ]
-    },
-    "LongColumnTimestampExtractionPolicy" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "longColumnv1" ],
-          "default" : "longColumnv1"
-        },
-        "timestampField" : {
-          "type" : "string"
-        }
-      },
-      "title" : "longColumnv1",
-      "required" : [ "@type", "timestampField" ]
+      "required" : [ "column" ]
     },
     "KsqlTopic" : {
       "type" : "object",
@@ -207,14 +163,8 @@
         "keyField" : {
           "type" : "string"
         },
-        "timestampExtractionPolicy" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
-          } ]
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         },
         "serdeOptions" : {
           "type" : "array",
@@ -228,7 +178,7 @@
         }
       },
       "title" : "createTableV1",
-      "required" : [ "@type", "sourceName", "schema", "keyField", "timestampExtractionPolicy", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "serdeOptions", "topic" ]
     },
     "RegisterTypeCommand" : {
       "type" : "object",
@@ -587,17 +537,8 @@
             "$ref" : "#/definitions/FormatsV1"
           } ]
         },
-        "timestampPolicy" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
-          } ]
-        },
-        "timestampIndex" : {
-          "type" : "integer"
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         },
         "offsetReset" : {
           "type" : "string",
@@ -611,7 +552,7 @@
         }
       },
       "title" : "streamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "timestampPolicy", "timestampIndex", "offsetReset", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
     },
     "FormatsV1" : {
       "type" : "object",
@@ -661,18 +602,6 @@
             "$ref" : "#/definitions/FormatsV1"
           } ]
         },
-        "timestampPolicy" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/MetadataTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/StringTimestampExtractionPolicy"
-          }, {
-            "$ref" : "#/definitions/LongColumnTimestampExtractionPolicy"
-          } ]
-        },
-        "timestampIndex" : {
-          "type" : "integer"
-        },
         "offsetReset" : {
           "type" : "string",
           "enum" : [ "EARLIEST", "LATEST" ]
@@ -682,10 +611,13 @@
         },
         "alias" : {
           "type" : "string"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "timestampPolicy", "timestampIndex", "offsetReset", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",

@@ -27,13 +27,11 @@ public class StringTimestampExtractor implements TimestampExtractor {
   private final int timestampColumn;
   private final String format;
 
-
   StringTimestampExtractor(final String format, final int timestampColumn) {
     this.format = Objects.requireNonNull(format, "format can't be null");
     Preconditions.checkArgument(timestampColumn >= 0, "timestampColumn must be >= 0");
     this.timestampColumn = timestampColumn;
     this.timestampParser = new StringToTimestampParser(format);
-
   }
 
   @Override
@@ -51,5 +49,4 @@ public class StringTimestampExtractor implements TimestampExtractor {
           e);
     }
   }
-
 }

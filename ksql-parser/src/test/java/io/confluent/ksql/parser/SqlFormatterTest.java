@@ -67,7 +67,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -172,7 +171,7 @@ public class SqlFormatterTest {
         ORDERS_SCHEMA,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         ksqlTopicOrders
     );
@@ -190,7 +189,7 @@ public class SqlFormatterTest {
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         ksqlTopicItems
     );
@@ -203,7 +202,7 @@ public class SqlFormatterTest {
         tableSchema,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("TABLE"))),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         ksqlTopicItems
     );

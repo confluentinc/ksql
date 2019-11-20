@@ -61,13 +61,13 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -183,7 +183,7 @@ public class CodeGenRunnerTest {
             META_STORE_SCHEMA,
             SerdeOption.none(),
             KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
-            new MetadataTimestampExtractionPolicy(),
+            Optional.empty(),
             false,
             ksqlTopic
         );

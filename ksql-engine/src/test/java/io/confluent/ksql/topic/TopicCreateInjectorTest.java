@@ -114,7 +114,7 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         sourceTopic
     );
@@ -132,7 +132,7 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         joinTopic
     );

@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.rest.entity;
 
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -44,8 +44,8 @@ public final class SourceDescriptionFactory {
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
         dataSource.getDataSourceType().getKsqlType(),
         dataSource.getKeyField().ref().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
-        Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::getTimestampField)
+        dataSource.getTimestampColumn()
+            .map(TimestampColumn::getColumn)
             .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         (extended
             ? MetricCollectors.getAndFormatStatsFor(

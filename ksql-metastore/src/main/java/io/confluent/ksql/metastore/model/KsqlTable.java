@@ -17,10 +17,11 @@ package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
 import java.util.Set;
 
 @Immutable
@@ -32,7 +33,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
       final KsqlTopic ksqlTopic
   ) {

@@ -132,7 +132,7 @@ CREATE STREAM clicks (user VARCHAR)
 ```
 
 You can create a derived stream that joins the `impressions` and `clicks` streams to output
-rows indicating that a given impression has been clicked on within one minute of the initial ad impression:
+rows indicating that a given impression has been clicked within one minute of the initial ad impression:
 
 ```sql
 CREATE STREAM clicked_impressions AS

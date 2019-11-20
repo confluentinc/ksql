@@ -81,6 +81,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
+import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
@@ -279,7 +280,6 @@ public class InteractiveStatementExecutorTest extends EasyMockSupport {
         csasStatement, emptyMap(), expectedConfig);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
     expect(mockEngine.plan(eq(serviceContext), eq(configuredCsas))).andReturn(plan);
     expect(mockEngine.execute(eq(serviceContext), eqConfigured(plan)))
@@ -489,7 +489,6 @@ public class InteractiveStatementExecutorTest extends EasyMockSupport {
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
     expect(mockMetaStore.getSource(SourceName.of(name))).andStubReturn(null);
-    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.plan(eq(serviceContext), eqConfigured(csas)))
         .andReturn(mockPlan);
     expect(mockEngine.execute(eq(serviceContext), eqConfigured(mockPlan)))
@@ -632,55 +631,6 @@ public class InteractiveStatementExecutorTest extends EasyMockSupport {
 
     // Then:
     verify(mockParser, mockEngine, mockMetaStore);
-  }
-
-  @Test
-  public void shouldFailCreateAsSelectIfExceedActivePersistentQueriesLimit() {
-    // Given:
-    createStreamsAndStartTwoPersistentQueries();
-    // Prepare to try adding a third
-    final KsqlConfig cmdConfig =
-        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
-    final Command csasCommand =
-        givenCommand("CREATE STREAM user2pv AS select * from pageview;", cmdConfig);
-    final CommandId csasCommandId =
-        new CommandId(CommandId.Type.STREAM, "_CSASGen2", CommandId.Action.CREATE);
-
-    // When:
-    handleStatement(csasCommand, csasCommandId, Optional.empty(), 2);
-
-    // Then:
-    final CommandStatus commandStatus = getCommandStatus(csasCommandId);
-    assertThat("CSAS statement should fail since exceeds limit of 2 active persistent queries",
-        commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
-    assertThat(
-        commandStatus.getMessage(),
-        containsString("would cause the number of active, persistent queries "
-            + "to exceed the configured limit"));
-  }
-
-  @Test
-  public void shouldFailInsertIntoIfExceedActivePersistentQueriesLimit() {
-    // Given:
-    createStreamsAndStartTwoPersistentQueries();
-    // Set limit and prepare to try adding a query that exceeds the limit
-    final KsqlConfig cmdConfig =
-        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
-    final Command insertIntoCommand =
-        givenCommand("INSERT INTO user1pv select * from pageview;", cmdConfig);
-    final CommandId insertIntoCommandId =
-        new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
-
-    // When:
-    handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty(), 2);
-
-    // Then: statement should fail since exceeds limit of 1 active persistent query
-    final CommandStatus commandStatus = getCommandStatus(insertIntoCommandId);
-    assertThat(commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
-    assertThat(
-        commandStatus.getMessage(),
-        containsString("would cause the number of active, persistent queries "
-            + "to exceed the configured limit"));
   }
 
   @Test

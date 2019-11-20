@@ -107,7 +107,6 @@ public class SchemaKGroupedStreamTest {
         functionRegistry
     );
     when(windowExp.getKsqlWindowExpression()).thenReturn(KSQL_WINDOW_EXP);
-    when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
   }
 
   @Test

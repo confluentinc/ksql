@@ -27,10 +27,10 @@ public class StreamsFactories {
   public static StreamsFactories create(final KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig);
     return new StreamsFactories(
-        GroupedFactory.create(ksqlConfig),
-        JoinedFactory.create(ksqlConfig),
-        MaterializedFactory.create(ksqlConfig),
-        StreamJoinedFactory.create(ksqlConfig)
+        GroupedFactory.create(),
+        JoinedFactory.create(),
+        MaterializedFactory.create(),
+        StreamJoinedFactory.create()
     );
   }
 

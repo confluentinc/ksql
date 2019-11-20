@@ -205,11 +205,11 @@ public final class QueryExecutor {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
-    final String persistanceQueryPrefix =
+    final String persistenceQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
     final String applicationId = getQueryApplicationId(
         getServiceId(),
-        persistanceQueryPrefix,
+        persistenceQueryPrefix,
         queryId
     );
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);

@@ -857,18 +857,6 @@ public class KsqlAvroSerializerTest {
   }
 
   @Test
-  public void shouldSerializeMapFieldWithoutNameIfDisabled() {
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false
-    ));
-
-    final org.apache.avro.Schema avroSchema =
-        AvroTestUtil.connectOptionalKeyMapSchema(legacyMapEntrySchema());
-
-    shouldSerializeMap(avroSchema);
-  }
-
-  @Test
   public void shouldSerializeMultipleMapFields() {
     final org.apache.avro.Schema avroInnerSchema0
         = connectMapEntrySchema(

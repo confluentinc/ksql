@@ -140,4 +140,4 @@ CREATE STREAM clicked_impressions AS
 ```
 
 Any time an `impressions` row is received, followed within one minute by a `clicks` row having the same `user`, 
-a row will be emitted into the `clicked_impressions` stream.
+a row is emitted into the `clicked_impressions` stream.

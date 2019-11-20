@@ -220,24 +220,24 @@ The CLI is backwards compatible with older versions of the server, though it won
 "ConsumerGroups" columns. You can use "SHOW TOPICS EXTENDED" to get the
 output previous emitted from "SHOW TOPICS". See below for examples.
 This change splits "SHOW TOPICS" into two commands:
-1. "SHOW TOPICS EXTENDED", which shows what was previously shown by
-"SHOW TOPICS". Sample output:
-```
-ksql> show topics extended;
-Kafka Topic                                                                                   | Partitions | Partition Replicas | Consumers | ConsumerGroups
---------------------------------------------------------------------------------------------------------------------------------------------------------------
-_confluent-command                                                                            | 1          | 1                  | 1         | 1
-_confluent-controlcenter-5-3-0-1-actual-group-consumption-rekey                               | 1          | 1                  | 1         | 1
-```
-2. "SHOW TOPICS", which now no longer queries consumer groups and their
-active consumers. Sample output:
-```
-ksql> show topics;
-Kafka Topic                                                                                   | Partitions | Partition Replicas
----------------------------------------------------------------------------------------------------------------------------------
-_confluent-command                                                                            | 1          | 1
-_confluent-controlcenter-5-3-0-1-actual-group-consumption-rekey                               | 1          | 1
-```
+  1. "SHOW TOPICS EXTENDED", which shows what was previously shown by
+  "SHOW TOPICS". Sample output:
+      ```
+      ksql> show topics extended;
+      Kafka Topic                                                                                   | Partitions | Partition Replicas | Consumers | ConsumerGroups
+      --------------------------------------------------------------------------------------------------------------------------------------------------------------
+      _confluent-command                                                                            | 1          | 1                  | 1         | 1
+      _confluent-controlcenter-5-3-0-1-actual-group-consumption-rekey                               | 1          | 1                  | 1         | 1
+      ```
+  2. "SHOW TOPICS", which now no longer queries consumer groups and their
+  active consumers. Sample output:
+      ```
+      ksql> show topics;
+      Kafka Topic                                                                                   | Partitions | Partition Replicas
+      ---------------------------------------------------------------------------------------------------------------------------------
+      _confluent-command                                                                            | 1          | 1
+      _confluent-controlcenter-5-3-0-1-actual-group-consumption-rekey                               | 1          | 1
+      ```
 
 
 

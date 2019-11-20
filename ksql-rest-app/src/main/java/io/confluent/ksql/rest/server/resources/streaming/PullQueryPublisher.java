@@ -27,15 +27,11 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
@@ -76,35 +72,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  /**
-   * Pull queries never return ROWTIME, but the schema returned has meta columns.
-   * Until this is fixed, fix this here.
-   *
-   * @param entity the pull query result entity
-   * @return the corrected schema, with just key and value columns.
-   * @see <a href="https://github.com/confluentinc/ksql/issues/3859">Github issue #3859</a>
-   */
-  private static LogicalSchema correctPullQuerySchema(final TableRowsEntity entity) {
-    final LogicalSchema incorrectSchema = entity.getSchema();
-
-    final Predicate<Column> isMeta = col -> incorrectSchema.isMetaColumn(col.name());
-
-    final Builder builder = LogicalSchema.builder()
-        .noImplicitColumns();
-
-    incorrectSchema.columns().stream()
-        .filter(isMeta.negate())
-        .forEach(col -> {
-          if (incorrectSchema.isKeyColumn(col.name())) {
-            builder.keyColumn(col);
-          } else {
-            builder.valueColumn(col);
-          }
-        });
-
-    return builder.build();
-  }
-
   private static final class PullQuerySubscription implements Flow.Subscription {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
@@ -132,7 +99,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       try {
         final TableRowsEntity entity = executor.call();
 
-        subscriber.onSchema(correctPullQuerySchema(entity));
+        subscriber.onSchema(entity.getSchema());
 
         final List<StreamedRow> rows = entity.getRows().stream()
             .map(PullQuerySubscription::toGenericRow)

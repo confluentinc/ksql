@@ -190,6 +190,24 @@ public final class LogicalSchema {
   }
 
   /**
+   * Returns a copy of this schema with not meta columns.
+   *
+   * <p>The order of columns is maintained
+   *
+   * @return the new schema.
+   */
+  public LogicalSchema withoutMetaColumns() {
+    final Builder builder = builder()
+        .noImplicitColumns();
+
+    columns.stream()
+        .filter(col -> col.namespace() != Namespace.META)
+        .forEachOrdered(builder::addColumn);
+
+    return builder.build();
+  }
+
+  /**
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {
@@ -367,11 +385,7 @@ public final class LogicalSchema {
     }
 
     public Builder keyColumn(final Column column) {
-      if (!seenKeys.add(column.ref())) {
-        throw new KsqlException("Duplicate keys found in schema: " + column);
-      }
-      explicitColumns.add(NamespacedColumn.of(column, Namespace.KEY));
-      addImplicitRowKey = false;
+      addColumn(NamespacedColumn.of(column, Namespace.KEY));
       return this;
     }
 
@@ -391,10 +405,7 @@ public final class LogicalSchema {
     }
 
     public Builder valueColumn(final Column column) {
-      if (!seenValues.add(column.ref())) {
-        throw new KsqlException("Duplicate values found in schema: " + column);
-      }
-      explicitColumns.add(NamespacedColumn.of(column, Namespace.VALUE));
+      addColumn(NamespacedColumn.of(column, Namespace.VALUE));
       return this;
     }
 
@@ -417,6 +428,28 @@ public final class LogicalSchema {
       allColumns.addAll(explicitColumns.build());
 
       return new LogicalSchema(allColumns.build());
+    }
+
+    private void addColumn(final NamespacedColumn column) {
+      switch (column.namespace()) {
+        case KEY:
+          if (!seenKeys.add(column.column().ref())) {
+            throw new KsqlException("Duplicate keys found in schema: " + column);
+          }
+          addImplicitRowKey = false;
+          break;
+
+        case VALUE:
+          if (!seenValues.add(column.column().ref())) {
+            throw new KsqlException("Duplicate values found in schema: " + column);
+          }
+          break;
+
+        default:
+          break;
+      }
+
+      explicitColumns.add(column);
     }
   }
 

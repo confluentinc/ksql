@@ -87,10 +87,10 @@ public final class MaterializationInfo {
     private LogicalSchema schema;
 
     private Builder(String stateStoreName, LogicalSchema stateStoreSchema) {
-      this.stateStoreName = Objects.requireNonNull(stateStoreName, "stateStoreName");
-      this.stateStoreSchema = Objects.requireNonNull(stateStoreSchema, "stateStoreSchema");
+      this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
+      this.stateStoreSchema = dropMetaColumns(requireNonNull(stateStoreSchema, "stateStoreSchema"));
       this.transforms = new LinkedList<>();
-      this.schema = stateStoreSchema;
+      this.schema = dropMetaColumns(stateStoreSchema);
     }
 
     /**
@@ -105,7 +105,7 @@ public final class MaterializationInfo {
         final LogicalSchema resultSchema
     ) {
       transforms.add(new AggregateMapInfo(aggregator));
-      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
+      this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
@@ -121,7 +121,7 @@ public final class MaterializationInfo {
         final LogicalSchema resultSchema
     ) {
       transforms.add(new ProjectInfo(selectMapper));
-      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
+      this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
@@ -144,6 +144,15 @@ public final class MaterializationInfo {
     public MaterializationInfo build() {
       return new MaterializationInfo(stateStoreName, stateStoreSchema, transforms, schema);
     }
+
+    /*
+     * Materialized tables do not have meta columns, such as ROWTIME, as this would be obtained
+     * from the source event triggering the output in push / persistent query. Materialized tables
+     * are accessed by pull queries, which have no source events triggering output.
+     */
+    private static LogicalSchema dropMetaColumns(final LogicalSchema schema) {
+      return schema.withoutMetaColumns();
+    }
   }
 
   public interface TransformInfo {
@@ -165,7 +174,7 @@ public final class MaterializationInfo {
     private final KudafAggregator aggregator;
 
     AggregateMapInfo(final KudafAggregator aggregator) {
-      this.aggregator = Objects.requireNonNull(aggregator, "aggregator");
+      this.aggregator = requireNonNull(aggregator, "aggregator");
     }
 
     public KudafAggregator getAggregator() {

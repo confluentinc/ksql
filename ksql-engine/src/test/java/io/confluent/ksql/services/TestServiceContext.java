@@ -94,7 +94,7 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient
   ) {
-    return new DefaultServiceContext(
+    final DefaultServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> adminClient,
         topicClient,
@@ -102,5 +102,10 @@ public final class TestServiceContext {
         () -> connectClient,
         DisabledKsqlClient::instance
     );
+
+    // Ensure admin client is closed on serviceContext.close():
+    serviceContext.getAdminClient();
+
+    return serviceContext;
   }
 }

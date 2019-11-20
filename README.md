@@ -119,3 +119,34 @@ The following statement will create a Kafka Connect sink connector that continuo
   'type.name'       = '',
   'connection.url'  = 'http://elasticsearch:9200');
 ```
+
+<a name="community"></a>
+# Join the Community
+
+For user help, questions or queries about KSQL please use our [user Google Group](https://groups.google.com/forum/#!forum/ksql-users)
+or our public Slack channel #ksql in [Confluent Community Slack](https://slackpass.io/confluentcommunity)
+
+For discussions about development of KSQL please use our [developer Google Group](https://groups.google.com/forum/#!forum/ksql-dev).
+You can also hang out in our developer Slack channel #ksql-dev in - [Confluent Community Slack](https://slackpass.io/confluentcommunity) - this is where day to day chat about the development of KSQL happens.
+Everyone is welcome!
+
+You can get help, learn how to contribute to KSQL, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
+
+For more general questions about the Confluent Platform please post in the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
+
+
+# Contributing
+
+Contributions to the code, examples, documentation, etc. are very much appreciated.
+
+- Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
+- Learn how to work with the KSQL source code, including building and testing KSQL as well as contributing code changes
+  to KSQL by reading our [Development and Contribution guidelines](CONTRIBUTING.md).
+- One good way to get started is by tackling a [newbie issue](https://github.com/confluentinc/ksql/labels/good%20first%20issue).
+
+
+# License
+
+The project is licensed under the [Confluent Community License](LICENSE).
+
+*Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/).*

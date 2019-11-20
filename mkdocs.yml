@@ -136,7 +136,7 @@ nav:
       - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md # Could be the canonical quickstart
       # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # leave in docs.confluent.io
       - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
-      - Integrate with PostgresDB: tutorials/connect-integration.md
+      - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
 

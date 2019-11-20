@@ -190,7 +190,7 @@ final class EngineContext {
       final String sqlExpression,
       final DdlCommand command
   ) {
-    final DdlCommandResult result = ddlCommandExec.execute(command);
+    final DdlCommandResult result = ddlCommandExec.execute(sqlExpression, command);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }

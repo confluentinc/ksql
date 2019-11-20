@@ -28,7 +28,6 @@ import java.util.Set;
 @Immutable
 public class CreateTableCommand extends CreateSourceCommand {
   public CreateTableCommand(
-      @JsonProperty(value = "sqlExpression", required = true) String sqlExpression,
       @JsonProperty(value = "sourceName", required = true) SourceName sourceName,
       @JsonProperty(value = "schema", required = true) LogicalSchema schema,
       @JsonProperty(value = "keyField", required = true) Optional<ColumnName> keyField,
@@ -38,7 +37,6 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "topic", required = true) KsqlTopic ksqlTopic
   ) {
     super(
-        sqlExpression,
         sourceName,
         schema,
         keyField,

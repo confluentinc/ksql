@@ -236,7 +236,6 @@ final class EngineExecutor {
     final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
-          sql,
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
@@ -246,7 +245,6 @@ final class EngineExecutor {
       );
     } else {
       ddl = new CreateTableCommand(
-          sql,
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),

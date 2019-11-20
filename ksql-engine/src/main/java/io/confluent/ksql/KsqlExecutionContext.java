@@ -16,6 +16,7 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -50,6 +51,11 @@ public interface KsqlExecutionContext {
    * @return the service context used for this execution context
    */
   ServiceContext getServiceContext();
+
+  /**
+   * @return the processing log context used to track errors during processing.
+   */
+  ProcessingLogContext getProcessingLogContext();
 
   /**
    * Retrieve the details of a persistent query.

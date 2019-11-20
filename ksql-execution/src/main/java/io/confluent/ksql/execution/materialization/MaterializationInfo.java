@@ -96,8 +96,8 @@ public final class MaterializationInfo {
     /**
      * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
      *
-     * @param aggregator descriptor of aggregation functions.
-     * @param resultSchema   schema after applying aggregate result mapping.
+     * @param aggregator the aggregator to apply.
+     * @param resultSchema schema after applying aggregate result mapping.
      * @return A builder instance with this transformation.
      */
     public Builder mapAggregates(
@@ -112,8 +112,8 @@ public final class MaterializationInfo {
     /**
      * Adds a transform that projects a list of expressions from the value.
      *
-     * @param selectMapper The list of expressions to project.
-     * @param resultSchema      The schema after applying the projection.
+     * @param selectMapper The select mapper to apply.
+     * @param resultSchema The schema after applying the projection.
      * @return A builder instance with this transformation.
      */
     public <K> Builder project(
@@ -162,7 +162,7 @@ public final class MaterializationInfo {
 
   public static class AggregateMapInfo implements TransformInfo {
 
-    final KudafAggregator aggregator;
+    private final KudafAggregator aggregator;
 
     AggregateMapInfo(final KudafAggregator aggregator) {
       this.aggregator = Objects.requireNonNull(aggregator, "aggregator");
@@ -179,7 +179,7 @@ public final class MaterializationInfo {
 
   public static class SqlPredicateInfo implements TransformInfo {
 
-    final SqlPredicate predicate;
+    private final SqlPredicate predicate;
 
     SqlPredicateInfo(final SqlPredicate predicate) {
       this.predicate = Objects.requireNonNull(predicate, "predicate");
@@ -199,7 +199,7 @@ public final class MaterializationInfo {
 
   public static class ProjectInfo implements TransformInfo {
 
-    final SelectValueMapper selectMapper;
+    private final SelectValueMapper selectMapper;
 
     ProjectInfo(final SelectValueMapper selectMapper) {
       this.selectMapper = Objects.requireNonNull(selectMapper, "selectMapper");

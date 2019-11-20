@@ -31,9 +31,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
  * Factor class for {@link KsqlMaterialization}.
@@ -107,11 +107,10 @@ public final class KsqlMaterializationFactory {
     public Transform visit(
         final MaterializationInfo.AggregateMapInfo info
     ) {
-      final Function<GenericRow, GenericRow> mapper = info
-          .getAggregator()
-          .getResultMapper()::apply;
+      final ValueMapper<GenericRow, GenericRow> resultMapper = info.getAggregator()
+          .getResultMapper();
 
-      return (k, v) -> Optional.of(mapper.apply(v));
+      return (k, v) -> Optional.of(resultMapper.apply(v));
     }
 
     @Override

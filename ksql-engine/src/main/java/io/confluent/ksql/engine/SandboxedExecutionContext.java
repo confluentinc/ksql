@@ -17,6 +17,8 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -52,6 +54,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public ServiceContext getServiceContext() {
     return engineContext.getServiceContext();
+  }
+
+  @Override
+  public ProcessingLogContext getProcessingLogContext() {
+    return NoopProcessingLogContext.INSTANCE;
   }
 
   @Override

@@ -262,11 +262,13 @@ public class TableAggregateBuilderTest {
 
     // Then:
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
+
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
     assertThat(info.stateStoreName(), equalTo("agg-regate"));
-    assertThat(info.getSchema(), equalTo(AGGREGATE_SCHEMA));
-    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
+    assertThat(info.getSchema(), equalTo(AGGREGATE_SCHEMA.withoutMetaColumns()));
+    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA.withoutMetaColumns()));
     assertThat(info.getTransforms(), hasSize(1));
+
     final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
     assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
     assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));

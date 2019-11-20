@@ -186,7 +186,6 @@ public class StreamAggregateBuilderTest {
   private StreamWindowedAggregate windowedAggregate;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void init() {
     when(sourceStep.build(any())).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
@@ -602,13 +601,15 @@ public class StreamAggregateBuilderTest {
     }
   }
 
-  private void assertCorrectMaterializationBuilder(final KTableHolder<?> result) {
+  private static void assertCorrectMaterializationBuilder(final KTableHolder<?> result) {
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
+
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
     assertThat(info.stateStoreName(), equalTo("agg-regate"));
-    assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA));
-    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
+    assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA.withoutMetaColumns()));
+    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA.withoutMetaColumns()));
     assertThat(info.getTransforms(), hasSize(1));
+
     final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
     assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
     assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));

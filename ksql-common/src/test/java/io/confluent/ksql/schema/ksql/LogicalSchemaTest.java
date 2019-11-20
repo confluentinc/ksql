@@ -624,10 +624,10 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result.value(), hasSize(schema.value().size() + 2));
-    assertThat(result.value().get(0).source().get(), is(BOB));
+    assertThat(result.value().get(0).source(), is(Optional.of(BOB)));
     assertThat(result.value().get(0).name(), is(ROWTIME_NAME));
     assertThat(result.value().get(0).type(), is(SqlTypes.BIGINT));
-    assertThat(result.value().get(1).source().get(), is(BOB));
+    assertThat(result.value().get(1).source(), is(Optional.of(BOB)));
     assertThat(result.value().get(1).name(), is(ROWKEY_NAME));
     assertThat(result.value().get(1).type(), is(SqlTypes.STRING));
   }
@@ -672,7 +672,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveMetaColumns() {
+  public void shouldRemoveMetaColumnsFromValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, SqlTypes.BIGINT)
@@ -884,6 +884,40 @@ public class LogicalSchemaTest {
     assertThat(schema.metadata(), is(empty()));
     assertThat(schema.key(), is(empty()));
     assertThat(schema.value(), contains(Column.of(F0, SqlTypes.BIGINT)));
+  }
+
+  @Test
+  public void shouldRemoveMetaColumns() {
+    // Given
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, SqlTypes.BIGINT)
+        .keyColumn(K0, SqlTypes.BOOLEAN)
+        .build();
+
+    // When:
+    final LogicalSchema result = schema.withoutMetaColumns();
+
+    // Then:
+    assertThat(result.metadata(), is(empty()));
+    assertThat(result.key(), is(schema.key()));
+    assertThat(result.value(), is(schema.value()));
+  }
+
+  @Test
+  public void shouldMaintainColumnOrderWhenRemovingMetaColumns() {
+    // Given
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, SqlTypes.BIGINT)
+        .keyColumn(K0, SqlTypes.BOOLEAN)
+        .build();
+
+    // When:
+    final LogicalSchema result = schema.withoutMetaColumns();
+
+    // Then:
+    assertThat(result.columns(), hasSize(2));
+    assertThat(result.columns().get(0).name(), is(F0));
+    assertThat(result.columns().get(1).name(), is(K0));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

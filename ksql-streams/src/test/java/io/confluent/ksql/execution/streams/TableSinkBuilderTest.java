@@ -106,9 +106,6 @@ public class TableSinkBuilderTest {
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
     when(kTable.toStream()).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
-    when(source.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
-    );
     when(source.build(any())).thenReturn(
         KTableHolder.unmaterialized(kTable, SCHEMA, keySerdeFactory));
     sink = new TableSink<>(

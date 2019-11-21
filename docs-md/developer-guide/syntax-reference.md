@@ -309,6 +309,54 @@ SQL statements
   tables, topics, and columns.
 - Don't use quotes around stream names or table names when you CREATE them. TODO: update this
 
+Quoted identifiers for source and column names
+----------------------------------------------
+
+Quoted identifiers in column names and source names are supported. If you have
+names that ksqlDB can't parse, or if you need to control the case of your
+column names, enclose them in backtick characters, like this:
+`` `identifier` ``.
+
+For example, a record with the following unparseable column names is still
+usable. 
+
+```
+{"@id": 42, "col.val": value}
+```
+
+Use backtick characters to reference the columns:
+
+```sql
+  -- Enclose unparseable column names with backticks:
+  CREATE STREAM s1 (`@id` integer, `col.val` string) …
+```
+
+Also, you can use backtick characters for the names of sources, like streams
+and tables. For example, you can create a stream name that has an embedded
+hyphen:
+
+```sql
+    CREATE STREAM `foo-bar` (id VARCHAR) WITH (kafka_topic='foo', value_format='JSON', partitions=1);
+```
+
+You can use the hyphenated stream name in SQL statements by enclosing it with
+backticks:
+
+```sql
+INSERT INTO `foo-bar` (id) VALUES ('123');
+CREATE STREAM `foo-too` AS SELECT * FROM `foo-bar`;
+
+ Message
+------------------------------------------------------------------------------------
+ Stream foo-too created and running. Created by query with query ID: CSAS_foo-too_5
+------------------------------------------------------------------------------------
+```
+
+!!! note
+    By default, ksqlDB converts source and column names automatically to all
+    capital letters. Use quoted identifiers to override this behavior and
+    fully control your source and column names.
+
 Key Requirements
 ----------------
 

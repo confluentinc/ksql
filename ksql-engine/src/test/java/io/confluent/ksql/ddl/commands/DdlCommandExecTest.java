@@ -88,7 +88,7 @@ public class DdlCommandExecTest {
     givenCreateStreamWithKey(Optional.of("F1"));
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream);
+    cmdExec.execute(SQL_TEXT, createStream, false);
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
@@ -100,10 +100,21 @@ public class DdlCommandExecTest {
     givenCreateStreamWithKey(Optional.of("F1"));
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream);
+    cmdExec.execute(SQL_TEXT, createStream, false);
 
     // Then:
     assertThat(metaStore.getSource(STREAM_NAME).getSqlExpression(), is(SQL_TEXT));
+  }
+
+  public void shouldAddSinkStream() {
+    // Given:
+    givenCreateStreamWithKey(Optional.empty());
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createStream, true);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).isCasTarget(), is(true));
   }
 
   @Test
@@ -112,7 +123,7 @@ public class DdlCommandExecTest {
     givenCreateStreamWithKey(Optional.empty());
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream);
+    cmdExec.execute(SQL_TEXT, createStream, false);
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
@@ -124,7 +135,7 @@ public class DdlCommandExecTest {
     givenCreateTableWithKey(Optional.of("F1"));
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable);
+    cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
@@ -136,7 +147,7 @@ public class DdlCommandExecTest {
     givenCreateTableWithKey(Optional.empty());
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable);
+    cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
@@ -148,10 +159,21 @@ public class DdlCommandExecTest {
     givenCreateTableWithKey(Optional.empty());
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable);
+    cmdExec.execute(SQL_TEXT, createTable, false);
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getSqlExpression(), is(SQL_TEXT));
+  }
+
+  public void shouldAddSinkTable() {
+    // Given:
+    givenCreateTableWithKey(Optional.empty());
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createTable, true);
+
+    // Then:
+    assertThat(metaStore.getSource(TABLE_NAME).isCasTarget(), is(true));
   }
 
   @Test
@@ -160,7 +182,7 @@ public class DdlCommandExecTest {
     givenDropSourceCommand(STREAM_NAME);
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false);
 
     // Then:
     assertThat(result.isSuccess(), is(true));
@@ -174,7 +196,7 @@ public class DdlCommandExecTest {
     givenDropSourceCommand(STREAM_NAME);
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false);
 
     // Then
     assertThat(result.isSuccess(), is(true));
@@ -190,7 +212,7 @@ public class DdlCommandExecTest {
     metaStore.registerType("type", SqlTypes.STRING);
 
     // When:
-    final DdlCommandResult result  = cmdExec.execute(SQL_TEXT, dropType);
+    final DdlCommandResult result  = cmdExec.execute(SQL_TEXT, dropType, false);
 
     // Then:
     assertThat(metaStore.resolveType("type").isPresent(), is(false));
@@ -204,7 +226,7 @@ public class DdlCommandExecTest {
     metaStore.deleteType("type");
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false);
 
     // Then:
     MatcherAssert.assertThat("Expected successful execution", result.isSuccess());
@@ -225,8 +247,7 @@ public class DdlCommandExecTest {
         new KsqlTopic(
             "topic",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON)),
-            false
+            ValueFormat.of(FormatInfo.of(Format.JSON))
         )
     );
   }
@@ -241,8 +262,7 @@ public class DdlCommandExecTest {
         new KsqlTopic(
             TOPIC_NAME,
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON)),
-            false
+            ValueFormat.of(FormatInfo.of(Format.JSON))
         )
     );
   }

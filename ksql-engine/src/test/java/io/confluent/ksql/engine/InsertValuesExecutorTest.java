@@ -868,8 +868,7 @@ public class InsertValuesExecutorTest {
     final KsqlTopic topic = new KsqlTopic(
         TOPIC_NAME,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KeyField valueKeyField = keyField
@@ -885,6 +884,7 @@ public class InsertValuesExecutorTest {
           serdeOptions,
           valueKeyField,
           new MetadataTimestampExtractionPolicy(),
+          false,
           topic
       );
     } else {
@@ -895,6 +895,7 @@ public class InsertValuesExecutorTest {
           serdeOptions,
           valueKeyField,
           new MetadataTimestampExtractionPolicy(),
+          false,
           topic
       );
     }

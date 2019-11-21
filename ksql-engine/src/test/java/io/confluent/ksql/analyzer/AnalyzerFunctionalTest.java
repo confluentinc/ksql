@@ -306,8 +306,8 @@ public class AnalyzerFunctionalTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty())),
-        false);
+        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))
+    );
 
     final LogicalSchema schema = LogicalSchema.builder()
             .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
@@ -320,6 +320,7 @@ public class AnalyzerFunctionalTest {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("FIELD1"))),
         new MetadataTimestampExtractionPolicy(),
+        false,
         ksqlTopic
     );
 
@@ -538,8 +539,8 @@ public class AnalyzerFunctionalTest {
     final KsqlTopic topic = new KsqlTopic(
         "ks",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.KAFKA)),
-        false);
+        ValueFormat.of(FormatInfo.of(Format.KAFKA))
+    );
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
@@ -548,6 +549,7 @@ public class AnalyzerFunctionalTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
+        false,
         topic
     );
 

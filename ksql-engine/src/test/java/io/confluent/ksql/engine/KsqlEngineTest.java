@@ -746,8 +746,8 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(metaStore.getSource(SourceName.of("S")).getKsqlTopic().isKsqlSink(), is(true));
-    assertThat(metaStore.getSource(SourceName.of("T")).getKsqlTopic().isKsqlSink(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("S")).isCasTarget(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("T")).isCasTarget(), is(true));
   }
 
   @Test

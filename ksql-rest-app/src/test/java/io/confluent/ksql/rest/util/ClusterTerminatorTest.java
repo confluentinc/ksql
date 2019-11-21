@@ -443,11 +443,11 @@ public class ClusterTerminatorTest {
 
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
-    when(topic.isKsqlSink()).thenReturn(sink);
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format)));
 
     final DataSource<?> source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);
+    when(source.isCasTarget()).thenReturn(sink);
 
     assertThat("topic already registered", dataSources.put(SourceName.of(sourceName), source), is(nullValue()));
   }

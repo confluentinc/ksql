@@ -99,6 +99,7 @@ public class StructuredDataSourceTest {
           SerdeOption.none(), keyField,
           mock(TimestampExtractionPolicy.class),
           DataSourceType.KSTREAM,
+          false,
           mock(KsqlTopic.class)
       );
     }

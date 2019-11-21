@@ -142,6 +142,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return primaryContext.getServiceContext();
   }
 
+  @Override
+  public ProcessingLogContext getProcessingLogContext() {
+    return primaryContext.getProcessingLogContext();
+  }
+
   public String getServiceId() {
     return serviceId;
   }

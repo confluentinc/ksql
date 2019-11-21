@@ -19,11 +19,15 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * Pojo for passing around information about materialization of a query's state store
@@ -88,52 +92,36 @@ public final class MaterializationInfo {
     }
 
     /**
-     * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
+     * Adds a transform that maps the (key, value) to a new value.
      *
-     * @param aggregatesInfo descriptor of aggregation functions.
-     * @param resultSchema   schema after applying aggregate result mapping.
+     * @param mapperFactory a factory from which to get the mapper to apply.
+     * @param resultSchema schema after applying aggregate result mapping.
+     * @param stepName the name of the step, as will be used by the processing logger
      * @return A builder instance with this transformation.
      */
-    public Builder mapAggregates(AggregatesInfo aggregatesInfo, LogicalSchema resultSchema) {
-      if (resultSchema.value().size() != aggregatesInfo.valueColumnCount()) {
-        throw new IllegalArgumentException("value column count mismatch. "
-            + "Expected: " + aggregatesInfo.valueColumnCount() + ", "
-            + "Got: " + resultSchema.value().size()
-        );
-      }
-
-      transforms.add(new AggregateMapInfo(aggregatesInfo));
+    public Builder map(
+        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final LogicalSchema resultSchema,
+        final String stepName
+    ) {
+      transforms.add(new MapperInfo(mapperFactory, stepName));
       this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
-    /**
-     * Adds a transform that projects a list of expressions from the value.
-     *
-     * @param selectExpressions The list of expressions to project.
-     * @param resultSchema      The schema after applying the projection.
-     * @return A builder instance with this transformation.
-     */
-    public Builder project(List<SelectExpression> selectExpressions, LogicalSchema resultSchema) {
-      if (resultSchema.value().size() != selectExpressions.size()) {
-        throw new IllegalArgumentException("value column count mismatch. "
-            + "Expected: " + selectExpressions.size() + ", "
-            + "Got: " + resultSchema.value().size()
-        );
-      }
-      transforms.add(new ProjectInfo(selectExpressions, this.schema));
-      this.schema = dropMetaColumns(resultSchema);
-      return this;
-    }
 
     /**
      * Adds a transform that filters rows from the materialization.
      *
-     * @param filterExpression A boolean expression to filter rows on.
+     * @param predicateFactory a factory from which to get the predicate to apply.
+     * @param stepName the name of the step, as will be used by the processing logger
      * @return A builder instance with this transformation.
      */
-    public Builder filter(Expression filterExpression) {
-      transforms.add(new SqlPredicateInfo(filterExpression, schema));
+    public Builder filter(
+        final TransformFactory<BiPredicate<Object, GenericRow>> predicateFactory,
+        final String stepName
+    ) {
+      transforms.add(new PredicateInfo(predicateFactory, stepName));
       return this;
     }
 
@@ -163,23 +151,33 @@ public final class MaterializationInfo {
 
   public interface TransformVisitor<R> {
 
-    R visit(AggregateMapInfo mapInfo);
+    R visit(MapperInfo mapInfo);
 
-    R visit(SqlPredicateInfo info);
-
-    R visit(ProjectInfo info);
+    R visit(PredicateInfo info);
   }
 
-  public static class AggregateMapInfo implements TransformInfo {
+  public interface TransformFactory<T> {
 
-    final AggregatesInfo info;
+    T apply(ProcessingLogger processingLogger);
+  }
 
-    AggregateMapInfo(AggregatesInfo info) {
-      this.info = requireNonNull(info, "info");
+  public static class MapperInfo implements TransformInfo {
+
+    private final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory;
+    private final String stepName;
+
+    MapperInfo(
+        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final String stepName
+    ) {
+      this.mapperFactory = requireNonNull(mapperFactory, "mapperFactory");
+      this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public AggregatesInfo getInfo() {
-      return info;
+    public BiFunction<Object, GenericRow, GenericRow> getMapper(
+        final Function<String, ProcessingLogger> loggerFactory
+    ) {
+      return mapperFactory.apply(loggerFactory.apply(stepName));
     }
 
     public <R> R visit(TransformVisitor<R> visitor) {
@@ -187,46 +185,23 @@ public final class MaterializationInfo {
     }
   }
 
-  public static class SqlPredicateInfo implements TransformInfo {
+  public static class PredicateInfo implements TransformInfo {
 
-    final Expression filterExpression;
-    final LogicalSchema schema;
+    private final TransformFactory<BiPredicate<Object, GenericRow>> predicate;
+    private final String stepName;
 
-    SqlPredicateInfo(Expression filterExpression, LogicalSchema schema) {
-      this.filterExpression = requireNonNull(filterExpression, "filterExpression");
-      this.schema = requireNonNull(schema, "schema");
+    PredicateInfo(
+        final TransformFactory<BiPredicate<Object, GenericRow>> predicate,
+        final String stepName
+    ) {
+      this.predicate = Objects.requireNonNull(predicate, "predicate");
+      this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public Expression getFilterExpression() {
-      return filterExpression;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
-    }
-
-    @Override
-    public <R> R visit(TransformVisitor<R> visitor) {
-      return visitor.visit(this);
-    }
-  }
-
-  public static class ProjectInfo implements TransformInfo {
-
-    final List<SelectExpression> selectExpressions;
-    final LogicalSchema schema;
-
-    ProjectInfo(List<SelectExpression> selectExpressions, LogicalSchema schema) {
-      this.selectExpressions = requireNonNull(selectExpressions, "selectExpressions");
-      this.schema = requireNonNull(schema, "schema");
-    }
-
-    public List<SelectExpression> getSelectExpressions() {
-      return selectExpressions;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
+    public BiPredicate<Object, GenericRow> getPredicate(
+        final Function<String, ProcessingLogger> loggerFactory
+    ) {
+      return predicate.apply(loggerFactory.apply(stepName));
     }
 
     @Override

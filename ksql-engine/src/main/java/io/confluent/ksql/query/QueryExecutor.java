@@ -101,11 +101,7 @@ public final class QueryExecutor {
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
-        new KsqlMaterializationFactory(
-            Objects.requireNonNull(ksqlConfig, "ksqlConfig"),
-            Objects.requireNonNull(functionRegistry, "functionRegistry"),
-            Objects.requireNonNull(processingLogContext, "processingLogContext")
-        ),
+        new KsqlMaterializationFactory(processingLogContext),
         new KsMaterializationFactory()
     );
   }

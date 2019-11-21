@@ -132,6 +132,10 @@ final class EngineContext {
     return serviceContext;
   }
 
+  ProcessingLogContext getProcessingLogContext() {
+    return processingLogContext;
+  }
+
   List<ParsedStatement> parse(final String sql) {
     return parser.parse(sql);
   }

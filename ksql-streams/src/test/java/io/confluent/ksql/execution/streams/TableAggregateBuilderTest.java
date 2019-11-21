@@ -37,7 +37,7 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
-import io.confluent.ksql.execution.materialization.MaterializationInfo.AggregateMapInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -60,6 +60,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -269,9 +270,17 @@ public class TableAggregateBuilderTest {
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA.withoutMetaColumns()));
     assertThat(info.getTransforms(), hasSize(1));
 
-    final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
-    assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
-    assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));
-    assertThat(aggMapInfo.getInfo().startingColumnIndex(), equalTo(2));
+    final MapperInfo aggMapInfo = (MapperInfo) info.getTransforms().get(0);
+    final BiFunction<Object, GenericRow, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
+
+    // Given:
+    final Struct key = mock(Struct.class);
+    final GenericRow value = mock(GenericRow.class);
+
+    // When:
+    mapper.apply(key, value);
+
+    // Then:
+    verify(resultMapper).apply(value);
   }
 }

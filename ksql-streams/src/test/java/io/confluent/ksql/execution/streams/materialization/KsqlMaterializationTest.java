@@ -35,6 +35,7 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
@@ -44,7 +45,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,9 +87,9 @@ public class KsqlMaterializationTest {
   @Mock
   private Materialization inner;
   @Mock
-  private BiFunction<Struct, GenericRow, Optional<GenericRow>> project;
+  private Transform project;
   @Mock
-  private BiFunction<Struct, GenericRow, Optional<GenericRow>> filter;
+  private Transform filter;
   @Mock
   private MaterializedTable innerNonWindowed;
   @Mock

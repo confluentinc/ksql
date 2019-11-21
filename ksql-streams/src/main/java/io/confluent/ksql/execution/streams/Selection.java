@@ -17,46 +17,30 @@ package io.confluent.ksql.execution.streams;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 
 public final class Selection<K> {
-  private static final String SELECTION_CONTEXT = "PROJECT";
 
   private final SelectValueMapper<K> mapper;
   private final LogicalSchema schema;
 
   public static <K> Selection<K> of(
-      final QueryId queryId,
-      final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final List<SelectExpression> selectExpressions,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final ProcessingLogContext processingLogContext
+      final FunctionRegistry functionRegistry
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(queryContext);
-
-    final String loggerName = QueryLoggerUtil.queryLoggerName(
-        queryId,
-        contextStacker.push(SELECTION_CONTEXT).getQueryContext()
-    );
-
     final SelectValueMapper<K> mapper = SelectValueMapperFactory.create(
         selectExpressions,
         sourceSchema,
         ksqlConfig,
-        functionRegistry,
-        processingLogContext.getLoggerFactory().getLogger(loggerName)
+        functionRegistry
     );
 
     final LogicalSchema schema = buildSchema(sourceSchema, mapper);
@@ -75,11 +59,10 @@ public final class Selection<K> {
     schemaBuilder.keyColumns(keyCols);
 
     for (final SelectInfo select : mapper.getSelects()) {
-      schemaBuilder.valueColumn(select.getFieldName(), select.getExpressionType());
+      schemaBuilder.valueColumn(select.getFieldName(), select.getEvaluator().getExpressionType());
     }
 
     return schemaBuilder.build();
-
   }
 
   private Selection(final SelectValueMapper<K> mapper, final LogicalSchema schema) {

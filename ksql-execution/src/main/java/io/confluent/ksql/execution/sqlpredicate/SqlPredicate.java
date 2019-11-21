@@ -30,6 +30,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -38,18 +39,15 @@ public final class SqlPredicate {
 
   private final Expression filterExpression;
   private final IExpressionEvaluator ee;
-  private final ProcessingLogger processingLogger;
   private final CodeGenSpec spec;
 
   public SqlPredicate(
       Expression filterExpression,
       LogicalSchema schema,
       KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry,
-      ProcessingLogger processingLogger
+      FunctionRegistry functionRegistry
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
-    this.processingLogger = requireNonNull(processingLogger);
 
     CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     spec = codeGenRunner.getCodeGenSpec(this.filterExpression);
@@ -78,7 +76,9 @@ public final class SqlPredicate {
     }
   }
 
-  public <K> Predicate<K, GenericRow> getPredicate() {
+  public <K> Predicate<K, GenericRow> getPredicate(final ProcessingLogger processingLogger) {
+    Objects.requireNonNull(processingLogger, "processingLogger");
+
     return (key, row) -> {
       if (row == null) {
         return false;
@@ -89,24 +89,10 @@ public final class SqlPredicate {
         spec.resolve(row, values);
         return (Boolean) ee.evaluate(values);
       } catch (Exception e) {
-        logProcessingError(e, row);
+        logProcessingError(processingLogger, e, row);
       }
       return false;
     };
-  }
-
-  private void logProcessingError(Exception e, GenericRow row) {
-    processingLogger.error(
-        EngineProcessingLogMessageFactory.recordProcessingError(
-            String.format(
-                "Error evaluating predicate %s: %s",
-                filterExpression,
-                e.getMessage()
-            ),
-            e,
-            row
-        )
-    );
   }
 
   Expression getFilterExpression() {
@@ -124,4 +110,17 @@ public final class SqlPredicate {
         .toArray();
   }
 
+  private void logProcessingError(
+      final ProcessingLogger processingLogger,
+      final Exception e,
+      final GenericRow row
+  ) {
+    final String msg = String.format(
+        "Error evaluating predicate %s: %s",
+        filterExpression,
+        e.getMessage()
+    );
+
+    processingLogger.error(EngineProcessingLogMessageFactory.recordProcessingError(msg, e, row));
+  }
 }

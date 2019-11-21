@@ -1,3 +1,18 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -23,14 +38,15 @@ import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SelectValueMapperTest {
+
   private static final ColumnName NAME0 = ColumnName.of("apple");
   private static final ColumnName NAME1 = ColumnName.of("cherry");
   private static final ColumnName NAME2 = ColumnName.of("banana");
@@ -45,27 +61,19 @@ public class SelectValueMapperTest {
   @Mock
   private ProcessingLogger processingLogger;
 
-  private SelectValueMapper<?> selectValueMapper;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  private KsqlValueTransformerWithKey<?> transformer;
 
   @Before
   public void setup() {
-    selectValueMapper = new SelectValueMapper<>(
+    final SelectValueMapper<?> selectValueMapper = new SelectValueMapper<>(
         ImmutableList.of(
             SelectValueMapper.SelectInfo.of(NAME0, col0),
             SelectValueMapper.SelectInfo.of(NAME1, col1),
             SelectValueMapper.SelectInfo.of(NAME2, col2)
-        ),
-        processingLogger
+        )
     );
-  }
 
-  private void givenEvaluations(final Object result0, final Object result1, final Object result2) {
-    when(col0.evaluate(any())).thenReturn(result0);
-    when(col1.evaluate(any())).thenReturn(result1);
-    when(col2.evaluate(any())).thenReturn(result2);
+    transformer = selectValueMapper.getTransformer(processingLogger);
   }
 
   @Test
@@ -74,7 +82,7 @@ public class SelectValueMapperTest {
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = selectValueMapper.transform(ROW);
+    final GenericRow result = transformer.transform(ROW);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -83,7 +91,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = selectValueMapper.transform(null);
+    final GenericRow result = transformer.transform(null);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -99,7 +107,7 @@ public class SelectValueMapperTest {
     when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
 
     // When:
-    selectValueMapper.transform(
+    transformer.transform(
         new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
 
     // Then:
@@ -121,5 +129,11 @@ public class SelectValueMapperTest {
             "Error computing expression kumquat() "
                 + "for column apple with index 0: oops")
     );
+  }
+
+  private void givenEvaluations(final Object result0, final Object result1, final Object result2) {
+    when(col0.evaluate(any())).thenReturn(result0);
+    when(col1.evaluate(any())).thenReturn(result1);
+    when(col2.evaluate(any())).thenReturn(result2);
   }
 }

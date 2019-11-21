@@ -52,7 +52,8 @@ public final class TableAggregateBuilder {
       final TableAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
       final MaterializedFactory materializedFactory,
-      final AggregateParamsFactory aggregateParamsFactory) {
+      final AggregateParamsFactory aggregateParamsFactory
+  ) {
     final LogicalSchema sourceSchema = groupedTable.getSchema();
     final int nonFuncColumns = aggregate.getNonFuncColumnCount();
     final AggregateParams aggregateParams = aggregateParamsFactory.createUndoable(
@@ -77,15 +78,15 @@ public final class TableAggregateBuilder {
         aggregateParams.getUndoAggregator().get(),
         materialized
     ).mapValues(aggregateParams.getAggregator().getResultMapper());
+
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
+            aggregateParams.getAggregator(),
             aggregate.getProperties().getQueryContext(),
-            aggregate.getNonFuncColumnCount(),
-            aggregate.getAggregations(),
-            sourceSchema,
             aggregateSchema,
             resultSchema
         );
+
     return KTableHolder.materialized(
         aggregated,
         resultSchema,

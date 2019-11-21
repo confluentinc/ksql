@@ -1,16 +1,16 @@
 ---
 layout: page
-title: Integrate with PostgresDB
+title: Integrate with PostgreSQL
 tagline: Integrate ksqlDB with Kafka Connect
-description: Learn how to use ksqlDB and Kafka Connect to integrate with PostgresDB
-keywords: ksqlDB, connect, postgres
+description: Learn how to use ksqlDB and Kafka Connect to integrate with PostgreSQL
+keywords: ksqlDB, connect, PostgreSQL
 ---
 
-Integrating with PostgresDB
+Integrating with PostgreSQL
 ===========================
 
 This tutorial demonstrates a simple workflow to integrate ksqlDB with an
-instance of PostgresDB.
+instance of PostgreSQL.
 
 Prerequisites:
 
@@ -39,10 +39,10 @@ Installing Postgres via Docker
 ------------------------------
 
 If you are experimenting with the ksqlDB-Connect integration and don't
-have a PostgresDB instance locally, you can install it by using Docker and
+have a PostgreSQL instance locally, you can install it by using Docker and
 populate some data:
 
-Install PostgresDB by using the `docker pull postgres` command.
+Install PostgreSQL by using the `docker pull postgres` command.
 Start the database and expose the JDBC port:
 
 ```bash

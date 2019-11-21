@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
@@ -38,6 +39,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Objects;
@@ -165,17 +167,49 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
+  public KsqlPlan plan(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement
+  ) {
+    return EngineExecutor
+        .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+        .plan(statement);
+  }
+
+  @Override
+  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
+    final ExecuteResult result = EngineExecutor
+        .create(primaryContext, serviceContext, plan.getConfig(), plan.getOverrides())
+        .execute(plan.getPlan());
+    result.getQuery().ifPresent(this::registerQuery);
+    return result;
+  }
+
+  @Override
   public ExecuteResult execute(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
-    final ExecuteResult result = EngineExecutor
+    return execute(
+        serviceContext,
+        ConfiguredKsqlPlan.of(
+            plan(serviceContext, statement),
+            statement.getOverrides(),
+            statement.getConfig()
+        )
+    );
+  }
+
+  @Override
+  public TransientQueryMetadata executeQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement
+  ) {
+    final TransientQueryMetadata query = EngineExecutor
         .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
-        .execute(statement);
-
-    result.getQuery().ifPresent(this::registerQuery);
-
-    return result;
+        .executeQuery(statement);
+    registerQuery(query);
+    return query;
   }
 
   @Override

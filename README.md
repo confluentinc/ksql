@@ -1,61 +1,74 @@
-# ![KSQL rocket](ksql-rocket.png) KSQL - Streaming SQL for Apache Kafka
+# ![KSQL rocket](ksql-rocket.png) ksqlDB
 
-> **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
+### The event streaming database purpose-built for stream processing applications
 
-KSQL is the streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more. You can find [more KSQL tutorials and resources here](https://confluent.io/ksql) if you are interested.
+# Overview
 
-Click here to watch a screencast of the KSQL demo on YouTube.
-<a href="https://www.youtube.com/watch?v=illEpCOcCVg" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>
+ksqlDB is an event streaming database for Apache Kafka. It is **distributed**, **scalable**, **reliable**, and **real-time**. ksqlDB combines the power of real-time stream processing with the approachable feel of a relational database through a familiar, lightweight SQL syntax. ksqlDB offers these core primitives:
 
-<a name="getting-started"></a>
-# Getting Started and Download
+* **[Streams](https://docs.ksqldb.io/en/latest/concepts/collections/streams/) and [tables](https://docs.ksqldb.io/en/latest/concepts/collections/tables/)** - Create relations with schemas over your Apache Kafka topic data
+* **[Materialized views](https://docs.ksqldb.io/en/latest/concepts/materialized-views/)** - Define real-time, incrementally updated materialized views over streams using SQL
+* **[Push queries](https://docs.ksqldb.io/en/latest/concepts/queries/push/)**- Continuous queries that push incremental results to clients in real time
+* **[Pull queries](https://docs.ksqldb.io/en/latest/concepts/queries/pull/)** - Query materialized views on demand, much like with a traditional database
+* **[Connect](https://docs.ksqldb.io/en/latest/concepts/connectors)** - Integrate with any [Kafka Connect](https://docs.confluent.io/current/connect/index.html) data source or sink, entirely from within ksqlDB
 
-<a name="stable-releases"></a>
-## Stable Releases
+Composing these powerful primitives enables you to build a complete streaming app with just SQL statements, minimizing complexity and operational overhead. ksqlDB supports a wide range of operations including aggregations, joins, windowing, sessionization, and much more. You can find more ksqlDB tutorials and resources [here](https://kafka-tutorials.confluent.io/).
 
-Stable releases are published every four months and are officially supported by [Confluent](http://www.confluent.io/).
+# Getting Started
 
-1. [Download latest stable KSQL](https://www.confluent.io/download/), which is included in Confluent Platform.
-2. Follow the [Quick Start](https://docs.confluent.io/current/quickstart.html).
-3. Read the [KSQL Documentation](https://docs.confluent.io/current/ksql/docs/), notably the
-   [KSQL Tutorials and Examples](https://docs.confluent.io/current/ksql/docs/tutorials/), which include Docker-based
-   variants.
-
-
-<a name="preview-releases"></a>
-## Preview Releases
-
-In addition to supported [stable KSQL releases](#stable-releases), we also provide preview releases.
-We encourage you to try them in development and testing environments and to take advantage of
-[Confluent Community resources](#community) to get help and share feedback.
-
-* [Download latest KSQL Preview](https://www.confluent.io/preview-release).
+* Follow the [ksqlDB quickstart](https://ksqldb.io/quickstart.html) to get started in just a few minutes.
+* Read through the [ksqlDB documentation](https://docs.ksqldb.io).
+* Take a look at some [ksqlDB tutorials](https://kafka-tutorials.confluent.io/create-stateful-aggregation-count/ksql.html) for examples of common patterns.
 
 # Documentation
 
-See [KSQL documentation](https://docs.confluent.io/current/ksql/docs/) for the latest stable release.
-
+See the [ksqlDB documentation](https://docs.ksqldb.io/) for the latest stable release.
 
 # Use Cases and Examples
 
+## Materialized views
+
+ksqlDB allows you to define materialized views over your streams and tables. Materialized views are defined by what is known as a "persistent query". These queries are known as persistent because they maintain their incrementally updated results using a table.
+
+```sql
+CREATE TABLE hourly_metrics AS
+  SELECT url, COUNT(*)
+  FROM page_views
+  WINDOW TUMBLING (SIZE 1 HOUR)
+  GROUP BY url EMIT CHANGES;
+
+```
+
+Results may be **"pulled"** from materialized views on demand via `SELECT` queries. The following query will return a single row:
+
+```sql
+SELECT * FROM hourly_metrics
+  WHERE url = 'http://myurl.com' AND WINDOWSTART = '2019-11-20T19:00';
+```
+
+Results may also be continuously **"pushed"** to clients via streaming `SELECT` queries. The following streaming query will push to the client all incremental changes made to the materialized view:
+
+```sql
+SELECT * FROM hourly_metrics EMIT CHANGES;
+```
+
+Streaming queries will run perpetually until they are explicitly terminated.
+
 ## Streaming ETL
 
-Apache Kafka is a popular choice for powering data pipelines.  KSQL makes it simple to transform data within the
-pipeline, readying messages to cleanly land in another system.
+Apache Kafka is a popular choice for powering data pipelines. ksqlDB makes it simple to transform data within the pipeline, readying messages to cleanly land in another system.
 
 ```sql
 CREATE STREAM vip_actions AS
   SELECT userid, page, action
   FROM clickstream c
   LEFT JOIN users u ON c.userid = u.user_id
-  WHERE u.level = 'Platinum';
+  WHERE u.level = 'Platinum' EMIT CHANGES;
 ```
-
 
 ## Anomaly Detection
 
-KSQL is a good fit for identifying patterns or anomalies on real-time data. By processing the stream as data arrives
-you can identify and properly surface out of the ordinary events with millisecond latency.
+ksqlDB is a good fit for identifying patterns or anomalies on real-time data. By processing the stream as data arrives you can identify and properly surface out of the ordinary events with millisecond latency.
 
 ```sql
 CREATE TABLE possible_fraud AS
@@ -63,14 +76,12 @@ CREATE TABLE possible_fraud AS
   FROM authorization_attempts
   WINDOW TUMBLING (SIZE 5 SECONDS)
   GROUP BY card_number
-  HAVING count(*) > 3;
+  HAVING count(*) > 3 EMIT CHANGES;
 ```
-
 
 ## Monitoring
 
-Kafka's ability to provide scalable ordered messages with stream processing make it a common solution for log data
-monitoring and alerting. KSQL lends a familiar syntax for tracking, understanding, and managing alerts.
+Kafka's ability to provide scalable ordered messages with stream processing make it a common solution for log data monitoring and alerting. ksqlDB lends a familiar syntax for tracking, understanding, and managing alerts.
 
 ```sql
 CREATE TABLE error_counts AS
@@ -78,7 +89,35 @@ CREATE TABLE error_counts AS
   FROM monitoring_stream
   WINDOW TUMBLING (SIZE 1 MINUTE)
   WHERE  type = 'ERROR'
-  GROUP BY error_code;
+  GROUP BY error_code EMIT CHANGES;
+```
+
+## Integration with External Data Sources and Sinks
+
+ksqlDB includes native integration with [Kafka Connect](https://docs.ksqldb.io/en/latest/concepts/connectors) data sources and sinks, effectively providing a unified SQL interface over a [broad variety of external systems](https://www.confluent.io/hub).
+
+The following query is a simple persistent streaming query that will produce all of its output into a topic named `clicks_transformed`:
+
+```sql
+CREATE STREAM clicks_transformed AS
+  SELECT userid, page, action
+  FROM clickstream c
+  LEFT JOIN users u ON c.userid = u.user_id EMIT CHANGES;
+```
+
+Rather than simply send all continuous query output into a Kafka topic, it is often very useful to route the output into another datastore. ksqlDB's Kafka Connect integration makes this pattern very easy.
+
+The following statement will create a Kafka Connect sink connector that continuously sends all output from the above streaming ETL query directly into Elasticsearch:
+
+```sql
+ CREATE SINK CONNECTOR es_sink WITH (
+  'connector.class' = 'io.confluent.connect.elasticsearch.ElasticsearchSinkConnector',
+  'key.converter'   = 'org.apache.kafka.connect.storage.StringConverter',
+  'topics'          = 'clicks_transformed',
+  'key.ignore'      = 'true',
+  'schema.ignore'   = 'true',
+  'type.name'       = '',
+  'connection.url'  = 'http://elasticsearch:9200');
 ```
 
 <a name="community"></a>

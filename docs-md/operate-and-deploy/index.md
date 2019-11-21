@@ -6,6 +6,11 @@ description: Learn how to operate ksqlDB.
 keywords: ksqldb, operate, administer, deploy, docker, install
 ---
 
+KSQL versus ksqlDB
+--------------------
+
+Overview of key differences between [KSQL and ksqlDB](ksql-vs-ksqldb.md).
+
 Install and configure ksqlDB
 ----------------------------
 

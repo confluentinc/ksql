@@ -58,11 +58,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final TransientQueryMetadata queryMetadata =
-        (TransientQueryMetadata) ksqlEngine.execute(serviceContext, query)
-            .getQuery()
-            .get();
-
+    final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, query);
     final PushQuerySubscription subscription = new PushQuerySubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());

@@ -8,7 +8,7 @@ description: Get started fast with ksqlDB quick starts and tutorials.
 ksqlDB Quick Start
 ------------------
 
-The [ksqlDB Quick Start](https://ksqldb.io/quickstart) is the easiest way to get
+The [ksqlDB Quick Start](https://ksqldb.io/quickstart.html) is the easiest way to get
 up and running with ksqlDB. It demonstrates a simple workflow that creates 
 an event stream on an {{ site.aktm }} topic and uses SQL statements to write
 streaming queries against events in {{ site.ak }}.

@@ -659,12 +659,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
     query.start();
 
@@ -720,12 +720,12 @@ public class KsqlEngineTest {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
     // When:
     query.close();

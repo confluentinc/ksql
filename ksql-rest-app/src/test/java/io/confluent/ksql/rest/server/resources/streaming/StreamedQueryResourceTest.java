@@ -38,7 +38,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.json.JsonMapper;
@@ -137,13 +136,16 @@ public class StreamedQueryResourceTest {
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   private StreamedQueryResource testResource;
-  private PreparedStatement<Statement> statement;
+  private PreparedStatement<Statement> invalid;
+  private PreparedStatement<Query> query;
+  private PreparedStatement<PrintTopic> print;
 
   @Before
   public void setup() {
     when(serviceContext.getTopicClient()).thenReturn(mockKafkaTopicClient);
-    statement = PreparedStatement.of(PUSH_QUERY_STRING, mock(Statement.class));
-    when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING)).thenReturn(statement);
+    query = PreparedStatement.of(PUSH_QUERY_STRING, mock(Query.class));
+    invalid = PreparedStatement.of("sql", mock(Statement.class));
+    when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING)).thenReturn(invalid);
 
     final Query pullQuery = mock(Query.class);
     when(pullQuery.isPullQuery()).thenReturn(true);
@@ -358,11 +360,10 @@ public class StreamedQueryResourceTest {
 
     final KafkaStreams mockKafkaStreams = mock(KafkaStreams.class);
 
-    final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
+    when(mockStatementParser.<Query>parseSingleStatement(queryString))
+        .thenReturn(query);
 
-    statement = PreparedStatement.of("query", mock(Query.class));
-    when(mockStatementParser.parseSingleStatement(queryString))
-        .thenReturn(statement);
+    final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
     final TransientQueryMetadata transientQueryMetadata =
         new TransientQueryMetadata(
@@ -379,9 +380,9 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             queryCloseCallback);
 
-    when(mockKsqlEngine.execute(serviceContext,
-        ConfiguredStatement.of(statement, requestStreamsProperties, VALID_CONFIG)))
-        .thenReturn(ExecuteResult.of(transientQueryMetadata));
+    when(mockKsqlEngine.executeQuery(serviceContext,
+        ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
+        .thenReturn(transientQueryMetadata);
 
     final Response response =
         testResource.streamQuery(
@@ -535,10 +536,8 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
-    statement = PreparedStatement.of("query", mock(Query.class));
-    when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING))
-        .thenReturn(statement);
-
+    when(mockStatementParser.<Query>parseSingleStatement(PUSH_QUERY_STRING))
+        .thenReturn(query);
     doThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)))
         .when(authorizationValidator).checkAuthorization(any(), any(), any());
@@ -561,9 +560,8 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
     // Given:
-    statement = PreparedStatement.of("query", mock(Query.class));
-    when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING))
-        .thenReturn(statement);
+    when(mockStatementParser.<Query>parseSingleStatement(PUSH_QUERY_STRING))
+        .thenReturn(query);
     doThrow(new KsqlException(
         "",
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME))))
@@ -589,9 +587,9 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfPrintTopicKsqlTopicAuthorizationException() {
     // Given:
-    statement = PreparedStatement.of("print", mock(PrintTopic.class));
-    when(mockStatementParser.parseSingleStatement(PRINT_TOPIC))
-        .thenReturn(statement);
+    print = PreparedStatement.of("print", mock(PrintTopic.class));
+    when(mockStatementParser.<PrintTopic>parseSingleStatement(PRINT_TOPIC))
+        .thenReturn(print);
 
     doThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)))
@@ -615,9 +613,9 @@ public class StreamedQueryResourceTest {
     // Given:
     final PrintTopic cmd = mock(PrintTopic.class);
     when(cmd.getTopic()).thenReturn("TEST_TOPIC");
-    statement = PreparedStatement.of("print", cmd);
-    when(mockStatementParser.parseSingleStatement(any()))
-        .thenReturn(statement);
+    print = PreparedStatement.of("print", cmd);
+    when(mockStatementParser.<PrintTopic>parseSingleStatement(any()))
+        .thenReturn(print);
 
     when(mockKafkaTopicClient.isTopicExists(any())).thenReturn(false);
     when(mockKafkaTopicClient.listTopicNames()).thenReturn(ImmutableSet.of(

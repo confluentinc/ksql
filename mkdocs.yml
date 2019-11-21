@@ -13,7 +13,7 @@ docs_dir: docs-md
 theme:
     name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
-    logo: img/logo.svg # should match asset for main ksqldb.io site
+    logo: img/logo.png # should match asset for main ksqldb.io site
     feature: 
       tabs: true
 
@@ -127,6 +127,7 @@ nav:
               # - Integrate ksqlDB with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md # leave in docs.confluent.io
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
+      - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
   - Tutorials:
       - Tutorials and Examples: tutorials/index.md
@@ -135,7 +136,7 @@ nav:
       - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md # Could be the canonical quickstart
       # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # leave in docs.confluent.io
       - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
-      - Integrate with PostgresDB: tutorials/connect-integration.md
+      - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
 

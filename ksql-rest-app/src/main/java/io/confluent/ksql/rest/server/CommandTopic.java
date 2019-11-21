@@ -26,15 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,13 +40,11 @@ public class CommandTopic {
   private final TopicPartition commandTopicPartition;
 
   private Consumer<CommandId, Command> commandConsumer = null;
-  private Producer<CommandId, Command> commandProducer = null;
   private final String commandTopicName;
 
   public CommandTopic(
       final String commandTopicName,
-      final Map<String, Object> kafkaConsumerProperties,
-      final Map<String, Object> kafkaProducerProperties
+      final Map<String, Object> kafkaConsumerProperties
   ) {
     this(
         commandTopicName,
@@ -59,22 +52,16 @@ public class CommandTopic {
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
             InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
             InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
-        ),
-        new KafkaProducer<>(
-            Objects.requireNonNull(kafkaProducerProperties, "kafkaClientProperties"),
-            InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-            InternalTopicJsonSerdeUtil.getJsonSerializer(false)
-        ));
+        )
+    );
   }
 
   CommandTopic(
       final String commandTopicName,
-      final Consumer<CommandId, Command> commandConsumer,
-      final Producer<CommandId, Command> commandProducer
+      final Consumer<CommandId, Command> commandConsumer
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
-    this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
   }
 
@@ -84,24 +71,6 @@ public class CommandTopic {
 
   public void start() {
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
-  }
-
-  public RecordMetadata send(final CommandId commandId, final Command command) {
-    final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
-        commandTopicName,
-        0,
-        Objects.requireNonNull(commandId, "commandId"),
-        Objects.requireNonNull(command, "command"));
-    try {
-      return commandProducer.send(producerRecord).get();
-    } catch (final ExecutionException e) {
-      if (e.getCause() instanceof RuntimeException) {
-        throw (RuntimeException)e.getCause();
-      }
-      throw new RuntimeException(e.getCause());
-    } catch (final InterruptedException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
@@ -150,6 +119,5 @@ public class CommandTopic {
 
   public void close() {
     commandConsumer.close();
-    commandProducer.close();
   }
 }

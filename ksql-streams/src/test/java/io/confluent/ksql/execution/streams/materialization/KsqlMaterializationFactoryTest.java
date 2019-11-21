@@ -28,12 +28,12 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
-import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
+import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory.MaterializationFactory;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -43,9 +43,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,7 +55,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationFactoryTest {
 
@@ -70,27 +70,23 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private MaterializationInfo info;
   @Mock
-  private KudafAggregator aggregator;
-  @Mock
   private ProcessingLogger filterProcessingLogger;
   @Mock
-  private ProcessingLogger projectProcessingLogger;
+  private ProcessingLogger mapProcessingLogger;
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
-  private ValueMapper<GenericRow, GenericRow> aggregateMapper;
+  private BiFunction<Object, GenericRow, GenericRow> mapper;
   @Mock
-  private Predicate<Object, GenericRow> havingPredicate;
+  private BiPredicate<Object, GenericRow> predicate;
   @Mock
   private KsqlValueTransformerWithKey<Object> selectTransformer;
   @Mock
   private MaterializationFactory materializationFactory;
   @Mock
-  private MaterializationInfo.AggregateMapInfo aggregateMapInfo;
+  private MapperInfo mapperInfo;
   @Mock
-  private ProjectInfo projectInfo;
-  @Mock
-  private MaterializationInfo.SqlPredicateInfo sqlPredicateInfo;
+  private PredicateInfo predicateInfo;
   @Captor
   private ArgumentCaptor<List<Transform>> transforms;
   @Mock
@@ -99,6 +95,8 @@ public class KsqlMaterializationFactoryTest {
   private GenericRow rowIn;
   @Mock
   private GenericRow rowOut;
+  @Captor
+  private ArgumentCaptor<Function<String, ProcessingLogger>> loggerCaptor;
 
   private final QueryId queryId = new QueryId("start");
   private final Stacker contextStacker = new Stacker();
@@ -114,20 +112,16 @@ public class KsqlMaterializationFactoryTest {
 
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger("start.filter")).thenReturn(filterProcessingLogger);
-    when(processingLoggerFactory.getLogger("start.project")).thenReturn(projectProcessingLogger);
+    when(processingLoggerFactory.getLogger("start.project")).thenReturn(mapProcessingLogger);
 
-    when(aggregateMapInfo.visit(any())).thenCallRealMethod();
-    when(projectInfo.visit(any())).thenCallRealMethod();
-    when(sqlPredicateInfo.visit(any())).thenCallRealMethod();
+    when(mapperInfo.visit(any())).thenCallRealMethod();
+    when(predicateInfo.visit(any())).thenCallRealMethod();
 
-    when(aggregateMapInfo.getAggregator()).thenReturn(aggregator);
-    when(projectInfo.getSelectTransformer(any())).thenReturn(selectTransformer);
-    when(sqlPredicateInfo.getPredicate(any())).thenReturn(havingPredicate);
-
-    when(aggregator.getResultMapper()).thenReturn(aggregateMapper);
+    when(mapperInfo.getMapper(any())).thenReturn(mapper);
+    when(predicateInfo.getPredicate(any())).thenReturn(predicate);
 
     when(info.getTransforms())
-        .thenReturn(ImmutableList.of(aggregateMapInfo, projectInfo, sqlPredicateInfo));
+        .thenReturn(ImmutableList.of(mapperInfo, predicateInfo));
 
     when(info.getSchema()).thenReturn(TABLE_SCHEMA);
   }
@@ -140,30 +134,13 @@ public class KsqlMaterializationFactoryTest {
   }
 
   @Test
-  public void shouldGetFilterProcessingLoggerWithCorrectParams() {
+  public void shouldUseCorrectLoggerForPredicate() {
     // When:
     factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("start.filter");
-  }
-
-  @Test
-  public void shouldUseCorrectLoggerForHavingPredicate() {
-    // When:
-    factory.create(materialization, info, queryId, contextStacker);
-
-    // Then:
-    verify(sqlPredicateInfo).getPredicate(filterProcessingLogger);
-  }
-
-  @Test
-  public void shouldGetProjectProcessingLoggerWithCorrectParams() {
-    // When:
-    factory.create(materialization, info, queryId, contextStacker);
-
-    // Then:
-    verify(processingLoggerFactory).getLogger("start.project");
+    verify(predicateInfo).getPredicate(loggerCaptor.capture());
+    assertThat(loggerCaptor.getValue().apply("filter"), is(filterProcessingLogger));
   }
 
   @Test
@@ -172,7 +149,8 @@ public class KsqlMaterializationFactoryTest {
     factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
-    verify(projectInfo).getSelectTransformer(projectProcessingLogger);
+    verify(mapperInfo).getMapper(loggerCaptor.capture());
+    assertThat(loggerCaptor.getValue().apply("project"), is(mapProcessingLogger));
   }
 
   @Test
@@ -189,36 +167,48 @@ public class KsqlMaterializationFactoryTest {
   }
 
   @Test
-  public void shouldBuildMaterializationWithAggregateMapTransform() {
-    // When:
+  public void shouldBuildMaterializationWithMapTransform() {
+    // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(aggregateMapper.apply(any())).thenReturn(rowOut);
+    when(mapper.apply(any(), any())).thenReturn(rowOut);
 
-    // Then:
     final Transform transform = getTransform(0);
-    assertThat(transform.apply(keyIn, rowIn).get(), is(rowOut));
+
+    // When:
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+
+    // Then:
+    assertThat(result, is(Optional.of(rowOut)));
   }
 
   @Test
-  public void shouldBuildMaterializationWithSelectTransform() {
-    // When:
+  public void shouldBuildMaterializationWithNegativePredicateTransform() {
+    // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(selectTransformer.transform(any(), any())).thenReturn(rowOut);
+    when(predicate.test(any(), any())).thenReturn(false);
 
-    // Then:
     final Transform transform = getTransform(1);
-    assertThat(transform.apply(keyIn, rowIn).get(), is(rowOut));
+
+    // Then:
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+
+    // Then:
+    assertThat(result, is(Optional.empty()));
   }
 
   @Test
-  public void shouldBuildMaterializationWithSqlPredicateTransform() {
-    // When:
+  public void shouldBuildMaterializationWithPositivePredicateTransform() {
+    // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(havingPredicate.test(any(), any())).thenReturn(false);
+    when(predicate.test(any(), any())).thenReturn(true);
+
+    final Transform transform = getTransform(1);
 
     // Then:
-    final Transform transform = getTransform(2);
-    assertThat(transform.apply(keyIn, rowIn), is(Optional.empty()));
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+
+    // Then:
+    assertThat(result, is(Optional.of(rowIn)));
   }
 
   @Test

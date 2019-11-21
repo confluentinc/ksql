@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.transform;
+package io.confluent.ksql.execution.streams;
 
 import static java.util.Objects.requireNonNull;
 
@@ -32,11 +32,11 @@ public class SelectValueMapper<K> {
 
   private final ImmutableList<SelectInfo> selects;
 
-  public SelectValueMapper(final List<SelectInfo> selects) {
+  SelectValueMapper(final List<SelectInfo> selects) {
     this.selects = ImmutableList.copyOf(requireNonNull(selects, "selects"));
   }
 
-  public List<SelectInfo> getSelects() {
+  List<SelectInfo> getSelects() {
     return selects;
   }
 
@@ -62,7 +62,7 @@ public class SelectValueMapper<K> {
       return fieldName;
     }
 
-    public ExpressionMetadata getEvaluator() {
+    ExpressionMetadata getEvaluator() {
       return evaluator;
     }
 

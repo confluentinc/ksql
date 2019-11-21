@@ -20,8 +20,8 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
-import io.confluent.ksql.execution.transform.SelectValueMapperFactory;
+import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;

@@ -20,8 +20,6 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamMapValues;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
-import io.confluent.ksql.execution.transform.SelectValueMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;

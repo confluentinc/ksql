@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.transform;
+package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.transform.SelectValueMapper.SelectInfo;
+import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.name.ColumnName;
 import org.junit.Before;
 import org.junit.Test;

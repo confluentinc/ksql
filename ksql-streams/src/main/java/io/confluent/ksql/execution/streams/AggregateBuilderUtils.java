@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.materialization.MaterializationInfo.builder;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -26,6 +24,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -65,7 +64,10 @@ final class AggregateBuilderUtils {
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    return builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
-        .mapAggregates(aggregator, outputSchema);
+    final Function<GenericRow, GenericRow> resultMapper = aggregator
+        .getResultMapper()::apply;
+
+    return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
+        .map(pl -> (k, v) -> resultMapper.apply(v), outputSchema, "AGG-PROJECT");
   }
 }

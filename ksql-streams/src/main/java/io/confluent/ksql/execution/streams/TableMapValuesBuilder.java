@@ -15,21 +15,25 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableMapValues;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
-import io.confluent.ksql.execution.transform.SelectValueMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.function.BiFunction;
 import org.apache.kafka.streams.kstream.Named;
 
 public final class TableMapValuesBuilder {
+
+  private static final String PROJECT_OP_NAME = "PROJECT";
+
   private TableMapValuesBuilder() {
   }
 
+  @SuppressWarnings("unchecked")
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableMapValues<K> step,
@@ -56,7 +60,7 @@ public final class TableMapValuesBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push("PROJECT").getQueryContext()
+                contextStacker.push(PROJECT_OP_NAME).getQueryContext()
             )
         );
 
@@ -70,9 +74,15 @@ public final class TableMapValuesBuilder {
             selection.getSchema()
         )
         .withMaterialization(
-            table.getMaterializationBuilder().map(
-                b -> b.project(selectMapper, selection.getSchema())
-            )
+            table.getMaterializationBuilder().map(b -> b.map(
+                pl -> {
+                  final BiFunction<K, GenericRow, GenericRow> mapper = selectMapper
+                      .getTransformer(pl)::transform;
+                  return (k, v) -> mapper.apply((K) k, v);
+                },
+                selection.getSchema(),
+                PROJECT_OP_NAME
+            ))
         );
   }
 }

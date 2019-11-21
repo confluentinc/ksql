@@ -24,6 +24,9 @@ import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 
 public final class TableFilterBuilder {
+
+  private static final String FILTER_OP_NAME = "FILTER";
+
   private TableFilterBuilder() {
   }
 
@@ -56,7 +59,7 @@ public final class TableFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push("FILTER").getQueryContext()
+                contextStacker.push(FILTER_OP_NAME).getQueryContext()
             )
         );
 
@@ -66,7 +69,10 @@ public final class TableFilterBuilder {
             table.getSchema()
         )
         .withMaterialization(
-            table.getMaterializationBuilder().map(b -> b.filter(predicate))
+            table.getMaterializationBuilder().map(b -> b.filter(
+                pl -> predicate.getPredicate(pl)::test,
+                FILTER_OP_NAME
+            ))
         );
   }
 }

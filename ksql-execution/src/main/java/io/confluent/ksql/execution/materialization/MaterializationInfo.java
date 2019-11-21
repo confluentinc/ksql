@@ -20,16 +20,14 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.function.udaf.KudafAggregator;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
-import io.confluent.ksql.execution.transform.SelectValueMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.Predicate;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * Pojo for passing around information about materialization of a query's state store
@@ -94,45 +92,36 @@ public final class MaterializationInfo {
     }
 
     /**
-     * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
+     * Adds a transform that maps the (key, value) to a new value.
      *
-     * @param aggregator the aggregator to apply.
+     * @param mapperFactory a factory from which to get the mapper to apply.
      * @param resultSchema schema after applying aggregate result mapping.
+     * @param stepName the name of the step, as will be used by the processing logger
      * @return A builder instance with this transformation.
      */
-    public Builder mapAggregates(
-        final KudafAggregator aggregator,
-        final LogicalSchema resultSchema
+    public Builder map(
+        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final LogicalSchema resultSchema,
+        final String stepName
     ) {
-      transforms.add(new AggregateMapInfo(aggregator));
+      transforms.add(new MapperInfo(mapperFactory, stepName));
       this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
-    /**
-     * Adds a transform that projects a list of expressions from the value.
-     *
-     * @param selectMapper The select mapper to apply.
-     * @param resultSchema The schema after applying the projection.
-     * @return A builder instance with this transformation.
-     */
-    public <K> Builder project(
-        final SelectValueMapper<K> selectMapper,
-        final LogicalSchema resultSchema
-    ) {
-      transforms.add(new ProjectInfo(selectMapper));
-      this.schema = dropMetaColumns(resultSchema);
-      return this;
-    }
 
     /**
      * Adds a transform that filters rows from the materialization.
      *
-     * @param predicate the predicate to apply.
+     * @param predicateFactory a factory from which to get the predicate to apply.
+     * @param stepName the name of the step, as will be used by the processing logger
      * @return A builder instance with this transformation.
      */
-    public Builder filter(final SqlPredicate predicate) {
-      transforms.add(new SqlPredicateInfo(predicate));
+    public Builder filter(
+        final TransformFactory<BiPredicate<Object, GenericRow>> predicateFactory,
+        final String stepName
+    ) {
+      transforms.add(new PredicateInfo(predicateFactory, stepName));
       return this;
     }
 
@@ -162,23 +151,33 @@ public final class MaterializationInfo {
 
   public interface TransformVisitor<R> {
 
-    R visit(AggregateMapInfo mapInfo);
+    R visit(MapperInfo mapInfo);
 
-    R visit(SqlPredicateInfo info);
-
-    R visit(ProjectInfo info);
+    R visit(PredicateInfo info);
   }
 
-  public static class AggregateMapInfo implements TransformInfo {
+  public interface TransformFactory<T> {
 
-    private final KudafAggregator aggregator;
+    T apply(ProcessingLogger processingLogger);
+  }
 
-    AggregateMapInfo(final KudafAggregator aggregator) {
-      this.aggregator = requireNonNull(aggregator, "aggregator");
+  public static class MapperInfo implements TransformInfo {
+
+    private final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory;
+    private final String stepName;
+
+    MapperInfo(
+        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final String stepName
+    ) {
+      this.mapperFactory = requireNonNull(mapperFactory, "mapperFactory");
+      this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public KudafAggregator getAggregator() {
-      return aggregator;
+    public BiFunction<Object, GenericRow, GenericRow> getMapper(
+        final Function<String, ProcessingLogger> loggerFactory
+    ) {
+      return mapperFactory.apply(loggerFactory.apply(stepName));
     }
 
     public <R> R visit(TransformVisitor<R> visitor) {
@@ -186,39 +185,23 @@ public final class MaterializationInfo {
     }
   }
 
-  public static class SqlPredicateInfo implements TransformInfo {
+  public static class PredicateInfo implements TransformInfo {
 
-    private final SqlPredicate predicate;
+    private final TransformFactory<BiPredicate<Object, GenericRow>> predicate;
+    private final String stepName;
 
-    SqlPredicateInfo(final SqlPredicate predicate) {
+    PredicateInfo(
+        final TransformFactory<BiPredicate<Object, GenericRow>> predicate,
+        final String stepName
+    ) {
       this.predicate = Objects.requireNonNull(predicate, "predicate");
+      this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public Predicate<Object, GenericRow> getPredicate(
-        final ProcessingLogger logger
+    public BiPredicate<Object, GenericRow> getPredicate(
+        final Function<String, ProcessingLogger> loggerFactory
     ) {
-      return predicate.getPredicate(logger);
-    }
-
-    @Override
-    public <R> R visit(TransformVisitor<R> visitor) {
-      return visitor.visit(this);
-    }
-  }
-
-  public static class ProjectInfo implements TransformInfo {
-
-    private final SelectValueMapper selectMapper;
-
-    ProjectInfo(final SelectValueMapper selectMapper) {
-      this.selectMapper = Objects.requireNonNull(selectMapper, "selectMapper");
-    }
-
-    @SuppressWarnings("unchecked")
-    public KsqlValueTransformerWithKey<Object> getSelectTransformer(
-        final ProcessingLogger logger
-    ) {
-      return selectMapper.getTransformer(logger);
+      return predicate.apply(loggerFactory.apply(stepName));
     }
 
     @Override

@@ -22,8 +22,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
@@ -31,17 +32,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
  * Factor class for {@link KsqlMaterialization}.
  */
 public final class KsqlMaterializationFactory {
-
-  private static final String FILTER_OP_NAME = "filter";
-  private static final String PROJECT_OP_NAME = "project";
 
   private final ProcessingLogContext processingLogContext;
   private final MaterializationFactory materializationFactory;
@@ -105,38 +103,26 @@ public final class KsqlMaterializationFactory {
 
     @Override
     public Transform visit(
-        final MaterializationInfo.AggregateMapInfo info
+        final MapperInfo info
     ) {
-      final ValueMapper<GenericRow, GenericRow> resultMapper = info.getAggregator()
-          .getResultMapper();
+      final BiFunction<Object, GenericRow, GenericRow> resultMapper = info
+          .getMapper(this::getLogger);
 
-      return (k, v) -> Optional.of(resultMapper.apply(v));
+      return (k, v) -> Optional.of(resultMapper.apply(k, v));
     }
 
     @Override
     public Transform visit(
-        final MaterializationInfo.SqlPredicateInfo info
+        final PredicateInfo info
     ) {
-      final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
-          QueryLoggerUtil.queryLoggerName(queryId, stacker.push(FILTER_OP_NAME).getQueryContext())
-      );
-
-      final Predicate<Object, GenericRow> predicate = info.getPredicate(logger);
-
+      final BiPredicate<Object, GenericRow> predicate = info.getPredicate(this::getLogger);
       return (k, v) -> predicate.test(k, v) ? Optional.of(v) : Optional.empty();
     }
 
-    @Override
-    public Transform visit(
-        final MaterializationInfo.ProjectInfo info
-    ) {
-      final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
-          QueryLoggerUtil.queryLoggerName(queryId, stacker.push(PROJECT_OP_NAME).getQueryContext())
+    private ProcessingLogger getLogger(final String stepName) {
+      return processingLogContext.getLoggerFactory().getLogger(
+          QueryLoggerUtil.queryLoggerName(queryId, stacker.push(stepName).getQueryContext())
       );
-
-      final KsqlValueTransformerWithKey<Object> transformer = info.getSelectTransformer(logger);
-
-      return (k, v) -> Optional.of(transformer.transform(k, v));
     }
   }
 }

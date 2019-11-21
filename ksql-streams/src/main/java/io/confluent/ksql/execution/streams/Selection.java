@@ -18,9 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.transform.SelectValueMapper;
-import io.confluent.ksql.execution.transform.SelectValueMapper.SelectInfo;
-import io.confluent.ksql.execution.transform.SelectValueMapperFactory;
+import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

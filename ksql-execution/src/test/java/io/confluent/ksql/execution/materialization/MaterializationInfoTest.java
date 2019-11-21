@@ -18,13 +18,13 @@ package io.confluent.ksql.execution.materialization;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.execution.function.udaf.KudafAggregator;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
-import io.confluent.ksql.execution.transform.SelectValueMapper;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.sql.Struct;
+import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,10 +50,9 @@ public class MaterializationInfoTest {
       .valueColumn(AGE, SqlTypes.INTEGER)
       .build();
 
+
   @Mock
-  private SelectValueMapper<Struct> selectMapper;
-  @Mock
-  private KudafAggregator aggregator;
+  private TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory;
 
   @Before
   public void setUp() {
@@ -83,29 +82,14 @@ public class MaterializationInfoTest {
   }
 
   @Test
-  public void shouldDropMetaColumnsFromAggregateSchema() {
+  public void shouldDropMetaColumnsFromMapSchema() {
     // Given:
     final Builder builder = MaterializationInfo
         .builder(STATE_STORE_NAME, SCHEMA_WITH_META);
 
     // When:
     final MaterializationInfo info = builder
-        .mapAggregates(aggregator, OTHER_SCHEMA_WITH_META)
-        .build();
-
-    // Then:
-    assertThat(info.getSchema(), is(OTHER_SCHEMA_WITH_META.withoutMetaColumns()));
-  }
-
-  @Test
-  public void shouldDropMetaColumnsFromProjectionSchema() {
-    // Given:
-    final Builder builder = MaterializationInfo
-        .builder(STATE_STORE_NAME, SCHEMA_WITH_META);
-
-    // When:
-    final MaterializationInfo info = builder
-        .project(selectMapper, OTHER_SCHEMA_WITH_META)
+        .map(mapperFactory, OTHER_SCHEMA_WITH_META, "stepName")
         .build();
 
     // Then:

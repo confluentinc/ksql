@@ -3,6 +3,7 @@
  import static org.hamcrest.Matchers.is;
  import static org.junit.Assert.assertThat;
  import static org.mockito.ArgumentMatchers.any;
+ import static org.mockito.ArgumentMatchers.eq;
  import static org.mockito.Mockito.mock;
  import static org.mockito.Mockito.verify;
  import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@
  import io.confluent.ksql.execution.context.QueryContext;
  import io.confluent.ksql.execution.expression.tree.Expression;
  import io.confluent.ksql.execution.materialization.MaterializationInfo;
+ import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
  import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
  import io.confluent.ksql.execution.plan.ExecutionStep;
  import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -27,12 +29,15 @@
  import io.confluent.ksql.query.QueryId;
  import io.confluent.ksql.schema.ksql.LogicalSchema;
  import io.confluent.ksql.util.KsqlConfig;
+ import java.util.function.BiPredicate;
  import org.apache.kafka.connect.data.Struct;
  import org.apache.kafka.streams.kstream.KTable;
  import org.apache.kafka.streams.kstream.Predicate;
  import org.junit.Before;
  import org.junit.Rule;
  import org.junit.Test;
+ import org.mockito.ArgumentCaptor;
+ import org.mockito.Captor;
  import org.mockito.Mock;
  import org.mockito.junit.MockitoJUnit;
  import org.mockito.junit.MockitoRule;
@@ -72,6 +77,12 @@ public class TableFilterBuilderTest {
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
+  @Mock
+  private Struct key;
+  @Mock
+  private GenericRow value;
+  @Captor
+  private ArgumentCaptor<TransformFactory<BiPredicate<Object, GenericRow>>> predicateFactoryCaptor;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -97,7 +108,7 @@ public class TableFilterBuilderTest {
     when(sourceKTable.filter(any())).thenReturn(filteredKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
-    when(materializationBuilder.filter(any())).thenReturn(materializationBuilder);
+    when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
         queryContext
@@ -158,12 +169,24 @@ public class TableFilterBuilderTest {
     verify(processingLoggerFactory).getLogger("foo.bar.FILTER");
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldFilterMaterialization() {
     // When:
     step.build(planBuilder);
 
     // Then:
-    verify(materializationBuilder).filter(sqlPredicate);
+    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("FILTER"));
+
+    // Given:
+    final BiPredicate<Object, GenericRow> biPredicate = predicateFactoryCaptor
+        .getValue()
+        .apply(processingLogger);
+
+    // When:
+    biPredicate.test(key, value);
+
+    // Then:
+    verify(predicate).test(key, value);
   }
 }

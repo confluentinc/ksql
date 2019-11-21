@@ -260,7 +260,7 @@ public class RestTestExecutor implements Closeable {
   private void verifyOutput(final RestTestCase testCase) {
     testCase.getOutputsByTopic().forEach((topic, records) -> {
       final Deserializer<?> keyDeserializer =
-          topic.getKeyDeserializer(serviceContext.getSchemaRegistryClient(), false);
+          topic.getKeyDeserializer(serviceContext.getSchemaRegistryClient());
 
       final Deserializer<?> valueDeserializer =
           topic.getValueDeserializer(serviceContext.getSchemaRegistryClient());

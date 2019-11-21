@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Joined;
 
@@ -26,24 +25,12 @@ public interface JoinedFactory {
       Serde<V0> rightSerde,
       String name);
 
-  static JoinedFactory create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, Joined::with);
+  static JoinedFactory create() {
+    return create(Joined::with);
   }
 
-  static JoinedFactory create(final KsqlConfig ksqlConfig, final Joiner joiner) {
-    if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return joiner::joinedWith;
-    }
-    return new JoinedFactory() {
-      @Override
-      public <K, V, V0> Joined<K, V, V0> create(
-          final Serde<K> keySerde,
-          final Serde<V> leftSerde,
-          final Serde<V0> rightSerde,
-          final String name) {
-        return joiner.joinedWith(keySerde, leftSerde, rightSerde, null);
-      }
-    };
+  static JoinedFactory create(final Joiner joiner) {
+    return joiner::joinedWith;
   }
 
   @FunctionalInterface

@@ -26,7 +26,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
@@ -158,17 +157,8 @@ public final class StreamSourceBuilder {
       final Consumed<K, GenericRow> consumed,
       final Function<K, String> rowKeyGenerator
   ) {
-    // for really old topologies, we must inject a dummy step to sure state store names,
-    // which use the node id in the store name, stay consistent:
-    final boolean legacy = queryBuilder.getKsqlConfig()
-        .getBoolean(KsqlConfig.KSQL_INJECT_LEGACY_MAP_VALUES_NODE);
-
     KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
-
-    if (legacy) {
-      stream = stream.mapValues(value -> value);
-    }
 
     return stream
         .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));

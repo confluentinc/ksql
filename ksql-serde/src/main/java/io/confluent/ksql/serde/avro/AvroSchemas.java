@@ -35,19 +35,18 @@ public final class AvroSchemas {
       final PersistenceSchema schema,
       final String name,
       final KsqlConfig ksqlConfig) {
-    final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
     return new AvroData(0).fromConnectSchema(
-        getAvroCompatibleConnectSchema(schema.serializedSchema(), name, useNamedMaps)
+        getAvroCompatibleConnectSchema(schema.serializedSchema(), name)
     );
   }
 
   public static Schema getAvroCompatibleConnectSchema(
       final Schema schema,
-      final String schemaFullName,
-      final boolean useNamedMaps) {
+      final String schemaFullName
+  ) {
     return buildAvroCompatibleSchema(
         schema,
-        new Context(Collections.singleton(schemaFullName), useNamedMaps, true)
+        new Context(Collections.singleton(schemaFullName), true)
     );
   }
 
@@ -58,21 +57,18 @@ public final class AvroSchemas {
     static final String MAP_VALUE_NAME = "MapValue";
 
     private final Iterable<String> names;
-    private final boolean useNamedMaps;
     private boolean root;
 
     private Context(
         final Iterable<String> names,
-        final boolean useNamedMaps,
         final boolean root
     ) {
       this.names = requireNonNull(names, "names");
-      this.useNamedMaps = useNamedMaps;
       this.root = root;
     }
 
     Context with(final String name) {
-      return new Context(Iterables.concat(names, ImmutableList.of(name)), useNamedMaps, root);
+      return new Context(Iterables.concat(names, ImmutableList.of(name)), root);
     }
 
     public String name() {
@@ -138,10 +134,7 @@ public final class AvroSchemas {
         valueSchema
     );
 
-    if (context.useNamedMaps) {
-      schemaBuilder.name(context.name());
-    }
-
+    schemaBuilder.name(context.name());
     return schemaBuilder;
   }
 

@@ -49,13 +49,12 @@ public class AvroDataTranslator implements DataTranslator {
 
   AvroDataTranslator(
       final Schema schema,
-      final String schemaFullName,
-      final boolean useNamedMaps
+      final String schemaFullName
   ) {
     this.ksqlSchema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
 
     this.avroCompatibleSchema = AvroSchemas.getAvroCompatibleConnectSchema(
-        schema, schemaFullName, useNamedMaps
+        schema, schemaFullName
     );
 
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);

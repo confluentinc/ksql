@@ -39,7 +39,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -205,8 +204,7 @@ public class AggregateNode extends PlanNode {
 
     final List<Expression> internalGroupByColumns = internalSchema.resolveGroupByExpressions(
         getGroupByExpressions(),
-        aggregateArgExpanded,
-        builder.getKsqlConfig()
+        aggregateArgExpanded
     );
 
     final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
@@ -290,11 +288,9 @@ public class AggregateNode extends PlanNode {
 
     List<Expression> resolveGroupByExpressions(
         final List<Expression> expressionList,
-        final SchemaKStream<?> aggregateArgExpanded,
-        final KsqlConfig ksqlConfig
+        final SchemaKStream<?> aggregateArgExpanded
     ) {
-      final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable)
-          && !ksqlConfig.getBoolean(KsqlConfig.KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY);
+      final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable);
 
       final Function<Expression, Expression> mapper = e -> {
         final boolean rowKey = e instanceof ColumnReferenceExp

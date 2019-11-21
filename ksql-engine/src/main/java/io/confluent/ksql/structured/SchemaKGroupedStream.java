@@ -24,16 +24,13 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -117,15 +114,6 @@ public class SchemaKGroupedStream {
   }
 
   private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
-      return KeyFormat.windowed(
-          FormatInfo.of(Format.KAFKA),
-          WindowInfo.of(
-              WindowType.TUMBLING,
-              Optional.of(Duration.ofMillis(Long.MAX_VALUE))
-          )
-      );
-    }
     return KeyFormat.windowed(
         FormatInfo.of(Format.KAFKA),
         windowExpression.getKsqlWindowExpression().getWindowInfo()

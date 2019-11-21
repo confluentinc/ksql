@@ -15,30 +15,18 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Grouped;
 
 public interface GroupedFactory {
   <K, V> Grouped<K, V> create(String name, Serde<K> keySerde, Serde<V> valSerde);
 
-  static GroupedFactory create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, Grouped::with);
+  static GroupedFactory create() {
+    return create(Grouped::with);
   }
 
-  static GroupedFactory create(final KsqlConfig ksqlConfig, final Grouper grouper) {
-    if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return grouper::groupedWith;
-    }
-    return new GroupedFactory() {
-      @Override
-      public <K, V> Grouped<K, V> create(
-          final String name,
-          final Serde<K> keySerde,
-          final Serde<V> valSerde) {
-        return grouper.groupedWith(null, keySerde, valSerde);
-      }
-    };
+  static GroupedFactory create(final Grouper grouper) {
+    return grouper::groupedWith;
   }
 
   @FunctionalInterface

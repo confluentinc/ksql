@@ -618,7 +618,7 @@ public class CliTest {
     };
 
     // Wait for warm store:
-    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
         "SELECT * FROM X WHERE ROWKEY='ITEM_1';",
         containsRows(

@@ -327,8 +327,8 @@ usable.
 Use backtick characters to reference the columns:
 
 ```sql
-  -- Enclose unparseable column names with backticks:
-  CREATE STREAM s1 (`@id` integer, `col.val` string) …
+-- Enclose unparseable column names with backticks:
+CREATE STREAM s1 (`@id` integer, `col.val` string) …
 ```
 
 Also, you can use backtick characters for the names of sources, like streams
@@ -336,7 +336,7 @@ and tables. For example, you can create a stream name that has an embedded
 hyphen:
 
 ```sql
-    CREATE STREAM `foo-bar` (id VARCHAR) WITH (kafka_topic='foo', value_format='JSON', partitions=1);
+CREATE STREAM `foo-bar` (id VARCHAR) WITH (kafka_topic='foo', value_format='JSON', partitions=1);
 ```
 
 You can use the hyphenated stream name in SQL statements by enclosing it with

@@ -22,11 +22,11 @@
         {"topic": "test_topic", "key": 1, "value": "1,one,10"}
       ],
       "outputs": [
-        {"topic": "AVG", "key": 0, "value": "0,500.0"},
-        {"topic": "AVG", "key": 0, "value": "0,300.0"},
-        {"topic": "AVG", "key": 0, "value": "0,250.0"},
-        {"topic": "AVG", "key": 1, "value": "1,1000.0"},
-        {"topic": "AVG", "key": 1, "value": "1,550.0"}
+        {"topic": "AVG", "key": 0, "value": "0,500"},
+        {"topic": "AVG", "key": 0, "value": "0,300"},
+        {"topic": "AVG", "key": 0, "value": "0,250"},
+        {"topic": "AVG", "key": 1, "value": "1,1000"},
+        {"topic": "AVG", "key": 1, "value": "1,550"}
       ]
     }
   ]

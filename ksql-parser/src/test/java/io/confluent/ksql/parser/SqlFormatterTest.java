@@ -55,6 +55,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -74,7 +75,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class SqlFormatterTest {
 
   @Rule
@@ -584,13 +584,25 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatTerminateQuery() {
     // Given:
-    final TerminateQuery terminateQuery = new TerminateQuery(Optional.empty(), "FOO");
+    final TerminateQuery terminateQuery = TerminateQuery.query(Optional.empty(), new QueryId("FOO"));
 
     // When:
     final String formatted = SqlFormatter.formatSql(terminateQuery);
 
     // Then:
     assertThat(formatted, is("TERMINATE FOO"));
+  }
+
+  @Test
+  public void shouldFormatTerminateAllQueries() {
+    // Given:
+    final TerminateQuery terminateQuery = TerminateQuery.all(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(terminateQuery);
+
+    // Then:
+    assertThat(formatted, is("TERMINATE ALL"));
   }
 
   @Test

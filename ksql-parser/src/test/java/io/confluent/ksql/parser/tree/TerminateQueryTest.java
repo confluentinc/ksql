@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.query.QueryId;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -24,20 +25,19 @@ public class TerminateQueryTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final String SOME_QUERY_ID = "query0";
+  private static final QueryId SOME_QUERY_ID = new QueryId("query0");
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new TerminateQuery(SOME_QUERY_ID),
-            new TerminateQuery(SOME_QUERY_ID),
-            new TerminateQuery(Optional.of(SOME_LOCATION), SOME_QUERY_ID),
-            new TerminateQuery(Optional.of(OTHER_LOCATION), SOME_QUERY_ID)
+            TerminateQuery.query(Optional.of(SOME_LOCATION), SOME_QUERY_ID),
+            TerminateQuery.query(Optional.of(OTHER_LOCATION), SOME_QUERY_ID)
         )
         .addEqualityGroup(
-            new TerminateQuery("diff")
+            TerminateQuery.query(Optional.empty(), new QueryId("diff"))
         )
         .testEquals();
   }

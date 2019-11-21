@@ -19,6 +19,7 @@ import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyMap;
 import static org.easymock.EasyMock.anyLong;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -55,6 +56,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
@@ -733,6 +735,43 @@ public class InteractiveStatementExecutorTest extends EasyMockSupport {
 
     // Then:
     verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
+  public void shouldTerminateAll() {
+    // Given:
+    final String queryStatement = "a persistent query";
+
+    final TerminateQuery terminateAll = mock(TerminateQuery.class);
+    expect(terminateAll.getQueryId()).andReturn(Optional.empty());
+
+    expect(mockParser.parseSingleStatement(anyString()))
+        .andReturn(PreparedStatement.of(queryStatement, terminateAll));
+
+    final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
+    query0.close();
+    expectLastCall();
+
+    final PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+    query1.close();
+    expectLastCall();
+
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of(query0, query1));
+
+    replayAll();
+
+    // When:
+    statementExecutorWithMocks.handleStatement(
+        new QueuedCommand(
+            new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+            new Command("terminate all", true, emptyMap(), emptyMap()),
+            Optional.empty(),
+            0L
+        )
+    );
+
+    // Then:
+    verify(query0, query1);
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

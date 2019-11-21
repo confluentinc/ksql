@@ -1161,6 +1161,30 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldDistributeTerminateAllQueries() {
+    // Given:
+    createQuery(
+        "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
+        emptyMap());
+
+    final String terminateSql = "TERMINATE ALL;";
+
+    // When:
+    final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore)
+        .enqueueCommand(
+            argThat(is(configured(preparedStatement(
+                is(terminateSql),
+                is(TerminateQuery.all(Optional.empty()))))
+            )),
+            any(Producer.class));
+
+    assertThat(result.getStatementText(), is(terminateSql));
+  }
+
+  @Test
   public void shouldThrowOnTerminateUnknownQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);

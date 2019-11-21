@@ -16,15 +16,18 @@
 package io.confluent.ksql.rest.server.validation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
@@ -32,13 +35,25 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TerminateQueryValidatorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private PersistentQueryMetadata query0;
+  @Mock
+  private PersistentQueryMetadata query1;
+  @Mock
+  private KsqlEngine engine;
+  @Mock
+  private ServiceContext serviceContext;
 
   @Test
   public void shouldFailOnTerminateUnknownQueryId() {
@@ -48,34 +63,56 @@ public class TerminateQueryValidatorTest {
 
     // When:
     CustomValidators.TERMINATE_QUERY.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("", new TerminateQuery("id")),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
+        configuredStmt(TerminateQuery.query(Optional.empty(), new QueryId("id"))),
         ImmutableMap.of(),
-        engine.getEngine(),
-        engine.getServiceContext()
+        engine,
+        serviceContext
     );
   }
 
   @Test
   public void shouldValidateKnownQueryId() {
     // Given:
-    final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
-    final KsqlEngine mockEngine = mock(KsqlEngine.class);
-    when(mockEngine.getPersistentQuery(any())).thenReturn(Optional.ofNullable(metadata));
+    when(engine.getPersistentQuery(any())).thenReturn(Optional.of(query0));
 
-    // Expect nothing when:
+    // When:
     CustomValidators.TERMINATE_QUERY.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("", new TerminateQuery("id")),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
+        configuredStmt(TerminateQuery.query(Optional.empty(), new QueryId("id"))),
         ImmutableMap.of(),
-        mockEngine,
-        engine.getServiceContext()
+        engine,
+        serviceContext
+    );
+
+    // Then:
+    verify(query0).close();
+  }
+
+  @Test
+  public void shouldValidateTerminateAllQueries() {
+    // Given:
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
+
+    // When:
+    CustomValidators.TERMINATE_QUERY.validate(
+        configuredStmt(TerminateQuery.all(Optional.empty())),
+        ImmutableMap.of(),
+        engine,
+        serviceContext
+    );
+
+    // Then:
+    verify(query0).close();
+    verify(query1).close();
+  }
+
+  private static ConfiguredStatement<TerminateQuery> configuredStmt(
+      final TerminateQuery terminateQuery
+  ) {
+    return ConfiguredStatement.of(
+        PreparedStatement.of("meh", terminateQuery),
+        ImmutableMap.of(),
+        KSQL_CONFIG
     );
   }
 }
+

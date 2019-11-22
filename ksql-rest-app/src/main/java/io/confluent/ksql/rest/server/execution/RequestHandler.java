@@ -78,6 +78,11 @@ public class RequestHandler {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
     for (ParsedStatement parsed : statements) {
+      // Note: temp work around for https://github.com/confluentinc/ksql/issues/3363
+      // We wait for any, none-black-listed, commands to complete before proceeding
+      // Note: This change should only be in 5.4.x
+      commandQueueSync.waitFor(new KsqlEntityList(entities), Statement.class);
+
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       if (prepared.getStatement() instanceof RunScript) {
         final KsqlEntityList result = executeRunScript(serviceContext, prepared, propertyOverrides);
@@ -90,7 +95,7 @@ public class RequestHandler {
       } else {
         final ConfiguredStatement<?> configured = ConfiguredStatement.of(
             prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(serviceContext, configured, scopedPropertyOverrides, entities)
+        executeStatement(serviceContext, configured, scopedPropertyOverrides)
             .ifPresent(entities::add);
       }
     }
@@ -101,11 +106,9 @@ public class RequestHandler {
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
-      final Map<String, Object> mutableScopedProperties,
-      final KsqlEntityList entities
+      final Map<String, Object> mutableScopedProperties
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
-    commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, distributor);

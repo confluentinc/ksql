@@ -6,9 +6,6 @@ description: Learn how to use KSQL to analyze an event stream with Grafana and E
 keywords: ksql, Grafana, Elasticsearch
 ---
 
-Clickstream Data Analysis Pipeline Using KSQL (Docker)
-======================================================
-
 These steps will guide you through how to setup your environment and run
 the clickstream analysis tutorial from a Docker container.
 

@@ -5,8 +5,10 @@ tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-
-The term serialization refers to the manner in which an event's raw bytes are translated to and from information structures that ksqlDB can understand at runtime. ksqlDB offers several mechanisms for controlling serialization and deserialization.
+The term serialization refers to the manner in which an event's raw bytes
+are translated to and from information structures that ksqlDB can understand
+at runtime. ksqlDB offers several mechanisms for controlling serialization
+and deserialization.
 
 The primary mechanism is by choosing the serialization format when you
 create a stream or table and specify the `VALUE_FORMAT` in the `WITH`

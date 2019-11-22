@@ -6,9 +6,6 @@ description: Learn how to use ksqlDB to create event streaming applications on K
 keywords: ksqldb, confluent control center
 ---
 
-Write Streaming Queries Against {{ site.aktm }} Using KSQL and {{ site.c3 }}
-=============================================================================
-
 You can use KSQL in {{ site.c3 }} to write streaming queries against
 messages in {{ site.ak }}.
 

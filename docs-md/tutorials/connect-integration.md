@@ -6,9 +6,6 @@ description: Learn how to use ksqlDB and Kafka Connect to integrate with Postgre
 keywords: ksqlDB, connect, PostgreSQL
 ---
 
-Integrating with PostgreSQL
-===========================
-
 This tutorial demonstrates a simple workflow to integrate ksqlDB with an
 instance of PostgreSQL.
 

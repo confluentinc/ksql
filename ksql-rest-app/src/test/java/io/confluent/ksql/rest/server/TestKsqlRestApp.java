@@ -116,7 +116,6 @@ public class TestKsqlRestApp extends ExternalResource {
     this.credentials = requireNonNull(credentials, "credentials");
   }
 
-  @SuppressWarnings("WeakerAccess") // Part of public API
   public List<URL> getListeners() {
     return this.listeners;
   }
@@ -131,7 +130,7 @@ public class TestKsqlRestApp extends ExternalResource {
     this.before();
   }
 
-  @SuppressWarnings("unused") // Part of public API
+  @SuppressWarnings({"unused", "WeakerAccess"}) // Part of public API
   public void stop() {
     this.after();
   }
@@ -362,7 +361,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private static void dropStreams(final Set<String> streams, final KsqlRestClient client) {
     for (final String stream : streams) {
       final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP STREAM " + stream + ";");
+          .makeKsqlRequest("DROP STREAM `" + stream + "`;");
 
       if (res.isErroneous()) {
         throw new AssertionError("Failed to drop stream " + stream + "."
@@ -374,7 +373,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private static void dropTables(final Set<String> tables, final KsqlRestClient client) {
     for (final String table : tables) {
       final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP TABLE " + table + ";");
+          .makeKsqlRequest("DROP TABLE `" + table + "`;");
 
       if (res.isErroneous()) {
         throw new AssertionError("Failed to drop table " + table + "."

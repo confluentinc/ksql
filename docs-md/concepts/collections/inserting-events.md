@@ -39,3 +39,5 @@ required when you omit the column specifications.
 
 For more information, see
 [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md).
+
+Page last revised on: {{ git_revision_date }}

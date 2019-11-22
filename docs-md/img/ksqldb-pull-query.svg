@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="450px" height="197px" viewBox="0 0 450 197" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 59.1 (86144) - https://sketch.com -->
+    <title>pull</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Desktop-Copy-5" transform="translate(-26.000000, -726.000000)">
+            <g id="pull" transform="translate(21.000000, 725.000000)">
+                <text id="Find-car-4" font-family="Menlo-BoldItalic, Menlo, monospace" font-size="12" font-style="italic" font-weight="bold" fill="#202020">
+                    <tspan x="154.753906" y="19">Find car 4</tspan>
+                </text>
+                <text id="Rides-in-Toronto" font-family="Menlo-BoldItalic, Menlo, monospace" font-size="12" font-style="italic" font-weight="bold" fill="#202020">
+                    <tspan x="132.40625" y="88">Rides in Toronto</tspan>
+                </text>
+                <text id="Locate-rider-A" font-family="Menlo-BoldItalic, Menlo, monospace" font-size="12" font-style="italic" font-weight="bold" fill="#202020">
+                    <tspan x="139.855469" y="157">Locate rider A</tspan>
+                </text>
+                <path d="M82.5,3.75277675 C79.7153903,2.1450816 76.2846097,2.1450816 73.5,3.75277675 L49.7250093,17.4792741 C46.9403996,19.0869692 45.2250093,22.0581124 45.2250093,25.2735027 L45.2250093,52.7264973 C45.2250093,55.9418876 46.9403996,58.9130308 49.7250093,60.5207259 L73.5,74.2472233 C76.2846097,75.8549184 79.7153903,75.8549184 82.5,74.2472233 L106.274991,60.5207259 C109.0596,58.9130308 110.774991,55.9418876 110.774991,52.7264973 L110.774991,25.2735027 C110.774991,22.0581124 109.0596,19.0869692 106.274991,17.4792741 L82.5,3.75277675 Z" id="Polygon-Copy-2" stroke="#979797" stroke-width="2" fill="#F5F5F5"></path>
+                <text id="APP-Copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="67.3261719" y="43">APP</tspan>
+                </text>
+                <path d="M43.5,63.7527767 C40.7153903,62.1450816 37.2846097,62.1450816 34.5,63.7527767 L10.7250093,77.4792741 C7.94039956,79.0869692 6.22500925,82.0581124 6.22500925,85.2735027 L6.22500925,112.726497 C6.22500925,115.941888 7.94039956,118.913031 10.7250093,120.520726 L34.5,134.247223 C37.2846097,135.854918 40.7153903,135.854918 43.5,134.247223 L67.2749907,120.520726 C70.0596004,118.913031 71.7749907,115.941888 71.7749907,112.726497 L71.7749907,85.2735027 C71.7749907,82.0581124 70.0596004,79.0869692 67.2749907,77.4792741 L43.5,63.7527767 Z" id="Polygon-Copy-2" stroke="#979797" stroke-width="2" fill="#F5F5F5"></path>
+                <text id="APP-Copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="28.3261719" y="103">APP</tspan>
+                </text>
+                <path d="M80.5,124.752777 C77.7153903,123.145082 74.2846097,123.145082 71.5,124.752777 L47.7250093,138.479274 C44.9403996,140.086969 43.2250093,143.058112 43.2250093,146.273503 L43.2250093,173.726497 C43.2250093,176.941888 44.9403996,179.913031 47.7250093,181.520726 L71.5,195.247223 C74.2846097,196.854918 77.7153903,196.854918 80.5,195.247223 L104.274991,181.520726 C107.0596,179.913031 108.774991,176.941888 108.774991,173.726497 L108.774991,146.273503 C108.774991,143.058112 107.0596,140.086969 104.274991,138.479274 L80.5,124.752777 Z" id="Polygon-Copy-2" stroke="#979797" stroke-width="2" fill="#F5F5F5"></path>
+                <text id="APP-Copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="65.3261719" y="164">APP</tspan>
+                </text>
+                <rect id="Rectangle-Copy-14" fill="#F5F5F5" x="270" y="56" width="87" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-15" fill="#F5F5F5" x="270" y="89" width="87" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-16" fill="#F5F5F5" x="270" y="122" width="87" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-17" fill="#F5F5F5" x="270" y="155" width="87" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-18" fill="#F5F5F5" x="362" y="89" width="93" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-19" fill="#F5F5F5" x="362" y="122" width="93" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-20" fill="#F5F5F5" x="362" y="155" width="93" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-21" fill="#F5F5F5" x="362" y="56" width="93" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-22" fill="#CCCCCC" x="270" y="23" width="87" height="28" rx="5"></rect>
+                <rect id="Rectangle-Copy-23" fill="#CCCCCC" x="362" y="23" width="93" height="28" rx="5"></rect>
+                <text id="43.683117-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="284.978516" y="74">43.683117 </tspan>
+                </text>
+                <text id="-79.611421-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="375.753906" y="74">-79.611421</tspan>
+                </text>
+                <text id="51.509855-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="284.978516" y="107">51.509855 </tspan>
+                </text>
+                <text id="-0.123746-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="382.978516" y="107">-0.123746</tspan>
+                </text>
+                <text id="45.716540-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="284.978516" y="173">45.716540 </tspan>
+                </text>
+                <text id="-121.526191-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="368.529297" y="173">-121.526191</tspan>
+                </text>
+                <text id="27.814235-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="284.978516" y="140">27.814235 </tspan>
+                </text>
+                <text id="-97.392479-copy-2" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+                    <tspan x="375.753906" y="140">-97.392479</tspan>
+                </text>
+                <text id="latitude-copy-2" font-family="Menlo-Bold, Menlo, monospace" font-size="12" font-weight="bold" fill="#202020">
+                    <tspan x="282" y="42">latitude</tspan>
+                </text>
+                <text id="longitude-copy-2" font-family="Menlo-Bold, Menlo, monospace" font-size="12" font-weight="bold" fill="#202020">
+                    <tspan x="375" y="42">longitude</tspan>
+                </text>
+                <path id="Line-4-Copy-5" d="M250,165.5 L259,170 L250,174.5 L250,170.5 L247.5,170.5 L247.5,169.5 L250,169.5 L250,165.5 Z M137.5,169.5 L137.5,170.5 L133.5,170.5 L133.5,169.5 L137.5,169.5 Z M143.5,169.5 L143.5,170.5 L139.5,170.5 L139.5,169.5 L143.5,169.5 Z M149.5,169.5 L149.5,170.5 L145.5,170.5 L145.5,169.5 L149.5,169.5 Z M155.5,169.5 L155.5,170.5 L151.5,170.5 L151.5,169.5 L155.5,169.5 Z M161.5,169.5 L161.5,170.5 L157.5,170.5 L157.5,169.5 L161.5,169.5 Z M167.5,169.5 L167.5,170.5 L163.5,170.5 L163.5,169.5 L167.5,169.5 Z M173.5,169.5 L173.5,170.5 L169.5,170.5 L169.5,169.5 L173.5,169.5 Z M179.5,169.5 L179.5,170.5 L175.5,170.5 L175.5,169.5 L179.5,169.5 Z M185.5,169.5 L185.5,170.5 L181.5,170.5 L181.5,169.5 L185.5,169.5 Z M191.5,169.5 L191.5,170.5 L187.5,170.5 L187.5,169.5 L191.5,169.5 Z M197.5,169.5 L197.5,170.5 L193.5,170.5 L193.5,169.5 L197.5,169.5 Z M203.5,169.5 L203.5,170.5 L199.5,170.5 L199.5,169.5 L203.5,169.5 Z M209.5,169.5 L209.5,170.5 L205.5,170.5 L205.5,169.5 L209.5,169.5 Z M215.5,169.5 L215.5,170.5 L211.5,170.5 L211.5,169.5 L215.5,169.5 Z M221.5,169.5 L221.5,170.5 L217.5,170.5 L217.5,169.5 L221.5,169.5 Z M227.5,169.5 L227.5,170.5 L223.5,170.5 L223.5,169.5 L227.5,169.5 Z M233.5,169.5 L233.5,170.5 L229.5,170.5 L229.5,169.5 L233.5,169.5 Z M239.5,169.5 L239.5,170.5 L235.5,170.5 L235.5,169.5 L239.5,169.5 Z M245.5,169.5 L245.5,170.5 L241.5,170.5 L241.5,169.5 L245.5,169.5 Z" fill="#979797" fill-rule="nonzero"></path>
+                <path id="Line-4-Copy-5" d="M132,176.5 L132,180.5 L250,180.5 L250,181.5 L132,181.5 L132,185.5 L123,181 L132,176.5 Z" fill="#131520" fill-rule="nonzero"></path>
+                <path id="Line-4-Copy-5" d="M250,96.5 L259,101 L250,105.5 L250,101.5 L247.5,101.5 L247.5,100.5 L250,100.5 L250,96.5 Z M137.5,100.5 L137.5,101.5 L133.5,101.5 L133.5,100.5 L137.5,100.5 Z M143.5,100.5 L143.5,101.5 L139.5,101.5 L139.5,100.5 L143.5,100.5 Z M149.5,100.5 L149.5,101.5 L145.5,101.5 L145.5,100.5 L149.5,100.5 Z M155.5,100.5 L155.5,101.5 L151.5,101.5 L151.5,100.5 L155.5,100.5 Z M161.5,100.5 L161.5,101.5 L157.5,101.5 L157.5,100.5 L161.5,100.5 Z M167.5,100.5 L167.5,101.5 L163.5,101.5 L163.5,100.5 L167.5,100.5 Z M173.5,100.5 L173.5,101.5 L169.5,101.5 L169.5,100.5 L173.5,100.5 Z M179.5,100.5 L179.5,101.5 L175.5,101.5 L175.5,100.5 L179.5,100.5 Z M185.5,100.5 L185.5,101.5 L181.5,101.5 L181.5,100.5 L185.5,100.5 Z M191.5,100.5 L191.5,101.5 L187.5,101.5 L187.5,100.5 L191.5,100.5 Z M197.5,100.5 L197.5,101.5 L193.5,101.5 L193.5,100.5 L197.5,100.5 Z M203.5,100.5 L203.5,101.5 L199.5,101.5 L199.5,100.5 L203.5,100.5 Z M209.5,100.5 L209.5,101.5 L205.5,101.5 L205.5,100.5 L209.5,100.5 Z M215.5,100.5 L215.5,101.5 L211.5,101.5 L211.5,100.5 L215.5,100.5 Z M221.5,100.5 L221.5,101.5 L217.5,101.5 L217.5,100.5 L221.5,100.5 Z M227.5,100.5 L227.5,101.5 L223.5,101.5 L223.5,100.5 L227.5,100.5 Z M233.5,100.5 L233.5,101.5 L229.5,101.5 L229.5,100.5 L233.5,100.5 Z M239.5,100.5 L239.5,101.5 L235.5,101.5 L235.5,100.5 L239.5,100.5 Z M245.5,100.5 L245.5,101.5 L241.5,101.5 L241.5,100.5 L245.5,100.5 Z" fill="#979797" fill-rule="nonzero"></path>
+                <path id="Line-4-Copy-5" d="M132,107.5 L132,111.5 L250,111.5 L250,112.5 L132,112.5 L132,116.5 L123,112 L132,107.5 Z" fill="#131520" fill-rule="nonzero"></path>
+                <path id="Line-4-Copy-5" d="M250,27.5 L259,32 L250,36.5 L250,32.5 L247.5,32.5 L247.5,31.5 L250,31.5 L250,27.5 Z M137.5,31.5 L137.5,32.5 L133.5,32.5 L133.5,31.5 L137.5,31.5 Z M143.5,31.5 L143.5,32.5 L139.5,32.5 L139.5,31.5 L143.5,31.5 Z M149.5,31.5 L149.5,32.5 L145.5,32.5 L145.5,31.5 L149.5,31.5 Z M155.5,31.5 L155.5,32.5 L151.5,32.5 L151.5,31.5 L155.5,31.5 Z M161.5,31.5 L161.5,32.5 L157.5,32.5 L157.5,31.5 L161.5,31.5 Z M167.5,31.5 L167.5,32.5 L163.5,32.5 L163.5,31.5 L167.5,31.5 Z M173.5,31.5 L173.5,32.5 L169.5,32.5 L169.5,31.5 L173.5,31.5 Z M179.5,31.5 L179.5,32.5 L175.5,32.5 L175.5,31.5 L179.5,31.5 Z M185.5,31.5 L185.5,32.5 L181.5,32.5 L181.5,31.5 L185.5,31.5 Z M191.5,31.5 L191.5,32.5 L187.5,32.5 L187.5,31.5 L191.5,31.5 Z M197.5,31.5 L197.5,32.5 L193.5,32.5 L193.5,31.5 L197.5,31.5 Z M203.5,31.5 L203.5,32.5 L199.5,32.5 L199.5,31.5 L203.5,31.5 Z M209.5,31.5 L209.5,32.5 L205.5,32.5 L205.5,31.5 L209.5,31.5 Z M215.5,31.5 L215.5,32.5 L211.5,32.5 L211.5,31.5 L215.5,31.5 Z M221.5,31.5 L221.5,32.5 L217.5,32.5 L217.5,31.5 L221.5,31.5 Z M227.5,31.5 L227.5,32.5 L223.5,32.5 L223.5,31.5 L227.5,31.5 Z M233.5,31.5 L233.5,32.5 L229.5,32.5 L229.5,31.5 L233.5,31.5 Z M239.5,31.5 L239.5,32.5 L235.5,32.5 L235.5,31.5 L239.5,31.5 Z M245.5,31.5 L245.5,32.5 L241.5,32.5 L241.5,31.5 L245.5,31.5 Z" fill="#979797" fill-rule="nonzero"></path>
+                <path id="Line-4-Copy-5" d="M132,38.5 L132,42.5 L250,42.5 L250,43.5 L132,43.5 L132,47.5 L123,43 L132,38.5 Z" fill="#131520" fill-rule="nonzero"></path>
+            </g>
+        </g>
+    </g>
+</svg>

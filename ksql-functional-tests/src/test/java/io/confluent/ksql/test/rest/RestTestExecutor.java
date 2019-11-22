@@ -70,7 +70,7 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
-  private static final Duration MAX_STATIC_WARMUP = Duration.ofSeconds(10);
+  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
 
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -402,19 +402,14 @@ public class RestTestExecutor implements Closeable {
 
     final ImmutableList<Response> expectedResponse = ImmutableList.of(queryResponse);
     final ImmutableList<String> statements = ImmutableList.of(querySql);
-    final long waitMs = 10;
 
-    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
+    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
     while (System.currentTimeMillis() < threshold) {
       final RestResponse<QueryStream> resp = restClient.makeQueryRequest(querySql, null);
       if (resp.isErroneous()) {
-        try {
-          Thread.sleep(waitMs);
-        } catch (InterruptedException e) {
-          // ignore
-        }
         LOG.info("Server responded with an error code to a pull query. "
             + "This could be because the materialized store is not yet warm.");
+        threadYield();
         continue;
       }
 
@@ -428,8 +423,17 @@ public class RestTestExecutor implements Closeable {
         // Potentially, state stores not warm yet
         LOG.info("Server responded with incorrect result to a pull query. "
             + "This could be because the materialized store is not yet warm.", e);
-        Thread.yield();
+        threadYield();
       }
+    }
+  }
+
+  private static void threadYield() {
+    try {
+      // More reliable than Thread.yield
+      Thread.sleep(1);
+    } catch (InterruptedException e) {
+      // ignore
     }
   }
 

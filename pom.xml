@@ -468,7 +468,7 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksql-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
-                    <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.txt"</argLine>
+                    <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                 </configuration>
             </plugin>
 

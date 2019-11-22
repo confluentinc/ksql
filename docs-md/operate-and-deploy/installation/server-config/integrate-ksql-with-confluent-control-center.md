@@ -6,9 +6,6 @@ description: Settings for configuring ksqlDB Server to integrate with with Confl
 keywords: ksqldb, confguration, setup, install, control center
 ---
 
-Integrate KSQL with {{ site.c3 }}
-=================================
-
 You can develop event streaming applications by using the KSQL user
 interface provided by {{ site.c3 }}. In {{ site.c3short }}, you can
 create {{ site.aktm }} topics and develop persistent queries in the

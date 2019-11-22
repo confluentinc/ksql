@@ -6,9 +6,6 @@ description: How ksqlDB leverages the technology of Kafka Streams
 keywords: ksqldb, kafka streams
 ---
 
-Kafka Streams and ksqlDB
-========================
-
 ksqlDB is the streaming database for {{ site.aktm }}. With ksqlDB, you can
 write event streaming applications by using a lightweight SQL syntax.
 

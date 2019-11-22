@@ -26,40 +26,39 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-@UdfDescription(name = "Floor", description = Floor.DESCRIPTION)
-public class Floor {
+@UdfDescription(name = "Ceil", description = Ceil.DESCRIPTION)
+public class Ceil {
 
-  static final String DESCRIPTION = "Returns the largest integer less than or equal to the "
+  static final String DESCRIPTION = "Returns the smallest integer greater than or equal to the "
       + "specified numeric expression.";
 
-
   @Udf
-  public Integer floor(@UdfParameter final Integer val) {
+  public Integer ceil(@UdfParameter final Integer val) {
     return val;
   }
 
   @Udf
-  public Long floor(@UdfParameter final Long val) {
+  public Long ceil(@UdfParameter final Long val) {
     return val;
   }
 
   @Udf
-  public Double floor(@UdfParameter final Double val) {
-    return (val == null) ? null : Math.floor(val);
+  public Double ceil(@UdfParameter final Double val) {
+    return (val == null) ? null : Math.ceil(val);
   }
 
-  @Udf(schemaProvider = "floorDecimalProvider")
-  public BigDecimal floor(@UdfParameter final BigDecimal val) {
+  @Udf(schemaProvider = "ceilDecimalProvider")
+  public BigDecimal ceil(@UdfParameter final BigDecimal val) {
     return val == null
         ? null
-        : val.setScale(0, RoundingMode.FLOOR).setScale(val.scale(), RoundingMode.UNNECESSARY);
+        : val.setScale(0, RoundingMode.CEILING).setScale(val.scale(), RoundingMode.UNNECESSARY);
   }
 
   @UdfSchemaProvider
-  public SqlType floorDecimalProvider(final List<SqlType> params) {
+  public SqlType ceilDecimalProvider(final List<SqlType> params) {
     final SqlType s = params.get(0);
     if (s.baseType() != SqlBaseType.DECIMAL) {
-      throw new KsqlException("The schema provider method for Floor expects a BigDecimal parameter"
+      throw new KsqlException("The schema provider method for Ceil expects a BigDecimal parameter"
           + "type");
     }
     return s;

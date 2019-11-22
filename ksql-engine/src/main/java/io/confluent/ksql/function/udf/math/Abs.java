@@ -34,13 +34,13 @@ public class Abs {
 
 
   @Udf
-  public Double abs(@UdfParameter final Integer val) {
-    return (val == null) ? null : (double)Math.abs(val);
+  public Integer abs(@UdfParameter final Integer val) {
+    return (val == null) ? null : Math.abs(val);
   }
 
   @Udf
-  public Double abs(@UdfParameter final Long val) {
-    return (val == null) ? null : (double)Math.abs(val);
+  public Long abs(@UdfParameter final Long val) {
+    return (val == null) ? null : Math.abs(val);
   }
 
   @Udf
@@ -48,13 +48,13 @@ public class Abs {
     return (val == null) ? null : Math.abs(val);
   }
 
-  @Udf(schemaProvider = "provideSchema")
+  @Udf(schemaProvider = "absDecimalProvider")
   public BigDecimal abs(@UdfParameter final BigDecimal val) {
     return (val == null) ? null : val.abs();
   }
 
   @UdfSchemaProvider
-  public SqlType provideSchema(final List<SqlType> params) {
+  public SqlType absDecimalProvider(final List<SqlType> params) {
     final SqlType s = params.get(0);
     if (s.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for Abs expects a BigDecimal parameter"

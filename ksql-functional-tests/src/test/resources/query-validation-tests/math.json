@@ -102,43 +102,55 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null, "B":  null}},
-        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0, "B": 0.0}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0, "B": 1.0}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0, "B": 1.0}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0, "B": 1.0}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0, "B": 1.0}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 2.0, "B": 2.0}},
+        {"topic": "OUTPUT", "value": {"I": 0, "L": 0, "D": 0.0, "B": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.0, "B": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.0, "B": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.0, "B": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.0, "B": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 2.0, "B": 2.0}},
 
-        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -1.0, "B": -1.0}},
-        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -2.0, "B": -2.0}},
-        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -2.0, "B": -2.0}},
-        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -2.0, "B": -2.0}},
-        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -2.0, "B": -2.0}}
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -1.0, "B": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -2.0, "B": -2.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -2.0, "B": -2.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -2.0, "B": -2.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -2.0, "B": -2.0}}
       ]
     },
     {
       "name": "calculate CEIL function",
       "statements": [
-        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT CEIL(v) as C0 FROM test;"
+        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT ceil(i) i, ceil(l) l, ceil(d) d, ceil(b) b FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"v" : 1.2}},
-        {"topic": "test_topic", "value": {"v" : 1.7}},
-        {"topic": "test_topic", "value": {"v" : 1.5}},
-        {"topic": "test_topic", "value": {"v" : 3}},
-        {"topic": "test_topic", "value": {"v" : 1.234567}},
-        {"topic": "test_topic", "value": {"v" : 0}},
-        {"topic": "test_topic", "value": {"v" : null}}
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0, "b":  "0.0"}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.0, "b": "1.0"}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.1, "b": "1.1"}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.5, "b": "1.5"}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.7, "b": "1.7"}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 2.0, "b": "2.0"}},
+
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -1.0, "b": "-1.0"}},
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -1.1, "b": "-1.1"}},
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -1.5, "b": "-1.5"}},
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -1.7, "b": "-1.7"}},
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -2.0, "b": "-2.0"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 3.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 0.0}},
-        {"topic": "OUTPUT", "value": {"C0" : null}}
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null, "B":  null}},
+        {"topic": "OUTPUT", "value": {"I": 0, "L": 0, "D": 0.0, "B": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.0, "B": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 2.0, "B": 2.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 2.0, "B": 2.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 2.0, "B": 2.0}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 2.0, "B": 2.0}},
+
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -1.0, "B": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -1.0, "B": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -1.0, "B": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -1.0, "B": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": -1, "L": -1, "D": -2.0, "B": -2.0}}
       ]
     },
     {
@@ -155,9 +167,9 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null, "B":  null}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 2.0, "D": 3.1, "B": "3.2"}},
-        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0, "B": "0.0"}},
-        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 2.0, "D": 3.3, "B": "3.4"}}
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 2, "D": 3.1, "B": "3.2"}},
+        {"topic": "OUTPUT", "value": {"I": 0, "L": 0, "D": 0.0, "B": "0.0"}},
+        {"topic": "OUTPUT", "value": {"I": 1, "L": 2, "D": 3.3, "B": "3.4"}}
       ]
     },
     {

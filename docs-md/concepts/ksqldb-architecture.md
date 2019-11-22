@@ -24,7 +24,7 @@ ksqlDB Server comprises the ksqlDB engine and the REST API. ksqlDB Server
 instances communicate with a {{ site.ak }} cluster, and you can add more of
 them as necessary without restarting your applications.
 
-![Diagram showing architecture of ksqlDB](../img/ksql-architecture-and-components.png)
+![Diagram showing architecture of ksqlDB](../img/ksqldb-architecture-and-components.png)
 
 - ksqlDB Engine: The ksqlDB engine executes SQL statements and queries. You
 define your application logic by writing SQL statements, and the engine
@@ -139,7 +139,7 @@ Use the interactive mode to develop your ksqlDB applications. When you
 deploy a ksqlDB server in interactive mode, the REST interface is
 available for the ksqlDB CLI and {{ site.c3 }} to connect to.
 
-![Diagram showing interactive ksqlDB deployment](../img/ksql-client-server-interactive-mode.png)
+![Diagram showing interactive ksqlDB deployment](../img/ksqldb-client-server-interactive-mode.png)
 
 In interactive mode, you can:
 
@@ -171,7 +171,7 @@ using a SQL file. The SQL file contains the SQL statements and queries
 that define your application. Headless mode is ideal for streaming ETL
 application deployments.
 
-![Diagram showing headless ksqlDB deployment](../img/ksql-standalone-headless.png)
+![Diagram showing headless ksqlDB deployment](../img/ksqldb-standalone-headless.png)
 
 In headless mode you can:
 
@@ -230,7 +230,7 @@ property. The following diagram shows a {{ site.ak }} cluster with separate
 workloads for a `finance` pool and a `sales` pool. For more information, see
 [ksql.service.id](../operate-and-deploy/installation/server-config/config-reference.md#ksqlserviceid).
 
-![Diagram showing how to join ksqlDB engines to the same service pool](../img/ksql-dedicating-resources.png)
+![Diagram showing how to join ksqlDB engines to the same service pool](../img/ksqldb-dedicating-resources.png)
 
 To scale out, just add more ksqlDB server instances. There's no master
 node or coordination among them required. For more information, see

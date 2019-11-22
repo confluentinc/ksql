@@ -15,7 +15,7 @@ applications and microservices in Java and Scala.
 ksqlDB is built on {{ site.kstreams }}, a robust stream processing framework
 that is part of {{ site.ak }}.
 
-![The Confluent Platform stack, with ksqlDB built on Kafka Streams](../img/ksql-kafka-streams-core-kafka-stack.png)
+![The Confluent Platform stack, with ksqlDB built on Kafka Streams](../img/ksqldb-kafka-streams-core-kafka-stack.png)
 
 ksqlDB gives you a query layer for building event streaming applications on
 {{ site.ak }} topics. ksqlDB abstracts away much of the complex programming

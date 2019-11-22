@@ -6,6 +6,8 @@ description: Learn about processing events by using ksqlDB collections.
 keywords: ksqldb, collection, query
 ---
 
+![Illustration of stream processing, showing input and output streams](../img/ksqldb-stream-processing-io.png)
+
 Creating a collection with an enforced schema over a new or existing
 {{ site.aktm }} topic is useful but has limited utility by itself for creating
 an application. When you declare a collection, you can only work with the
@@ -144,3 +146,5 @@ CREATE STREAM clicked_impressions AS
 Any time an `impressions` row is received, followed within one minute by a
 `clicks` row having the same `user`, a row is emitted into the
 `clicked_impressions` stream.
+
+Page last revised on: {{ git_revision_date }}

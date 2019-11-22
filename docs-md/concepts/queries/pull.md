@@ -6,7 +6,7 @@ description: Learn how to use point-in-time queries by using the SELECT statemen
 keywords: ksqldb, pull, query, select
 ---
 
-![Illustration of a pull query](../../img/ksqldb-pull-query.png)
+![Illustration of a pull query](../../img/ksqldb-pull-query.svg)
 
 Pull queries are a form of query issued by a client that retrieve a result as
 of "now". As a dual to the push query example, a pull query for a credit score

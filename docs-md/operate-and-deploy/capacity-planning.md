@@ -403,10 +403,12 @@ it will start to fall behind in processing the incoming data. *Consumer lag*
 is the {{ site.ak }} terminology for describing how far a {{ site.ak }}
 consumer, including ksqlDB, has fallen behind. It's important to monitor
 consumer lag on your topics and add resources if you observe that the lag is
-growing. [{{ site.c3 }}](https://docs.confluent.io/current/control-center/index.html)
+growing.
+[{{ site.c3 }}](https://docs.confluent.io/current/control-center/index.html)
 is the recommended tool for monitoring. You can also check out
 [{{ site.cp }} documentation](https://docs.confluent.io/current/kafka/monitoring.html)
-for details on metrics exposed by {{ site.ak }} that can be used to monitor lag.
+for details on metrics exposed by {{ site.ak }} that can be used to monitor
+lag.
 
 #### Mixed Workloads
 

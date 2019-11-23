@@ -24,7 +24,8 @@ Kafka topic. The Kafka topic must exist already in your Kafka cluster.
 
 The following examples show how to create tables from a Kafka topic,
 named `users`. To see these examples in action, create the `users` topic
-by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+by following the procedure in
+[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
 
 ### Create a Table with Selected Columns
 
@@ -38,8 +39,9 @@ the `userid` field is assigned as the table's KEY property.
 
 ksqlDB can't infer the topic's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
-data format is `JSON`. Other options are `Avro`, `DELIMITED` and `KAFKA`.
-See [Serialization Formats](serialization.md#serialization-formats) for more details.
+data format is `JSON`. Other options are `Avro`, `DELIMITED` and `KAFKA`. For
+more information, see
+[Serialization Formats](serialization.md#serialization-formats).
 
 In the ksqlDB CLI, paste the following CREATE TABLE statement:
 

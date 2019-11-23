@@ -103,7 +103,8 @@ named `orders_topic`:
 <path-to-confluent>/ksql-datagen quickstart=orders topic=orders_topic
 ```
 
-In the ksqlDB CLI or in {{ site.c3short }}, register a stream on `orders_topic`:
+In the ksqlDB CLI or in {{ site.c3short }}, register a stream on
+`orders_topic`:
 
 ```sql
 CREATE STREAM orders_raw (

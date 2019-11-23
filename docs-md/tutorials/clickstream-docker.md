@@ -104,7 +104,8 @@ docker-compose exec kafkacat \
 >If you get the message "Broker: Leader not available", try again after a
 moment, as the demo is still starting up.*
 
-The `kafkacat` command stops after ten messages, and your output should resemble:
+The `kafkacat` command stops after ten messages, and your output should
+resemble:
 
 ```
 Key  : 111.90.225.227

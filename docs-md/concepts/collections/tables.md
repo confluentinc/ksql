@@ -20,7 +20,8 @@ identity. If a sequence of events shares a key, the last event for a given key
 represents the most up-to-date information. Under the hood, ksqlDB uses Kafka’s
 notion of a *compacted topic* to make this work. Compaction is a process that
 periodically deletes all but the newest events for each key. For more
-information, see [Log Compaction](https://kafka.apache.org/documentation/#compaction).
+information, see
+[Log Compaction](https://kafka.apache.org/documentation/#compaction).
 
 You can create a table from scratch or declare a table on top of an existing
 {{ site.aktm }} topic. You can supply a variety of configuration options. In

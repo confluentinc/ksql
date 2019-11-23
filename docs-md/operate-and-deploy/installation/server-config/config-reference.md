@@ -68,9 +68,11 @@ For more information, see
 and 
 [BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS` or `KSQL_BOOTSTRAP_SERVERS`. For
-more information, see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
+more information, see
+[Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
 
 ### ksql.streams.commit.interval.ms
 
@@ -82,11 +84,13 @@ using the ksqlDB CLI:
 SET 'commit.interval.ms'='5000';
 ```
 
-For more information, see the [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+For more information, see the
+[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_STREAMS_COMMIT_INTERVAL_MS`.
 
 ### ksql.streams.cache.max.bytes.buffering
@@ -99,7 +103,8 @@ example to change the value to `20000000` by using the ksqlDB CLI:
 SET 'cache.max.bytes.buffering'='20000000';
 ```
 
-For more information, see the [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+For more information, see the
+[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
@@ -114,7 +119,8 @@ application. The stream processing code runs in these threads. For more
 information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_STREAMS_NUM_STREAM_THREADS`.
 
 ### ksql.output.topic.name.prefix
@@ -127,7 +133,8 @@ to name output topics in a ksqlDB Server cluster that's deployed in
 interactive mode. For more information, see
 [Interactive ksqlDB clusters](security.md#interactive-ksqldb-clusters).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX`.
 
 ksqlDB Query Settings
@@ -164,7 +171,8 @@ Indicates whether to fail if ksqlDB fails to publish a record to an output
 topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
-message to the [Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
+message to the
+[Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -172,7 +180,8 @@ to your ksqlDB Server properties file:
 ksql.fail.on.production.error=false
 ```
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_FAIL_ON_DESERIALIZATION_ERROR`.
 
 ### ksql.schema.registry.url
@@ -181,7 +190,8 @@ The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr 
 over a secure connection, see
 [Configure ksqlDB for Secured {{ site.srlong }}](security.md#configure-ksqldb-for-https).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_SCHEMA_REGISTRY_URL`.
 
 ### ksql.service.id
@@ -210,7 +220,8 @@ The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_INTERNAL_TOPIC_REPLICAS`.
 
 ### ksql.sink.partitions (Deprecated)
@@ -221,7 +232,8 @@ For more info see the WITH clause properties in
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
 [CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 `KSQL_KSQL_SINK_PARTITIONS`.
 
 ### ksql.sink.replicas (Deprecated)
@@ -238,7 +250,8 @@ Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
 documentation in the [function](../../../developer-guide/ksqldb-reference/scalar-functions.md)
 guide for details.
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 
 ### ksql.persistence.wrap.single.values
@@ -326,9 +339,8 @@ When setting up ksqlDB servers, it may be desirable to configure this
 limit to prevent users from overloading the server with too many
 queries, since throughput suffers as more queries are run
 simultaneously, and also because there is some small CPU overhead
-associated with starting each new query. See
-[Sizing Recommendations](../../capacity-planning.md#recommendations-and-best-practices) for
-more details.
+associated with starting each new query. For more information, see
+[Sizing Recommendations](../../capacity-planning.md#recommendations-and-best-practices).
 
 ### ksql.queries.file
 
@@ -336,7 +348,8 @@ A file that specifies a predefined set of queries for the ksqlDB cluster.
 For an example, see
 [Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
 
-The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_QUERIES_FILE`.
 
 ### listeners
@@ -447,7 +460,8 @@ default, this property has the value `1`.
 Toggles automatic processing log stream creation. If set to true, and
 ksqlDB is running in interactive mode on a new cluster, ksqlDB automatically
 creates a processing log stream when it starts up. The name for the
-stream is the value of the  [ksql.logging.processing.stream.name](#ksqlloggingprocessingstreamname)
+stream is the value of the 
+[ksql.logging.processing.stream.name](#ksqlloggingprocessingstreamname)
 property. The stream is created over the topic set in the
 [ksql.logging.processing.topic.name](#ksqlloggingprocessingtopicname) property
 By default, this property has the value `false`.

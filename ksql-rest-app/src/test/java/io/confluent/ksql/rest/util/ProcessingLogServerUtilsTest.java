@@ -41,13 +41,11 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
@@ -180,18 +178,13 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(TOPIC, 1, (short) 1);
 
     // When:
-    final PreparedStatement<?> statement =
+    final String statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             config,
             ksqlConfig);
 
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
-    );
-
     // Then:
-    assertThat(statement.getStatementText(), equalTo(
+    assertThat(statement, equalTo(
         "CREATE STREAM PROCESSING_LOG_STREAM ("
             + "logger VARCHAR, "
             + "level VARCHAR, "
@@ -203,8 +196,6 @@ public class ProcessingLogServerUtilsTest {
             + "productionError STRUCT<errorMessage VARCHAR>"
             + ">"
             + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');"));
-
-    assertLogStream(TOPIC);
   }
 
   @Test
@@ -213,7 +204,7 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short)1);
 
     // When:
-    final PreparedStatement<?> statement =
+    final String statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             new ProcessingLogConfig(
                 ImmutableMap.of(
@@ -223,16 +214,9 @@ public class ProcessingLogServerUtilsTest {
             ),
             ksqlConfig);
 
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
-    );
-
     // Then:
-    assertThat(statement.getStatementText(),
+    assertThat(statement,
         containsString("KAFKA_TOPIC='ksql_cluster.ksql_processing_log'"));
-
-    assertLogStream(DEFAULT_TOPIC);
   }
 
   @Test

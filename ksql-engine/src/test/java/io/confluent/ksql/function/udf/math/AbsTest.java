@@ -42,16 +42,16 @@ public class AbsTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.abs(-1), is(1.0));
-    assertThat(udf.abs(-1L), is(1.0));
+    assertThat(udf.abs(-1), is(1));
+    assertThat(udf.abs(-1L), is(1L));
     assertThat(udf.abs(-1.0), is(1.0));
     assertThat(udf.abs(new BigDecimal(-1)), is(new BigDecimal(-1).abs()));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.abs(1), is(1.0));
-    assertThat(udf.abs(1L), is(1.0));
+    assertThat(udf.abs(1), is(1));
+    assertThat(udf.abs(1L), is(1L));
     assertThat(udf.abs(1.0), is(1.0));
     assertThat(udf.abs(new BigDecimal(1)), is(new BigDecimal(1).abs()));
   }

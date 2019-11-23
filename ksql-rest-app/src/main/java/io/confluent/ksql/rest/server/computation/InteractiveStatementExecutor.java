@@ -333,11 +333,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig,1)) {
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, mergedConfig, statement.getStatementText());
-    }
-
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         statement, command.getOverwriteProperties(), mergedConfig);
 

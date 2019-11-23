@@ -18,24 +18,29 @@ package io.confluent.ksql.function.udf.math;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 @UdfDescription(name = "Floor", description = Floor.DESCRIPTION)
 public class Floor {
 
   static final String DESCRIPTION = "Returns the largest integer less than or equal to the "
-      + "specified numeric expression. NOTE: for backwards compatibility, this returns a DOUBLE "
-      + "that has a mantissa of zero.";
+      + "specified numeric expression.";
 
 
   @Udf
-  public Double floor(@UdfParameter final Integer val) {
-    return (val == null) ? null : Math.floor(val);
+  public Integer floor(@UdfParameter final Integer val) {
+    return val;
   }
 
   @Udf
-  public Double floor(@UdfParameter final Long val) {
-    return (val == null) ? null : Math.floor(val);
+  public Long floor(@UdfParameter final Long val) {
+    return val;
   }
 
   @Udf
@@ -43,9 +48,21 @@ public class Floor {
     return (val == null) ? null : Math.floor(val);
   }
 
-  @Udf
-  public Double floor(@UdfParameter final BigDecimal val) {
-    return (val == null) ? null : Math.floor(val.doubleValue());
+  @Udf(schemaProvider = "floorDecimalProvider")
+  public BigDecimal floor(@UdfParameter final BigDecimal val) {
+    return val == null
+        ? null
+        : val.setScale(0, RoundingMode.FLOOR).setScale(val.scale(), RoundingMode.UNNECESSARY);
+  }
+
+  @UdfSchemaProvider
+  public SqlType floorDecimalProvider(final List<SqlType> params) {
+    final SqlType s = params.get(0);
+    if (s.baseType() != SqlBaseType.DECIMAL) {
+      throw new KsqlException("The schema provider method for Floor expects a BigDecimal parameter"
+          + "type");
+    }
+    return s;
   }
 
 }

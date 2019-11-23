@@ -80,9 +80,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-      .put(
-          KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-          KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
       .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
       .build();
 
@@ -395,13 +392,10 @@ public class TestExecutor implements Closeable {
       final StubKafkaService stubKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    final boolean legacySessionWindow = isLegacySessionWindow(testCase.properties());
-
     while (true) {
       final ProducerRecord<?, ?> producerRecord = topologyTestDriver.readOutput(
           sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(schemaRegistryClient,
-              legacySessionWindow),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient),
           sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
@@ -415,11 +409,6 @@ public class TestExecutor implements Closeable {
               producerRecord)
       );
     }
-  }
-
-  private static boolean isLegacySessionWindow(final Map<String, Object> properties) {
-    final Object config = properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG);
-    return config != null && Boolean.parseBoolean(config.toString());
   }
 
   private static Object getKey(final StubKafkaRecord stubKafkaRecord) {

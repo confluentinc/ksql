@@ -6,9 +6,6 @@ description: Learn how to use KSQL to analyze an event stream with Grafana and E
 keywords: ksql, Grafana, Elasticsearch
 ---
 
-Clickstream Data Analysis Pipeline Using KSQL (Docker)
-======================================================
-
 These steps will guide you through how to setup your environment and run
 the clickstream analysis tutorial from a Docker container.
 
@@ -107,7 +104,8 @@ docker-compose exec kafkacat \
 >If you get the message "Broker: Leader not available", try again after a
 moment, as the demo is still starting up.*
 
-The `kafkacat` command stops after ten messages, and your output should resemble:
+The `kafkacat` command stops after ten messages, and your output should
+resemble:
 
 ```
 Key  : 111.90.225.227

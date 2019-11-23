@@ -21,15 +21,13 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.rest.RestConfig;
 import java.net.URI;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.config.ConfigException;
 
 public class HealthCheckAgent {
 
@@ -49,7 +47,7 @@ public class HealthCheckAgent {
       final KsqlRestConfig restConfig
   ) {
     this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
-    this.serverEndpoint = getServerAddress(restConfig);
+    this.serverEndpoint = ServerUtil.getServerAddress(restConfig);
   }
 
   public HealthCheckResponse checkHealth() {
@@ -61,27 +59,6 @@ public class HealthCheckAgent {
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
     return new HealthCheckResponse(allHealthy, results);
-  }
-
-  private static URI getServerAddress(final KsqlRestConfig restConfig) {
-    final List<String> listeners = restConfig.getList(RestConfig.LISTENERS_CONFIG);
-    final String address = listeners.stream()
-        .map(String::trim)
-        .findFirst()
-        .orElseThrow(() -> invalidAddressException(listeners, "value cannot be empty"));
-
-    try {
-      return new URL(address).toURI();
-    } catch (final Exception e) {
-      throw invalidAddressException(listeners, e.getMessage());
-    }
-  }
-
-  private static RuntimeException invalidAddressException(
-      final List<String> serverAddresses,
-      final String message
-  ) {
-    return new ConfigException(RestConfig.LISTENERS_CONFIG, serverAddresses, message);
   }
 
   private interface Check {

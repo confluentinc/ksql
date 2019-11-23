@@ -5,8 +5,10 @@ tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-
-The term serialization refers to the manner in which an event's raw bytes are translated to and from information structures that ksqlDB can understand at runtime. ksqlDB offers several mechanisms for controlling serialization and deserialization.
+The term serialization refers to the manner in which an event's raw bytes
+are translated to and from information structures that ksqlDB can understand
+at runtime. ksqlDB offers several mechanisms for controlling serialization
+and deserialization.
 
 The primary mechanism is by choosing the serialization format when you
 create a stream or table and specify the `VALUE_FORMAT` in the `WITH`
@@ -53,7 +55,8 @@ This data format supports all SQL
 
 The `JSON` format supports JSON values.
 
-The JSON format supports all SQL [data types](syntax-reference.md#ksqldb-data-types).
+The JSON format supports all SQL
+[data types](syntax-reference.md#ksqldb-data-types).
 As JSON doesn't itself support a map type, ksqlDB serializes `MAP` types as
 JSON objects. Because of this the JSON format can only support `MAP` objects
 that have `STRING` keys.
@@ -124,8 +127,8 @@ used.
 ### Avro
 
 The `AVRO` format supports Avro binary serialization of all SQL
-[data types](syntax-reference.md#ksqldb-data-types), including records and top-level
-primitives, arrays, and maps.
+[data types](syntax-reference.md#ksqldb-data-types), including records and
+top-level primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see

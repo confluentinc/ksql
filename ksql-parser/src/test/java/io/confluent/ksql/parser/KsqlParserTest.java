@@ -152,8 +152,7 @@ public class KsqlParserTest {
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
@@ -163,6 +162,7 @@ public class KsqlParserTest {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
         new MetadataTimestampExtractionPolicy(),
+        false,
         ksqlTopicOrders
     );
 
@@ -171,8 +171,7 @@ public class KsqlParserTest {
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
@@ -182,6 +181,7 @@ public class KsqlParserTest {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
         new MetadataTimestampExtractionPolicy(),
+        false,
         ksqlTopicItems
     );
 

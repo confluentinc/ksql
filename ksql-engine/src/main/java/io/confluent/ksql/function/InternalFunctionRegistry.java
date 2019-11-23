@@ -29,7 +29,6 @@ import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFacto
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
-import io.confluent.ksql.function.udf.math.CeilKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
 import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.IfNullKudf;
@@ -62,6 +61,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     new BuiltInInitializer(this).init();
   }
 
+  @Override
   public synchronized UdfFactory getUdfFactory(final String functionName) {
     final UdfFactory udfFactory = udfs.get(functionName.toUpperCase());
     if (udfFactory == null) {
@@ -107,6 +107,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     return udafs.containsKey(functionName.toUpperCase());
   }
 
+  @Override
   public synchronized boolean isTableFunction(final String functionName) {
     return udtfs.containsKey(functionName.toUpperCase());
   }
@@ -308,14 +309,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addMathFunctions() {
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.DOUBLE,
-          Collections.singletonList(ParamTypes.DOUBLE),
-          FunctionName.of("CEIL"),
-          CeilKudf.class
-      ));
-
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           SqlTypes.DOUBLE,
           Collections.emptyList(),

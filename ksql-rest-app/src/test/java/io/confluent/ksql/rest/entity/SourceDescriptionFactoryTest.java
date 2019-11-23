@@ -74,8 +74,7 @@ public class SourceDescriptionFactoryTest {
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        true
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     return new KsqlStream<>(
@@ -85,6 +84,7 @@ public class SourceDescriptionFactoryTest {
         SerdeOption.none(),
         KeyField.of(schema.value().get(0).ref()),
         new MetadataTimestampExtractionPolicy(),
+        false,
         topic
     );
   }

@@ -126,7 +126,7 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    createTopic(topicPropertiesBuilder, statement, createSource instanceof CreateTable);
+    createTopic(topicPropertiesBuilder, createSource instanceof CreateTable);
 
     return statement;
   }
@@ -160,7 +160,7 @@ public class TopicCreateInjector implements Injector {
     final boolean shouldCompactTopic = createAsSelect instanceof CreateTableAsSelect
         && !createAsSelect.getQuery().getWindow().isPresent();
 
-    final TopicProperties info = createTopic(topicPropertiesBuilder, statement, shouldCompactTopic);
+    final TopicProperties info = createTopic(topicPropertiesBuilder, shouldCompactTopic);
 
     final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
         info.getTopicName(),
@@ -175,13 +175,9 @@ public class TopicCreateInjector implements Injector {
 
   private TopicProperties createTopic(
       final Builder topicPropertiesBuilder,
-      final ConfiguredStatement<?> statement,
       final boolean shouldCompactTopic
   ) {
-    final TopicProperties info = topicPropertiesBuilder
-        .withOverrides(statement.getOverrides())
-        .withKsqlConfig(statement.getConfig())
-        .build();
+    final TopicProperties info = topicPropertiesBuilder.build();
 
     final Map<String, ?> config = shouldCompactTopic
         ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)

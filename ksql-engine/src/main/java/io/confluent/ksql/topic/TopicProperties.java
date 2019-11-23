@@ -17,9 +17,7 @@ package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -117,34 +115,6 @@ public final class TopicProperties {
       return this;
     }
 
-    Builder withOverrides(final Map<String, Object> overrides) {
-      final Integer partitions = parsePartitionsOverride(
-          overrides.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
-
-      final Short replicas = parseReplicasOverride(
-          overrides.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
-
-      fromOverrides = new TopicProperties(null, partitions, replicas);
-      return this;
-    }
-
-    Builder withKsqlConfig(final KsqlConfig config) {
-      // requires check for containsKey because `getInt` will return 0 otherwise
-      Integer partitions = null;
-      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
-        partitions = config.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-      }
-
-      // requires check for containsKey because `getShort` will return 0 otherwise
-      Short replicas = null;
-      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
-        replicas = config.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-      }
-
-      fromKsqlConfig = new TopicProperties(null, partitions, replicas);
-      return this;
-    }
-
     Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
       fromSource = Suppliers.memoize(() -> {
         final TopicDescription description = descriptionSupplier.get();
@@ -185,32 +155,6 @@ public final class TopicProperties {
           .orElseGet(() -> fromSource.get().replicas);
 
       return new TopicProperties(name, partitions, replicas);
-    }
-  }
-
-  private static Integer parsePartitionsOverride(final Object value) {
-    if (value instanceof Integer || value == null) {
-      return (Integer) value;
-    }
-
-    try {
-      return Integer.parseInt(value.toString());
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to parse property override '"
-          + KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY + "': " + e.getMessage(), e);
-    }
-  }
-
-  private static Short parseReplicasOverride(final Object value) {
-    if (value instanceof Short || value == null) {
-      return (Short) value;
-    }
-
-    try {
-      return Short.parseShort(value.toString());
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to parse property override '"
-          + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "': " + e.getMessage(), e);
     }
   }
 }

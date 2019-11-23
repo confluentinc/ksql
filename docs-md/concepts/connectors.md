@@ -5,6 +5,8 @@ tagline: Connect your ksqlDB applications to event sources
 description: Learn how to integrate your ksqlDB applications with Kafka connectors.
 ---
 
+![Illustration of the ksqlDB architecture showing embedded Kafka connectors](../img/ksqldb-connectors.png)
+
 {{ site.kconnectlong }} is an open source component of {{ site.aktm }} that
 simplifies loading and exporting data between Kafka and external systems.
 ksqlDB provides functionality to manage and integrate with {{ site.kconnect }}:

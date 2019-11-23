@@ -17,13 +17,8 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.common.logging.LogRecordStructBuilder;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -87,7 +82,7 @@ public final class ProcessingLogServerUtils {
     return Optional.of(topicName);
   }
 
-  public static PreparedStatement<?> processingLogStreamCreateStatement(
+  public static String processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig
   ) {
@@ -97,7 +92,7 @@ public final class ProcessingLogServerUtils {
     );
   }
 
-  private static PreparedStatement<?> processingLogStreamCreateStatement(
+  private static String processingLogStreamCreateStatement(
       final String name,
       final String topicName
   ) {
@@ -105,12 +100,8 @@ public final class ProcessingLogServerUtils {
 
     final String elements = FORMATTER.format(schema);
 
-    final String createStreamSql = "CREATE STREAM " + name
+    return "CREATE STREAM " + name
         + " (" + elements + ")"
         + " WITH(KAFKA_TOPIC='" + topicName + "', VALUE_FORMAT='JSON');";
-
-    final DefaultKsqlParser parser = new DefaultKsqlParser();
-    final ParsedStatement parsed = parser.parse(createStreamSql).get(0);
-    return parser.prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
   }
 }

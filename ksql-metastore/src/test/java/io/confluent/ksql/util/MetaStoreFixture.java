@@ -68,8 +68,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
         "test0",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
@@ -79,6 +78,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopic0
     );
 
@@ -87,8 +87,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopic1 = new KsqlTopic(
         "test1",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>(
@@ -99,6 +98,7 @@ public final class MetaStoreFixture {
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopic1
     );
 
@@ -115,8 +115,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopic2 = new KsqlTopic(
         "test2",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
@@ -126,6 +125,7 @@ public final class MetaStoreFixture {
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopic2
     );
 
@@ -164,8 +164,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
@@ -175,6 +174,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopicOrders
     );
 
@@ -191,8 +191,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopic3 = new KsqlTopic(
         "test3",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
@@ -202,6 +201,7 @@ public final class MetaStoreFixture {
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopic3
     );
 
@@ -228,8 +228,7 @@ public final class MetaStoreFixture {
     final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(
         "NestedArrayStructMap_topic",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
@@ -239,6 +238,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
+        false,
         nestedArrayStructMapTopic
     );
 
@@ -247,8 +247,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopic4 = new KsqlTopic(
         "test4",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
@@ -258,6 +257,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
+        false,
         ksqlTopic4
     );
 
@@ -275,8 +275,7 @@ public final class MetaStoreFixture {
     final KsqlTopic ksqlTopicSensorReadings = new KsqlTopic(
         "sensor_readings_topic",
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
 
     final KsqlStream<?> ksqlStreamSensorReadings = new KsqlStream<>(
@@ -286,6 +285,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID"))),
         timestampExtractionPolicy,
+        false,
         ksqlTopicSensorReadings
     );
 

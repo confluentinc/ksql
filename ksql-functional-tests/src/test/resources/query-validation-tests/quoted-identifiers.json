@@ -39,7 +39,7 @@
         {"topic": "test_topic", "value": {"SELECT":  -2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": { "FOO": 2.0}}
+        {"topic": "OUTPUT", "value": { "FOO": 2}}
       ]
     },
     {

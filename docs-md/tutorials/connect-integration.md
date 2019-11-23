@@ -6,16 +6,12 @@ description: Learn how to use ksqlDB and Kafka Connect to integrate with Postgre
 keywords: ksqlDB, connect, PostgreSQL
 ---
 
-Integrating with PostgreSQL
-===========================
-
 This tutorial demonstrates a simple workflow to integrate ksqlDB with an
 instance of PostgreSQL.
 
 Prerequisites:
 
--   [Confluent
-    Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
+-   [Confluent Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
     is installed an running. This installation includes a Kafka broker,
     ksqlDB, {{ site.zk }}, {{ site.sr }} and {{ site.kconnect }}.
 -   If you installed {{ site.cp }} via TAR or ZIP, navigate into the

@@ -6,9 +6,6 @@ description: Learn how to install and set up ksqlDB
 keywords: ksqldb, install, uninstall, upgrade
 ---
 
-Installation and Configuration
-==============================
-
 - [Instal ksqlDB](installing.md)
 - [Install ksqlDB with Docker](install-ksqldb-with-docker.md)
 - [Check the Health of a ksqlDB Server](check-ksqldb-server-health.md)

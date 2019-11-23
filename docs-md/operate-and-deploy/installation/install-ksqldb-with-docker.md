@@ -225,8 +225,8 @@ docker run -d \
 
 :   A list of fully qualified class names for consumer interceptors.
 
-For more info on interceptor classes, see [Confluent Monitoring
-Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
+For more info on interceptor classes, see
+[Confluent Monitoring Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
 
 In interactive mode, a CLI instance running outside of Docker can
 connect to the server running in Docker.
@@ -304,7 +304,7 @@ with `-D`. For example, to set the ksqlDB service identifier in the
 -e KSQL_OPTS="-Dksql.service.id=<your-service-id>"
 ```
 
-Run a ksqlDB Server with a configuration that\'s defined by Java
+Run a ksqlDB Server with a configuration that's defined by Java
 properties:
 
 ```bash

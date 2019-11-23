@@ -52,25 +52,19 @@ public class KsqlConfigResolverTest {
 
   @Test
   public void shouldResolveKsqlProperty() {
-    assertThat(resolver.resolve(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, true),
-        is(resolvedItem(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KSQL_CONFIG_DEF)));
+    assertThat(resolver.resolve(KsqlConfig.CONNECT_URL_PROPERTY, true),
+        is(resolvedItem(KsqlConfig.CONNECT_URL_PROPERTY, KSQL_CONFIG_DEF)));
   }
 
   @Test
   public void shouldNotFindPrefixedKsqlProperty() {
     assertNotFound(
-        KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+        KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + KsqlConfig.CONNECT_URL_PROPERTY);
   }
 
   @Test
   public void shouldNotFindUnknownKsqlProperty() {
     assertNotFound(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + "you.won't.find.me...right");
-  }
-
-  @Test
-  public void shouldResolveKnownKsqlFunctionProperty() {
-    assertThat(resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, true),
-        is(resolvedItem(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, KSQL_CONFIG_DEF)));
   }
 
   @Test

@@ -27,18 +27,15 @@ public class KsqlTopic {
   private final String kafkaTopicName;
   private final KeyFormat keyFormat;
   private final ValueFormat valueFormat;
-  private final boolean isKsqlSink;
 
   public KsqlTopic(
       @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
       @JsonProperty(value = "keyFormat", required = true) KeyFormat keyFormat,
-      @JsonProperty(value = "valueFormat", required = true) ValueFormat valueFormat,
-      @JsonProperty(value = "ksqlSink", required = true) boolean isKsqlSink
+      @JsonProperty(value = "valueFormat", required = true) ValueFormat valueFormat
   ) {
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = requireNonNull(valueFormat, "valueFormat");
-    this.isKsqlSink = isKsqlSink;
   }
 
   public KeyFormat getKeyFormat() {
@@ -51,9 +48,5 @@ public class KsqlTopic {
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
-  }
-
-  public boolean isKsqlSink() {
-    return isKsqlSink;
   }
 }

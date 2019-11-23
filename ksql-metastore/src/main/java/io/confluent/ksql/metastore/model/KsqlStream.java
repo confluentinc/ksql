@@ -33,6 +33,7 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
+      final boolean isKsqlSink,
       final KsqlTopic ksqlTopic
   ) {
     super(
@@ -43,6 +44,7 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
         keyField,
         timestampExtractionPolicy,
         DataSourceType.KSTREAM,
+        isKsqlSink,
         ksqlTopic
     );
   }

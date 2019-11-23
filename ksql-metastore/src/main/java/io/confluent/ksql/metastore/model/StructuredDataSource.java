@@ -39,6 +39,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
   private final ImmutableSet<SerdeOption> serdeOptions;
+  private final boolean casTarget;
 
   StructuredDataSource(
       final String sqlExpression,
@@ -48,6 +49,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
       final KeyField keyField,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
+      final boolean casTarget,
       final KsqlTopic ksqlTopic
   ) {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
@@ -59,6 +61,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.casTarget = casTarget;
 
     if (schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)).isPresent()
         || schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)).isPresent()) {
@@ -94,6 +97,11 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   @Override
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
+  }
+
+  @Override
+  public boolean isCasTarget() {
+    return casTarget;
   }
 
   @Override

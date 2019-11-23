@@ -106,7 +106,7 @@
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
         <javax-validation.version>2.0.1.Final</javax-validation.version>
-        <jline.version>3.11.0</jline.version>
+        <jline.version>3.13.1</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <maven.plugins.version>3.0.0-M1</maven.plugins.version>
@@ -468,6 +468,7 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksql-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
+                    <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                 </configuration>
             </plugin>
 

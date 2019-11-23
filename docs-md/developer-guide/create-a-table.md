@@ -30,7 +30,7 @@ by following the procedure in [Write Streaming Queries Against {{ site.aktm }} U
 
 The following example creates a table that has four columns from the
 `users` topic: `registertime`, `userid`, `gender`, and `regionid`. Also,
-the `userid` field is assigned as the table\'s KEY property.
+the `userid` field is assigned as the table's KEY property.
 
 !!! note
       The KEY field is optional. For more information, see

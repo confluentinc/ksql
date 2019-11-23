@@ -304,7 +304,7 @@ with `-D`. For example, to set the ksqlDB service identifier in the
 -e KSQL_OPTS="-Dksql.service.id=<your-service-id>"
 ```
 
-Run a ksqlDB Server with a configuration that\'s defined by Java
+Run a ksqlDB Server with a configuration that's defined by Java
 properties:
 
 ```bash

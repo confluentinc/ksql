@@ -120,7 +120,7 @@ For this example, imagine you want to create a new stream by
 transforming `pageviews` in the following way:
 
 -   The `viewtime` column value is used as the {{ site.aktm }} message
-    timestam in the new stream's underlying {{ site.aktm }} topic.
+    timestamp in the new stream's underlying {{ site.aktm }} topic.
 -   The new stream's {{ site.aktm }} topic has 5 partitions.
 -   The data in the new stream is in JSON format.
 -   Add a new column that shows the message timestamp in human-readable

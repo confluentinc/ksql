@@ -84,7 +84,7 @@ are deployed in the following situations:
 -   KSQL Server and {{ site.c3short }} run in separate containers.
 -   They run in separate virtual machines.
 -   They communicate over a virtual private network (VPN).
--   The KSQL Server host publishes a public URL that\'s different from
+-   The KSQL Server host publishes a public URL that's different from
     the private URL for KSQL Server.
 
 !!! note
@@ -169,7 +169,7 @@ Check Network Connectivity Between KSQL and Control Center
 Use a web browser to check the configuration of an advertised URL. Make
 sure that your browser can reach the `info` endpoint at
 `http://<ksql.advertised.url>/info`. If the configuration is wrong, and
-the browser can\'t resolve the URL of the KSQL Server host, you'll
+the browser can't resolve the URL of the KSQL Server host, you'll
 receive an error:
 `Websocket error when communicating with <ksql.advertised.url>`.
 

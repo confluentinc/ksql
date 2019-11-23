@@ -108,7 +108,7 @@ KSQL enables inspecting Kafka topics and messages in real time.
 
 -   Use the SHOW TOPICS statement to list the available topics in the
     Kafka cluster.
--   Use the PRINT statement to see a topic\'s messages as they arrive.
+-   Use the PRINT statement to see a topic's messages as they arrive.
 
 In the KSQL CLI, run the following statement:
 

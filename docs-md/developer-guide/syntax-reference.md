@@ -281,7 +281,7 @@ example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
 three fields, with the supplied name and type.
 
 Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct\'s `ID` field. For
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
 more information, see [Operators](#operators).
 
 ### Decimal

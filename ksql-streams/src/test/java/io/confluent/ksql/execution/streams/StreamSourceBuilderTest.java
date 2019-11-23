@@ -104,10 +104,6 @@ public class StreamSourceBuilderTest {
       SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
-  private static final KsqlConfig LEGACY_KSQL_CONFIG = new KsqlConfig(ImmutableMap.of(
-      KsqlConfig.KSQL_INJECT_LEGACY_MAP_VALUES_NODE,
-      true
-  ));
 
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
@@ -219,48 +215,6 @@ public class StreamSourceBuilderTest {
 
     // Then:
     assertThat(builtKstream.getSchema(), is(SCHEMA));
-  }
-
-    @Test
-  @SuppressWarnings("unchecked")
-  public void shouldApplyCorrectTransformationsToLegacySourceStream() {
-    // Given:
-    givenLegacyQuery();
-    givenUnwindowedSource();
-
-    // When:
-    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
-
-    // Then:
-    assertThat(builtKstream.getStream(), is(kStream));
-    final InOrder validator = inOrder(streamsBuilder, kStream);
-    validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), consumedCaptor.capture());
-    validator.verify(kStream).mapValues(any(ValueMapper.class));
-    validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
-    final Consumed consumed = consumedCaptor.getValue();
-    final Consumed expected = Consumed
-        .with(keySerde, valueSerde)
-        .withTimestampExtractor(extractor)
-        .withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
-    assertThat(consumed, equalTo(expected));
-  }
-
-  @Test
-  public void shouldAddPassThroughValueMapperForLegacy() {
-    // Given:
-    givenLegacyQuery();
-    givenUnwindowedSource();
-
-    final ValueMapper<GenericRow, GenericRow> mapper =
-        getMapperFromStreamSource(streamSource);
-
-    final GenericRow expected = new GenericRow(new ArrayList<>(row.getColumns()));
-
-    // When:
-    final GenericRow result = mapper.apply(row);
-
-    // Then:
-    assertThat(result, is(expected));
   }
 
   @Test
@@ -532,7 +486,4 @@ public class StreamSourceBuilderTest {
     return mapperCaptor.getValue();
   }
 
-  private void givenLegacyQuery() {
-    when(queryBuilder.getKsqlConfig()).thenReturn(LEGACY_KSQL_CONFIG);
-  }
 }

@@ -36,10 +36,10 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -51,15 +51,10 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetInitialValuesCorrectly() {
     final Map<String, Object> initialProps = new HashMap<>();
-    initialProps.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 10);
-    initialProps.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
     initialProps.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 800);
-    initialProps.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 5);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(initialProps);
-
-    assertThat(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(10));
-    assertThat(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo((short) 3));
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG), is(800L));
   }
 
   @Test
@@ -308,7 +303,7 @@ public class KsqlConfigTest {
     // Given:
     final KsqlConfig initial = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "original-id",
-        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on"
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true"
     ));
 
     // When:
@@ -320,7 +315,7 @@ public class KsqlConfigTest {
     // Then:
     assertThat(cloned.originals(), is(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
-        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on",
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true",
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
     )));
   }
@@ -381,6 +376,7 @@ public class KsqlConfigTest {
   }
 
   @Test
+  @Ignore // we don't have any compatibility sensitive configs!
   public void shouldPreserveOriginalCompatibilitySensitiveConfigs() {
     final Map<String, String> originalProperties = ImmutableMap.of(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "not_the_default");
@@ -509,20 +505,6 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldListKnownKsqlFunctionConfig() {
-    // Given:
-    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, "true"
-    ));
-
-    // When:
-    final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
-
-    // Then:
-    assertThat(result.get(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG), is("true"));
-  }
-
-  @Test
   public void shouldListUnknownKsqlFunctionConfigObfuscated() {
     // Given:
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
@@ -576,49 +558,6 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldDefaultOptimizationsToOn() {
-    // When:
-    final KsqlConfig config = new KsqlConfig(Collections.emptyMap());
-
-    // Then:
-    assertThat(
-        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.OPTIMIZE));
-  }
-
-  @Test
-  public void shouldDefaultOptimizationsToOnForOldConfigs() {
-    // When:
-    final KsqlConfig config = new KsqlConfig(Collections.emptyMap())
-        .overrideBreakingConfigsWithOriginalValues(Collections.emptyMap());
-
-    // Then:
-    assertThat(
-        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.OPTIMIZE));
-  }
-
-  @Test
-  public void shouldPreserveOriginalOptimizationConfig() {
-    // Given:
-    final KsqlConfig config = new KsqlConfig(
-        Collections.singletonMap(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE));
-    final KsqlConfig saved = new KsqlConfig(
-        Collections.singletonMap(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION));
-
-    // When:
-    final KsqlConfig merged = config.overrideBreakingConfigsWithOriginalValues(
-        saved.getAllConfigPropsWithSecretsObfuscated());
-
-    // Then:
-    assertThat(
-        merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.NO_OPTIMIZATION));
-  }
-
-  @Test
   public void shouldFilterProducerConfigs() {
     // Given:
     final Map<String, Object> configs = new HashMap<>();
@@ -632,30 +571,5 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
-  }
-
-  @Test
-  public void shouldRaiseIfInternalTopicNamingOffAndStreamsOptimizationsOn() {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage(
-        "Internal topic naming must be enabled if streams optimizations enabled");
-    new KsqlConfig(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
-            StreamsConfig.OPTIMIZE)
-    );
-  }
-
-  @Test
-  public void shouldRaiseOnInvalidInternalTopicNamingValue() {
-    expectedException.expect(ConfigException.class);
-    new KsqlConfig(
-        Collections.singletonMap(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            "foobar"
-        )
-    );
   }
 }

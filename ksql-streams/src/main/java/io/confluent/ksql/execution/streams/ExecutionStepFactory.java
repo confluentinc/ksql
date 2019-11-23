@@ -181,20 +181,20 @@ public final class ExecutionStepFactory {
       final String selectNodeName,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final QueryContext queryContext = stacker.getQueryContext();
-
     final Selection<K> selection = Selection.of(
-        queryBuilder.getQueryId(),
-        queryContext,
         source.getProperties().getSchema(),
         selectExpressions,
         queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
-        queryBuilder.getProcessingLogContext()
+        queryBuilder.getFunctionRegistry()
+    );
+
+    final DefaultExecutionStepProperties properties = new DefaultExecutionStepProperties(
+        selection.getSchema(),
+        stacker.getQueryContext()
     );
 
     return new StreamMapValues<>(
-        new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
+        properties,
         source,
         selectExpressions,
         selectNodeName
@@ -296,20 +296,20 @@ public final class ExecutionStepFactory {
       final String selectNodeName,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final QueryContext queryContext = stacker.getQueryContext();
-
     final Selection<K> selection = Selection.of(
-        queryBuilder.getQueryId(),
-        queryContext,
         source.getProperties().getSchema(),
         selectExpressions,
         queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
-        queryBuilder.getProcessingLogContext()
+        queryBuilder.getFunctionRegistry()
+    );
+
+    final DefaultExecutionStepProperties properties = new DefaultExecutionStepProperties(
+        selection.getSchema(),
+        stacker.getQueryContext()
     );
 
     return new TableMapValues<>(
-        new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
+        properties,
         source,
         selectExpressions,
         selectNodeName

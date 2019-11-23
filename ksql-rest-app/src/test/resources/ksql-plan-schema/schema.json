@@ -141,12 +141,9 @@
         },
         "valueFormat" : {
           "$ref" : "#/definitions/FormatInfo"
-        },
-        "ksqlSink" : {
-          "type" : "boolean"
         }
       },
-      "required" : [ "kafkaTopicName", "keyFormat", "valueFormat", "ksqlSink" ]
+      "required" : [ "kafkaTopicName", "keyFormat", "valueFormat" ]
     },
     "KeyFormat" : {
       "type" : "object",

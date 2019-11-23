@@ -659,12 +659,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
     query.start();
 
@@ -720,12 +720,12 @@ public class KsqlEngineTest {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
     // When:
     query.close();
@@ -746,8 +746,8 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(metaStore.getSource(SourceName.of("S")).getKsqlTopic().isKsqlSink(), is(true));
-    assertThat(metaStore.getSource(SourceName.of("T")).getKsqlTopic().isKsqlSink(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("S")).isCasTarget(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("T")).isCasTarget(), is(true));
   }
 
   @Test

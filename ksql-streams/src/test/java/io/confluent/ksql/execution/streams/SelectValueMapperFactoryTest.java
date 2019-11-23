@@ -28,7 +28,6 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,8 +52,6 @@ public class SelectValueMapperFactoryTest {
   private ExpressionMetadata md_0;
   @Mock
   private ExpressionMetadata md_1;
-  @Mock
-  private ProcessingLogger processingLogger;
 
   private SelectValueMapperFactory factory;
 
@@ -75,7 +72,7 @@ public class SelectValueMapperFactoryTest {
   public void shouldBuildSelects() {
     // When:
     final SelectValueMapper<?> mapper = factory
-        .create(ImmutableList.of(select_0, select_1), processingLogger);
+        .create(ImmutableList.of(select_0, select_1));
 
     // Then:
     assertThat(mapper.getSelects(), contains(
@@ -87,7 +84,7 @@ public class SelectValueMapperFactoryTest {
   @Test
   public void shouldInvokeCodeGenWithCorrectExpressionType() {
     // When:
-    factory.create(ImmutableList.of(select_0), processingLogger);
+    factory.create(ImmutableList.of(select_0));
 
     // Then:
     verify(codeGenerator).buildCodeGenFromParseTree(any(), eq("Select"));

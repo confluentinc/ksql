@@ -51,3 +51,5 @@ relational database. Each row is composed of a series of columns. Most columns
 represent fields in the value of an event, but there are a few extra columns.
 In particular, there are the `ROWKEY` and `ROWTIME` columns that represent the
 key and time of the event. These columns are present on every row.
+
+Page last revised on: {{ git_revision_date }}

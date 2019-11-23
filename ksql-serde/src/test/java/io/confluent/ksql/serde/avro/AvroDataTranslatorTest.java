@@ -40,8 +40,8 @@ public class AvroDataTranslatorTest {
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
-        true);
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME
+    );
 
     final Struct ksqlRow = new Struct(schema)
         .put("STREAM_NAME.COLUMN_NAME", 123);
@@ -98,8 +98,8 @@ public class AvroDataTranslatorTest {
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
-        true);
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME
+    );
 
     final Struct ksqlRow = new Struct(schema)
         .put("ARRAY", ImmutableList.of(arrayInnerStruct))
@@ -168,8 +168,8 @@ public class AvroDataTranslatorTest {
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
-        true);
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME
+    );
 
     final Struct ksqlRow = new Struct(schema);
 
@@ -192,8 +192,8 @@ public class AvroDataTranslatorTest {
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
-        true);
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME
+    );
 
     final Struct ksqlRow = new Struct(schema)
         .put("COLUMN_NAME", 123L);
@@ -217,7 +217,7 @@ public class AvroDataTranslatorTest {
 
     String schemaFullName = "com.custom.schema";
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName, true);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName);
     final Struct ksqlRow = new Struct(schema)
         .put("COLUMN_NAME", 123L);
 
@@ -235,7 +235,7 @@ public class AvroDataTranslatorTest {
 
     // When:
     final AvroDataTranslator translator =
-        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
     assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
@@ -251,7 +251,7 @@ public class AvroDataTranslatorTest {
 
     // When:
     final AvroDataTranslator translator =
-        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
     assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
@@ -267,7 +267,7 @@ public class AvroDataTranslatorTest {
 
     // When:
     final AvroDataTranslator translator =
-        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
     assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
@@ -284,7 +284,7 @@ public class AvroDataTranslatorTest {
 
     // When:
     final AvroDataTranslator translator =
-        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
     assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));

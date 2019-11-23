@@ -20,12 +20,9 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.GroupedFactory;
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,41 +44,12 @@ public class GroupedFactoryTest {
   private Grouped<String, GenericRow> grouped;
 
   @Test
-  public void shouldCreateGroupedCorrectlyWhenOptimizationsDisabled() {
+  public void shouldCreateGroupedCorrectlyWhenOptimizationsEnabled() {
     // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
-            StreamsConfig.NO_OPTIMIZATION,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-    );
-    when(grouper.groupedWith(null, keySerde, rowSerde)).thenReturn(grouped);
-
-    // When:
-    final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
-        OP_NAME,
-        keySerde,
-        rowSerde
-    );
-
-    // Then:
-    assertThat(returned, is(grouped));
-    verify(grouper).groupedWith(null, keySerde, rowSerde);
-  }
-
-  @Test
-  public void shouldCreateGroupedCorrectlyWhenOptimationsEnabled() {
-    // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
-    );
     when(grouper.groupedWith(OP_NAME, keySerde, rowSerde)).thenReturn(grouped);
 
     // When:
-    final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
+    final Grouped returned = GroupedFactory.create(grouper).create(
         OP_NAME,
         keySerde,
         rowSerde

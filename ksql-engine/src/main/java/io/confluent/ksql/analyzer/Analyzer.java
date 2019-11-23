@@ -199,8 +199,7 @@ class Analyzer {
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
           topicName,
           keyFormat,
-          valueFormat,
-          true
+          valueFormat
       );
 
       analysis.setInto(Into.of(

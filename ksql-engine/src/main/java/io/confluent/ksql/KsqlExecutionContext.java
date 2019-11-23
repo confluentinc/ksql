@@ -16,14 +16,19 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,6 +55,11 @@ public interface KsqlExecutionContext {
    * @return the service context used for this execution context
    */
   ServiceContext getServiceContext();
+
+  /**
+   * @return the processing log context used to track errors during processing.
+   */
+  ProcessingLogContext getProcessingLogContext();
 
   /**
    * Retrieve the details of a persistent query.
@@ -87,6 +97,24 @@ public interface KsqlExecutionContext {
    * @return the prepared statement.
    */
   PreparedStatement<?> prepare(ParsedStatement stmt);
+
+  /**
+   * Executes a query using the supplied service context.
+   */
+  TransientQueryMetadata executeQuery(
+      ServiceContext serviceContext,
+      ConfiguredStatement<Query> statement
+  );
+
+  /**
+   * Computes a plan for executing a DDL/DML statement using the supplied service context.
+   */
+  KsqlPlan plan(ServiceContext serviceContext, ConfiguredStatement<?> statement);
+
+  /**
+   * Executes a KSQL plan using the supplied service context.
+   */
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan);
 
   /**
    * Execute the supplied statement, updating the meta store and registering any query.

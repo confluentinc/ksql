@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -149,8 +150,10 @@ public class SqlPredicateTest {
     SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
+    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
+
     // When/Then:
-    assertThat(sqlPredicate.getPredicate().test("key", null), is(false));
+    assertThat(predicate.test("key", null), is(false));
   }
 
   @Test
@@ -159,8 +162,10 @@ public class SqlPredicateTest {
     SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
+    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
+
     // When:
-    sqlPredicate.getPredicate().test(
+    predicate.test(
         "key",
         new GenericRow(0L, "key", Collections.emptyList())
     );
@@ -191,8 +196,7 @@ public class SqlPredicateTest {
         sqlPredicate,
         SCHEMA,
         KSQL_CONFIG,
-        functionRegistry,
-        processingLogger
+        functionRegistry
     );
   }
 

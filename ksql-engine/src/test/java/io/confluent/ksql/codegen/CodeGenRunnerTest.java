@@ -174,8 +174,7 @@ public class CodeGenRunnerTest {
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "codegen_test",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON)),
-            false
+            ValueFormat.of(FormatInfo.of(Format.JSON))
         );
 
         final KsqlStream ksqlStream = new KsqlStream<>(
@@ -185,6 +184,7 @@ public class CodeGenRunnerTest {
             SerdeOption.none(),
             KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
             new MetadataTimestampExtractionPolicy(),
+            false,
             ksqlTopic
         );
 

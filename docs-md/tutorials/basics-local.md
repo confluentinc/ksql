@@ -6,9 +6,6 @@ description: Learn how to use KSQL to create event streaming applications on Kaf
 keywords: ksql
 ---
 
-Write Streaming Queries Against {{ site.aktm }} Using KSQL (Local)
-===================================================================
-
 This tutorial demonstrates a simple workflow using KSQL to write
 streaming queries against messages in Kafka.
 
@@ -111,7 +108,7 @@ KSQL enables inspecting Kafka topics and messages in real time.
 
 -   Use the SHOW TOPICS statement to list the available topics in the
     Kafka cluster.
--   Use the PRINT statement to see a topic\'s messages as they arrive.
+-   Use the PRINT statement to see a topic's messages as they arrive.
 
 In the KSQL CLI, run the following statement:
 

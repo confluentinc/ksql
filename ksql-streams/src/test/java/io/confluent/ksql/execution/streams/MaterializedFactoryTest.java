@@ -21,11 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
 import org.junit.Test;
@@ -44,40 +41,11 @@ public class MaterializedFactoryTest {
   private Serde<GenericRow> rowSerde;
   @Mock
   private MaterializedFactory.Materializer materializer;
-  @Mock
-  private Materialized<String, GenericRow, StateStore> materialized;
-
-  @Test
-  public void shouldCreateMaterializedCorrectlyWhenOptimizationsDisabled() {
-    // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
-            StreamsConfig.NO_OPTIMIZATION,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-    );
-    when(materializer.materializedWith(keySerde, rowSerde)).thenReturn(materialized);
-
-    // When:
-    final Materialized<String, GenericRow, StateStore> returned
-        = MaterializedFactory.create(ksqlConfig, materializer).create(
-        keySerde, rowSerde, OP_NAME);
-
-    // Then:
-    assertThat(returned, is(materialized));
-    verify(materializer).materializedWith(keySerde, rowSerde);
-  }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
-    );
     final Materialized asName = mock(Materialized.class);
     when(materializer.materializedAs(OP_NAME)).thenReturn(asName);
     final Materialized withKeySerde = mock(Materialized.class);
@@ -87,7 +55,7 @@ public class MaterializedFactoryTest {
 
     // When:
     final Materialized<String, GenericRow, StateStore> returned
-        = MaterializedFactory.create(ksqlConfig, materializer).create(
+        = MaterializedFactory.create(materializer).create(
         keySerde, rowSerde, OP_NAME);
 
     // Then:

@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
@@ -25,9 +24,8 @@ public interface MaterializedFactory {
   <K, S extends StateStore> Materialized<K, GenericRow, S> create(
       Serde<K> keySerde, Serde<GenericRow> valSerde, String name);
 
-  static MaterializedFactory create(final KsqlConfig ksqlConfig) {
+  static MaterializedFactory create() {
     return create(
-        ksqlConfig,
         new Materializer() {
           @Override
           public <K, V, S extends StateStore> Materialized<K, V, S> materializedWith(
@@ -45,29 +43,16 @@ public interface MaterializedFactory {
     );
   }
 
-  static MaterializedFactory create(
-      final KsqlConfig ksqlConfig,
-      final Materializer materializer) {
-    if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return new MaterializedFactory() {
-        @Override
-        public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
-            final Serde<K> keySerde,
-            final Serde<GenericRow> valSerde,
-            final String name) {
-          return materializer.<K, GenericRow, S>materializedAs(name)
-              .withKeySerde(keySerde)
-              .withValueSerde(valSerde);
-        }
-      };
-    }
+  static MaterializedFactory create(final Materializer materializer) {
     return new MaterializedFactory() {
       @Override
       public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
           final Serde<K> keySerde,
           final Serde<GenericRow> valSerde,
           final String name) {
-        return materializer.materializedWith(keySerde, valSerde);
+        return materializer.<K, GenericRow, S>materializedAs(name)
+            .withKeySerde(keySerde)
+            .withValueSerde(valSerde);
       }
     };
   }

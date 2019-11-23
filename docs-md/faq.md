@@ -35,8 +35,8 @@ Is ksqlDB owned by the Apache Software Foundation?
 
 No. {{ site.community }} ksqlDB is owned and maintained by
 [Confluent Inc.](https://www.confluent.io/) as part of its
-[Confluent Platform](https://www.confluent.io/product/confluent-platform/) product.
-However, ksqlDB is licensed under the Confluent Community License.
+[Confluent Platform](https://www.confluent.io/product/confluent-platform/)
+product. However, ksqlDB is licensed under the Confluent Community License.
 
 How does ksqlDB compare to Apache Kafka's Streams API?
 ------------------------------------------------------
@@ -61,8 +61,8 @@ machine that's driven by streams of data is easier to achieve in a
 programming language like Java or Scala than in SQL. In {{ site.kstreams }},
 you can also choose between the
 [DSL](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html)
-(a functional programming API) and the [Processor
-API](https://docs.confluent.io/current/streams/developer-guide/processor-api.html)
+(a functional programming API) and the
+[Processor API](https://docs.confluent.io/current/streams/developer-guide/processor-api.html)
 (an imperative programming API), and even combine the two.
 
 As with many technologies, each has its sweet-spot based on technical

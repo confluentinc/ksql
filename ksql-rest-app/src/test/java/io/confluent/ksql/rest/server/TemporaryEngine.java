@@ -124,8 +124,7 @@ public class TemporaryEngine extends ExternalResource {
     final KsqlTopic topic = new KsqlTopic(
         name,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final DataSource<?> source;
@@ -139,6 +138,7 @@ public class TemporaryEngine extends ExternalResource {
                 SerdeOption.none(),
                 KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
                 new MetadataTimestampExtractionPolicy(),
+                false,
                 topic
             );
         break;
@@ -151,6 +151,7 @@ public class TemporaryEngine extends ExternalResource {
                 SerdeOption.none(),
                 KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
                 new MetadataTimestampExtractionPolicy(),
+                false,
                 topic
             );
         break;

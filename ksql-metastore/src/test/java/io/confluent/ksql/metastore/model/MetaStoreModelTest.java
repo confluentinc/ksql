@@ -56,8 +56,7 @@ public class MetaStoreModelTest {
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
           KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-          ValueFormat.of(FormatInfo.of(Format.JSON)),
-          false
+          ValueFormat.of(FormatInfo.of(Format.JSON))
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))

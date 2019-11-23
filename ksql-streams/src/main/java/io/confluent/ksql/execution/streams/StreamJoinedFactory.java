@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.StreamJoined;
 
@@ -28,21 +27,7 @@ public interface StreamJoinedFactory {
       String storeName);
 
 
-  static StreamJoinedFactory create(final KsqlConfig ksqlConfig) {
-    if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return new StreamJoinedFactory() {
-        @Override
-        public <K, V, V0> StreamJoined<K, V, V0> create(
-            final Serde<K> keySerde,
-            final Serde<V> leftSerde,
-            final Serde<V0> rightSerde,
-            final String name,
-            final String storeName) {
-          return StreamJoined.with(keySerde, leftSerde, rightSerde)
-              .withName(name);
-        }
-      };
-    }
+  static StreamJoinedFactory create() {
     return new StreamJoinedFactory() {
       @Override
       public <K, V, V0> StreamJoined<K, V, V0> create(
@@ -51,7 +36,8 @@ public interface StreamJoinedFactory {
           final Serde<V0> rightSerde,
           final String name,
           final String storeName) {
-        return  StreamJoined.with(keySerde, leftSerde, rightSerde);
+        return StreamJoined.with(keySerde, leftSerde, rightSerde)
+            .withName(name);
       }
     };
   }

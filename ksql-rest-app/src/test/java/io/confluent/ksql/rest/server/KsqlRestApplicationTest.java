@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.parser.ParserMatchers.configured;
-import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -28,16 +26,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -54,7 +55,6 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
@@ -63,6 +63,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -87,9 +88,13 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
+  private MetaStore metaStore;
+  @Mock
   private KsqlExecutionContext sandBox;
   @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private KsqlRestConfig ksqlRestConfig;
   @Mock
   private ProcessingLogConfig processingLogConfig;
   @Mock
@@ -126,7 +131,9 @@ public class KsqlRestApplicationTest {
   private PreparedStatement<?> preparedStatement;
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
-  private PreparedStatement<?> logCreateStatement;
+  @Mock
+  private Producer<CommandId, Command> transactionalProducer;
+  private String logCreateStatement;
   private KsqlRestApplication app;
 
   @SuppressWarnings("unchecked")
@@ -142,13 +149,9 @@ public class KsqlRestApplicationTest {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)).thenReturn(true);
     when(processingLogContext.getConfig()).thenReturn(processingLogConfig);
 
-    when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(parsedStatement));
     when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement)preparedStatement);
 
-    when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any()))
-        .thenReturn(queuedCommandStatus);
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
@@ -227,18 +230,16 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCreateLogStream() {
+  public void shouldCreateLogStreamThroughKsqlResource() {
     // When:
     app.startKsql();
 
     // Then:
-    verify(commandQueue).isEmpty();
-    verify(sandBox).execute(
-        argThat(equalTo(ksqlEngine.getServiceContext())),
-        argThat(configured(equalTo(logCreateStatement)))
+    verify(ksqlResource).handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
     );
-    verify(commandQueue).enqueueCommand(
-        argThat(configured(equalTo(logCreateStatement), Collections.emptyMap(), ksqlConfig)));
+
   }
 
   @Test
@@ -251,53 +252,40 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any());
+    verify(ksqlResource, never()).handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+    );
   }
 
   @Test
-  public void shouldOnlyCreateLogStreamIfCommandTopicEmpty() {
-    // Given:
-    when(commandQueue.isEmpty()).thenReturn(false);
-
+  public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream() {
     // When:
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any());
-  }
-
-  @Test
-  public void shouldNotCreateLogStreamIfValidationFails() {
-    // Given:
-    when(sandBox.execute(any(), any())).thenThrow(new KsqlException("error"));
-
-    // When:
-    app.startKsql();
-
-    // Then:
-    verify(commandQueue, never()).enqueueCommand(any());
-  }
-
-  @Test
-  public void shouldStartCommandStoreBeforeEnqueuingLogStream() {
-    // When:
-    app.startKsql();
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(commandQueue);
+    final InOrder inOrder = Mockito.inOrder(commandQueue, commandRunner, ksqlResource);
     inOrder.verify(commandQueue).start();
-    inOrder.verify(commandQueue).enqueueCommand(argThat(configured(equalTo(logCreateStatement))));
+    inOrder.verify(commandRunner).processPriorCommands();
+    inOrder.verify(commandRunner).start();
+    inOrder.verify(ksqlResource).handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+    );
   }
 
   @Test
-  public void shouldCreateLogTopicBeforeEnqueuingLogStream() {
+  public void shouldCreateLogTopicBeforeSendingCreateStreamRequest() {
     // When:
     app.startKsql();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue);
+    final InOrder inOrder = Mockito.inOrder(topicClient, ksqlResource);
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
-    inOrder.verify(commandQueue).enqueueCommand(argThat(configured(equalTo(logCreateStatement))));
+    inOrder.verify(ksqlResource).handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+    );
   }
 
   @Test
@@ -324,13 +312,16 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldEnqueueLogStreamBeforeSettingReady() {
+  public void shouldSendCreateStreamRequestBeforeSettingReady() {
     // When:
     app.startKsql();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(commandQueue, serverState);
-    inOrder.verify(commandQueue).enqueueCommand(argThat(configured(equalTo(logCreateStatement))));
+    final InOrder inOrder = Mockito.inOrder(ksqlResource, serverState);
+    verify(ksqlResource).handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+    );
     inOrder.verify(serverState).setReady();
   }
 

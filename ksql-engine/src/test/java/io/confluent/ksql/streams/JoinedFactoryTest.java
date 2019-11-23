@@ -20,12 +20,9 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.JoinedFactory;
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Joined;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,40 +46,13 @@ public class JoinedFactoryTest {
   private Joined<String, GenericRow, GenericRow> joined;
 
   @Test
-  public void shouldCreateJoinedCorrectlyWhenOptimizationsDisabled() {
-    // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
-            StreamsConfig.NO_OPTIMIZATION,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-    );
-    when(joiner.joinedWith(keySerde, leftSerde, rightSerde, null)).thenReturn(joined);
-
-    // When:
-    final Joined<String, GenericRow, GenericRow> returned
-        = JoinedFactory.create(ksqlConfig, joiner).create(
-        keySerde, leftSerde, rightSerde, OP_NAME);
-
-    // Then:
-    assertThat(returned, is(joined));
-    verify(joiner).joinedWith(keySerde, leftSerde, rightSerde, null);
-  }
-
-  @Test
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
-    );
     when(joiner.joinedWith(keySerde, leftSerde, rightSerde, OP_NAME)).thenReturn(joined);
 
     // When:
     final Joined<String, GenericRow, GenericRow> returned
-        = JoinedFactory.create(ksqlConfig, joiner).create(
+        = JoinedFactory.create(joiner).create(
         keySerde, leftSerde, rightSerde, OP_NAME);
 
     // Then:

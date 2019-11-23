@@ -68,14 +68,16 @@ public final class KsqlInternalTopicUtils {
   public static void ensureTopic(final String name,
                                  final KsqlConfig ksqlConfig,
                                  final KafkaTopicClient topicClient) {
-    final short replicationFactor =
-        ksqlConfig.originals().containsKey(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY)
-            ? ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY) : 1;
+    final short replicationFactor = 
+        ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY);
     if (replicationFactor < 2) {
       log.warn("Creating topic {} with replication factor of {} which is less than 2. "
               + "This is not advisable in a production environment. ",
           name, replicationFactor);
     }
+    
+    final short minInsyncReplica = 
+        ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY);
     final long requiredTopicRetention = Long.MAX_VALUE;
 
     if (topicClient.isTopicExists(name)) {
@@ -111,7 +113,10 @@ public final class KsqlInternalTopicUtils {
         replicationFactor,
         ImmutableMap.of(
             TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention,
-            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
+            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInsyncReplica,
+            TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false
+        )
     );
   }
 }

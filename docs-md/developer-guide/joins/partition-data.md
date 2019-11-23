@@ -29,7 +29,8 @@ which implicitly defines a primary key for it. The primary keys for streams
 and tables are of data type `VARCHAR`. 
 
 For primary keys to match, they must have the same serialization format. For
-example, you can't join a `VARCHAR` key encoded as JSON with one encoded as AVRO.
+example, you can't join a `VARCHAR` key encoded as JSON with one encoded as
+AVRO.
 
 !!! note
     ksqlDB requires that keys are encoded as UTF-8 strings.
@@ -61,8 +62,8 @@ column, we recommend using ROWKEY as the joining column to avoid confusion.
 The following example shows a `users` table joined with a `clicks` stream 
 on the `userId` column. The `users` table has the correct primary key
 `userId` that coincides with the joining column. But the `clicks` stream
-doesn't have a defined key, and ksqlDB must repartition it on the joining column,
-(`userId`) and assign the primary key before performing the join.
+doesn't have a defined key, and ksqlDB must repartition it on the joining
+column (`userId`) and assign the primary key before performing the join.
 
 ```sql
     -- clicks stream, with an unknown key.

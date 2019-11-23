@@ -9,7 +9,8 @@ keywords: ksqldb, collection, event
 One fundamental operation for working with collections is populating them
 with events. There are a number of ways to do this:
 
-- Use ksqlDB’s [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md)
+- Use ksqlDB’s
+  [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md)
   syntax. This is the simplest approach.
 - Use the {{ site.aktm }} clients to write data to the underlying topics. 
 - Use connectors to source data from external systems.
@@ -39,3 +40,5 @@ required when you omit the column specifications.
 
 For more information, see
 [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md).
+
+Page last revised on: {{ git_revision_date }}

@@ -158,7 +158,8 @@ public class KsqlResource implements KsqlConfigurable {
             commandQueue,
             distributedCmdResponseTimeout,
             injectorFactory,
-            authorizationValidator
+            authorizationValidator,
+            this.validator
         ),
         ksqlEngine,
         config,
@@ -182,9 +183,12 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     try {
-      return Response.ok(
-          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
-      ).build();
+      final KsqlEntityList entities = handler.execute(
+          serviceContext,
+          TERMINATE_CLUSTER,
+          request.getStreamsProperties()
+      );
+      return Response.ok(entities).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());

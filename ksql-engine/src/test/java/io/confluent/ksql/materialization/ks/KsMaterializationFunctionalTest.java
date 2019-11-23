@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
@@ -116,6 +117,7 @@ public class KsMaterializationFunctionalTest {
 
   private String output;
   private final QueryId queryId = new QueryId("static");
+  private final QueryContext.Stacker contextStacker = new QueryContext.Stacker();
 
   @BeforeClass
   public static void classSetUp() {
@@ -151,7 +153,7 @@ public class KsMaterializationFunctionalTest {
     );
 
     // When:
-    final Optional<Materialization> result = query.getMaterialization();
+    final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -166,7 +168,7 @@ public class KsMaterializationFunctionalTest {
     );
 
     // When:
-    final Optional<Materialization> result = query.getMaterialization();
+    final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -186,7 +188,7 @@ public class KsMaterializationFunctionalTest {
       );
 
       // When:
-      final Optional<Materialization> result = query.getMaterialization();
+      final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
 
       // Then:
       assertThat(result, is(Optional.empty()));
@@ -207,7 +209,7 @@ public class KsMaterializationFunctionalTest {
     final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.empty()));
@@ -241,7 +243,7 @@ public class KsMaterializationFunctionalTest {
     final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.empty()));
@@ -277,7 +279,7 @@ public class KsMaterializationFunctionalTest {
         waitForTableRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.of(WindowType.TUMBLING)));
@@ -325,7 +327,7 @@ public class KsMaterializationFunctionalTest {
         waitForTableRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.of(WindowType.HOPPING)));
@@ -372,7 +374,7 @@ public class KsMaterializationFunctionalTest {
         waitForTableRows(SESSION_WINDOWED_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.of(WindowType.SESSION)));
@@ -422,7 +424,7 @@ public class KsMaterializationFunctionalTest {
 
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.empty()));
@@ -452,7 +454,7 @@ public class KsMaterializationFunctionalTest {
     final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     assertThat(materialization.windowType(), is(Optional.empty()));
@@ -482,7 +484,7 @@ public class KsMaterializationFunctionalTest {
     final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
-    final Materialization materialization = query.getMaterialization().get();
+    final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
 
     // Then:
     final MaterializedTable table = materialization.nonWindowed();

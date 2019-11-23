@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="363px" height="281px" viewBox="0 0 363 281" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 59.1 (86144) - https://sketch.com -->
+    <title>stream-processing</title>
+    <desc>Created with Sketch.</desc>
+    <g id="stream-processing" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle-Copy-14" fill="#F5F5F5" x="0" y="33" width="175" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-15" fill="#F5F5F5" x="0" y="66" width="175" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-17" fill="#F5F5F5" x="0" y="99" width="175" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-18" fill="#F5F5F5" x="180" y="66" width="183" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-25" fill="#F5F5F5" x="262" y="220" width="80" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-20" fill="#F5F5F5" x="180" y="99" width="183" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-26" fill="#F5F5F5" x="262" y="253" width="80" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-21" fill="#F5F5F5" x="180" y="33" width="183" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-27" fill="#F5F5F5" x="262" y="187" width="80" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-22" fill="#CCCCCC" x="0" y="0" width="175" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-23" fill="#CCCCCC" x="180" y="0" width="183" height="28" rx="5"></rect>
+        <rect id="Rectangle-Copy-29" fill="#CCCCCC" x="262" y="154" width="80" height="28" rx="5"></rect>
+        <text id="43.683117,--79.61142" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="16.2832031" y="51">43.683117, -79.611421 </tspan>
+        </text>
+        <text id="-43.642826,--79.3871" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="197" y="51">-43.642826, -79.387123</tspan>
+        </text>
+        <text id="21%" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="309" y="205">21%</tspan>
+        </text>
+        <text id="51.509855,--0.123746" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="23.5078125" y="84">51.509855, -0.123746 </tspan>
+        </text>
+        <text id="51.503800,-0.048346" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="218" y="84">51.503800, 0.048346</tspan>
+        </text>
+        <text id="9%" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="316" y="238">9%</tspan>
+        </text>
+        <text id="45.716540,--121.5261" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="9.05859375" y="117">45.716540, -121.526191 </tspan>
+        </text>
+        <text id="45.722643,--121.5605" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="196" y="117">45.722643,  -121.560576</tspan>
+        </text>
+        <text id="0%" font-family="Menlo-Regular, Menlo, monospace" font-size="12" font-weight="normal" fill="#202020">
+            <tspan x="316" y="271">0%</tspan>
+        </text>
+        <text id="ride_origin" font-family="Menlo-Bold, Menlo, monospace" font-size="12" font-weight="bold" fill="#202020">
+            <tspan x="47" y="18">ride_origin</tspan>
+        </text>
+        <text id="ride_destination" font-family="Menlo-Bold, Menlo, monospace" font-size="12" font-weight="bold" fill="#202020">
+            <tspan x="215" y="18">ride_destination</tspan>
+        </text>
+        <text id="discount" font-family="Menlo-Bold, Menlo, monospace" font-size="12" font-weight="bold" fill="#202020">
+            <tspan x="273" y="172">discount</tspan>
+        </text>
+        <path d="M117.667586,182.463448 L179.972971,215.346846 C181.438268,216.120197 181.9992,217.934979 181.225849,219.400276 C180.943888,219.934517 180.507212,220.371193 179.972971,220.653154 L117.667586,253.536552 C114.74678,255.078088 111.25322,255.078088 108.332414,253.536552 L46.0270291,220.653154 C44.5617325,219.879803 44.0007997,218.065021 44.7741507,216.599724 C45.0561116,216.065483 45.4927875,215.628807 46.0270291,215.346846 L108.332414,182.463448 C111.25322,180.921912 114.74678,180.921912 117.667586,182.463448 Z" id="Polygon" fill="#CCCCCC"></path>
+        <text id="discount-by-distance" font-family="Menlo-BoldItalic, Menlo, monospace" font-size="12" font-style="italic" font-weight="bold" fill="#202020">
+            <tspan x="73.2646484" y="217">discount by</tspan>
+            <tspan x="84.1015625" y="231">distance</tspan>
+        </text>
+        <path id="Path-2" d="M178.5,134 L178.5,150.5 L113.5,150.5 L113.5,167.5 L117.5,167.5 L113,176.5 L108.5,167.5 L112.5,167.5 L112.5,149.5 L177.5,149.5 L177.5,134 L178.5,134 Z" fill="#000000" fill-rule="nonzero"></path>
+        <path id="Line-7" d="M241,212 L250,216.5 L241,221 L241,217 L186,217 L186,216 L241,216 L241,212 Z" fill="#000000" fill-rule="nonzero"></path>
+    </g>
+</svg>

@@ -52,8 +52,7 @@ public final class TopicFactory {
     return new KsqlTopic(
         kafkaTopicName,
         keyFormat,
-        valueFormat,
-        false
+        valueFormat
     );
   }
 }

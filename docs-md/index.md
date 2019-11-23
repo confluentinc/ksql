@@ -129,7 +129,7 @@ Customer 360-view
 
 # How does it fit in my architecture?
 
-![](img/ksql-architecture-and-components.png)
+![](img/ksqldb-architecture-and-components.png)
 
 ksqlDB Server
 

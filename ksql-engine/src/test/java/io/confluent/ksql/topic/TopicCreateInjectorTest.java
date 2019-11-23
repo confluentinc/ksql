@@ -105,8 +105,7 @@ public class TopicCreateInjectorTest {
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KsqlStream source = new KsqlStream<>(
@@ -116,6 +115,7 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
+        false,
         sourceTopic
     );
     metaStore.putSource(source);
@@ -123,8 +123,7 @@ public class TopicCreateInjectorTest {
     final KsqlTopic joinTopic = new KsqlTopic(
         "jSource",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KsqlStream joinSource = new KsqlStream<>(
@@ -134,6 +133,7 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
+        false,
         joinTopic
     );
     metaStore.putSource(joinSource);
@@ -142,8 +142,6 @@ public class TopicCreateInjectorTest {
     when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any(), any(), any())).thenReturn(builder);
-    when(builder.withOverrides(any())).thenReturn(builder);
-    when(builder.withKsqlConfig(any())).thenReturn(builder);
     when(builder.withSource(any())).thenReturn(builder);
     when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1));
   }
@@ -252,54 +250,6 @@ public class TopicCreateInjectorTest {
         props.getPartitions(),
         props.getReplicas()
     );
-  }
-
-  @Test
-  public void shouldPassThroughOverridesToBuilder() {
-    // Given:
-    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    verify(builder).withOverrides(overrides);
-  }
-
-  @Test
-  public void shouldPassThroughOverridesToBuilderForCreate() {
-    // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    verify(builder).withOverrides(overrides);
-  }
-
-  @Test
-  public void shouldPassThroughConfigToBuilder() {
-    // Given:
-    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    verify(builder).withKsqlConfig(config);
-  }
-
-  @Test
-  public void shouldPassThroughConfigToBuilderForCreate() {
-    // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    verify(builder).withKsqlConfig(config);
   }
 
   @Test

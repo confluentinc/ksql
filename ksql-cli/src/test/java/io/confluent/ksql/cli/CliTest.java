@@ -612,7 +612,7 @@ public class CliTest {
     };
 
     // Wait for warm store:
-    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
         "SELECT * FROM X WHERE ROWKEY='ITEM_1';",
         containsRows(
@@ -849,11 +849,11 @@ public class CliTest {
     assertThat(output, containsString(
         "\tVariation   : SUBSTRING(str VARCHAR, pos INT)\n"
         + "\tReturns     : VARCHAR\n"
-        + "\tDescription : Returns a substring of str that starts at pos and continues to the end"
+        + "\tDescription : Returns a substring of str from pos to the end of str"
     ));
     assertThat(output, containsString(
-        "\tstr         : The source string. If null, then function returns null.\n"
-        + "\tpos         : The base-one position the substring starts from."
+        "\tstr         : The source string.\n"
+        + "\tpos         : The base-one position to start from."
     ));
   }
 

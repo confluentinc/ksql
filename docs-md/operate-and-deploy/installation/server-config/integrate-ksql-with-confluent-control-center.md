@@ -6,9 +6,6 @@ description: Settings for configuring ksqlDB Server to integrate with with Confl
 keywords: ksqldb, confguration, setup, install, control center
 ---
 
-Integrate KSQL with {{ site.c3 }}
-=================================
-
 You can develop event streaming applications by using the KSQL user
 interface provided by {{ site.c3 }}. In {{ site.c3short }}, you can
 create {{ site.aktm }} topics and develop persistent queries in the
@@ -87,7 +84,7 @@ are deployed in the following situations:
 -   KSQL Server and {{ site.c3short }} run in separate containers.
 -   They run in separate virtual machines.
 -   They communicate over a virtual private network (VPN).
--   The KSQL Server host publishes a public URL that\'s different from
+-   The KSQL Server host publishes a public URL that's different from
     the private URL for KSQL Server.
 
 !!! note
@@ -172,7 +169,7 @@ Check Network Connectivity Between KSQL and Control Center
 Use a web browser to check the configuration of an advertised URL. Make
 sure that your browser can reach the `info` endpoint at
 `http://<ksql.advertised.url>/info`. If the configuration is wrong, and
-the browser can\'t resolve the URL of the KSQL Server host, you'll
+the browser can't resolve the URL of the KSQL Server host, you'll
 receive an error:
 `Websocket error when communicating with <ksql.advertised.url>`.
 
@@ -201,8 +198,7 @@ connections. In the `ksql-server.properties` file, set
 Next Steps
 ----------
 
--   [Connecting KSQL to Confluent
-    Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html)
+-   [Connecting KSQL to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html)
 -   [Configure Security for KSQL](security.md)
 
 Page last revised on: {{ git_revision_date }}

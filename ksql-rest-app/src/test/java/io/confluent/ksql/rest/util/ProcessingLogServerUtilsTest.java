@@ -180,18 +180,13 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(TOPIC, 1, (short) 1);
 
     // When:
-    final PreparedStatement<?> statement =
+    final String statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             config,
             ksqlConfig);
 
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
-    );
-
     // Then:
-    assertThat(statement.getStatementText(), equalTo(
+    assertThat(statement, equalTo(
         "CREATE STREAM PROCESSING_LOG_STREAM ("
             + "logger VARCHAR, "
             + "level VARCHAR, "
@@ -203,8 +198,6 @@ public class ProcessingLogServerUtilsTest {
             + "productionError STRUCT<errorMessage VARCHAR>"
             + ">"
             + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');"));
-
-    assertLogStream(TOPIC);
   }
 
   @Test
@@ -213,7 +206,7 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short)1);
 
     // When:
-    final PreparedStatement<?> statement =
+    final String statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             new ProcessingLogConfig(
                 ImmutableMap.of(
@@ -223,16 +216,9 @@ public class ProcessingLogServerUtilsTest {
             ),
             ksqlConfig);
 
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
-    );
-
     // Then:
-    assertThat(statement.getStatementText(),
+    assertThat(statement,
         containsString("KAFKA_TOPIC='ksql_cluster.ksql_processing_log'"));
-
-    assertLogStream(DEFAULT_TOPIC);
   }
 
   @Test

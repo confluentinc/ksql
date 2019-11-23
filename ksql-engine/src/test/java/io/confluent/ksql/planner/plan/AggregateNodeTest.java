@@ -19,7 +19,6 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,7 +34,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
@@ -68,7 +66,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -213,47 +210,6 @@ public class AggregateNodeTest {
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
     assertThat(node.topicSet(), containsInAnyOrder("Aggregate-groupby-repartition"));
-  }
-
-  @Test
-  public void shouldHaveSourceNodeForSecondSubtopolgyWithDefaultNameForRepartition() {
-    buildRequireRekey(
-        new KsqlConfig(
-            ImmutableMap.of(
-                StreamsConfig.TOPOLOGY_OPTIMIZATION,
-                StreamsConfig.NO_OPTIMIZATION,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-        )
-    );
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
-        builder.build(),
-        "KSTREAM-SOURCE-0000000009");
-    final List<String> successors = node.successors().stream()
-        .map(TopologyDescription.Node::name)
-        .collect(Collectors.toList());
-    assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(
-        node.topicSet(),
-        hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000005")));
-    assertThat(node.topicSet(), hasItem(containsString("-repartition")));
-  }
-
-  @Test
-  public void shouldHaveDefaultNameForAggregationStateStoreIfInternalTopicNamingOff() {
-    build(
-        new KsqlConfig(
-            ImmutableMap.of(
-                StreamsConfig.TOPOLOGY_OPTIMIZATION,
-                StreamsConfig.NO_OPTIMIZATION,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-        )
-    );
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000005");
-    assertThat(node.stores(), hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
   }
 
   @Test

@@ -103,8 +103,8 @@ public class AvroUtilTest {
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
       "actual-name",
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
-      false);
+      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty()))
+  );
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

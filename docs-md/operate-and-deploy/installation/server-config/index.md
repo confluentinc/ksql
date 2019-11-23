@@ -33,8 +33,9 @@ configuration file and override specific properties as needed, using the
 !!! tip
 	If you deploy {{ site.cp }} by using Docker containers, you can specify
     configuration parameters as environment variables to the
-    [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/). For more
-    information, see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
+    [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/).
+    For more information, see
+    [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
 
 ### ksqlDB Server Configuration File
 

@@ -153,8 +153,9 @@ ksqlDB CLI Commands
 -----------------
 
 The ksqlDB CLI commands can be run after
-[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli). You can view
-the ksqlDB CLI help by running `<path-to-confluent>/bin/ksql --help`.
+[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
+You can view the ksqlDB CLI help by running
+`<path-to-confluent>/bin/ksql --help`.
 
 !!! tip
       You can search and browse your command history in the ksqlDB CLI
@@ -281,7 +282,7 @@ example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
 three fields, with the supplied name and type.
 
 Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct\'s `ID` field. For
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
 more information, see [Operators](#operators).
 
 ### Decimal
@@ -290,11 +291,12 @@ more information, see [Operators](#operators).
 
 ksqlDB supports fields that are numeric data types with fixed precision and scale:
 
-- **Precision** is the maximum total number of decimal digits to be stored, including values to
-  the left and right of the decimal point. The precision must be greater than 1. There is no
-  default precision.
-- **Scale** is the number of decimal digits to the right of the decimal points. This number must
-  be greater than 0 and less than or equal to the value for `Precision`.
+- **Precision** is the maximum total number of decimal digits to be stored,
+  including values to the left and right of the decimal point. The precision
+  must be greater than 1. There is no default precision.
+- **Scale** is the number of decimal digits to the right of the decimal points.
+  This number must be greater than 0 and less than or equal to the value for
+  `Precision`.
 
 Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
 converted to a double value automatically. Converting from the decimal data type
@@ -307,7 +309,57 @@ SQL statements
 - Statements can be spread over multiple lines.
 - The hyphen character, `-`, isn't supported in names for streams,
   tables, topics, and columns.
-- Don't use quotes around stream names or table names when you CREATE them. TODO: update this
+- Don't use quotes around stream names or table names when you CREATE them.
+- Use backticks around column and source names with characters that are
+  unparseable by ksqlDB or when you want to control case.
+
+Quoted identifiers for source and column names
+----------------------------------------------
+
+Quoted identifiers in column names and source names are supported. If you have
+names that ksqlDB can't parse, or if you need to control the case of your
+column names, enclose them in backtick characters, like this:
+`` `identifier` ``.
+
+For example, a record with the following unparseable column names is still
+usable. 
+
+```
+{"@id": 42, "col.val": value}
+```
+
+Use backtick characters to reference the columns:
+
+```sql
+-- Enclose unparseable column names with backticks:
+CREATE STREAM s1 (`@id` integer, `col.val` string) …
+```
+
+Also, you can use backtick characters for the names of sources, like streams
+and tables. For example, you can create a stream name that has an embedded
+hyphen:
+
+```sql
+CREATE STREAM `foo-bar` (id VARCHAR) WITH (kafka_topic='foo', value_format='JSON', partitions=1);
+```
+
+You can use the hyphenated stream name in SQL statements by enclosing it with
+backticks:
+
+```sql
+INSERT INTO `foo-bar` (id) VALUES ('123');
+CREATE STREAM `foo-too` AS SELECT * FROM `foo-bar`;
+
+ Message
+------------------------------------------------------------------------------------
+ Stream foo-too created and running. Created by query with query ID: CSAS_foo-too_5
+------------------------------------------------------------------------------------
+```
+
+!!! note
+    By default, ksqlDB converts source and column names automatically to all
+    capital letters. Use quoted identifiers to override this behavior and
+    fully control your source and column names.
 
 Key Requirements
 ----------------
@@ -335,7 +387,8 @@ and joins.
       stream doesn't need to be re-partitioned for future joins. If you set
       the KEY property, you will need to re-partition explicitly if your
       record key doesn't meet partitioning requirements. For more
-      information, see [Partition Data to Enable Joins](joins/partition-data.md).
+      information, see
+      [Partition Data to Enable Joins](joins/partition-data.md).
 
 In either case, when setting `KEY` you must be sure that *both* of the
 following conditions are true:
@@ -440,6 +493,7 @@ CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR
         KEY='userid_string');
 ```
 
-For more information, see [Partition Data to Enable Joins](joins/partition-data.md).
+For more information, see
+[Partition Data to Enable Joins](joins/partition-data.md).
 
 Page last revised on: {{ git_revision_date }}

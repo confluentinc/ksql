@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRows;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -197,7 +198,7 @@ public class PullQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
-    assertThat(rows_1, is(rows_0));
+    assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
   }
@@ -226,7 +227,7 @@ public class PullQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
-    assertThat(rows_1, is(rows_0));
+    assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }

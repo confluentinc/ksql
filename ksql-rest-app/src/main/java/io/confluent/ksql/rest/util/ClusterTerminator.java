@@ -131,7 +131,7 @@ public class ClusterTerminator {
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
 
     return metaStore.getAllDataSources().values().stream()
-        .filter(s -> s.getKsqlTopic().isKsqlSink())
+        .filter(DataSource::isCasTarget)
         .filter(s -> predicate.test(s.getKsqlTopic().getKafkaTopicName()))
         .collect(Collectors.toList());
   }

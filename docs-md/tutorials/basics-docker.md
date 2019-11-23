@@ -390,8 +390,8 @@ Your output should resemble:
 ### 6. Count and group pageview events
 
 Create a new persistent query that counts the pageviews for each
-region and gender combination in a [tumbling
-window](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#tumbling-time-windows)
+region and gender combination in a
+[tumbling window](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#tumbling-time-windows)
 of 30 seconds when the count is greater than one. Results from this
 query are written to the `PAGEVIEWS_REGIONS` Kafka topic in the Avro
 format. ksqlDB registers the Avro schema with the configured 

@@ -27,7 +27,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
 
 /**
@@ -56,7 +55,12 @@ class KsqlMaterialization implements Materialization {
   private final Materialization inner;
   private final LogicalSchema schema;
 
-  private final List<BiFunction<Struct, GenericRow, Optional<GenericRow>>> transforms;
+  private final List<Transform> transforms;
+
+  interface Transform {
+
+    Optional<GenericRow> apply(Object key, GenericRow value);
+  }
 
   /**
    * @param inner the inner materialization, e.g. a KS specific one
@@ -66,7 +70,7 @@ class KsqlMaterialization implements Materialization {
   KsqlMaterialization(
       final Materialization inner,
       final LogicalSchema schema,
-      final List<BiFunction<Struct, GenericRow, Optional<GenericRow>>> transforms
+      final List<Transform> transforms
   ) {
     this.inner = requireNonNull(inner, "table");
     this.schema = requireNonNull(schema, "schema");
@@ -104,7 +108,7 @@ class KsqlMaterialization implements Materialization {
       final GenericRow value
   ) {
     GenericRow intermediate = value;
-    for (final BiFunction<Struct, GenericRow, Optional<GenericRow>> transform : transforms) {
+    for (final Transform transform : transforms) {
       final Optional<GenericRow> result = transform.apply(key, intermediate);
       if (!result.isPresent()) {
         return Optional.empty();

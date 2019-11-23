@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -151,22 +148,6 @@ public class StreamMapValuesBuilderTest {
   }
 
   @Test
-  public void shouldCallMapValuesWithMapperWithCorrectExpressions() {
-    // When:
-    step.build(planBuilder);
-
-    // Then:
-    verify(sourceKStream).transformValues(mapperCaptor.capture(), any(Named.class));
-    assertThat(mapperCaptor.getValue().get(), instanceOf(SelectValueMapper.class));
-    final SelectValueMapper<?> mapper = (SelectValueMapper) mapperCaptor.getValue().get();
-    assertThat(mapper.getSelects(), hasSize(2));
-    assertThat(mapper.getSelects().get(0).fieldName, equalTo(ColumnName.of("expr1")));
-    assertThat(mapper.getSelects().get(0).evaluator.getExpression(), equalTo(EXPRESSION1));
-    assertThat(mapper.getSelects().get(1).fieldName, equalTo(ColumnName.of("expr2")));
-    assertThat(mapper.getSelects().get(1).evaluator.getExpression(), equalTo(EXPRESSION2));
-  }
-
-  @Test
   public void shouldReturnResultKStream() {
     // When:
     final KStreamHolder<Struct> result = step.build(planBuilder);
@@ -202,5 +183,14 @@ public class StreamMapValuesBuilderTest {
             .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)
             .build())
     );
+  }
+
+  @Test
+  public void shouldBuildSelectValueMapperLoggerCorrectly() {
+    // When:
+    step.build(planBuilder);
+
+    // Then:
+    verify(processingLoggerFactory).getLogger("qid.PROJECT");
   }
 }

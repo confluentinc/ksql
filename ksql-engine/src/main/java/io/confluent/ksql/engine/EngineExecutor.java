@@ -98,17 +98,10 @@ final class EngineExecutor {
     return new EngineExecutor(engineContext, serviceContext, ksqlConfig, overriddenProperties);
   }
 
-  ExecuteResult execute(final ConfiguredStatement<?> statement) {
-    if (statement.getStatement() instanceof Query) {
-      return ExecuteResult.of(executeQuery(statement.cast()));
-    }
-    return execute(plan(statement));
-  }
-
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  private ExecuteResult execute(final KsqlPlan plan) {
+  ExecuteResult execute(final KsqlPlan plan) {
     final Optional<String> ddlResult = plan.getDdlCommand()
-        .map(ddl -> executeDdl(ddl, plan.getStatementText()));
+        .map(ddl -> executeDdl(ddl, plan.getStatementText(), plan.getQueryPlan().isPresent()));
 
     final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
         .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
@@ -119,7 +112,7 @@ final class EngineExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  private TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {
+  TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
     final OutputNode outputNode = plans.logicalPlan.getNode().get();
     final QueryExecutor executor = engineContext.createQueryExecutor(
@@ -139,7 +132,7 @@ final class EngineExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  private KsqlPlan plan(final ConfiguredStatement<?> statement) {
+  KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
@@ -360,10 +353,11 @@ final class EngineExecutor {
 
   private String executeDdl(
       final DdlCommand ddlCommand,
-      final String statementText
+      final String statementText,
+      final boolean withQuery
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

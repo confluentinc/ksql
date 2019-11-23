@@ -470,6 +470,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     config.put(KafkaConfig.LogRetentionTimeMillisProp(), -1);
     // Stop logs marked for deletion from being deleted
     config.put(KafkaConfig.LogDeleteDelayMsProp(), Long.MAX_VALUE);
+    // Set to 1 because only 1 broker
+    config.put(KafkaConfig.TransactionsTopicReplicationFactorProp(), (short) 1);
+    // Set to 1 because only 1 broker
+    config.put(KafkaConfig.TransactionsTopicMinISRProp(), 1);
 
     return config;
   }

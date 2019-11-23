@@ -99,4 +99,9 @@ public interface DataSource<K> {
    * @return the SQL statement used to create this source.
    */
   String getSqlExpression();
+
+  /**
+   * @return returns whether this stream/table was created by a C(T|S)AS
+   */
+  boolean isCasTarget();
 }

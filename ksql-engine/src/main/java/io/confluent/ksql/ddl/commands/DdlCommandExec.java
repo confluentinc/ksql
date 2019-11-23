@@ -48,15 +48,20 @@ public class DdlCommandExec {
   /**
    * execute on metaStore
    */
-  public DdlCommandResult execute(final String sql, final DdlCommand ddlCommand) {
-    return new Executor(sql).execute(ddlCommand);
+  public DdlCommandResult execute(
+      final String sql,
+      final DdlCommand ddlCommand,
+      final boolean withQuery) {
+    return new Executor(sql, withQuery).execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
     private final String sql;
+    private final boolean withQuery;
 
-    private Executor(final String sql) {
+    private Executor(final String sql, final boolean withQuery) {
       this.sql = Objects.requireNonNull(sql, "sql");
+      this.withQuery = withQuery;
     }
 
     @Override
@@ -68,6 +73,7 @@ public class DdlCommandExec {
           createStream.getSerdeOptions(),
           getKeyField(createStream.getKeyField()),
           createStream.getTimestampExtractionPolicy(),
+          withQuery,
           createStream.getTopic()
       );
       metaStore.putSource(ksqlStream);
@@ -83,6 +89,7 @@ public class DdlCommandExec {
           createTable.getSerdeOptions(),
           getKeyField(createTable.getKeyField()),
           createTable.getTimestampExtractionPolicy(),
+          withQuery,
           createTable.getTopic()
       );
       metaStore.putSource(ksqlTable);

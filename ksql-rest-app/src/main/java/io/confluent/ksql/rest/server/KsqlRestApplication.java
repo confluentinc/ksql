@@ -39,8 +39,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
@@ -57,6 +58,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -70,9 +72,9 @@ import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -83,11 +85,11 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -126,6 +128,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   public static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
+  private final KsqlRestConfig restConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final CommandStore commandStore;
@@ -154,7 +157,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final KsqlRestConfig config,
+      final KsqlRestConfig restConfig,
       final CommandRunner commandRunner,
       final CommandStore commandStore,
       final RootDocument rootDocument,
@@ -170,10 +173,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
-    super(config);
+    super(restConfig);
 
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.restConfig = requireNonNull(restConfig, "restConfig");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandRunner = requireNonNull(commandRunner, "commandRunner");
     this.rootDocument = requireNonNull(rootDocument, "rootDocument");
@@ -212,7 +216,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
     startKsql();
-    commandRunner.start();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
@@ -272,14 +275,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
+    commandRunner.processPriorCommands();
+    commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
         ksqlConfigNoPort,
-        ksqlEngine,
-        commandStore
+        restConfig,
+        ksqlResource,
+        serviceContext
     );
-
-    commandRunner.processPriorCommands();
 
     serverState.setReady();
   }
@@ -467,13 +471,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
+    final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
     final CommandStore commandStore = CommandStore.Factory.create(
-        commandTopic,
+        commandTopicName,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties());
+        restConfig.getCommandProducerProperties()
+    );
 
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
@@ -501,25 +508,26 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         authorizationValidator
     );
 
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator
-    );
-
     final List<String> managedTopics = new LinkedList<>();
-    managedTopics.add(commandTopic);
+    managedTopics.add(commandTopicName);
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
+
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
         serverState
+    );
+
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
@@ -618,32 +626,36 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   private static void maybeCreateProcessingLogStream(
-      final ProcessingLogConfig config,
+      final ProcessingLogConfig processingLogConfig,
       final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue
+      final KsqlRestConfig restConfig,
+      final KsqlResource ksqlResource,
+      final ServiceContext serviceContext
   ) {
-    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
-        || !commandQueue.isEmpty()) {
+    if (!processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-
-    final PreparedStatement<?> statement = ProcessingLogServerUtils
-        .processingLogStreamCreateStatement(config, ksqlConfig);
-    final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
-        statement, Collections.emptyMap(), ksqlConfig);
-
+    
     try {
-      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(
-          ksqlEngine.getServiceContext(),
-          configured.get()
-      );
-    } catch (final KsqlException e) {
-      log.warn("Failed to create processing log stream", e);
-      return;
-    }
+      final SimpleKsqlClient internalClient =
+          new ServerInternalKsqlClient(ksqlResource, serviceContext);
+      final URI serverEndpoint = ServerUtil.getServerAddress(restConfig);
 
-    commandQueue.enqueueCommand(configured.get());
+      final RestResponse<KsqlEntityList> response = internalClient.makeKsqlRequest(
+          serverEndpoint,
+          ProcessingLogServerUtils.processingLogStreamCreateStatement(
+              processingLogConfig,
+              ksqlConfig
+          )
+      );
+
+      if (response.isSuccessful()) {
+        log.info("Successfully created processing log stream.");
+      }
+    } catch (final Exception e) {
+      log.error(
+          "Error while sending processing log CreateStream request to KsqlResource: ", e);
+    }
   }
 
   /**

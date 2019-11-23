@@ -15,26 +15,23 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.materialization.MaterializationInfo.builder;
-
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.materialization.AggregatesInfo;
+import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
-import java.util.List;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-public final class AggregateBuilderUtils {
+final class AggregateBuilderUtils {
   private AggregateBuilderUtils() {
   }
 
@@ -62,17 +59,15 @@ public final class AggregateBuilderUtils {
   }
 
   static MaterializationInfo.Builder materializationInfoBuilder(
+      final KudafAggregator aggregator,
       final QueryContext queryContext,
-      final int nonFuncColumns,
-      final List<FunctionCall> functions,
-      final LogicalSchema sourceSchema,
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    return builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
-        .mapAggregates(
-            AggregatesInfo.of(nonFuncColumns, functions, sourceSchema),
-            outputSchema
-        );
+    final Function<GenericRow, GenericRow> resultMapper = aggregator
+        .getResultMapper()::apply;
+
+    return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
+        .map(pl -> (k, v) -> resultMapper.apply(v), outputSchema, "AGG-PROJECT");
   }
 }

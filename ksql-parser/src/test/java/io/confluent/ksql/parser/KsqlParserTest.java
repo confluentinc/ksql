@@ -472,7 +472,7 @@ public class KsqlParserTest {
   public void shouldAllowEscapedTerminateQuery() {
     // When:
     final PreparedStatement<TerminateQuery> statement = KsqlParserTestUtil
-        .buildSingleAst("TERMINATE QUERY `CSAS-foo_2`;", metaStore);
+        .buildSingleAst("TERMINATE `CSAS-foo_2`;", metaStore);
 
     // Then:
     assertThat(statement.getStatement().getQueryId().map(QueryId::toString), is(Optional.of("CSAS-foo_2")));

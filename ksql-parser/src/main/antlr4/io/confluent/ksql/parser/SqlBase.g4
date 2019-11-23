@@ -45,7 +45,7 @@ statement
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
-    | TERMINATE QUERY? identifier                                           #terminateQuery
+    | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty

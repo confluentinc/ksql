@@ -91,3 +91,5 @@ In ksqlDB, the output of the `SHOW TOPICS` command no longer includes the
 "Consumers" and "ConsumerGroups" columns. To obtain this information, use
 the [`SHOW TOPICS EXTENDED`](../developer-guide/ksqldb-reference/show-topics.md)
 command.
+
+Page last revised on: {{ git_revision_date }}

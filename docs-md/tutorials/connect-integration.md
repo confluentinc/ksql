@@ -11,8 +11,7 @@ instance of PostgreSQL.
 
 Prerequisites:
 
--   [Confluent
-    Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
+-   [Confluent Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
     is installed an running. This installation includes a Kafka broker,
     ksqlDB, {{ site.zk }}, {{ site.sr }} and {{ site.kconnect }}.
 -   If you installed {{ site.cp }} via TAR or ZIP, navigate into the

@@ -42,8 +42,8 @@ Streams
 -------
 
 Streams are immutable, append-only collections. They're useful for representing
-a series of historical facts. Adding multiple events that have the same key means
-that the events are simply appended to the end of the stream.
+a series of historical facts. Adding multiple events that have the same key
+means that the events are simply appended to the end of the stream.
 
 Tables
 ------

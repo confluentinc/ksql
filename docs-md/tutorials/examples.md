@@ -43,8 +43,8 @@ The previous statement doesn't make any assumptions about the Kafka message
 key in the underlying {{ site.ak }} topic. But if the value of the message key
 in {{ site.aktm }} is the same as one of the columns defined in the stream in
 ksqlDB, you can provide this information in the WITH clause. For example, if
-the {{ site.aktm }} message key has the same value as the `pageid` column, you can write the
-CREATE STREAM statement like this:
+the {{ site.aktm }} message key has the same value as the `pageid` column, you
+can write the CREATE STREAM statement like this:
 
 ```sql
 CREATE STREAM pageviews
@@ -119,8 +119,8 @@ the results of the query in a new stream or table, which is backed by a
 For this example, imagine you want to create a new stream by
 transforming `pageviews` in the following way:
 
--   The `viewtime` column value is used as the {{ site.aktm }} message timestamp
-    in the new stream's underlying {{ site.aktm }} topic.
+-   The `viewtime` column value is used as the {{ site.aktm }} message
+    timestam in the new stream's underlying {{ site.aktm }} topic.
 -   The new stream's {{ site.aktm }} topic has 5 partitions.
 -   The data in the new stream is in JSON format.
 -   Add a new column that shows the message timestamp in human-readable

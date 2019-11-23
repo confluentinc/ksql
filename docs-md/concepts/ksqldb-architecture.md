@@ -17,8 +17,10 @@ ksqlDB has these main components:
 
 - ksqlDB engine -- processes SQL statements and queries
 - REST interface -- enables client access to the engine
-- ksqlDB CLI -- console that provides a command-line interface (CLI)to the engine
-- ksqlDB UI -- enables developing ksqlDB applications in {{ site.c3 }} and {{ site.ccloud }} 
+- ksqlDB CLI -- console that provides a command-line interface (CLI) to the
+  engine
+- ksqlDB UI -- enables developing ksqlDB applications in {{ site.c3 }} and
+  {{ site.ccloud }} 
 
 ksqlDB Server comprises the ksqlDB engine and the REST API. ksqlDB Server
 instances communicate with a {{ site.ak }} cluster, and you can add more of
@@ -34,16 +36,17 @@ parses your SQL statements and builds corresponding Kafka Streams
 topologies. The ksqlDB engine is implemented in the
 [KsqlEngine.java](https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/engine/KsqlEngine.java)
 class.
-- ksqlDB CLI: The ksqlDB CLI provides a console with a command-line interface for
-the ksqlDB engine. Use the ksqlDB CLI to interact with ksqlDB Server
+- ksqlDB CLI: The ksqlDB CLI provides a console with a command-line interface
+for the ksqlDB engine. Use the ksqlDB CLI to interact with ksqlDB Server
 instances and develop your streaming applications. The ksqlDB CLI is
 designed to be familiar to users of MySQL, Postgres, and similar
 applications. The ksqlDB CLI is implemented in the
 [io.confluent.ksql.cli](https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli)
 package.
-- REST Interface: The REST server interface enables communicating with the ksqlDB engine
-from the CLI, {{ site.c3 }}, or from any other REST client. For more
-information, see [ksqlDB REST API Reference](../developer-guide/api.md). The ksqlDB REST server is implemented in the
+- REST Interface: The REST server interface enables communicating with the
+ksqlDB engine from the CLI, {{ site.c3 }}, or from any other REST client. For
+more information, see [ksqlDB REST API Reference](../developer-guide/api.md).
+The ksqlDB REST server is implemented in the
 [KsqlRestApplication.java](https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java)
 class.
 

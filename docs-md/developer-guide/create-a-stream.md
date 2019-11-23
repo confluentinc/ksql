@@ -36,7 +36,8 @@ The following example creates a stream that has three columns from the
 ksqlDB can't infer the topic's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
-See [Serialization Formats](serialization.md#serialization-formats) for more details.
+See [Serialization Formats](serialization.md#serialization-formats) for more
+details.
 
 In the ksqlDB CLI, paste the following CREATE STREAM statement:
 
@@ -216,7 +217,8 @@ underlying topic, use the INSERT INTO statement.
 !!! note
       The CREATE STREAM AS SELECT statement doesn't support the KEY property.
       To specify a KEY field, use the PARTITION BY clause. For more
-      information, see [Partition Data to Enable Joins](joins/partition-data.md).
+      information, see
+      [Partition Data to Enable Joins](joins/partition-data.md).
 
 The following SQL statement creates a `pageviews_intro` stream that
 contains results from a persistent query that matches "introductory"

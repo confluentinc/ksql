@@ -892,8 +892,8 @@ SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream EMIT CHAN
 
 In some deployment environments, it may be necessary to restrict the
 classes that UD(A)Fs have access to, as they may represent a security
-risk. To reduce the attack surface of ksqlDB user defined functions you can optionally
-blacklist classes and packages so that they can't be used from a
+risk. To reduce the attack surface of ksqlDB user defined functions you can
+optionally blacklist classes and packages so that they can't be used from a
 UD(A)F. An example blacklist is in a file named `resource-blacklist.txt`
 in the `ext/` directory. All of the entries in the default version of the
 file are commented out, but it shows how you can use the blacklist.

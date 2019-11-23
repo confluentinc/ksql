@@ -17,7 +17,8 @@ with, like {{ site.aktm }} and {{ site.sr }}.
   [SSL for encryption](https://docs.confluent.io/current/kafka/encryption.html),
   [SASL for authentication](https://docs.confluent.io/current/kafka/authentication_sasl/index.html),
   and [authorization with ACLs](https://docs.confluent.io/current/kafka/authorization.html).
-- ksqlDB supports [Schema Registry security features](https://docs.confluent.io/current/schema-registry/security/index.html)
+- ksqlDB supports
+  [Schema Registry security features](https://docs.confluent.io/current/schema-registry/security/index.html)
   such SSL for encryption and mutual authentication for authorization.
 - ksqlDB supports SSL on all network traffic.
 
@@ -448,7 +449,7 @@ ksqlDB always requires the following ACLs for its internal operations and
 data management:
 
 -   The `DESCRIBE_CONFIGS` operation on the `CLUSTER` resource type.
--   The `DESCRIBE` operation on the `TOPIC` with `LITERAL` name `__consumer_offsets`.
+-   The `DESCRIBE` operation on the `TOPIC` with `LITERAL` name`__consumer_offsets`.
 -   The `DESCRIBE` operation on the `TOPIC` with `LITERAL` name `__transaction_state`.
 -   The `DESCRIBE` and `WRITE` operations on the `TRANSACTIONAL_ID` with `LITERAL` name `<ksql.service.id>`.
 -   The `ALL` operation on all internal `TOPICS` that are `PREFIXED`
@@ -460,9 +461,8 @@ Where `ksql.service.id` can be configured in the ksqlDB configuration and
 defaults to `default_`.
 
 If ksqlDB is configured to create a topic for the
-[record processing log](../../../developer-guide/test-and-debug/processing-log.md), which is
-the default configuration, the following ACLs are
-also needed:
+[record processing log](../../../developer-guide/test-and-debug/processing-log.md),
+which is the default configuration, the following ACLs are also needed:
 
 -   The `ALL` operation on the `TOPIC` with `LITERAL` name
     `<ksql.logging.processing.topic.name>`.
@@ -778,8 +778,8 @@ Change-log and repartition topics
     All changelog and repartition topics are prefixed with
     `_confluent-ksql-<ksql.service.id>` where `ksql.service.id` defaults
     to `default_`, (for more information, see
-    [ksql.service.id](config-reference.md#ksqlserviceid)), and postfixed with either
-    `-changelog` or `-repartition`, respectively.
+    [ksql.service.id](config-reference.md#ksqlserviceid)), and postfixed with
+    either `-changelog` or `-repartition`, respectively.
 
 Consumer groups
 

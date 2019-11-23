@@ -74,6 +74,7 @@ public class KsqlResource {
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
       new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
 
+  @SuppressWarnings("unused")
   private static final Set<Class<? extends Statement>> SYNC_BLACKLIST =
       ImmutableSet.<Class<? extends Statement>>builder()
           .add(ListTopics.class)
@@ -185,9 +186,10 @@ public class KsqlResource {
   }
 
   private static boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
-    return !SYNC_BLACKLIST.contains(statementClass)
-        // we never need to synchronize distributed statements
-        && CustomExecutors.EXECUTOR_MAP.containsKey(statementClass);
+    // Note: temp work around for https://github.com/confluentinc/ksql/issues/3363
+    // We need to wait for all statements.
+    // Note: This change should only be in 5.4.x
+    return true;
   }
 
   private static void ensureValidPatterns(final List<String> deleteTopicList) {

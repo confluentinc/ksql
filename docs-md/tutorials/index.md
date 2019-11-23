@@ -51,7 +51,7 @@ Get started with the ksqlDB CLI:
 Write Streaming Queries with ksqlDB and Confluent Control Center
 ----------------------------------------------------------------
 
-![image](../img/ksql-interface-create-stream.png){width="600px"}
+![image](../img/ksql-interface-create-stream.png)
 
 Get started with ksqlDB and {{ site.c3 }}:
 

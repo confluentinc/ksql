@@ -16,19 +16,20 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.eq;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -52,6 +53,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
@@ -282,7 +284,7 @@ public class InteractiveStatementExecutorTest {
 
     // When:
     handleStatement(statementExecutorWithMocks, csasCommand, csasCommandId, Optional.empty(), 1);
-    
+
     // Then:
     verify(mockQueryMetadata, times(1)).start();
   }
@@ -423,7 +425,7 @@ public class InteractiveStatementExecutorTest {
 
     // Now try to drop streams/tables to test referential integrity
     tryDropThatViolatesReferentialIntegrity();
-    
+
     // Terminate the queries using the stream/table
     terminateQueries();
 
@@ -523,7 +525,7 @@ public class InteractiveStatementExecutorTest {
     final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
     when(mockEngine.plan(eq(serviceContext), eqConfiguredStatement(PreparedStatement.of("DROP", mockDropStream))))
         .thenReturn(plan);
-    
+
     when(mockEngine
         .execute(
             eq(serviceContext),
@@ -547,7 +549,7 @@ public class InteractiveStatementExecutorTest {
   private  <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(PreparedStatement<T> preparedStatement) {
     return argThat(new ConfiguredStatementMatcher<>(preparedStatement));
   }
-  
+
   private ConfiguredKsqlPlan eqConfiguredPlan(final KsqlPlan plan) {
     return argThat(new ConfiguredKsqlPlanMatcher(plan));
   }
@@ -565,7 +567,7 @@ public class InteractiveStatementExecutorTest {
       return plan.getPlan().equals(configuredKsqlPlan.getPlan());
     }
   }
-  
+
   private class ConfiguredStatementMatcher<T extends Statement> implements ArgumentMatcher<ConfiguredStatement<T>> {
 
     private ConfiguredStatement<?> statement;
@@ -650,6 +652,37 @@ public class InteractiveStatementExecutorTest {
 
     // Then:
     verify(mockQuery, times(0)).start();
+  }
+
+  @Test
+  public void shouldTerminateAll() {
+    // Given:
+    final String queryStatement = "a persistent query";
+
+    final TerminateQuery terminateAll = mock(TerminateQuery.class);
+    when(terminateAll.getQueryId()).thenReturn(Optional.empty());
+
+    when(mockParser.parseSingleStatement(any()))
+        .thenReturn(PreparedStatement.of(queryStatement, terminateAll));
+
+    final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
+     PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+
+    when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
+
+    // When:
+    statementExecutorWithMocks.handleStatement(
+        new QueuedCommand(
+            new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+            new Command("terminate all", true, emptyMap(), emptyMap()),
+            Optional.empty(),
+            0L
+        )
+    );
+
+    // Then:
+    verify(query0).close();
+    verify(query1).close();
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

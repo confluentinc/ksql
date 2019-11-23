@@ -15,16 +15,11 @@
 
 package io.confluent.ksql.rest.server;
 
-import java.util.Collections;
 import io.confluent.rest.RestConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import java.util.Collections;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.test.TestUtils;
-
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 

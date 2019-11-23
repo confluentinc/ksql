@@ -126,6 +126,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -157,23 +158,21 @@ public class AstBuilder {
     this.typeRegistry = requireNonNull(typeRegistry, "typeRegistry");
   }
 
-  @SuppressWarnings("unchecked")
   public Statement buildStatement(final ParserRuleContext parseTree) {
-    return build(Optional.of(getSources(parseTree)), typeRegistry, parseTree);
+    return build(Optional.of(getSources(parseTree)), parseTree);
   }
 
   public Expression buildExpression(final ParserRuleContext parseTree) {
-    return build(Optional.empty(), typeRegistry, parseTree);
+    return build(Optional.empty(), parseTree);
   }
 
   public WindowExpression buildWindowExpression(final ParserRuleContext parseTree) {
-    return build(Optional.empty(), typeRegistry, parseTree);
+    return build(Optional.empty(), parseTree);
   }
 
   @SuppressWarnings("unchecked")
   private <T extends Node> T build(
       final Optional<Set<SourceName>> sources,
-      final TypeRegistry typeRegistry,
       final ParserRuleContext parseTree) {
     return (T) new Visitor(sources, typeRegistry).visit(parseTree);
   }
@@ -632,11 +631,15 @@ public class AstBuilder {
 
     @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
-      return new TerminateQuery(
-          getLocation(context),
-          // use case sensitive parsing here to maintain backwards compatibility
-          ParserUtil.getIdentifierText(true, context.identifier())
-      );
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? TerminateQuery.all(location)
+          : TerminateQuery.query(
+              location,
+              // use case sensitive parsing here to maintain backwards compatibility
+              new QueryId(ParserUtil.getIdentifierText(true, context.identifier()))
+          );
     }
 
     @Override

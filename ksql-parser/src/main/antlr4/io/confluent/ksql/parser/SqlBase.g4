@@ -45,7 +45,8 @@ statement
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
-    | TERMINATE QUERY? identifier                                           #terminateQuery
+    | TERMINATE identifier                                                  #terminateQuery
+    | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
     | CREATE STREAM (IF NOT EXISTS)? sourceName
@@ -339,6 +340,7 @@ CHANGES: 'CHANGES';
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
+ALL: 'ALL';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 WITHIN: 'WITHIN';

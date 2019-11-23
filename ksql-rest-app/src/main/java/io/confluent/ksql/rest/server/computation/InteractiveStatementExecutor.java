@@ -226,7 +226,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     }
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
+  @SuppressWarnings("unchecked")
   private void executeStatement(
       final PreparedStatement<?> statement,
       final Command command,
@@ -369,9 +369,14 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
-    final QueryId queryId = terminateQuery.getStatement().getQueryId();
+    final Optional<QueryId> queryId = terminateQuery.getStatement().getQueryId();
 
-    ksqlEngine.getPersistentQuery(queryId)
+    if (!queryId.isPresent()) {
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      return;
+    }
+
+    ksqlEngine.getPersistentQuery(queryId.get())
         .orElseThrow(() ->
             new KsqlException(String.format("No running query with id %s was found", queryId)))
         .close();

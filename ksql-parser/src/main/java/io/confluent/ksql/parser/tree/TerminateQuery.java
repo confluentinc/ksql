@@ -22,20 +22,27 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class TerminateQuery extends Statement {
+public final class TerminateQuery extends Statement {
 
-  private final QueryId queryId;
+  private final Optional<QueryId> queryId;
 
-  public TerminateQuery(final String queryId) {
-    this(Optional.empty(), queryId);
+  public static TerminateQuery all(final Optional<NodeLocation> location) {
+    return new TerminateQuery(location, Optional.empty());
   }
 
-  public TerminateQuery(final Optional<NodeLocation> location, final String queryId) {
+  public static TerminateQuery query(final Optional<NodeLocation> location, final QueryId queryId) {
+    return new TerminateQuery(location, Optional.of(queryId));
+  }
+
+  private TerminateQuery(final Optional<NodeLocation> location, final Optional<QueryId> queryId) {
     super(location);
-    this.queryId = new QueryId(queryId);
+    this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
-  public QueryId getQueryId() {
+  /**
+   * @return the id of the query to terminate or {@code empty()} if all should be terminated.
+   */
+  public Optional<QueryId> getQueryId() {
     return queryId;
   }
 

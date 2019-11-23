@@ -56,19 +56,18 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class SqlFormatter {
 
   private static final String INDENT = "   ";
-  private static final Pattern NAME_PATTERN = Pattern.compile("[a-z_][a-z0-9_]*");
   private static final FormatOptions FORMAT_OPTIONS = FormatOptions.of(IdentifierUtil::needsQuotes);
 
   private SqlFormatter() {
@@ -287,13 +286,6 @@ public final class SqlFormatter {
       return null;
     }
 
-    private static String formatName(final String name) {
-      if (NAME_PATTERN.matcher(name).matches()) {
-        return name;
-      }
-      return "\"" + name + "\"";
-    }
-
     @Override
     protected Void visitInsertInto(final InsertInto node, final Integer indent) {
       builder.append("INSERT INTO ");
@@ -329,7 +321,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(exp -> ExpressionFormatterUtil.formatExpression(exp))
+              .map(ExpressionFormatterUtil::formatExpression)
               .collect(Collectors.joining(", ")));
       builder.append(")");
 
@@ -345,7 +337,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
       builder.append("TERMINATE ");
-      builder.append(node.getQueryId().getId());
+      builder.append(node.getQueryId().map(QueryId::toString).orElse("ALL"));
       return null;
     }
 

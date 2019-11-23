@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;

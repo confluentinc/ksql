@@ -21,7 +21,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Map;
+import java.util.Optional;
 
 public final class TerminateQueryValidator {
 
@@ -34,13 +36,17 @@ public final class TerminateQueryValidator {
       final ServiceContext serviceContext
   ) {
     final TerminateQuery terminateQuery = (TerminateQuery) statement.getStatement();
-    final QueryId queryId = terminateQuery.getQueryId();
+    final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
-    context.getPersistentQuery(queryId)
+    if (!queryId.isPresent()) {
+      context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      return;
+    }
+
+    context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
-            "Unknown queryId: " + queryId,
+            "Unknown queryId: " + queryId.get(),
             statement.getStatementText()))
         .close();
   }
-
 }

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,20 +40,21 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
-import kafka.security.auth.Acl;
-import kafka.security.auth.Operation$;
-import kafka.security.auth.PermissionType;
-import kafka.security.auth.PermissionType$;
-import kafka.security.auth.ResourceType$;
 import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.acl.AccessControlEntry;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
@@ -70,7 +72,6 @@ import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConverters;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
@@ -87,6 +88,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
       new Credentials("valid_user_2", "some-password");
+  private static final Credentials INTER_BROKER_USER =
+      new Credentials("broker", "brokerPassword");
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
@@ -99,10 +102,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final Map<String, Object> customBrokerConfig;
   private final Map<String, Object> customClientConfig;
   private final TemporaryFolder tmpFolder = new TemporaryFolder();
-  @SuppressWarnings("deprecation")
-  private final kafka.security.auth.SimpleAclAuthorizer authorizer =
-      new kafka.security.auth.SimpleAclAuthorizer();
-  private final Set<kafka.security.auth.Resource> addedAcls = new HashSet<>();
+  private final List<AclBinding> addedAcls = new ArrayList<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
 
   private ZooKeeperEmbedded zookeeper;
@@ -141,12 +141,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
-    final ImmutableMap<String, Object> props = ImmutableMap.of(
-        KafkaConfig.ZkConnectProp(), zookeeperConnect(),
-        AclAuthorizer.ZkConnectionTimeOutProp(), (int) ZK_CONNECT_TIMEOUT.toMillis(),
-        AclAuthorizer.ZkSessionTimeOutProp(), (int) ZK_SESSION_TIMEOUT.toMillis()
-    );
-    authorizer.configure(props);
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
@@ -169,7 +163,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     if (broker != null) {
       broker.stop();
     }
-    authorizer.close();
+
     try {
       if (zookeeper != null) {
         zookeeper.stop();
@@ -377,7 +371,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
-   * Writes the supplied ACL information to ZK, where it will be picked up by the brokes authorizer.
+   * Create ACLs via admin client
    *
    * @param username    the who.
    * @param permission  the allow|deny.
@@ -388,35 +382,36 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       final String username,
       final AclPermissionType permission,
       final ResourcePattern resource,
-      final Set<AclOperation> ops) {
+      final Set<AclOperation> ops
+  ) {
+    try (AdminClient adminClient = adminClient()) {
 
-    final KafkaPrincipal principal = new KafkaPrincipal("User", username);
-    final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
+      final KafkaPrincipal principal = new KafkaPrincipal("User", username);
 
-    final Set<Acl> javaAcls = ops.stream()
-        .map(Operation$.MODULE$::fromJava)
-        .map(op -> new Acl(principal, scalaPermission, "*", op))
-        .collect(Collectors.toSet());
+      final Set<AclBinding> acls = ops.stream()
+          .map(op -> new AccessControlEntry(principal.toString(), "*", op, permission))
+          .map(ace -> new AclBinding(resource, ace))
+          .collect(Collectors.toSet());
 
-    final scala.collection.immutable.Set<Acl> scalaAcls =
-        JavaConverters.asScalaSet(javaAcls).toSet();
+      adminClient.createAcls(acls).all().get();
 
-    final kafka.security.auth.ResourceType scalaResType =
-        ResourceType$.MODULE$.fromJava(resource.resourceType());
-
-    final kafka.security.auth.Resource scalaResource =
-        new kafka.security.auth.Resource(scalaResType, resource.name(), resource.patternType());
-
-    authorizer.addAcls(scalaAcls, scalaResource);
-
-    addedAcls.add(scalaResource);
+      addedAcls.addAll(acls);
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Failed to set ACLs", e);
+    }
   }
 
   /**
    * Clear all ACLs from the cluster.
    */
   public void clearAcls() {
-    addedAcls.forEach(authorizer::removeAcls);
+    try (AdminClient adminClient = adminClient()) {
+      final List<AclBindingFilter> filters = addedAcls.stream()
+          .map(AclBinding::toFilter)
+          .collect(Collectors.toList());
+
+      adminClient.deleteAcls(filters);
+    }
   }
 
   public static Builder newBuilder() {
@@ -430,7 +425,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Build config designed to keep the tests as stable as possible
    */
-  @SuppressWarnings("deprecation")
   private Properties buildBrokerConfig(final String logDir) {
     final Properties config = new Properties();
     config.putAll(customBrokerConfig);
@@ -440,7 +434,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     config.put(KafkaConfig.LogDirProp(), logDir);
     // Need to know where ZK is:
     config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
-    config.put(kafka.security.auth.SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
+    config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
     // Do not require tests to explicitly create tests:
     config.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
     // Default to small number of partitions for auto-created topics:
@@ -497,9 +491,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static String createJaasConfigContent() {
     final String prefix = JAAS_KAFKA_PROPS_NAME + " {\n  "
                           + PlainLoginModule.class.getName() + " required\n"
-                          + "  username=\"broker\"\n"
-                          + "  password=\"brokerPassword\"\n"
-                          + "  user_broker=\"brokerPassword\"\n";
+        + "  username=\"" + INTER_BROKER_USER.username + "\"\n"
+        + "  password=\"" + INTER_BROKER_USER.password + "\"\n"
+        + "  user_broker=\"" + INTER_BROKER_USER.password + "\"\n";
 
     return ALL_VALID_USERS.stream()
         .map(creds -> "  user_" + creds.username + "=\"" + creds.password + "\"")
@@ -519,6 +513,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       System.clearProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM);
     }
     Configuration.setConfiguration(null);
+  }
+
+  private AdminClient adminClient() {
+    final Map<String, Object> props = new HashMap<>(getClientProperties());
+    props.put(AdminClientConfig.RETRIES_CONFIG, 5);
+    props.putAll(SecureKafkaHelper.getSecureCredentialsConfig(INTER_BROKER_USER));
+
+    return AdminClient.create(props);
   }
 
   public static Set<AclOperation> ops(final AclOperation... ops) {
@@ -546,11 +548,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final StringBuilder additionalJaasConfig = new StringBuilder();
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
-    @SuppressWarnings("deprecation")
     Builder() {
-      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(),
-          kafka.security.auth.SimpleAclAuthorizer.class.getName());
-      brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
+      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), AclAuthorizer.class.getName());
+      brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
       brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
     }
@@ -580,11 +580,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return this;
     }
 
-    @SuppressWarnings("deprecation")
     public Builder withAclsEnabled(final String... superUsers) {
-      brokerConfig.remove(
-          kafka.security.auth.SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
-      brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.SuperUsersProp(),
+      brokerConfig.remove(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
+      brokerConfig.put(AclAuthorizer.SuperUsersProp(),
           Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
               .map(s -> "User:" + s)
               .collect(Collectors.joining(";")));

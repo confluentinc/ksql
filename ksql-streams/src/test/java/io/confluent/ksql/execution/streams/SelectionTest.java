@@ -1,6 +1,7 @@
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -21,10 +22,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
@@ -115,6 +118,28 @@ public class SelectionTest {
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
         .build();
     assertThat(resultSchema, equalTo(expected));
+  }
+
+  @Test
+  public void shouldBuildCorrectResultKeyWhenSchemaHasSomeAliasedColumns() {
+    // Given:
+    final LogicalSchema sourceSchema = LogicalSchema.builder()
+        .keyColumns(SCHEMA.key())
+        .valueColumns(SCHEMA.withoutAlias().value())
+        .build();
+
+    // When:
+    selection = Selection.of(
+        new QueryId("query"),
+        queryContext,
+        sourceSchema,
+        Collections.emptyList(),
+        ksqlConfig,
+        functionRegistry,
+        processingLogContext);
+
+    // Then:
+    assertThat(selection.getSchema().key(), is(SCHEMA.withoutAlias().key()));
   }
 
   @Test

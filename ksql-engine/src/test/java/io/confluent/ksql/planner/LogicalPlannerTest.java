@@ -33,6 +33,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,6 +70,20 @@ public class LogicalPlannerTest {
             .getDataSourceType(),
         equalTo(DataSourceType.KTABLE));
     assertThat(dataSource.getName(), equalTo(SourceName.of("TEST2")));
+  }
+
+  @Test
+  public void shouldCreateCorrectOutputSchemaForExplode() {
+    // When:
+    final PlanNode planNode = buildLogicalPlan(
+        "select EXPLODE(ARR1) as foo from SENSOR_READINGS EMIT CHANGES;");
+
+    // Then:
+    final LogicalSchema schema = planNode.getSchema();
+    assertThat(
+        schema,
+        is(LogicalSchema.builder().valueColumn(ColumnName.of("FOO"), SqlTypes.BIGINT).build())
+    );
   }
 
   @Test

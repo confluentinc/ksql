@@ -69,10 +69,9 @@ public final class Selection<K> {
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-    final List<Column> keyCols = sourceSchema.isAliased()
-        ? sourceSchema.withoutAlias().key() : sourceSchema.key();
-
-    schemaBuilder.keyColumns(keyCols);
+    for (final Column column : sourceSchema.key()) {
+      schemaBuilder.keyColumn(column.name(), column.type());
+    }
 
     for (final SelectInfo select : mapper.getSelects()) {
       schemaBuilder.valueColumn(select.getFieldName(), select.getExpressionType());

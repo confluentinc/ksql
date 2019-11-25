@@ -312,11 +312,9 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    final List<Column> keyColumns = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().key()
-        : sourcePlanNode.getSchema().key();
-
-    builder.keyColumns(keyColumns);
+    for (final Column column : sourcePlanNode.getSchema().key()) {
+      builder.keyColumn(column.name(), column.type());
+    }
 
     for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
       final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);

@@ -78,7 +78,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -475,9 +474,8 @@ public class KsqlParserTest {
         .buildSingleAst("TERMINATE `CSAS-foo_2`;", metaStore);
 
     // Then:
-    assertThat(statement.getStatement().getQueryId().map(QueryId::toString), is(Optional.of("CSAS-foo_2")));
+    assertThat(statement.getStatement().getQueryId().getId(), is("CSAS-foo_2"));
   }
-
 
   @Test
   public void testSelectAllJoin() {

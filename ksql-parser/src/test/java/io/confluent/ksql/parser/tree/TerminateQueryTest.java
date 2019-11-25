@@ -33,11 +33,11 @@ public class TerminateQueryTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            TerminateQuery.query(Optional.of(SOME_LOCATION), SOME_QUERY_ID),
-            TerminateQuery.query(Optional.of(OTHER_LOCATION), SOME_QUERY_ID)
+            new TerminateQuery(Optional.of(SOME_LOCATION), SOME_QUERY_ID),
+            new TerminateQuery(Optional.of(OTHER_LOCATION), SOME_QUERY_ID)
         )
         .addEqualityGroup(
-            TerminateQuery.query(Optional.empty(), new QueryId("diff"))
+            new TerminateQuery(Optional.empty(), new QueryId("diff"))
         )
         .testEquals();
   }

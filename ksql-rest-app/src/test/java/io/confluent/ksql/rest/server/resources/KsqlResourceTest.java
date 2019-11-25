@@ -87,6 +87,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -1163,25 +1164,23 @@ public class KsqlResourceTest {
   @Test
   public void shouldDistributeTerminateAllQueries() {
     // Given:
-    createQuery(
+    final QueryId queryId = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
-        emptyMap());
-
-    final String terminateSql = "TERMINATE ALL;";
+        emptyMap()).getQueryId();
 
     // When:
-    final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
+    final CommandStatusEntity result = makeSingleRequest("TERMINATE ALL;", CommandStatusEntity.class);
 
     // Then:
     verify(commandStore)
         .enqueueCommand(
             argThat(is(configured(preparedStatement(
-                is(terminateSql),
-                is(TerminateQuery.all(Optional.empty()))))
+                is("TERMINATE " + queryId + ";"),
+                is(new TerminateQuery(Optional.empty(), queryId))))
             )),
             any(Producer.class));
 
-    assertThat(result.getStatementText(), is(terminateSql));
+    assertThat(result.getStatementText(), is("TERMINATE " + queryId + ";"));
   }
 
   @Test

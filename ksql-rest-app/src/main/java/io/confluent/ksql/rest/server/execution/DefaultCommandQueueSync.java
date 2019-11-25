@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -57,7 +58,7 @@ public class DefaultCommandQueueSync implements CommandQueueSync {
       final KsqlEntityList previousCommands,
       final Class<? extends Statement> statementClass) {
     if (mustSync.test(statementClass)) {
-      final ArrayList<KsqlEntity> reversed = new ArrayList<>(previousCommands);
+      final List<KsqlEntity> reversed = new ArrayList<>(previousCommands);
       Collections.reverse(reversed);
 
       reversed.stream()

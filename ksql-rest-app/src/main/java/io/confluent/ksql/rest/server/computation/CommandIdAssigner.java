@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -110,7 +109,7 @@ public class CommandIdAssigner {
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
-        terminateQuery.getQueryId().map(QueryId::toString).orElse("ALL"),
+        terminateQuery.getQueryId().getId(),
         CommandId.Action.EXECUTE
     );
   }

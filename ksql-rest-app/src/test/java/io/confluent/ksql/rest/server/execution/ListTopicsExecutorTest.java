@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,10 +28,12 @@ import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import java.util.Collection;
+import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
@@ -42,7 +46,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListTopicsExecutorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListKafkaTopics() {
@@ -61,16 +66,16 @@ public class ListTopicsExecutorTest {
     );
 
     // When:
-    final KafkaTopicsList topicsList =
-        (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
-            engine.configure("LIST TOPICS;"),
-            ImmutableMap.of(),
-            engine.getEngine(),
-            serviceContext
-        ).orElseThrow(IllegalStateException::new);
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_TOPICS.execute(
+        engine.configure("LIST TOPICS;"),
+        ImmutableMap.of(),
+        engine.getEngine(),
+        serviceContext
+    );
 
     // Then:
-    assertThat(topicsList.getTopics(), containsInAnyOrder(
+    assertThat(results, contains(instanceOf(KafkaTopicsList.class)));
+    assertThat(((KafkaTopicsList) results.get(0)).getTopics(), containsInAnyOrder(
         new KafkaTopicInfo("topic1", ImmutableList.of(1)),
         new KafkaTopicInfo("topic2", ImmutableList.of(1))
     ));
@@ -99,19 +104,18 @@ public class ListTopicsExecutorTest {
     );
 
     // When:
-    final KafkaTopicsListExtended topicsList =
-        (KafkaTopicsListExtended) CustomExecutors.LIST_TOPICS.execute(
-            engine.configure("LIST TOPICS EXTENDED;"),
-            ImmutableMap.of(),
-            engine.getEngine(),
-            serviceContext
-        ).orElseThrow(IllegalStateException::new);
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_TOPICS.execute(
+        engine.configure("LIST TOPICS EXTENDED;"),
+        ImmutableMap.of(),
+        engine.getEngine(),
+        serviceContext
+    );
 
     // Then:
-    assertThat(topicsList.getTopics(), containsInAnyOrder(
+    assertThat(results, contains(instanceOf(KafkaTopicsListExtended.class)));
+    assertThat(((KafkaTopicsListExtended) results.get(0)).getTopics(), containsInAnyOrder(
         new KafkaTopicInfoExtended("topic1", ImmutableList.of(1), 0, 0),
         new KafkaTopicInfoExtended("topic2", ImmutableList.of(1), 0, 0)
     ));
   }
-
 }

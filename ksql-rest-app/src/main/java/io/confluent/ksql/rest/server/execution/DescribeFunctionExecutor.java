@@ -30,23 +30,17 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.IdentifierUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class DescribeFunctionExecutor {
 
-  private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
-
   private DescribeFunctionExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<DescribeFunction> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -56,16 +50,16 @@ public final class DescribeFunctionExecutor {
     final String functionName = describeFunction.getFunctionName();
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {
-      return Optional.of(
+      return ImmutableList.of(
           describeAggregateFunction(executionContext, functionName, statement.getStatementText()));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
-      return Optional.of(
+      return ImmutableList.of(
           describeTableFunction(executionContext, functionName, statement.getStatementText()));
     }
 
-    return Optional.of(
+    return ImmutableList.of(
         describeNonAggregateFunction(executionContext, functionName, statement.getStatementText()));
   }
 
@@ -173,5 +167,4 @@ public final class DescribeFunctionExecutor {
         functionType
     );
   }
-
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Explain;
@@ -32,6 +33,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -43,13 +45,13 @@ public final class ExplainExecutor {
 
   private ExplainExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<Explain> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    return Optional
+    return ImmutableList
         .of(ExplainExecutor.explain(
             serviceContext,
             statement,

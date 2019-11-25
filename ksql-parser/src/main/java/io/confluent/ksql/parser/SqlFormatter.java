@@ -54,9 +54,9 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
@@ -337,7 +337,13 @@ public final class SqlFormatter {
     @Override
     protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
       builder.append("TERMINATE ");
-      builder.append(node.getQueryId().map(QueryId::toString).orElse("ALL"));
+      builder.append(node.getQueryId());
+      return null;
+    }
+
+    @Override
+    protected Void visitTerminateAllQueries(final TerminateAllQueries node, final Integer context) {
+      builder.append("TERMINATE ALL");
       return null;
     }
 

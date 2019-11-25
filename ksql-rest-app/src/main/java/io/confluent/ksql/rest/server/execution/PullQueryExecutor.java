@@ -122,13 +122,13 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<Query> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    return Optional.of(execute(statement, executionContext, serviceContext));
+    return ImmutableList.of(execute(statement, executionContext, serviceContext));
   }
 
   public static TableRowsEntity execute(

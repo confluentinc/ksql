@@ -59,7 +59,7 @@ public final class DescribeConnectorExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public Optional<KsqlEntity> execute(
+  public List<? extends KsqlEntity> execute(
       final ConfiguredStatement<DescribeConnector> configuredStatement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -73,7 +73,7 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
-      return Optional.of(
+      return ImmutableList.of(
           new ErrorEntity(
               configuredStatement.getStatementText(),
               statusResponse.error().get())
@@ -84,7 +84,7 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
-      return Optional.of(
+      return ImmutableList.of(
           new ErrorEntity(
               configuredStatement.getStatementText(),
               infoResponse.error().get())
@@ -136,10 +136,10 @@ public final class DescribeConnectorExecutor {
         warnings
     );
 
-    return Optional.of(description);
+    return ImmutableList.of(description);
   }
 
-  private List<String> getTopics(final Admin admin, final Optional<Connector> connector)
+  private static List<String> getTopics(final Admin admin, final Optional<Connector> connector)
       throws Exception {
     if (!connector.isPresent()) {
       return ImmutableList.of();

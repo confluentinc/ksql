@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
@@ -23,14 +24,14 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class DropConnectorExecutor {
 
   private DropConnectorExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<DropConnector> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -41,9 +42,10 @@ public final class DropConnectorExecutor {
         serviceContext.getConnectClient().delete(connectorName);
 
     if (response.error().isPresent()) {
-      return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+      return ImmutableList
+          .of(new ErrorEntity(statement.getStatementText(), response.error().get()));
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getStatementText(), connectorName));
+    return ImmutableList.of(new DropConnectorEntity(statement.getStatementText(), connectorName));
   }
 }

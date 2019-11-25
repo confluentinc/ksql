@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -24,15 +25,15 @@ import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class ListQueriesExecutor {
 
   private ListQueriesExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -40,14 +41,14 @@ public final class ListQueriesExecutor {
   ) {
     final ListQueries listQueries = statement.getStatement();
     if (listQueries.getShowExtended()) {
-      return Optional.of(new QueryDescriptionList(
+      return ImmutableList.of(new QueryDescriptionList(
           statement.getStatementText(),
           executionContext.getPersistentQueries().stream()
               .map(QueryDescriptionFactory::forQueryMetadata)
               .collect(Collectors.toList())));
     }
 
-    return Optional.of(new io.confluent.ksql.rest.entity.Queries(
+    return ImmutableList.of(new io.confluent.ksql.rest.entity.Queries(
         statement.getStatementText(),
         executionContext.getPersistentQueries()
             .stream()
@@ -58,5 +59,4 @@ public final class ListQueriesExecutor {
                     q.getQueryId()))
             .collect(Collectors.toList())));
   }
-
 }

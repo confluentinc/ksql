@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -55,7 +56,7 @@ public final class ListSourceExecutor {
 
   private ListSourceExecutor() { }
 
-  private static Optional<KsqlEntity> sourceDescriptionList(
+  private static List<? extends KsqlEntity> sourceDescriptionList(
       final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
@@ -71,7 +72,7 @@ public final class ListSourceExecutor {
                 statement.getStatementText())
         )
         .collect(Collectors.toList());
-    return Optional.of(
+    return ImmutableList.of(
         new SourceDescriptionList(
             statement.getStatementText(),
             descriptions.stream().map(d -> d.description).collect(Collectors.toList()),
@@ -80,7 +81,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  public static Optional<KsqlEntity> streams(
+  public static List<? extends KsqlEntity> streams(
       final ConfiguredStatement<ListStreams> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -98,14 +99,14 @@ public final class ListSourceExecutor {
       );
     }
 
-    return Optional.of(new StreamsList(
+    return ImmutableList.of(new StreamsList(
         statement.getStatementText(),
         ksqlStreams.stream()
             .map(ListSourceExecutor::sourceSteam)
             .collect(Collectors.toList())));
   }
 
-  public static Optional<KsqlEntity> tables(
+  public static List<? extends KsqlEntity> tables(
       final ConfiguredStatement<ListTables> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -122,14 +123,14 @@ public final class ListSourceExecutor {
           ksqlTables
       );
     }
-    return Optional.of(new TablesList(
+    return ImmutableList.of(new TablesList(
         statement.getStatementText(),
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
             .collect(Collectors.toList())));
   }
 
-  public static Optional<KsqlEntity> columns(
+  public static List<? extends KsqlEntity> columns(
       final ConfiguredStatement<ShowColumns> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -143,7 +144,7 @@ public final class ListSourceExecutor {
         showColumns.isExtended(),
         statement.getStatementText()
     );
-    return Optional.of(
+    return ImmutableList.of(
         new SourceDescriptionEntity(
             statement.getStatementText(),
             descriptionWithWarnings.description,

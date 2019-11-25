@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,7 +37,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Optional;
+import java.util.List;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
@@ -90,12 +91,11 @@ public class ConnectExecutorTest {
     givenSuccess();
 
     // When:
-    final Optional<KsqlEntity> entity = ConnectExecutor
+    final List<? extends KsqlEntity> results = ConnectExecutor
         .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
+    assertThat(results, contains(instanceOf(CreateConnectorEntity.class)));
   }
 
   @Test
@@ -104,12 +104,11 @@ public class ConnectExecutorTest {
     givenError();
 
     // When:
-    final Optional<KsqlEntity> entity = ConnectExecutor
+    final List<? extends KsqlEntity> results = ConnectExecutor
         .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat(results, contains(instanceOf(ErrorEntity.class)));
   }
 
   private void givenSuccess() {
@@ -126,5 +125,4 @@ public class ConnectExecutorTest {
     when(connectClient.create(anyString(), anyMap()))
         .thenReturn(ConnectResponse.failure("error!", HttpStatus.SC_BAD_REQUEST));
   }
-
 }

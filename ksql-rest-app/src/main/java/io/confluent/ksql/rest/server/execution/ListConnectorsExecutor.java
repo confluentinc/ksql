@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
@@ -30,7 +31,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
@@ -40,7 +40,7 @@ public final class ListConnectorsExecutor {
   private ListConnectorsExecutor() { }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -49,7 +49,7 @@ public final class ListConnectorsExecutor {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
-      return Optional.of(new ErrorEntity(
+      return ImmutableList.of(new ErrorEntity(
           configuredStatement.getStatementText(),
           connectors.error().get()
       ));
@@ -76,7 +76,7 @@ public final class ListConnectorsExecutor {
       }
     }
 
-    return Optional.of(
+    return ImmutableList.of(
         new ConnectorList(
             configuredStatement.getStatementText(),
             warnings,

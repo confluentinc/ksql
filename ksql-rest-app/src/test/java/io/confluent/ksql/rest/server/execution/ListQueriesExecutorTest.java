@@ -16,8 +16,10 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -35,6 +38,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,14 +52,16 @@ public class ListQueriesExecutorTest {
   @Test
   public void shouldListQueriesEmpty() {
     // When
-    final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
         ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
-    assertThat(queries.getQueries(), is(empty()));
+    // Then:
+    assertThat(results, contains(instanceOf(Queries.class)));
+    assertThat(((Queries)results.get(0)).getQueries(), is(empty()));
   }
 
   @Test
@@ -68,14 +74,16 @@ public class ListQueriesExecutorTest {
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     // When
-    final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
-    assertThat(queries.getQueries(), containsInAnyOrder(
+    // Then:
+    assertThat(results, contains(instanceOf(Queries.class)));
+    assertThat(((Queries)results.get(0)).getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
             ImmutableSet.of(metadata.getSinkName().name()),
@@ -93,14 +101,16 @@ public class ListQueriesExecutorTest {
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     // When
-    final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
-    assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
+    // Then:
+    assertThat(results, contains(instanceOf(QueryDescriptionList.class)));
+    assertThat(((QueryDescriptionList)results.get(0)).getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(metadata)));
   }
 

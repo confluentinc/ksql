@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
@@ -37,7 +38,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,10 +48,9 @@ import org.apache.kafka.common.TopicPartition;
 public final class ListTopicsExecutor {
 
   private ListTopicsExecutor() {
-
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<ListTopics> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -76,14 +75,14 @@ public final class ListTopicsExecutor {
               topicDescriptionToTopicInfoExtended(desc, topicConsumersAndGroupCount))
           .collect(Collectors.toList());
 
-      return Optional.of(
+      return ImmutableList.of(
           new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList));
     } else {
       final List<KafkaTopicInfo> topicInfoList = filteredDescriptions.values()
           .stream().map(desc -> topicDescriptionToTopicInfo(desc))
           .collect(Collectors.toList());
 
-      return Optional.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
+      return ImmutableList.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
     }
   }
 

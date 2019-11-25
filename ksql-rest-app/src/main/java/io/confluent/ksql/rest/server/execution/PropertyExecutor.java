@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -22,31 +23,30 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class PropertyExecutor {
 
   private PropertyExecutor() { }
 
-  public static Optional<KsqlEntity> set(
+  public static List<? extends KsqlEntity> set(
       final ConfiguredStatement<SetProperty> statement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     PropertyOverrider.set(statement, mutableScopedProperties);
-    return Optional.empty();
+    return ImmutableList.of();
   }
 
-  public static Optional<KsqlEntity> unset(
+  public static List<? extends KsqlEntity> unset(
       final ConfiguredStatement<UnsetProperty> statement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     PropertyOverrider.unset(statement, mutableScopedProperties);
-    return Optional.empty();
+    return ImmutableList.of();
   }
-
 }

@@ -16,12 +16,17 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import java.util.List;
 import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,79 +41,68 @@ public class DescribeFunctionExecutorTest {
   @Test
   public void shouldDescribeUDF() {
     // When:
-    final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CustomExecutors.DESCRIBE_FUNCTION.execute(
-            engine.configure("DESCRIBE FUNCTION CONCAT;"),
-            ImmutableMap.of(),
-            engine.getEngine(),
-            engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+    final List<? extends KsqlEntity> result = CustomExecutors.DESCRIBE_FUNCTION.execute(
+        engine.configure("DESCRIBE FUNCTION CONCAT;"),
+        ImmutableMap.of(),
+        engine.getEngine(),
+        engine.getServiceContext()
+    );
 
     // Then:
-    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
-      @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
-        return functionList.getName().equals("CONCAT")
-            && functionList.getType().equals(FunctionType.SCALAR);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText(functionList.getName());
-      }
-    });
+    assertThat(result, contains(instanceOf(FunctionDescriptionList.class)));
+    assertThat((FunctionDescriptionList) result.get(0),
+        functionList("CONCAT", FunctionType.SCALAR));
   }
 
   @Test
   public void shouldDescribeUDAF() {
     // When:
-    final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CustomExecutors.DESCRIBE_FUNCTION.execute(
+    final List<? extends KsqlEntity> result = CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION MAX;"),
             ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
-    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
-      @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
-        return functionList.getName().equals("MAX")
-            && functionList.getType().equals(FunctionType.AGGREGATE);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText(functionList.getName());
-      }
-    });
+    assertThat(result, contains(instanceOf(FunctionDescriptionList.class)));
+    assertThat((FunctionDescriptionList) result.get(0),
+        functionList("MAX", FunctionType.AGGREGATE));
   }
 
   @Test
   public void shouldDescribeUDTF() {
     // When:
-    final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CustomExecutors.DESCRIBE_FUNCTION.execute(
+    final List<? extends KsqlEntity> result = CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
             ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
-    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+    assertThat(result, contains(instanceOf(FunctionDescriptionList.class)));
+    assertThat((FunctionDescriptionList) result.get(0),
+        functionList("TEST_UDTF1", FunctionType.TABLE));
+  }
+
+  private static Matcher<FunctionDescriptionList> functionList(
+      final String name,
+      final FunctionType type
+  ) {
+    return new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
-        return functionList.getName().equals("TEST_UDTF1")
-            && functionList.getType().equals(FunctionType.TABLE);
+        return item.getName().equals(name)
+            && item.getType().equals(type);
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(functionList.getName());
+        description
+            .appendText("with name: ").appendValue(name)
+            .appendText("and type: ").appendValue(type);
       }
-    });
+    };
   }
-
 }

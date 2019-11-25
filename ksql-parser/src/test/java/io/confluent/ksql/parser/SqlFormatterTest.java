@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -585,7 +586,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatTerminateQuery() {
     // Given:
-    final TerminateQuery terminateQuery = TerminateQuery.query(Optional.empty(), new QueryId("FOO"));
+    final TerminateQuery terminateQuery = new TerminateQuery(Optional.empty(), new QueryId("FOO"));
 
     // When:
     final String formatted = SqlFormatter.formatSql(terminateQuery);
@@ -597,10 +598,10 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatTerminateAllQueries() {
     // Given:
-    final TerminateQuery terminateQuery = TerminateQuery.all(Optional.empty());
+    final TerminateAllQueries terminateAll = new TerminateAllQueries(Optional.empty());
 
     // When:
-    final String formatted = SqlFormatter.formatSql(terminateQuery);
+    final String formatted = SqlFormatter.formatSql(terminateAll);
 
     // Then:
     assertThat(formatted, is("TERMINATE ALL"));

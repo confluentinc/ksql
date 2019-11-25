@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +36,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
@@ -86,12 +89,12 @@ public class ListConnectorsExecutorTest {
     );
 
     // When:
-    final Optional<KsqlEntity> entity = ListConnectorsExecutor
+    final List<? extends KsqlEntity> results = ListConnectorsExecutor
         .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("expected response!", entity.isPresent());
-    final ConnectorList connectorList = (ConnectorList) entity.get();
+    assertThat(results, contains(instanceOf(ConnectorList.class)));
+    final ConnectorList connectorList = (ConnectorList) results.get(0);
 
     assertThat(connectorList, is(new ConnectorList(
         "",
@@ -115,12 +118,12 @@ public class ListConnectorsExecutorTest {
     );
 
     // When:
-    final Optional<KsqlEntity> entity = ListConnectorsExecutor
+    final List<? extends KsqlEntity> results = ListConnectorsExecutor
         .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("expected response!", entity.isPresent());
-    final ConnectorList connectorList = (ConnectorList) entity.get();
+    assertThat(results, contains(instanceOf(ConnectorList.class)));
+    final ConnectorList connectorList = (ConnectorList) results.get(0);
 
     assertThat(connectorList, is(new ConnectorList(
         "",
@@ -141,12 +144,12 @@ public class ListConnectorsExecutorTest {
     );
 
     // When:
-    final Optional<KsqlEntity> entity = ListConnectorsExecutor
+    final List<? extends KsqlEntity> results = ListConnectorsExecutor
         .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("expected response!", entity.isPresent());
-    final ConnectorList connectorList = (ConnectorList) entity.get();
+    assertThat(results, contains(instanceOf(ConnectorList.class)));
+    final ConnectorList connectorList = (ConnectorList) results.get(0);
 
     assertThat(connectorList, is(new ConnectorList(
         "",
@@ -157,5 +160,4 @@ public class ListConnectorsExecutorTest {
         )
     )));
   }
-
 }

@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
 import io.confluent.ksql.rest.server.execution.DefaultCommandQueueSync;
 import io.confluent.ksql.rest.server.execution.RequestHandler;
+import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -55,6 +56,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -152,20 +154,25 @@ public class KsqlResource implements KsqlConfigurable {
         config
     );
 
+    final DistributingExecutor distributor = new DistributingExecutor(
+        commandQueue,
+        distributedCmdResponseTimeout,
+        injectorFactory,
+        authorizationValidator,
+        this.validator
+    );
+
+    final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors =
+        CustomExecutors.executorMap(distributor);
+
     this.handler = new RequestHandler(
-        CustomExecutors.EXECUTOR_MAP,
-        new DistributingExecutor(
-            commandQueue,
-            distributedCmdResponseTimeout,
-            injectorFactory,
-            authorizationValidator,
-            this.validator
-        ),
+        customExecutors,
+        distributor,
         ksqlEngine,
         config,
         new DefaultCommandQueueSync(
             commandQueue,
-            KsqlResource::shouldSynchronize,
+            stmt -> KsqlResource.shouldSynchronize(stmt, customExecutors),
             distributedCmdResponseTimeout
         )
     );
@@ -245,10 +252,13 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
-  private static boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
+  private static boolean shouldSynchronize(
+      final Class<? extends Statement> statementClass,
+      final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors
+  ) {
     return !SYNC_BLACKLIST.contains(statementClass)
         // we never need to synchronize distributed statements
-        && CustomExecutors.EXECUTOR_MAP.containsKey(statementClass);
+        && customExecutors.containsKey(statementClass);
   }
 
   private static void ensureValidPatterns(final List<String> deleteTopicList) {

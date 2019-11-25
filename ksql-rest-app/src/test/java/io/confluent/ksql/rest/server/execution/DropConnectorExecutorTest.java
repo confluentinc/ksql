@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,6 +34,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
@@ -87,12 +89,12 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    final Optional<KsqlEntity> response = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(),null, serviceContext);
+    final List<? extends KsqlEntity> result = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
-    assertThat("expected response", response.isPresent());
-    assertThat(((DropConnectorEntity) response.get()).getConnectorName(), is("foo"));
+    assertThat(result, contains(instanceOf(DropConnectorEntity.class)));
+    assertThat(((DropConnectorEntity) result.get(0)).getConnectorName(), is("foo"));
   }
 
   @Test
@@ -102,12 +104,10 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.failure("Danger Mouse!", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(),null, serviceContext);
+    final List<? extends KsqlEntity> result = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat(result, contains(instanceOf(ErrorEntity.class)));
   }
-
 }

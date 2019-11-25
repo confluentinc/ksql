@@ -122,6 +122,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -634,10 +635,9 @@ public class AstBuilder {
       final Optional<NodeLocation> location = getLocation(context);
 
       return context.ALL() != null
-          ? TerminateQuery.all(location)
-          : TerminateQuery.query(
+          ? new TerminateAllQueries(location)
+          : new TerminateQuery(
               location,
-              // use case sensitive parsing here to maintain backwards compatibility
               new QueryId(ParserUtil.getIdentifierText(true, context.identifier()))
           );
     }

@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +54,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
@@ -61,6 +62,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -655,25 +657,21 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
-  public void shouldTerminateAll() {
+  public void shouldFailOnTerminateAll() {
     // Given:
-    final String queryStatement = "a persistent query";
-
-    final TerminateQuery terminateAll = mock(TerminateQuery.class);
-    when(terminateAll.getQueryId()).thenReturn(Optional.empty());
+    final TerminateAllQueries terminateAll = mock(TerminateAllQueries.class);
 
     when(mockParser.parseSingleStatement(any()))
-        .thenReturn(PreparedStatement.of(queryStatement, terminateAll));
+        .thenReturn(PreparedStatement.of("kill'em all", terminateAll));
 
-    final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
-     PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
 
-    when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
+    final CommandId commandId = new CommandId(Type.TERMINATE, "-", Action.EXECUTE);
 
     // When:
     statementExecutorWithMocks.handleStatement(
         new QueuedCommand(
-            new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+            commandId,
             new Command("terminate all", true, emptyMap(), emptyMap()),
             Optional.empty(),
             0L
@@ -681,8 +679,9 @@ public class InteractiveStatementExecutorTest {
     );
 
     // Then:
-    verify(query0).close();
-    verify(query1).close();
+    verify(query, never()).close();
+    assertThat(statementExecutorWithMocks.getStatus(commandId).map(CommandStatus::getStatus),
+        is(Optional.of(Status.ERROR)));
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
@@ -84,7 +85,8 @@ public enum CustomValidators {
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
 
-  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
+  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate),
+  TERMINATE_ALL_QUERIES(TerminateAllQueries.class, TerminateAllQueriesValidator::validate);
 
   public static final Map<Class<? extends Statement>, StatementValidator<?>> VALIDATOR_MAP =
       ImmutableMap.copyOf(

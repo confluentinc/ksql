@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.InsertValuesExecutor;
@@ -36,14 +37,16 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -77,7 +80,7 @@ public enum CustomExecutors {
   DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
   ;
 
-  public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
+  private static final ImmutableMap<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(
           EnumSet.allOf(CustomExecutors.class)
               .stream()
@@ -97,15 +100,17 @@ public enum CustomExecutors {
     this.executor = Objects.requireNonNull(executor, "executor");
   }
 
-  private Class<? extends Statement> getStatementClass() {
-    return statementClass;
+  public static Map<Class<? extends Statement>, StatementExecutor<?>> executorMap(
+      final DistributingExecutor distributor
+  ) {
+    return ImmutableMap
+        .<Class<? extends Statement>, StatementExecutor<?>>builder()
+        .putAll(EXECUTOR_MAP)
+        .put(TerminateAllQueries.class, new TerminateAllQueriesExecutor(distributor))
+        .build();
   }
 
-  private StatementExecutor<?> getExecutor() {
-    return this::execute;
-  }
-
-  public Optional<KsqlEntity> execute(
+  public List<? extends KsqlEntity> execute(
       final ConfiguredStatement<?> statement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionCtx,
@@ -114,12 +119,20 @@ public enum CustomExecutors {
     return executor.execute(statement, mutableScopedProperties, executionCtx, serviceCtx);
   }
 
+  private Class<? extends Statement> getStatementClass() {
+    return statementClass;
+  }
+
+  private StatementExecutor<?> getExecutor() {
+    return this::execute;
+  }
+
   private static StatementExecutor insertValuesExecutor() {
     final InsertValuesExecutor executor = new InsertValuesExecutor();
 
     return (statement, sessionProperties, executionContext, serviceContext) -> {
       executor.execute(statement, sessionProperties, executionContext, serviceContext);
-      return Optional.empty();
+      return ImmutableList.of();
     };
   }
 }

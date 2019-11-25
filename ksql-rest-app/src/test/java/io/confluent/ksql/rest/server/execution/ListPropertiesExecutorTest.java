@@ -17,18 +17,22 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,14 +46,16 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+    final List<? extends KsqlEntity> result = CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;"),
         ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
+    assertThat(result, contains(instanceOf(PropertiesList.class)));
+    final PropertiesList properties = (PropertiesList) result.get(0);
     assertThat(properties.getProperties(),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
@@ -58,15 +64,17 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListPropertiesWithOverrides() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+    final List<? extends KsqlEntity> result = CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;")
             .withProperties(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
+    assertThat(result, contains(instanceOf(PropertiesList.class)));
+    final PropertiesList properties = (PropertiesList) result.get(0);
     assertThat(properties.getProperties(),
         hasEntry("ksql.streams.auto.offset.reset", "latest"));
     assertThat(properties.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
@@ -75,16 +83,16 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldNotListSslProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+    final List<? extends KsqlEntity> result = CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;"),
         ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
+    assertThat(result, contains(instanceOf(PropertiesList.class)));
+    final PropertiesList properties = (PropertiesList) result.get(0);
     assertThat(properties.getProperties(), not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
   }
-
-
 }

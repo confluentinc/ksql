@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.TypeRegistry.CustomType;
@@ -26,14 +27,14 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class ListTypesExecutor {
 
   private ListTypesExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<ListTypes> configuredStatement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -47,6 +48,6 @@ public final class ListTypesExecutor {
       types.put(customType.getName(), EntityUtil.schemaInfo(customType.getType()));
     }
 
-    return Optional.of(new TypeList(configuredStatement.getStatementText(), types.build()));
+    return ImmutableList.of(new TypeList(configuredStatement.getStatementText(), types.build()));
   }
 }

@@ -20,8 +20,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * An interface that allows for arbitrary execution code of a prepared statement.
@@ -36,9 +36,9 @@ public interface StatementExecutor<T extends Statement> {
    * @param mutableScopedProperties the session properties
    * @param executionContext the context in which to execute it
    * @param serviceContext the services to use to execute it
-   * @return the execution result, if present, else {@link Optional#empty()}
+   * @return the execution results, if any
    */
-  Optional<KsqlEntity> execute(
+  List<? extends KsqlEntity> execute(
       ConfiguredStatement<T> statement,
       Map<String, Object> mutableScopedProperties,
       KsqlExecutionContext executionContext,

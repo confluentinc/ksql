@@ -16,29 +16,24 @@
 package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 
-public final class TerminateQueryValidator {
+public final class TerminateAllQueriesValidator {
 
-  private TerminateQueryValidator() { }
+  private TerminateAllQueriesValidator() {
+  }
 
   @SuppressWarnings("unused") // not used, but required to match interface
   public static void validate(
-      final ConfiguredStatement<TerminateQuery> statement,
-      final Map<String, ?> mutableScopedProperties,
+      final ConfiguredStatement<TerminateAllQueries> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final QueryId queryId = statement.getStatement().getQueryId();
-
-    executionContext.getPersistentQuery(queryId)
-        .orElseThrow(() ->
-            new KsqlStatementException("Unknown queryId: " + queryId, statement.getStatementText()))
-        .close();
+    executionContext.getPersistentQueries().forEach(QueryMetadata::close);
   }
 }

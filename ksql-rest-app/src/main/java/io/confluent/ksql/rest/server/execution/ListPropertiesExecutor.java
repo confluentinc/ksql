@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -26,14 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class ListPropertiesExecutor {
 
   private ListPropertiesExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<ListProperties> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -61,8 +61,7 @@ public final class ListPropertiesExecutor {
         .map(Entry::getKey)
         .collect(Collectors.toList());
 
-    return Optional.of(new PropertiesList(
+    return ImmutableList.of(new PropertiesList(
         statement.getStatementText(), mergedProperties, overwritten, defaultProps));
   }
-
 }

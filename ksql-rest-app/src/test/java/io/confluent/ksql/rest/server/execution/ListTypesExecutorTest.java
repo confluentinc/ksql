@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +66,7 @@ public class ListTypesExecutorTest {
   @Test
   public void shouldListTypes() {
     // When:
-    final Optional<KsqlEntity> entity = ListTypesExecutor.execute(
+    final List<? extends KsqlEntity> results = ListTypesExecutor.execute(
         ConfiguredStatement.of(
             PreparedStatement.of("statement", new ListTypes(Optional.empty())),
             ImmutableMap.of(),
@@ -74,10 +77,9 @@ public class ListTypesExecutorTest {
         null);
 
     // Then:
-    assertThat("expected a response", entity.isPresent());
-    assertThat(((TypeList) entity.get()).getTypes(), is(ImmutableMap.of(
+    assertThat(results, contains(instanceOf(TypeList.class)));
+    assertThat(((TypeList) results.get(0)).getTypes(), is(ImmutableMap.of(
         "foo", EntityUtil.schemaInfo(SqlPrimitiveType.of(SqlBaseType.STRING))
     )));
   }
-
 }

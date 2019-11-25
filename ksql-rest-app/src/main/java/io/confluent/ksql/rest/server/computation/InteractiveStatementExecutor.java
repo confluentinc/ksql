@@ -369,14 +369,9 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
-    final Optional<QueryId> queryId = terminateQuery.getStatement().getQueryId();
+    final QueryId queryId = terminateQuery.getStatement().getQueryId();
 
-    if (!queryId.isPresent()) {
-      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::close);
-      return;
-    }
-
-    ksqlEngine.getPersistentQuery(queryId.get())
+    ksqlEngine.getPersistentQuery(queryId)
         .orElseThrow(() ->
             new KsqlException(String.format("No running query with id %s was found", queryId)))
         .close();

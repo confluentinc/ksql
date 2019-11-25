@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -52,6 +53,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -155,18 +157,16 @@ public class DescribeConnectorExecutorTest {
         new KsqlConfig(ImmutableMap.of()));
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
   public void shouldDescribeKnownConnector() {
     // When:
-    final Optional<KsqlEntity> entity = executor
+    final List<? extends KsqlEntity> result = executor
         .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+    assertThat(result, contains(instanceOf(ConnectorDescription.class)));
 
-    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    final ConnectorDescription description = (ConnectorDescription) result.get(0);
     assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources().size(), is(1));
@@ -184,14 +184,13 @@ public class DescribeConnectorExecutorTest {
     when(topics.names()).thenReturn(fut);
 
     // When:
-    final Optional<KsqlEntity> entity = executor
+    final List<? extends KsqlEntity> result = executor
         .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+    assertThat(result, contains(instanceOf(ConnectorDescription.class)));
 
-    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    final ConnectorDescription description = (ConnectorDescription) result.get(0);
     assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getTopics().size(), is(0));
     assertThat(description.getWarnings().size(), is(1));
@@ -203,14 +202,13 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
+    final List<? extends KsqlEntity> result = executor
         .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+    assertThat(result, contains(instanceOf(ErrorEntity.class)));
+    assertThat(((ErrorEntity) result.get(0)).getErrorMessage(), is("error"));
   }
 
   @Test
@@ -219,15 +217,14 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
+    final List<? extends KsqlEntity> result = executor
         .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+    assertThat(result, contains(instanceOf(ErrorEntity.class)));
+    assertThat(((ErrorEntity) result.get(0)).getErrorMessage(), is("error"));
   }
 
   @Test
@@ -237,17 +234,14 @@ public class DescribeConnectorExecutorTest {
     executor = new DescribeConnectorExecutor(connectorFactory);
 
     // When:
-    final Optional<KsqlEntity> entity = executor
+    final List<? extends KsqlEntity> result = executor
         .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
-
-    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    assertThat(result, contains(instanceOf(ConnectorDescription.class)));
+    final ConnectorDescription description = (ConnectorDescription) result.get(0);
     assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources(), empty());
   }
-
 }

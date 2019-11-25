@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -33,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Handles prepared statements, resolving side-effects and delegates to any
@@ -44,7 +42,7 @@ public class RequestHandler {
   private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
-  private final DistributingExecutor distributor;
+  private final StatementExecutor<Statement> distributor;
   private final CommandQueueSync commandQueueSync;
 
   /**
@@ -58,7 +56,7 @@ public class RequestHandler {
    */
   public RequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
-      final DistributingExecutor distributor,
+      final StatementExecutor<Statement> distributor,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final CommandQueueSync commandQueueSync
@@ -94,23 +92,22 @@ public class RequestHandler {
       } else {
         final ConfiguredStatement<?> configured = ConfiguredStatement.of(
             prepared, scopedPropertyOverrides, ksqlConfig);
+
         executeStatement(
             serviceContext,
             configured,
-            parsed,
             scopedPropertyOverrides,
             entities
-        ).ifPresent(entities::add);
+        ).forEach(entities::add);
       }
     }
     return entities;
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Statement> Optional<KsqlEntity> executeStatement(
+  private List<? extends KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
-      final ConfiguredStatement<T> configured,
-      final ParsedStatement parsed,
+      final ConfiguredStatement<?> configured,
       final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities
   ) {
@@ -118,13 +115,11 @@ public class RequestHandler {
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
-    final StatementExecutor<T> executor = (StatementExecutor<T>)
-        customExecutors.getOrDefault(statementClass, 
-            (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, ctx, svcCtx));
+    final StatementExecutor<?> executor =
+        customExecutors.getOrDefault(statementClass, distributor);
 
     return executor.execute(
-        configured,
+        (ConfiguredStatement)configured,
         mutableScopedProperties,
         ksqlEngine,
         serviceContext

@@ -15,19 +15,17 @@
 
 package io.confluent.ksql.rest.server.validation;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.parser.tree.TerminateAllQueries;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
 import org.junit.Rule;
@@ -38,7 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TerminateQueryValidatorTest {
+public class TerminateAllQueriesValidatorTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
@@ -55,28 +53,19 @@ public class TerminateQueryValidatorTest {
   private ServiceContext serviceContext;
 
   @Test
-  public void shouldFailOnTerminateUnknownQueryId() {
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("Unknown queryId");
-
-    // When:
-    CustomValidators.TERMINATE_QUERY.validate(
-        configuredStmt(new TerminateQuery(Optional.empty(), new QueryId("id"))),
-        ImmutableMap.of(),
-        engine,
-        serviceContext
-    );
-  }
-
-  @Test
-  public void shouldValidateKnownQueryId() {
+  public void shouldValidateTerminateAllQueries() {
     // Given:
-    when(engine.getPersistentQuery(any())).thenReturn(Optional.of(query0));
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
+
+    final ConfiguredStatement<TerminateAllQueries> statement = ConfiguredStatement.of(
+        PreparedStatement.of("meh", new TerminateAllQueries(Optional.empty())),
+        ImmutableMap.of(),
+        KSQL_CONFIG
+    );
 
     // When:
-    CustomValidators.TERMINATE_QUERY.validate(
-        configuredStmt(new TerminateQuery(Optional.empty(), new QueryId("id"))),
+    CustomValidators.TERMINATE_ALL_QUERIES.validate(
+        statement,
         ImmutableMap.of(),
         engine,
         serviceContext
@@ -84,16 +73,7 @@ public class TerminateQueryValidatorTest {
 
     // Then:
     verify(query0).close();
-  }
-
-  private static ConfiguredStatement<TerminateQuery> configuredStmt(
-      final TerminateQuery terminateQuery
-  ) {
-    return ConfiguredStatement.of(
-        PreparedStatement.of("meh", terminateQuery),
-        ImmutableMap.of(),
-        KSQL_CONFIG
-    );
+    verify(query1).close();
   }
 }
 

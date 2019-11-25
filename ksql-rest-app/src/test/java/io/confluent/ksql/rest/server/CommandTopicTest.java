@@ -34,11 +34,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,9 +54,6 @@ public class CommandTopicTest {
   private Consumer<CommandId, Command> commandConsumer;
 
   private CommandTopic commandTopic;
-
-  @Mock
-  private Future<RecordMetadata> future;
 
   @Mock
   private CommandId commandId1;
@@ -81,7 +76,6 @@ public class CommandTopicTest {
   private final static TopicPartition TOPIC_PARTITION = new TopicPartition(COMMAND_TOPIC_NAME, 0);
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setup() {
     commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer);
   }

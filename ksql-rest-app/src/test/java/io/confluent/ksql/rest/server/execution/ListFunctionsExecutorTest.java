@@ -18,14 +18,18 @@ package io.confluent.ksql.rest.server.execution;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import java.util.Collection;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,16 +42,17 @@ public class ListFunctionsExecutorTest {
 
   @Test
   public void shouldListFunctions() {
-
     // When:
-    final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
+    final List<? extends KsqlEntity> results = CustomExecutors.LIST_FUNCTIONS.execute(
         engine.configure("LIST FUNCTIONS;"),
         ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    );
 
     // Then:
+    assertThat(results, contains(instanceOf(FunctionNameList.class)));
+    final FunctionNameList functionList = (FunctionNameList) results.get(0);
     Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
         new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.SCALAR),
@@ -63,6 +68,4 @@ public class ListFunctionsExecutorTest {
         not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
     );
   }
-
-
 }

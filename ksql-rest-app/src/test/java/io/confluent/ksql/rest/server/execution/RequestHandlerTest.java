@@ -25,12 +25,14 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -42,14 +44,13 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -68,7 +69,8 @@ public class RequestHandlerTest {
   @Mock KsqlEngine ksqlEngine;
   @Mock KsqlConfig ksqlConfig;
   @Mock ServiceContext serviceContext;
-  @Mock DistributingExecutor distributor;
+  @Mock
+  StatementExecutor<Statement> distributor;
   @Mock KsqlEntity entity;
   @Mock CommandQueueSync sync;
 
@@ -83,7 +85,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    doReturn(ImmutableList.of(entity)).when(distributor).execute(any(), any(), any(), any());
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -130,7 +132,6 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(statements.get(0)),
             eq(ImmutableMap.of()),
             eq(ksqlEngine),
             eq(serviceContext)
@@ -159,7 +160,6 @@ public class RequestHandlerTest {
                 preparedStatement(instanceOf(CreateStream.class)),
                     ImmutableMap.of("x", "y"),
                     ksqlConfig))),
-            eq(statements.get(0)),
             eq(ImmutableMap.of("x", "y")),
             eq(ksqlEngine),
             eq(serviceContext)
@@ -272,7 +272,7 @@ public class RequestHandlerTest {
         eq(ksqlEngine),
         eq(serviceContext)
     ))
-        .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
+        .thenAnswer(inv -> Collections.singletonList(returnedEntities[scn.getAndIncrement()]));
     return customExecutor;
   }
 

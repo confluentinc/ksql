@@ -18,10 +18,10 @@ package io.confluent.ksql.rest.server.validation;
 import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +97,43 @@ public class RequestValidator {
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
+    final ConfiguredStatementBuilder configuredStatements = (ctx, scopedPropertyOverrides) ->
+        statements.stream()
+            .map(ctx::prepare)
+            .map(prepared -> ConfiguredStatement.of(prepared, scopedPropertyOverrides, ksqlConfig))
+            .collect(Collectors.toList());
+
+    return validate(
+        serviceContext,
+        configuredStatements,
+        propertyOverrides,
+        sql
+    );
+  }
+
+  /**
+   * @see RequestValidator#validate(ServiceContext, List, Map, String)
+   */
+  public void validate(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement,
+      final Map<String, Object> propertyOverrides,
+      final String sql
+  ) {
+    validate(
+        serviceContext,
+        (ctx, scopedPropertyOverrides) -> ImmutableList.of(statement),
+        propertyOverrides,
+        sql
+    );
+  }
+
+  private int validate(
+      final ServiceContext serviceContext,
+      final ConfiguredStatementBuilder statements,
+      final Map<String, Object> propertyOverrides,
+      final String sql
+  ) {
     requireSandbox(serviceContext);
 
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
@@ -103,12 +141,8 @@ public class RequestValidator {
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
     int numPersistentQueries = 0;
-    for (ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ctx.prepare(parsed);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, scopedPropertyOverrides, ksqlConfig);
-
-      numPersistentQueries += (prepared.getStatement() instanceof RunScript)
+    for (ConfiguredStatement<?> configured : statements.build(ctx, scopedPropertyOverrides)) {
+      numPersistentQueries += (configured.getStatement() instanceof RunScript)
           ? validateRunScript(serviceContext, configured, scopedPropertyOverrides, ctx)
           : validate(serviceContext, configured, scopedPropertyOverrides, ctx, injector);
     }
@@ -173,5 +207,13 @@ public class RequestValidator {
         + "statement: " + statement.getStatementText());
 
     return validate(serviceContext, executionContext.parse(sql), mutableScopedProperties, sql);
+  }
+
+  private interface ConfiguredStatementBuilder {
+
+    List<ConfiguredStatement<?>> build(
+        KsqlExecutionContext ctx,
+        Map<String, Object> scopedPropertyOverride
+    );
   }
 }

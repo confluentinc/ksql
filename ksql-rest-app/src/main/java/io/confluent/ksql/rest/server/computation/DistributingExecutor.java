@@ -14,14 +14,15 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -31,7 +32,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,7 +48,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
-public class DistributingExecutor {
+public class DistributingExecutor implements StatementExecutor<Statement> {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
@@ -82,9 +83,8 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
-  public Optional<KsqlEntity> execute(
+  public List<? extends KsqlEntity> execute(
       final ConfiguredStatement<Statement> statement,
-      final ParsedStatement parsedStatement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
@@ -101,15 +101,15 @@ public class DistributingExecutor {
       transactionalProducer.initTransactions();
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
-      
+
       // Don't perform validation on Terminate Cluster statements
-      if (!parsedStatement.getStatementText()
+      if (!injected.getStatementText()
           .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
         requestValidator.validate(
             SandboxedServiceContext.create(serviceContext),
-            Collections.singletonList(parsedStatement),
+            injected,
             mutableScopedProperties,
-            parsedStatement.getStatementText()
+            injected.getStatementText()
         );
       }
 
@@ -120,7 +120,7 @@ public class DistributingExecutor {
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
-      return Optional.of(new CommandStatusEntity(
+      return ImmutableList.of(new CommandStatusEntity(
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,

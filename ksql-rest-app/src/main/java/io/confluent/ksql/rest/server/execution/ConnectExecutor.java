@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.supported.Connectors;
@@ -26,15 +27,15 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public final class ConnectExecutor {
 
   private ConnectExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static List<? extends KsqlEntity> execute(
       final ConfiguredStatement<CreateConnector> statement,
       final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -51,7 +52,7 @@ public final class ConnectExecutor {
                 l -> l != null ? l.getValue().toString() : null)));
 
     if (response.datum().isPresent()) {
-      return Optional.of(
+      return ImmutableList.of(
           new CreateConnectorEntity(
               statement.getStatementText(),
               response.datum().get()
@@ -60,6 +61,7 @@ public final class ConnectExecutor {
     }
 
     return response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err));
+        .map(err -> ImmutableList.of(new ErrorEntity(statement.getStatementText(), err)))
+        .orElse(ImmutableList.of());
   }
 }

@@ -153,6 +153,10 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
+  protected R visitTerminateAllQueries(final TerminateAllQueries node, final C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitListStreams(final ListStreams node, final C context) {
     return visitStatement(node, context);
   }

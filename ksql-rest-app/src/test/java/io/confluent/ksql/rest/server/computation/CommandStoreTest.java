@@ -102,7 +102,7 @@ public class CommandStoreTest {
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Command command =
-      new Command(statementText, true, Collections.emptyMap(), Collections.emptyMap());
+      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
   private final RecordMetadata recordMetadata = new RecordMetadata(
       COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 

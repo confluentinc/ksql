@@ -159,7 +159,6 @@ public class CommandStore implements CommandQueue, Closeable {
     // new commands that generate queries will use the new query id generation method from now on
     final Command command = new Command(
         statement.getStatementText(),
-        true,
         statement.getOverrides(),
         statement.getConfig().getAllConfigPropsWithSecretsObfuscated()
     );
@@ -201,6 +200,7 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
+  @Override
   public List<QueuedCommand> getNewCommands(final Duration timeout) {
     completeSatisfiedSequenceNumberFutures();
 
@@ -222,6 +222,7 @@ public class CommandStore implements CommandQueue, Closeable {
     return queuedCommands;
   }
 
+  @Override
   public List<QueuedCommand> getRestoreCommands() {
     return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
@@ -297,6 +298,7 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
+  @Override
   public boolean isEmpty() {
     return commandTopic.getEndOffset() == 0;
   }

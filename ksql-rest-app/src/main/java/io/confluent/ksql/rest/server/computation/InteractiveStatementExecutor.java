@@ -16,12 +16,9 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -32,10 +29,8 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.CommandId.Action;
-import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
@@ -48,7 +43,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +64,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
-  private final HybridQueryIdGenerator queryIdGenerator;
+  private final SpecificQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private KsqlConfig ksqlConfig;
 
@@ -82,13 +76,13 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   public InteractiveStatementExecutor(
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final HybridQueryIdGenerator hybridQueryIdGenerator
+      final SpecificQueryIdGenerator queryIdGenerator
   ) {
     this(
         serviceContext,
         ksqlEngine,
         new StatementParser(ksqlEngine),
-        hybridQueryIdGenerator
+        queryIdGenerator
     );
   }
 
@@ -97,13 +91,12 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final HybridQueryIdGenerator hybridQueryIdGenerator
+      final SpecificQueryIdGenerator queryIdGenerator
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
-    this.queryIdGenerator =
-        Objects.requireNonNull(hybridQueryIdGenerator, "hybridQueryIdGenerator");
+    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.statusStore = new ConcurrentHashMap<>();
   }
 
@@ -203,7 +196,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     try {
       final String statementString = command.getStatement();
-      maybeTerminateQueryForLegacyDropCommand(commandId, command);
       putStatus(
           commandId,
           commandStatusFuture,
@@ -336,9 +328,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         statement, command.getOverwriteProperties(), mergedConfig);
 
-    if (command.getUseOffsetAsQueryID()) {
-      queryIdGenerator.activateNewGenerator(offset);
-    }
+    queryIdGenerator.setNextId(offset);
 
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     final QueryMetadata queryMetadata =
@@ -382,25 +372,4 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         .close();
   }
 
-  private void maybeTerminateQueryForLegacyDropCommand(
-      final CommandId commandId,
-      final Command command) {
-    if (!command.isPreVersion5()
-        || !commandId.getAction().equals(Action.DROP)
-        || !(commandId.getType().equals(Type.STREAM) || commandId.getType().equals(Type.TABLE))) {
-      return;
-    }
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
-    if (metaStore.getSource(SourceName.of(commandId.getEntity())) == null) {
-      return;
-    }
-    final Collection<String> queriesWithSink
-        = Lists.newArrayList(metaStore.getQueriesWithSink(SourceName.of(commandId.getEntity())));
-    queriesWithSink.stream()
-        .map(QueryId::new)
-        .map(ksqlEngine::getPersistentQuery)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .forEach(QueryMetadata::close);
-  }
 }

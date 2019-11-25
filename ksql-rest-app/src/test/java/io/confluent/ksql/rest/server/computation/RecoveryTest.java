@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.computation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
@@ -36,7 +35,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -84,8 +83,7 @@ public class RecoveryTest {
 
   private final List<QueuedCommand> commands = new LinkedList<>();
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
-  private final HybridQueryIdGenerator hybridQueryIdGenerator =
-      new HybridQueryIdGenerator();
+  private final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
 
   @Mock
@@ -112,7 +110,7 @@ public class RecoveryTest {
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ignored -> engineMetrics,
-        hybridQueryIdGenerator);
+        queryIdGenerator);
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -136,7 +134,6 @@ public class RecoveryTest {
               commandId,
               new Command(
                   statement.getStatementText(),
-                  true,
                   Collections.emptyMap(),
                   statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty(),
@@ -202,7 +199,7 @@ public class RecoveryTest {
       this.statementExecutor = new InteractiveStatementExecutor(
           serviceContext,
           ksqlEngine,
-          hybridQueryIdGenerator
+          queryIdGenerator
       );
 
       this.commandRunner = new CommandRunner(
@@ -613,7 +610,7 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()),
+            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()),
             Optional.empty(),
             0L
         )
@@ -667,7 +664,7 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldCascade4Dot1Drop() {
+  public void shouldRecoverQueryIDsByOffset() {
     commands.addAll(
         ImmutableList.of(
             new QueuedCommand(
@@ -675,78 +672,6 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                    true,
-                    Collections.emptyMap(),
-                    null
-                ),
-                Optional.empty(),
-                0L
-            ),
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM B AS SELECT * FROM A;",
-                    true,
-                    Collections.emptyMap(),
-                    null
-                ),
-                Optional.empty(),
-                1L
-            )
-        )
-    );
-    final KsqlServer server = new KsqlServer(commands);
-    server.recover();
-    assertThat(
-        server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        containsInAnyOrder(SourceName.of("A"), SourceName.of("B")));
-    commands.add(
-        new QueuedCommand(
-            new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B;", true, Collections.emptyMap(), null),
-            Optional.empty(),
-            2L
-        )
-    );
-    final KsqlServer recovered = new KsqlServer(commands);
-    recovered.recover();
-    assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        contains(SourceName.of("A")));
-  }
-
-  @Test
-  public void shouldUseOldQueryIdGenerationAndNewGeneration() {
-    commands.addAll(
-        ImmutableList.of(
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM A (COLUMN STRING) "
-                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                    false,
-                    Collections.emptyMap(),
-                    null
-                ),
-                Optional.empty(),
-                0L
-            ),
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM B AS SELECT * FROM A;",
-                    false,
-                    Collections.emptyMap(),
-                    null
-                ),
-                Optional.empty(),
-                1L
-            ),
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM C AS SELECT * FROM A;",
-                    true,
                     Collections.emptyMap(),
                     null
                 ),
@@ -756,35 +681,21 @@ public class RecoveryTest {
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
                 new Command(
-                    "CREATE STREAM test(COLUMN STRING) "
-                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                    true,
+                    "CREATE STREAM C AS SELECT * FROM A;",
                     Collections.emptyMap(),
                     null
                 ),
                 Optional.empty(),
-                3L
-            ),
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM D AS SELECT * FROM test;",
-                    true,
-                    Collections.emptyMap(),
-                    null
-                ),
-                Optional.empty(),
-                4L
+                7L
             )
         )
     );
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
-    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries()).keySet();
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
+        .keySet();
 
-    assertThat(queryIdNames, contains(
-        new QueryId("CSAS_C_2"),
-        new QueryId("CSAS_D_4"),
-        new QueryId("CSAS_B_0")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_7")));
   }
+
 }

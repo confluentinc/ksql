@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.physical;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -30,7 +28,7 @@ public final class PhysicalPlan {
   private final QueryId queryId;
   private final ExecutionStep<?> physicalPlan;
   private final String planSummary;
-  private final transient Optional<KeyField> keyField;
+  private final Optional<KeyField> keyField;
 
   PhysicalPlan(
       final QueryId queryId,
@@ -42,15 +40,6 @@ public final class PhysicalPlan {
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.planSummary = Objects.requireNonNull(planSummary, "planSummary");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
-  }
-
-  @JsonCreator
-  private PhysicalPlan(
-      @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
-      @JsonProperty(value = "planSummary", required = true) final String planSummary
-  ) {
-    this(queryId, physicalPlan, planSummary, Optional.empty());
   }
 
   public ExecutionStep<?> getPhysicalPlan() {

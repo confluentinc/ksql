@@ -168,7 +168,9 @@ final class EngineExecutor {
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
           outputNode.getIntoSourceName(),
-          plans.physicalPlan
+          plans.physicalPlan.getPhysicalPlan(),
+          plans.physicalPlan.getQueryId(),
+          plans.physicalPlan.getPlanSummary()
       );
 
       return KsqlPlan.queryPlanCurrent(
@@ -377,7 +379,6 @@ final class EngineExecutor {
       final QueryPlan queryPlan,
       final String statementText
   ) {
-    final PhysicalPlan physicalPlan = queryPlan.getPhysicalPlan();
     final QueryExecutor executor = engineContext.createQueryExecutor(
         ksqlConfig,
         overriddenProperties,
@@ -386,11 +387,11 @@ final class EngineExecutor {
 
     final PersistentQueryMetadata queryMetadata = executor.buildQuery(
         statementText,
-        physicalPlan.getQueryId(),
+        queryPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
         queryPlan.getSources(),
-        physicalPlan.getPhysicalPlan(),
-        physicalPlan.getPlanSummary()
+        queryPlan.getPhysicalPlan(),
+        queryPlan.getPlanSummary()
     );
 
     engineContext.registerQuery(queryMetadata);

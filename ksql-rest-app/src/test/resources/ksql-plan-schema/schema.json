@@ -234,26 +234,16 @@
           "type" : "string"
         },
         "physicalPlan" : {
-          "$ref" : "#/definitions/PhysicalPlan"
-        }
-      },
-      "required" : [ "sources", "sink", "physicalPlan" ]
-    },
-    "PhysicalPlan" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
         "queryId" : {
           "type" : "string"
-        },
-        "physicalPlan" : {
-          "$ref" : "#/definitions/ExecutionStep"
         },
         "planSummary" : {
           "type" : "string"
         }
       },
-      "required" : [ "queryId", "physicalPlan", "planSummary" ]
+      "required" : [ "sources", "sink", "physicalPlan", "queryId", "planSummary" ]
     },
     "StreamAggregate" : {
       "type" : "object",

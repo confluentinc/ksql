@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -38,7 +39,6 @@ import kafka.utils.TestUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.network.ListenerName;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -168,8 +168,7 @@ class KafkaEmbedded {
       newTopic.configs(topicConfig);
 
       try {
-        final CreateTopicsResult result = adminClient.createTopics(ImmutableList.of(newTopic));
-        result.all().get();
+        adminClient.createTopics(ImmutableList.of(newTopic)).all().get();
       } catch (final Exception e) {
         throw new RuntimeException("Failed to create topic:" + topic, e);
       }
@@ -194,11 +193,17 @@ class KafkaEmbedded {
   void deleteTopics(final Collection<String> topics) {
     try (Admin adminClient = adminClient()) {
 
-      try {
-        adminClient.deleteTopics(topics);
-      } catch (final Exception e) {
-        throw new RuntimeException("Failed to delete topics: " + topics, e);
+      adminClient.deleteTopics(topics).all().get();
+
+      // Deletion is async: wait util they are no longer reported
+      final Set<String> remaining = new HashSet<>(topics);
+      while (!remaining.isEmpty()) {
+        final Set<String> topicNames = adminClient.listTopics().names().get();
+        remaining.retainAll(topicNames);
       }
+
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to delete topics: " + topics, e);
     }
   }
 

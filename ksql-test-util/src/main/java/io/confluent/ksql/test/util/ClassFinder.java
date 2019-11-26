@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
 import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -79,10 +79,13 @@ public final class ClassFinder {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private static Class<?> parseClass(final String packageName, final Path path) {
     try {
-      Objects.requireNonNull(path.getFileName(), "path must not be empty");
-      final String name = path.getFileName().toString();
-      final String className = name.substring(0, name.length() - CLASS_FILE_EXT.length());
-      return Class.forName(packageName + '.' + className);
+      final String separator =  File.separatorChar == '\\' ? "\\\\" : File.separator;
+      final String withDots = path.toString().replaceAll(separator, ".");
+      final String fullyQualifiedClassNem = withDots.substring(
+          withDots.indexOf(packageName),
+          withDots.length() - CLASS_FILE_EXT.length()
+      );
+      return Class.forName(fullyQualifiedClassNem);
     } catch (final Exception e) {
       throw new RuntimeException(
           "Failed to get class. packageName:" + packageName + ", path:" + path, e);

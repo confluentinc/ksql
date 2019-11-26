@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
@@ -26,7 +25,6 @@ import java.util.Objects;
  * A wrapper around the actual table function which provides methods to get return type and
  * description, and allows the function to be invoked.
  */
-@Immutable
 public class KsqlTableFunction extends KsqlFunction {
 
   private final Kudf udtf;

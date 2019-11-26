@@ -28,6 +28,7 @@ import java.util.Optional;
  */
 @Immutable
 public final class WindowInfo {
+
   private final WindowType type;
   private final Optional<Duration> size;
 

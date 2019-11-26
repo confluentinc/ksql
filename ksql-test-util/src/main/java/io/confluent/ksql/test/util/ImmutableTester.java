@@ -22,11 +22,13 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,13 +39,45 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+/**
+ * Tests that a type is immutable.
+ *
+ * <p>To be classed as immutable it must:
+ * <ul>
+ *   <li>Annotated {@code @Immutable}</li>
+ *   <li>Each field, including static fields, must:</li>
+ *   <ul>
+ *    <li>be {@code final}</li>
+ *    <li>be of a immutable type</li>
+ *   </ul>
+ * </ul>
+ *
+ * <p>The tester knows about (most) JDK immutable types.
+ *
+ * <p>Types from other libraries that are known to be immutable, but which are not annotated as
+ * such, can be registered with the tester as immutable, e.g. via
+ * {@link ImmutableTester#withKnownImmutableType}.
+ *
+ * <p>Where a field is not of an immutable type, but is known to be immutable by its usage patterns,
+ * it can be annotated with {@code @EffectivelyImmutable}.
+ */
 public final class ImmutableTester {
 
   private static final List<Predicate<Class<?>>> STD_IMMUTABLE_TYPES = ImmutableList
       .<Predicate<Class<?>>>builder()
       .add(Class::isPrimitive)
       .add(Class::isEnum)
+      .add(Duration.class::isAssignableFrom)
+      .add(Character.class::isAssignableFrom)
+      .add(Void.class::isAssignableFrom)
+      .add(Byte.class::isAssignableFrom)
+      .add(Boolean.class::isAssignableFrom)
+      .add(Integer.class::isAssignableFrom)
+      .add(Long.class::isAssignableFrom)
+      .add(Float.class::isAssignableFrom)
+      .add(Double.class::isAssignableFrom)
       .add(String.class::isAssignableFrom)
       .add(Optional.class::isAssignableFrom)
       .add(OptionalInt.class::isAssignableFrom)
@@ -52,6 +86,12 @@ public final class ImmutableTester {
       .build();
 
   private final List<Predicate<Class<?>>> knownImmutables = new ArrayList<>(STD_IMMUTABLE_TYPES);
+
+  public static List<Class<?>> classesMarkedImmutable(final String packageName) {
+    return ClassFinder.getClasses(packageName).stream()
+        .filter(c -> c.isAnnotationPresent(Immutable.class))
+        .collect(Collectors.toList());
+  }
 
   public ImmutableTester withKnownImmutableTypes(final Set<Class<?>> immutable) {
     immutable.forEach(type -> knownImmutables.add(t -> t.equals(type)));
@@ -83,18 +123,24 @@ public final class ImmutableTester {
       return;
     }
 
-    final String className = typeUnderTest.getSimpleName();
-
     final Predicate<Class<?>> knownImmutable = knownImmutables
         .stream()
         .reduce(type -> false, Predicate::or);
+
+    if (knownImmutable.test(typeUnderTest)) {
+      // Known to be immutable
+      return;
+    }
 
     assertThat("@Immutable annotation missing",
         typeUnderTest.isAnnotationPresent(Immutable.class),
         is(true));
 
+    final String className = typeUnderTest.getSimpleName();
+
     Arrays.stream(typeUnderTest.getDeclaredFields())
         .filter(excludeJaCoCoInjectedFields())
+        .filter(excludeEffectivelyImmutableFields())
         .forEach(field -> {
           assertThat(className + ": field not final: " + field.getName(),
               Modifier.isFinal(field.getModifiers()),
@@ -125,7 +171,7 @@ public final class ImmutableTester {
 
     if (type instanceof Class) {
       final Class<?> clazz = (Class<?>) type;
-      if (knownImmutable.test(clazz)) {
+      if (isEffectivelyImmutable(clazz) || knownImmutable.test(clazz)) {
         return;
       }
 
@@ -178,5 +224,23 @@ public final class ImmutableTester {
   private static Predicate<Field> excludeJaCoCoInjectedFields() {
     // JaCoCo, which runs as part of the Jenkins build, injects a non-field:
     return field -> !field.getName().equals("$jacocoData");
+  }
+
+  private static Predicate<Field> excludeEffectivelyImmutableFields() {
+    return field -> !containsEffectivelyImmutable(field.getAnnotations());
+  }
+
+  private static boolean isEffectivelyImmutable(final Class<?> clazz) {
+    return containsEffectivelyImmutable(clazz.getAnnotations());
+  }
+
+  private static boolean containsEffectivelyImmutable(final Annotation[] annotations) {
+    // @EffectivelyImmutable is an annotation within the common module that can be used to mark
+    // a field or type, that is of a type this test can't confirm is immutable, as being effectively
+    // immutable.
+    //
+    // The annotation itself is not accessible from this package, so the check is by name
+    return Arrays.stream(annotations)
+        .anyMatch(anno -> anno.annotationType().getSimpleName().equals("EffectivelyImmutable"));
   }
 }

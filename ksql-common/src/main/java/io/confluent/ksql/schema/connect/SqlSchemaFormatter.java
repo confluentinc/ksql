@@ -15,14 +15,11 @@
 
 package io.confluent.ksql.schema.connect;
 
-import static java.util.Objects.requireNonNull;
-
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
@@ -31,7 +28,7 @@ import org.apache.kafka.connect.data.Schema;
 /**
  * Format the schema as SQL.
  */
-public class SqlSchemaFormatter implements SchemaFormatter {
+public final class SqlSchemaFormatter implements SchemaFormatter {
 
   private static final String MAP_START = "MAP<";
   private static final String ARRAY_START = "ARRAY<";
@@ -54,7 +51,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
     AS_COLUMN_LIST
   }
 
-  private final Set<Option> options;
+  private final ImmutableSet<Option> options;
   private final FormatOptions formatOptions;
 
   /**
@@ -79,13 +76,8 @@ public class SqlSchemaFormatter implements SchemaFormatter {
       final Predicate<String> addQuotesPredicate,
       final Option... options
   ) {
-    this.options = options.length == 0
-        ? EnumSet.noneOf(Option.class)
-        : EnumSet.of(options[0], options);
-
-    this.formatOptions = FormatOptions.of(
-        requireNonNull(addQuotesPredicate, "addQuotesPredicate")
-    );
+    this.options = ImmutableSet.copyOf(options);
+    this.formatOptions = FormatOptions.of(addQuotesPredicate);
   }
 
   @Override
@@ -118,16 +110,6 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         .substring(STRUCT_START.length(), suffixStripped.length() - STRUCTURED_END.length());
   }
 
-  protected String visitBytes(final Schema schema) {
-    if (DecimalUtil.isDecimal(schema)) {
-      return "DECIMAL("
-          + DecimalUtil.precision(schema) + ", "
-          + DecimalUtil.scale(schema) + ")";
-    }
-
-    return "BYTES";
-  }
-
   private final class Converter implements SchemaWalker.Visitor<String, String> {
 
     public String visitSchema(final Schema schema) {
@@ -156,7 +138,13 @@ public class SqlSchemaFormatter implements SchemaFormatter {
 
     @Override
     public String visitBytes(final Schema schema) {
-      return SqlSchemaFormatter.this.visitBytes(schema);
+      if (DecimalUtil.isDecimal(schema)) {
+        return "DECIMAL("
+            + DecimalUtil.precision(schema) + ", "
+            + DecimalUtil.scale(schema) + ")";
+      }
+
+      return "BYTES";
     }
 
     public String visitArray(final Schema schema, final String element) {

@@ -15,13 +15,18 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -39,11 +44,13 @@ import java.util.stream.Collectors;
 @Immutable
 public final class QuerySchemas {
 
+  @EffectivelyImmutable
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
 
-  private final LinkedHashMap<String, PersistenceSchema> schemas;
+  @EffectivelyImmutable
   private final SchemaFormatter schemaFormatter;
+  private final ImmutableList<Entry> schemas;
 
   public static QuerySchemas of(final LinkedHashMap<String, PersistenceSchema> schemas) {
     return new QuerySchemas(schemas, FORMATTER);
@@ -54,8 +61,20 @@ public final class QuerySchemas {
       final LinkedHashMap<String, PersistenceSchema> schemas,
       final SchemaFormatter schemaFormatter
   ) {
-    this.schemas = new LinkedHashMap<>(Objects.requireNonNull(schemas, "schemas"));
-    this.schemaFormatter = Objects.requireNonNull(schemaFormatter, "schemaFormatter");
+    this(
+        schemas.entrySet().stream()
+            .map(e -> new Entry(e.getKey(), e.getValue()))
+            .collect(Collectors.toList()),
+        schemaFormatter
+    );
+  }
+
+  private QuerySchemas(
+      final List<Entry> schemas,
+      final SchemaFormatter schemaFormatter
+  ) {
+    this.schemas = ImmutableList.copyOf(requireNonNull(schemas, "schemas"));
+    this.schemaFormatter = requireNonNull(schemaFormatter, "schemaFormatter");
   }
 
   @Override
@@ -77,8 +96,23 @@ public final class QuerySchemas {
 
   @Override
   public String toString() {
-    return schemas.entrySet().stream()
-        .map(e -> e.getKey() + " = " + schemaFormatter.format(e.getValue().serializedSchema()))
+    return schemas.stream()
+        .map(e -> e.loggerNamePrefix + " = " + schemaFormatter.format(e.schema.serializedSchema()))
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  @Immutable
+  private static final class Entry {
+
+    private final String loggerNamePrefix;
+    private final PersistenceSchema schema;
+
+    private Entry(
+        final String loggerNamePrefix,
+        final PersistenceSchema schema
+    ) {
+      this.loggerNamePrefix = requireNonNull(loggerNamePrefix, "loggerNamePrefix");
+      this.schema = requireNonNull(schema, "schema");
+    }
   }
 }

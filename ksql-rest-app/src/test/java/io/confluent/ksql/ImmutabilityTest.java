@@ -19,9 +19,13 @@ import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.types.KsqlStruct;
 import java.util.Collection;
 import java.util.Objects;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Window;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KGroupedTable;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,9 +52,13 @@ public class ImmutabilityTest {
   public void shouldBeImmutable() {
     new ImmutableTester()
         .withKnownImmutableType(KsqlStruct.class)
-        .withKnownImmutableType(Window.class)
         .withKnownImmutableType(JoinWindows.class)
         .withKnownImmutableType(ConnectSchema.class)
+        .withKnownImmutableType(KStream.class)
+        .withKnownImmutableType(KTable.class)
+        .withKnownImmutableType(KGroupedStream.class)
+        .withKnownImmutableType(KGroupedTable.class)
+        .withKnownImmutableType(Serde.class)
         .test(modelClass);
   }
 }

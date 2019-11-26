@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
@@ -28,10 +30,14 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import org.easymock.TestSubject;
 import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings({"FieldMayBeStatic", "unused"})
+@SuppressFBWarnings("UUF_UNUSED_FIELD")
+@SuppressWarnings({"FieldMayBeStatic", "unused", "OptionalAssignedToNull"})
 public class ImmutableTesterTest {
 
   private ImmutableTester tester;
@@ -85,7 +91,6 @@ public class ImmutableTesterTest {
   @Test
   public void shouldNotFailOnKnownImmutableJdkTypes() {
     // Given:
-    @SuppressWarnings("OptionalAssignedToNull")
     @Immutable
     class TestSubject {
       final ThreadLocal<MutableType> f0 = null;
@@ -111,6 +116,7 @@ public class ImmutableTesterTest {
       final OptionalDouble f20 = null;
       final URI f21 = null;
       final URL f22 = null;
+      final Pattern f23 = null;
     }
 
     // When:
@@ -129,7 +135,39 @@ public class ImmutableTesterTest {
     tester.test(TestSubject.class);
   }
 
+  @Test
+  public void shouldNotFailIfImplementingNonImmutableInterface() {
+    // Given:
+    @Immutable
+    class TestSubject {
+      final ImplementsNonImmutableInterface f = null;
+    }
+
+    // When:
+    tester.test(TestSubject.class);
+  }
+
+  @Test
+  public void shouldNotFailOnGuavaImmutableTypes() {
+    // Given:
+    @Immutable
+    class TestSubject {
+      final Range<Integer> f0 = null;
+    }
+
+    // When:
+    tester.test(TestSubject.class);
+  }
+
   private static final class MutableType {
       private int i;
+  }
+
+  @Immutable
+  private static final class ImplementsNonImmutableInterface implements Supplier<TestSubject> {
+    @Override
+    public TestSubject get() {
+      return null;
+    }
   }
 }

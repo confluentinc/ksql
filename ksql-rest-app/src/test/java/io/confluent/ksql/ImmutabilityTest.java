@@ -16,7 +16,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.test.util.ImmutableTester;
-import io.confluent.ksql.types.KsqlStruct;
 import java.util.Collection;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -51,7 +50,6 @@ public class ImmutabilityTest {
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .withKnownImmutableType(KsqlStruct.class)
         .withKnownImmutableType(JoinWindows.class)
         .withKnownImmutableType(ConnectSchema.class)
         .withKnownImmutableType(KStream.class)

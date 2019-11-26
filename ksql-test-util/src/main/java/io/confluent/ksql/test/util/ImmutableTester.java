@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
 import com.google.errorprone.annotations.Immutable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -43,6 +44,7 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -91,6 +93,8 @@ public final class ImmutableTester {
       .add(ThreadLocal.class::isAssignableFrom)
       .add(URI.class::isAssignableFrom)
       .add(URL.class::isAssignableFrom)
+      .add(Pattern.class::isAssignableFrom)
+      .add(Range.class::isAssignableFrom)
       .build();
 
   private final List<Predicate<Class<?>>> knownImmutables = new ArrayList<>(STD_IMMUTABLE_TYPES);

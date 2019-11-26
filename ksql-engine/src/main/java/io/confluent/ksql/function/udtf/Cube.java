@@ -32,28 +32,40 @@ public class Cube {
     if (columns == null) {
       return Collections.emptyList();
     }
-
-    List<List<T>> result = new ArrayList<>();
-    createAllCombinations(columns, 0, new ArrayList<>(), result);
-
-    return result;
+    return createAllCombinations(columns);
   }
 
 
-  private <T> void createAllCombinations(List<T> columns, int pos, List<T> current,
-                                         List<List<T>> result) {
-    if (pos == columns.size()) {
-      result.add(new ArrayList<>(current));
-      return;
-    }
-    current.add(columns.get(pos));
-    createAllCombinations(columns, pos + 1, current, result);
+  private <T> List<List<T>>  createAllCombinations(List<T> columns) {
 
-    Object col = current.remove(pos);
-    if (col != null) {
-      current.add(null);
-      createAllCombinations(columns, pos + 1, current, result);
-      current.remove(pos);
+    int combinations = 1 << columns.size();
+    // skipBitmask is a binary number representing the input. A set bit means that the input is not
+    // null in that index. This bitmask is used to skip duplicates when the input already contains
+    // a null field as that field should be "flipped" and should not count towards the actual
+    // combinations.
+    int skipBitmask = 0;
+    for (int i = 0; i < columns.size(); i++) {
+      int shift = columns.size() - 1 - i;
+      skipBitmask |=  columns.get(i) == null ? 0 << shift : 1 << shift;
     }
+
+    List<List<T>> result = new ArrayList<>(combinations);
+    // bitmask is a binary number where a set bit represents that the value at that index of input
+    // should be included - start with an empty bitmask (necessary for correctness)
+    for (int bitmask = 0; bitmask <= combinations - 1; bitmask++) {
+      // if the logical end result is greater or equal than the bitmask, we can safely skip because
+      // we know we saw before a value that was smaller than the bitmask. This holds because we
+      // start from an empty bitmask hence, for every index we first encounter a zero (smaller)
+      // and then a one (greater or equal).
+      if ((bitmask & skipBitmask) < bitmask) {
+        continue;
+      }
+      List<T> row = new ArrayList<>(columns.size());
+      for (int i = 0; i < columns.size(); i++) {
+        row.add(0, (bitmask & (1 << i)) == 0 ? null : columns.get(columns.size() -1 -i));
+      }
+      result.add(row);
+    }
+    return result;
   }
 }

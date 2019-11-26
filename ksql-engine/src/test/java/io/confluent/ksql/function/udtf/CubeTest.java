@@ -33,10 +33,14 @@ public class CubeTest {
 
     Object[] args = {1};
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
-
     assertThat(result.size(), is(2));
-    assertThat(result.get(0), is(Lists.newArrayList(1)));
-    assertThat(result.get(1), is(Collections.singletonList(null)));
+    assertThat(result.get(0), is(Collections.singletonList(null)));
+    assertThat(result.get(1), is(Lists.newArrayList(1)));
+
+    Object[] oneNull = {null};
+    result = cubeUdtf.cube(Arrays.asList(oneNull));
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0), is(Arrays.asList(new String[]{null})));
   }
 
   @Test
@@ -46,10 +50,10 @@ public class CubeTest {
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
 
     assertThat(result.size(), is(4));
-    assertThat(result.get(0), is(Arrays.asList(1, "foo")));
-    assertThat(result.get(1), is(Arrays.asList(1, null)));
-    assertThat(result.get(2), is(Arrays.asList(null, "foo")));
-    assertThat(result.get(3), is(Arrays.asList(null, null)));
+    assertThat(result.get(0), is(Arrays.asList(null, null)));
+    assertThat(result.get(1), is(Arrays.asList(null, "foo")));
+    assertThat(result.get(2), is(Arrays.asList(1, null)));
+    assertThat(result.get(3), is(Arrays.asList(1, "foo")));
   }
 
   @Test
@@ -57,14 +61,12 @@ public class CubeTest {
 
     Object[] oneNull = {1, null};
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
-
     assertThat(result.size(), is(2));
-    assertThat(result.get(0), is(Arrays.asList(1, null)));
-    assertThat(result.get(1), is(Arrays.asList(null, null)));
+    assertThat(result.get(0), is(Arrays.asList(null, null)));
+    assertThat(result.get(1), is(Arrays.asList(1, null)));
 
     Object[] allNull = {null, null};
     result = cubeUdtf.cube(Arrays.asList(allNull));
-
     assertThat(result.size(), is(1));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
   }

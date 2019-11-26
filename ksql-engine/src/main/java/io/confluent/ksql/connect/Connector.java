@@ -17,6 +17,7 @@ package io.confluent.ksql.connect;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -30,7 +31,9 @@ import java.util.function.Predicate;
 public class Connector {
 
   private final String name;
+  @EffectivelyImmutable
   private final Predicate<String> isTopicMatch;
+  @EffectivelyImmutable
   private final Function<String, String> getSourceName;
   private final DataSourceType sourceType;
   private final Optional<String> keyField;

@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -24,6 +25,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@Immutable
 public final class WindowedStreamSource
     extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
   public WindowedStreamSource(

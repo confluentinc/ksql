@@ -14,8 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -27,16 +30,16 @@ import java.util.Set;
 public final class FormatsV1 implements Formats {
   private final KeyFormat keyFormat;
   private final ValueFormat valueFormat;
-  private final Set<SerdeOption> options;
+  private final ImmutableSet<SerdeOption> options;
 
   @JsonCreator
   FormatsV1(
       @JsonProperty(value = "keyFormat", required = true) final KeyFormat keyFormat,
       @JsonProperty(value = "valueFormat", required = true) final ValueFormat valueFormat,
       @JsonProperty(value = "options", required = true) final Set<SerdeOption> options) {
-    this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
-    this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
-    this.options = Objects.requireNonNull(options, "options");
+    this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = requireNonNull(valueFormat, "valueFormat");
+    this.options = ImmutableSet.copyOf(requireNonNull(options, "options"));
   }
 
   public KeyFormat getKeyFormat() {

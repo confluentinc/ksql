@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class BasicCredentials {

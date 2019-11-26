@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.Immutable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -28,6 +30,8 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,6 +73,7 @@ public final class ImmutableTester {
       .<Predicate<Class<?>>>builder()
       .add(Class::isPrimitive)
       .add(Class::isEnum)
+      .add(Class.class::isAssignableFrom)
       .add(Duration.class::isAssignableFrom)
       .add(Character.class::isAssignableFrom)
       .add(Void.class::isAssignableFrom)
@@ -83,6 +88,9 @@ public final class ImmutableTester {
       .add(OptionalInt.class::isAssignableFrom)
       .add(OptionalLong.class::isAssignableFrom)
       .add(OptionalDouble.class::isAssignableFrom)
+      .add(ThreadLocal.class::isAssignableFrom)
+      .add(URI.class::isAssignableFrom)
+      .add(URL.class::isAssignableFrom)
       .build();
 
   private final List<Predicate<Class<?>>> knownImmutables = new ArrayList<>(STD_IMMUTABLE_TYPES);
@@ -202,15 +210,22 @@ public final class ImmutableTester {
       if (!ImmutableCollection.class.isAssignableFrom(rawType)) {
         throw new AssertionError("Not ImmutableCollection type: " + rawType);
       }
+      checkTypeParameters(type, knownImmutable);
     } else if (java.util.Map.class.isAssignableFrom(rawType)) {
       if (!ImmutableMap.class.isAssignableFrom(rawType)) {
         throw new AssertionError("Not ImmutableMap type: " + rawType);
       }
+      checkTypeParameters(type, knownImmutable);
+    } else if (Multimap.class.isAssignableFrom(rawType)) {
+      if (!ImmutableMultimap.class.isAssignableFrom(rawType)) {
+        throw new AssertionError("Not ImmutableMultimap type: " + rawType);
+      }
+      checkTypeParameters(type, knownImmutable);
+    } else if (rawType.equals(Optional.class)) {
+      checkTypeParameters(type, knownImmutable);
     } else {
       checkImmutableType(rawType, knownImmutable);
     }
-
-    checkTypeParameters(type, knownImmutable);
   }
 
   private static void checkTypeParameters(

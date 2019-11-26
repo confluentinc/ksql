@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams.materialization;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -26,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
-@Immutable
 public final class WindowedRow implements TableRow {
 
   private final LogicalSchema schema;

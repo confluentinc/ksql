@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,6 +28,7 @@ import java.util.Objects;
  */
 public class KsqlTableFunction extends KsqlFunction {
 
+  @EffectivelyImmutable
   private final Kudf udtf;
 
   public KsqlTableFunction(

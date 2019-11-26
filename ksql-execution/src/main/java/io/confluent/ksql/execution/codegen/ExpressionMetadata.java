@@ -16,10 +16,12 @@
 package io.confluent.ksql.execution.codegen;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -27,8 +29,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
+@Immutable
 public class ExpressionMetadata {
 
+  @EffectivelyImmutable
   private final IExpressionEvaluator expressionEvaluator;
   private final SqlType expressionType;
   private final ThreadLocal<Object[]> threadLocalParameters;

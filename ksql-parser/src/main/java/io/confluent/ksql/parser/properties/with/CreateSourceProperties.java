@@ -27,6 +27,7 @@ import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.apache.kafka.common.config.ConfigException;
 public final class CreateSourceProperties {
 
   private final PropertiesConfig props;
+  @EffectivelyImmutable
   private final transient Function<String, Duration> durationParser;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {

@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
@@ -25,8 +28,9 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
 public final class HealthCheckResponse {
+
   private final boolean isHealthy;
-  private final Map<String, HealthCheckResponseDetail> details;
+  private final ImmutableMap<String, HealthCheckResponseDetail> details;
 
   @JsonCreator
   public HealthCheckResponse(
@@ -34,7 +38,7 @@ public final class HealthCheckResponse {
       @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details
   ) {
     this.isHealthy = isHealthy;
-    this.details = Objects.requireNonNull(details, "details");
+    this.details = ImmutableMap.copyOf(requireNonNull(details, "details"));
   }
 
   public boolean getIsHealthy() {

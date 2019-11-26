@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.KStream;
 
+@Immutable
 public final class KStreamHolder<K> {
+
   private final KStream<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
   private final LogicalSchema schema;

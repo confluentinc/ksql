@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -35,7 +36,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.Topology;
@@ -52,7 +52,7 @@ public class DataSourceNode extends PlanNode {
   private final LogicalSchemaWithMetaAndKeyFields schema;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
-  private final List<SelectExpression> selectExpressions;
+  private final ImmutableList<SelectExpression> selectExpressions;
 
   public DataSourceNode(
       final PlanNodeId id,
@@ -158,6 +158,7 @@ public class DataSourceNode extends PlanNode {
     );
   }
 
+  @Immutable
   interface SchemaKStreamFactory {
     SchemaKStream<?> create(
         KsqlQueryBuilder builder,

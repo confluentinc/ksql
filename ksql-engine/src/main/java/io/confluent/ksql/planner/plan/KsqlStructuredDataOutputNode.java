@@ -43,7 +43,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final KeyField keyField;
   private final Optional<ColumnRef> partitionByField;
   private final boolean doCreateInto;
-  private final Set<SerdeOption> serdeOptions;
+  private final ImmutableSet<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

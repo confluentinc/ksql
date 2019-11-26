@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,27 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.ddl.commands;
+package io.confluent.ksql.analyzer;
 
-import com.google.errorprone.annotations.Immutable;
-import java.util.Objects;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.List;
 
-@Immutable
-public class DdlCommandResult {
+@EffectivelyImmutable
+public interface ImmutableAnalysis {
 
-  private final boolean success;
-  private final String message;
+  List<FunctionCall> getTableFunctions();
 
-  public DdlCommandResult(boolean success, String message) {
-    this.success = success;
-    this.message = Objects.requireNonNull(message, "message");
-  }
-
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public String getMessage() {
-    return message;
-  }
+  List<SelectExpression> getSelectExpressions();
 }

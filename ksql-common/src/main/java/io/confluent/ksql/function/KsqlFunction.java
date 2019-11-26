@@ -17,22 +17,24 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class KsqlFunction implements FunctionSignature {
 
+  @EffectivelyImmutable
   private final SchemaProvider returnSchemaProvider;
   private final ParamType declaredReturnType;
-  private final List<ParameterInfo> parameters;
-  private final List<ParamType> paramTypes;
+  private final ImmutableList<ParameterInfo> parameters;
+  private final ImmutableList<ParamType> paramTypes;
   private final FunctionName functionName;
   private final String description;
   private final String pathLoadedFrom;
@@ -51,7 +53,8 @@ public class KsqlFunction implements FunctionSignature {
     this.returnSchemaProvider = Objects.requireNonNull(returnSchemaProvider, "schemaProvider");
     this.declaredReturnType = Objects.requireNonNull(declaredReturnType, "javaReturnType");
     this.parameters = ImmutableList.copyOf(Objects.requireNonNull(parameters, "parameters"));
-    this.paramTypes = parameters.stream().map(ParameterInfo::type).collect(Collectors.toList());
+    this.paramTypes = ImmutableList
+        .copyOf(parameters.stream().map(ParameterInfo::type).collect(Collectors.toList()));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");

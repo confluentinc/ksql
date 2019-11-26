@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -40,6 +41,7 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
   private static final Delimiter DEFAULT_DELIMITER = Delimiter.of(',');
 
+  @EffectivelyImmutable
   private final CSVFormat csvFormat;
 
   public KsqlDelimitedSerdeFactory(final Optional<Delimiter> delimiter) {

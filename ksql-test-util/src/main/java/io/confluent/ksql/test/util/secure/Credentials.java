@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.test.util.secure;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * Stores username & password.

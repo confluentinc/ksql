@@ -23,6 +23,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.model.SemanticVersion;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
+@EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";

@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
@@ -27,7 +28,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-  private final List<FunctionCall> tableFunctions;
+  private final ImmutableList<FunctionCall> tableFunctions;
 
   public StreamFlatMap(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
@@ -37,7 +38,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.tableFunctions = Objects.requireNonNull(tableFunctions);
+    this.tableFunctions = ImmutableList.copyOf(Objects.requireNonNull(tableFunctions));
   }
 
   @Override

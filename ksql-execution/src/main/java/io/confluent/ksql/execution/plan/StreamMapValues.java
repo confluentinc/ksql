@@ -29,7 +29,7 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-  private final List<SelectExpression> selectExpressions;
+  private final ImmutableList<SelectExpression> selectExpressions;
   private final String selectNodeName;
 
   public StreamMapValues(

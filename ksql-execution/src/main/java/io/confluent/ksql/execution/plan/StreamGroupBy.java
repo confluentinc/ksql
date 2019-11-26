@@ -14,8 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
@@ -24,10 +27,11 @@ import java.util.Objects;
 
 @Immutable
 public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
+
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats formats;
-  private final List<Expression> groupByExpressions;
+  private final ImmutableList<Expression> groupByExpressions;
 
   public StreamGroupBy(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
@@ -35,10 +39,11 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "groupByExpressions", required = true)
       List<Expression> groupByExpressions) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.formats = Objects.requireNonNull(formats, "formats");
-    this.source = Objects.requireNonNull(source, "source");
-    this.groupByExpressions = Objects.requireNonNull(groupByExpressions, "groupByExpressions");
+    this.properties = requireNonNull(properties, "properties");
+    this.formats = requireNonNull(formats, "formats");
+    this.source = requireNonNull(source, "source");
+    this.groupByExpressions = ImmutableList
+        .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
   }
 
   public List<Expression> getGroupByExpressions() {

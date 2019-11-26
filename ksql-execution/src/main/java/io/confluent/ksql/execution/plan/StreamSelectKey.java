@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -25,8 +26,10 @@ import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
+
   private final ExecutionStepProperties properties;
   private final ColumnRef fieldName;
+  @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<?>> source;
   private final boolean updateRowKey;
 

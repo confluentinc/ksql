@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +34,8 @@ import java.util.Objects;
 public final class ConfiguredStatement<T extends Statement> {
 
   private final PreparedStatement<T> statement;
-  private final Map<String, Object> overrides;
+  @EffectivelyImmutable
+  private final ImmutableMap<String, Object> overrides;
   private final KsqlConfig config;
 
   public static <S extends Statement> ConfiguredStatement<S> of(

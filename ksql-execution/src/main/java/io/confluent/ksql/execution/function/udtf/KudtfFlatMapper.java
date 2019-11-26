@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.execution.function.udtf;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
@@ -29,10 +31,10 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 @Immutable
 public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<GenericRow>> {
 
-  private final List<TableFunctionApplier> tableFunctionAppliers;
+  private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
   public KudtfFlatMapper(List<TableFunctionApplier> tableFunctionAppliers) {
-    this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
+    this.tableFunctionAppliers = ImmutableList.copyOf(requireNonNull(tableFunctionAppliers));
   }
 
   /*

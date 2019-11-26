@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -31,6 +32,7 @@ import java.util.Set;
 @JsonSubTypes({
     @Type(value = FormatsV1.class, name = "formatsV1")
 })
+@Immutable
 public interface Formats {
   KeyFormat getKeyFormat();
 

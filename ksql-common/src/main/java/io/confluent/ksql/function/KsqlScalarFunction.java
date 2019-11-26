@@ -15,18 +15,19 @@
 
 package io.confluent.ksql.function;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class KsqlScalarFunction extends KsqlFunction {
@@ -34,6 +35,7 @@ public final class KsqlScalarFunction extends KsqlFunction {
   static final String INTERNAL_PATH = "internal";
 
   private final Class<? extends Kudf> kudfClass;
+  @EffectivelyImmutable
   private final Function<KsqlConfig, Kudf> udfFactory;
 
   private KsqlScalarFunction(

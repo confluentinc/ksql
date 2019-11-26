@@ -14,12 +14,14 @@
 
 package io.confluent.ksql.execution.function.udtf;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.function.KsqlTableFunction;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Applies a table function on a row to get a list of values
@@ -28,13 +30,13 @@ import java.util.Objects;
 public class TableFunctionApplier {
 
   private final KsqlTableFunction tableFunction;
-  private final List<ExpressionMetadata> expressionMetadataList;
+  private final ImmutableList<ExpressionMetadata> expressionMetadataList;
 
   public TableFunctionApplier(
       KsqlTableFunction tableFunction, List<ExpressionMetadata> expressionMetadataList
   ) {
-    this.tableFunction = Objects.requireNonNull(tableFunction);
-    this.expressionMetadataList = Objects.requireNonNull(expressionMetadataList);
+    this.tableFunction = requireNonNull(tableFunction);
+    this.expressionMetadataList = ImmutableList.copyOf(requireNonNull(expressionMetadataList));
   }
 
   List<?> apply(GenericRow row) {

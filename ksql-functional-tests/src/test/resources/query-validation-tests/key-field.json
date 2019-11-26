@@ -90,17 +90,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo AS ALIASED, bar FROM INPUT PARTITION BY ALIASED;"
       ],
-      "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": null},
-          {"name": "OUTPUT", "type": "stream", "keyField": "ALIASED"}
-        ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
       }
     },
     {
@@ -109,9 +101,17 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ]
       }
     },
     {
@@ -280,17 +280,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo AS aliased, bar FROM INPUT PARTITION BY aliased;"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "BAR": 2}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": "ALIASED"}
-        ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
       }
     },
     {
@@ -299,9 +291,20 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": "FOO"},
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -329,20 +332,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo, bar AS aliased FROM INPUT PARTITION BY aliased;"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "ALIASED": 2}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": "ALIASED"}
-        ],
-        "topics": {
-          "blacklist": ".*-repartition"
-        }
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid identifier for PARTITION BY clause: 'ALIASED'"
       }
     },
     {
@@ -351,9 +343,17 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT PARTITION BY bar;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column BAR does not exist in the result schema. Error in Partition By clause."
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"FOO":1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": "FOO"},
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ]
       }
     },
     {

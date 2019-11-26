@@ -27,12 +27,9 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -41,7 +38,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
-  private final Optional<ColumnRef> partitionByField;
   private final boolean doCreateInto;
   private final Set<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
@@ -54,7 +50,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final Optional<TimestampColumn> timestampColumn,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final Optional<ColumnRef> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions,
@@ -76,11 +71,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
-    this.partitionByField = Objects.requireNonNull(partitionByField, "partitionByField");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
-
-    validatePartitionByField();
   }
 
   public boolean isDoCreateInto() {
@@ -119,52 +111,16 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final PlanNode source = getSource();
-    final SchemaKStream schemaKStream = source.buildStream(builder);
+    final SchemaKStream<?> schemaKStream = source.buildStream(builder);
 
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
-    final SchemaKStream<?> result = createOutputStream(
-        schemaKStream,
-        contextStacker
-    );
-
-    return result.into(
+    return schemaKStream.into(
         getKsqlTopic().getKafkaTopicName(),
         getSchema(),
         getKsqlTopic().getValueFormat(),
         serdeOptions,
         contextStacker
     );
-  }
-
-  private SchemaKStream<?> createOutputStream(
-      final SchemaKStream schemaKStream,
-      final QueryContext.Stacker contextStacker
-  ) {
-    if (schemaKStream instanceof SchemaKTable) {
-      return schemaKStream;
-    }
-
-    if (!partitionByField.isPresent()) {
-      return schemaKStream;
-    }
-
-    return schemaKStream.selectKey(partitionByField.get(), false, contextStacker);
-  }
-
-  private void validatePartitionByField() {
-    if (!partitionByField.isPresent()) {
-      return;
-    }
-
-    final ColumnRef fieldName = partitionByField.get();
-
-    if (getSchema().isMetaColumn(fieldName.name()) || getSchema().isKeyColumn(fieldName.name())) {
-      return;
-    }
-
-    if (!keyField.ref().equals(Optional.of(fieldName))) {
-      throw new IllegalArgumentException("keyField must match partition by field");
-    }
   }
 }

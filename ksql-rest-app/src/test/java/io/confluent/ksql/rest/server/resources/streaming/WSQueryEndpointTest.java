@@ -660,6 +660,7 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         ResultMaterialization.CHANGES,
         type == QueryType.PULL,
         OptionalInt.empty()

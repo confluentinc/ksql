@@ -164,9 +164,7 @@ class Analyzer {
 
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
-      sink.getPartitionBy()
-          .map(name -> ColumnRef.withoutSource(name.name()))
-          .ifPresent(analysis::setPartitionBy);
+
 
       setSerdeOptions(sink);
 
@@ -317,6 +315,7 @@ class Analyzer {
 
       node.getWhere().ifPresent(this::analyzeWhere);
       node.getGroupBy().ifPresent(this::analyzeGroupBy);
+      node.getPartitionBy().ifPresent(this::analyzePartitionBy);
       node.getWindow().ifPresent(this::analyzeWindowExpression);
       node.getHaving().ifPresent(this::analyzeHaving);
       node.getLimit().ifPresent(analysis::setLimitClause);
@@ -541,6 +540,16 @@ class Analyzer {
         final Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
         analysis.addGroupByExpressions(groupingSet);
       }
+    }
+
+    private void analyzePartitionBy(final Expression partitionBy) {
+      if (partitionBy instanceof ColumnReferenceExp) {
+        analysis.setPartitionBy(((ColumnReferenceExp) partitionBy).getReference());
+        return;
+      }
+
+      throw new KsqlException(
+          "Expected partition by to be a valid column but got " + partitionBy);
     }
 
     private void analyzeWindowExpression(final WindowExpression windowExpression) {

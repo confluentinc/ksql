@@ -22,7 +22,6 @@ import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -45,16 +44,13 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
@@ -71,9 +67,6 @@ import org.apache.kafka.streams.kstream.JoinWindows;
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final FormatOptions FORMAT_OPTIONS =
-      FormatOptions.of(IdentifierUtil::needsQuotes);
-
   private static final String GROUP_BY_COLUMN_SEPARATOR = "|+|";
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
@@ -81,7 +74,6 @@ public class SchemaKStream<K> {
   final KeyFormat keyFormat;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
-  final Type type;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
   private final ExecutionStep<KStreamHolder<K>> sourceStep;
@@ -92,7 +84,6 @@ public class SchemaKStream<K> {
       final KeyFormat keyFormat,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -102,7 +93,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        type,
         ksqlConfig,
         functionRegistry
     );
@@ -115,7 +105,6 @@ public class SchemaKStream<K> {
       final KeyFormat keyFormat,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -125,7 +114,6 @@ public class SchemaKStream<K> {
     this.sourceProperties = Objects.requireNonNull(sourceProperties, "sourceProperties");
     this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(getSchema());
     this.sourceSchemaKStreams = requireNonNull(sourceSchemaKStreams, "sourceSchemaKStreams");
-    this.type = requireNonNull(type, "type");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
   }
@@ -149,7 +137,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         Collections.singletonList(this),
-        SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry
     );
@@ -172,7 +159,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         Collections.singletonList(this),
-        Type.FILTER,
         ksqlConfig,
         functionRegistry
     );
@@ -203,7 +189,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         Collections.singletonList(this),
-        Type.PROJECT,
         ksqlConfig,
         functionRegistry
     );
@@ -262,7 +247,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, schemaKTable),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -292,7 +276,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, otherSchemaKStream),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -318,7 +301,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, schemaKTable),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -347,7 +329,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, otherSchemaKStream),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -376,7 +357,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, otherSchemaKStream),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -410,7 +390,6 @@ public class SchemaKStream<K> {
           keyFormat,
           resultantKeyField,
           sourceSchemaKStreams,
-          type,
           ksqlConfig,
           functionRegistry
       );
@@ -430,7 +409,6 @@ public class SchemaKStream<K> {
         keyFormat,
         newKeyField,
         Collections.singletonList(this),
-        Type.REKEY,
         ksqlConfig,
         functionRegistry
     );
@@ -545,7 +523,6 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        type,
         ksqlConfig,
         functionRegistry);
   }
@@ -558,37 +535,12 @@ public class SchemaKStream<K> {
     return keyField;
   }
 
-  public QueryContext getQueryContext() {
-    return sourceProperties.getQueryContext();
-  }
-
   public LogicalSchema getSchema() {
     return sourceProperties.getSchema();
   }
 
   public List<SchemaKStream> getSourceSchemaKStreams() {
     return sourceSchemaKStreams;
-  }
-
-  public String getExecutionPlan(final QueryId queryId, final String indent) {
-    final StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(indent)
-        .append(" > [ ")
-        .append(type).append(" ] | Schema: ")
-        .append(getSchema().toString(FORMAT_OPTIONS))
-        .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryId, getQueryContext()))
-        .append("\n");
-    for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {
-      stringBuilder
-          .append("\t")
-          .append(indent)
-          .append(schemaKStream.getExecutionPlan(queryId, indent + "\t"));
-    }
-    return stringBuilder.toString();
-  }
-
-  public Type getType() {
-    return type;
   }
 
   public KeyFormat getKeyFormat() {

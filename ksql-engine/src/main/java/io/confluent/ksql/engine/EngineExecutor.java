@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -40,6 +41,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryExecutor;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -50,6 +52,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
 import java.util.Objects;
@@ -126,7 +129,9 @@ final class EngineExecutor {
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.physicalPlan.getPhysicalPlan(),
-        plans.physicalPlan.getPlanSummary(),
+        buildPlanSummary(
+            plans.physicalPlan.getQueryId(),
+            plans.physicalPlan.getPhysicalPlan()),
         outputNode.getSchema(),
         outputNode.getLimit()
     );
@@ -169,8 +174,7 @@ final class EngineExecutor {
           getSourceNames(outputNode),
           outputNode.getIntoSourceName(),
           plans.physicalPlan.getPhysicalPlan(),
-          plans.physicalPlan.getQueryId(),
-          plans.physicalPlan.getPlanSummary()
+          plans.physicalPlan.getQueryId()
       );
 
       return KsqlPlan.queryPlanCurrent(
@@ -391,10 +395,14 @@ final class EngineExecutor {
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
         queryPlan.getSources(),
         queryPlan.getPhysicalPlan(),
-        queryPlan.getPlanSummary()
+        buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan())
     );
 
     engineContext.registerQuery(queryMetadata);
     return queryMetadata;
+  }
+
+  private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
+    return new PlanSummary(queryId, ksqlConfig, engineContext.getMetaStore()).summarize(plan);
   }
 }

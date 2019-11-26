@@ -27,20 +27,17 @@ public final class QueryPlan  {
   private final SourceName sink;
   private final ExecutionStep<?> physicalPlan;
   private final QueryId queryId;
-  private final String planSummary;
 
   public QueryPlan(
       @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
       @JsonProperty(value = "sink", required = true) final SourceName sink,
       @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
-      @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-      @JsonProperty(value = "planSummary", required = true) final String planSummary
+      @JsonProperty(value = "queryId", required = true) final QueryId queryId
   ) {
     this.sources = Objects.requireNonNull(sources, "sources");
     this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.planSummary = Objects.requireNonNull(planSummary, "planSummary");
   }
 
   public SourceName getSink() {
@@ -57,9 +54,5 @@ public final class QueryPlan  {
 
   public QueryId getQueryId() {
     return queryId;
-  }
-
-  public String getPlanSummary() {
-    return planSummary;
   }
 }

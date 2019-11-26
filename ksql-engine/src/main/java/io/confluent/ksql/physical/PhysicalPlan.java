@@ -27,27 +27,20 @@ import java.util.Optional;
 public final class PhysicalPlan {
   private final QueryId queryId;
   private final ExecutionStep<?> physicalPlan;
-  private final String planSummary;
   private final Optional<KeyField> keyField;
 
   PhysicalPlan(
       final QueryId queryId,
       final ExecutionStep<?> physicalPlan,
-      final String planSummary,
       final Optional<KeyField> keyField
   ) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
-    this.planSummary = Objects.requireNonNull(planSummary, "planSummary");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
   }
 
   public ExecutionStep<?> getPhysicalPlan() {
     return physicalPlan;
-  }
-
-  public String getPlanSummary() {
-    return planSummary;
   }
 
   @JsonIgnore

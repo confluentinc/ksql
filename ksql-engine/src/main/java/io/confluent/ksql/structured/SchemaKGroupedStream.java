@@ -107,7 +107,6 @@ public class SchemaKGroupedStream {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry
     );

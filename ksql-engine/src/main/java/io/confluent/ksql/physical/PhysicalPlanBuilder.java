@@ -74,7 +74,6 @@ public class PhysicalPlanBuilder {
     return new PhysicalPlan(
         queryId,
         resultStream.getSourceStep(),
-        resultStream.getExecutionPlan(queryId, ""),
         Optional.of(resultStream.getKeyField())
     );
   }

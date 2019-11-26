@@ -87,7 +87,6 @@ import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -219,7 +218,6 @@ public class SchemaKTableTest {
         keyFormat,
         keyField,
         new ArrayList<>(),
-        Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );
@@ -231,7 +229,6 @@ public class SchemaKTableTest {
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );
@@ -542,7 +539,6 @@ public class SchemaKTableTest {
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );
@@ -583,7 +579,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
@@ -607,7 +602,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
@@ -631,7 +625,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
@@ -837,7 +830,6 @@ public class SchemaKTableTest {
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );

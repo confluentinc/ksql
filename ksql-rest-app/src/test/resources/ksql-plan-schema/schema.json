@@ -238,12 +238,9 @@
         },
         "queryId" : {
           "type" : "string"
-        },
-        "planSummary" : {
-          "type" : "string"
         }
       },
-      "required" : [ "sources", "sink", "physicalPlan", "queryId", "planSummary" ]
+      "required" : [ "sources", "sink", "physicalPlan", "queryId" ]
     },
     "StreamAggregate" : {
       "type" : "object",

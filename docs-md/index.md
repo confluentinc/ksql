@@ -23,7 +23,7 @@ or agents for acquiring events from the outside world, durable storage to house
 these events, a stream processing framework for processing the events, and a
 database to serve aggregations of events to applications.
 
-![Diagram of a streaming architecture that doesn't use ksqlDB](img/streaming-architecture-without-ksqldb.png)
+![Diagram of a streaming architecture that doesn't use ksqlDB](img/streaming-architecture-without-ksqldb-desat.png)
 
 Unfortunately, the parts don't fit together as well as you'd hope; all of these
 systems are complex, and each integration is a small project to figure out.
@@ -39,6 +39,8 @@ stream processing with the approachable feel of a database, through
 a familiar, lightweight SQL syntax. And because ksqlDB is natively powered by
 {{ site.aktm }}, it seamlessly leverages the underlying, battle-tested event
 streaming platform.
+
+![Diagram of ksqlDB architecure](img/ksqldb-architecture.png)
 
 What are the components of ksqlDB?
 ----------------------------------

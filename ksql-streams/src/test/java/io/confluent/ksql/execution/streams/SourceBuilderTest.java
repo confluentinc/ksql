@@ -117,7 +117,7 @@ public class SourceBuilderTest {
   private static final String TOPIC_NAME = "topic";
   private static final int TIMESTAMP_IDX = 1;
 
-  private final QueryContext ctx = new Stacker().push("base").getQueryContext();
+  private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock

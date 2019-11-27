@@ -51,7 +51,7 @@ public final class TopologyFileRewriter {
   /**
    * Set {@code REWRITER} to an appropriate rewriter impl.
    */
-  private static final Rewriter REWRITER = new RewriteSchemasOnly(); // Todo(ac):
+  private static final Rewriter REWRITER = new RewriteTopologyOnly();
 
   /**
    * Exclude some versions. Anything version starting with one of these strings is excluded:
@@ -326,7 +326,8 @@ public final class TopologyFileRewriter {
     @Override
     public String rewriteSchemas(final TestCase testCase, final Path path, final String schemas) {
       return Arrays.stream(schemas.split(System.lineSeparator()))
-          .filter(schema -> !schema.contains("KsqlTopic.reduce"))
+          // Add any steps you need to rewrite the schemas here.
+          // The is generally no need to check such changes in.
           .collect(Collectors.joining(System.lineSeparator(), "", System.lineSeparator()));
     }
   }

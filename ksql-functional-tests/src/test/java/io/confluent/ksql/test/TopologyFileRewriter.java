@@ -28,14 +28,15 @@ import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.test.IntegrationTest;
-import org.junit.experimental.categories.Category;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Utility to help re-write the expected topology files used by {@link QueryTranslationTest}.
@@ -44,13 +45,13 @@ import org.junit.experimental.categories.Category;
  * previously saved topologies to bring them back inline.  Obviously, care should be taken when
  * doing so to ensure no backwards incompatible changes are being hidden by any changes made. *
  */
-@Category(IntegrationTest.class)
+@Ignore
 public final class TopologyFileRewriter {
 
   /**
    * Set {@code REWRITER} to an appropriate rewriter impl.
    */
-  private static final Rewriter REWRITER = new RewriteTopologyOnly();
+  private static final Rewriter REWRITER = new RewriteSchemasOnly(); // Todo(ac):
 
   /**
    * Exclude some versions. Anything version starting with one of these strings is excluded:
@@ -62,10 +63,11 @@ public final class TopologyFileRewriter {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private TopologyFileRewriter() {
+  public TopologyFileRewriter() {
   }
 
-  public static void main(final String[] args) throws Exception {
+  @Test
+  public void runMeToRewrite() throws Exception {
     final Path baseDir = TopologyFileGenerator.findBaseDir();
     final List<TestCase> testCases = TopologyFileGenerator.getTestCases();
 
@@ -316,6 +318,16 @@ public final class TopologyFileRewriter {
       }
 
       return idx - 1;
+    }
+  }
+
+  private static final class RewriteSchemasOnly implements StructuredRewriter {
+
+    @Override
+    public String rewriteSchemas(final TestCase testCase, final Path path, final String schemas) {
+      return Arrays.stream(schemas.split(System.lineSeparator()))
+          .filter(schema -> !schema.contains("KsqlTopic.reduce"))
+          .collect(Collectors.joining(System.lineSeparator(), "", System.lineSeparator()));
     }
   }
 

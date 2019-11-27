@@ -36,6 +36,7 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -163,8 +164,8 @@ public class QueryExecutorTest {
     when(sink.getName()).thenReturn(SINK_NAME);
     when(sink.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
-    when(kafkaStreamsBuilder.buildKafkaStreams(any(), any())).thenReturn(kafkaStreams);
-    when(streamsBuilder.build()).thenReturn(topology);
+    when(kafkaStreamsBuilder.buildKafkaStreams(any(), any()))
+        .thenReturn(new BuildResult(topology, kafkaStreams));
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);

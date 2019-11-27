@@ -32,15 +32,16 @@ import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
-import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
@@ -148,13 +149,13 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
-    return StreamSourceBuilder.build(queryBuilder, streamSource);
+    return SourceBuilder.buildStream(queryBuilder, streamSource);
   }
 
   @Override
   public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource) {
-    return StreamSourceBuilder.buildWindowed(queryBuilder, windowedStreamSource);
+    return SourceBuilder.buildWindowedStream(queryBuilder, windowedStreamSource);
   }
 
   @Override
@@ -184,12 +185,21 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KTableHolder<K> visitStreamToTable(final StreamToTable<K> streamToTable) {
-    final KStreamHolder<K> source = streamToTable.getSource().build(this);
-    return StreamToTableBuilder.build(
-        source,
-        streamToTable,
+  public KTableHolder<Struct> visitTableSource(final TableSource tableSource) {
+    return SourceBuilder.buildTable(
         queryBuilder,
+        tableSource,
+        streamsFactories.getMaterializedFactory()
+    );
+  }
+
+  @Override
+  public KTableHolder<Windowed<Struct>> visitWindowedTableSource(
+      final WindowedTableSource windowedTableSource
+  ) {
+    return SourceBuilder.buildWindowedTable(
+        queryBuilder,
+        windowedTableSource,
         streamsFactories.getMaterializedFactory()
     );
   }

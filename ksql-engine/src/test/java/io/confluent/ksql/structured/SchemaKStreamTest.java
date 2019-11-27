@@ -600,48 +600,6 @@ public class SchemaKStreamTest {
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
   }
 
-  @Test
-  public void shouldBuildStepForToTable() {
-    // Given:
-    givenInitialSchemaKStreamUsesMocks();
-
-    // When:
-    final SchemaKTable result = initialSchemaKStream.toTable(
-        keyFormat,
-        valueFormat,
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(
-        result.getSourceTableStep(),
-        equalTo(
-            ExecutionStepFactory.streamToTable(
-                childContextStacker,
-                Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-                sourceStep
-            )
-        )
-    );
-  }
-
-  @Test
-  public void shouldConvertToTableWithCorrectProperties() {
-    // Given:
-    givenInitialSchemaKStreamUsesMocks();
-
-    // When:
-    final SchemaKTable result = initialSchemaKStream.toTable(
-        keyFormat,
-        valueFormat,
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(result.getSchema(), is(initialSchemaKStream.getSchema()));
-    assertThat(result.getKeyField(), is(initialSchemaKStream.getKeyField()));
-  }
-
   @FunctionalInterface
   private interface StreamStreamJoin {
     SchemaKStream join(

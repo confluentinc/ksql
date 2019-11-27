@@ -37,6 +37,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericKeySerDe;
@@ -66,7 +67,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
@@ -160,23 +160,23 @@ public final class QueryExecutor {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
 
-    final KafkaStreams streams =
+    final BuildResult built =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
 
-    streams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
+    built.kafkaStreams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
 
     final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
 
     return new TransientQueryMetadata(
         statementText,
-        streams,
+        built.kafkaStreams,
         transientSchema,
         sources,
         queue::setLimitHandler,
         planSummary,
         queue.getQueue(),
         applicationId,
-        streamsBuilder.build(),
+        built.topology,
         streamsProperties,
         overrides,
         queryCloseCallback
@@ -209,9 +209,9 @@ public final class QueryExecutor {
         queryId
     );
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-    final KafkaStreams streams =
+    final BuildResult built =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
-    final Topology topology = streamsBuilder.build();
+
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
         sinkDataSource.getSerdeOptions()
@@ -219,14 +219,14 @@ public final class QueryExecutor {
     final Optional<MaterializationProvider> materializationBuilder = getMaterializationInfo(result)
         .flatMap(info -> buildMaterializationProvider(
             info,
-            streams,
+            built.kafkaStreams,
             querySchema,
             sinkDataSource.getKsqlTopic().getKeyFormat(),
             streamsProperties
         ));
     return new PersistentQueryMetadata(
         statementText,
-        streams,
+        built.kafkaStreams,
         querySchema,
         sources,
         sinkDataSource.getName(),
@@ -236,7 +236,7 @@ public final class QueryExecutor {
         materializationBuilder,
         applicationId,
         sinkDataSource.getKsqlTopic(),
-        topology,
+        built.topology,
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,
         overrides,

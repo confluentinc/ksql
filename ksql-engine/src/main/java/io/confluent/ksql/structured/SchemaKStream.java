@@ -15,27 +15,21 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.execution.streams.ExecutionStepFactory.streamSource;
-import static io.confluent.ksql.execution.streams.ExecutionStepFactory.streamSourceWindowed;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -44,17 +38,12 @@ import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
-import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
-import io.confluent.ksql.execution.plan.StreamToTable;
-import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -74,7 +63,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -98,69 +86,6 @@ public class SchemaKStream<K> {
   private final ExecutionStep<KStreamHolder<K>> sourceStep;
   private final ExecutionStepProperties sourceProperties;
 
-  private static <K> SchemaKStream<K> forSource(
-      final KsqlQueryBuilder builder,
-      final KeyFormat keyFormat,
-      final AbstractStreamSource<KStreamHolder<K>> streamSource,
-      final KeyField keyField) {
-    return new SchemaKStream<>(
-        streamSource,
-        keyFormat,
-        keyField,
-        ImmutableList.of(),
-        SchemaKStream.Type.SOURCE,
-        builder.getKsqlConfig(),
-        builder.getFunctionRegistry()
-    );
-  }
-
-  public static SchemaKStream<?> forSource(
-      final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-      final QueryContext.Stacker contextStacker,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset,
-      final KeyField keyField,
-      final SourceName alias
-  ) {
-    final KsqlTopic topic = dataSource.getKsqlTopic();
-    if (topic.getKeyFormat().isWindowed()) {
-      final WindowedStreamSource step = streamSourceWindowed(
-          contextStacker,
-          schemaWithMetaAndKeyFields,
-          topic.getKafkaTopicName(),
-          Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
-          dataSource.getTimestampExtractionPolicy(),
-          timestampIndex,
-          offsetReset,
-          alias
-      );
-      return forSource(
-          builder,
-          topic.getKeyFormat(),
-          step,
-          keyField);
-    } else {
-      final StreamSource step = streamSource(
-          contextStacker,
-          schemaWithMetaAndKeyFields,
-          topic.getKafkaTopicName(),
-          Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
-          dataSource.getTimestampExtractionPolicy(),
-          timestampIndex,
-          offsetReset,
-          alias
-      );
-      return forSource(
-          builder,
-          topic.getKeyFormat(),
-          step,
-          keyField);
-    }
-  }
-
-  @VisibleForTesting
   SchemaKStream(
       final ExecutionStep<KStreamHolder<K>> sourceStep,
       final KeyFormat keyFormat,
@@ -202,27 +127,6 @@ public class SchemaKStream<K> {
     this.type = requireNonNull(type, "type");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
-  }
-
-  public SchemaKTable<K> toTable(
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker
-  ) {
-    final StreamToTable<K> step = ExecutionStepFactory.streamToTable(
-        contextStacker,
-        Formats.of(keyFormat, valueFormat, Collections.emptySet()),
-        sourceStep
-    );
-    return new SchemaKTable<>(
-        step,
-        keyFormat,
-        keyField,
-        Collections.singletonList(this),
-        type,
-        ksqlConfig,
-        functionRegistry
-    );
   }
 
   public SchemaKStream<K> into(

@@ -1,0 +1,58 @@
+{
+  "tests": [
+    {
+      "name": "update-delete",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE T1 as SELECT NAME, VALUE FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "1,one,100"},
+        {"topic": "test_topic", "key": 2, "value": "2,two,200"},
+        {"topic": "test_topic", "key": 1, "value": "1,one,300"},
+        {"topic": "test_topic", "key": 1, "value": null}
+      ],
+      "outputs": [
+        {"topic": "T1", "key": 1, "value": "one,100"},
+        {"topic": "T1", "key": 2, "value": "two,200"},
+        {"topic": "T1", "key": 1, "value": "one,300"},
+        {"topic": "T1", "key": 1, "value": null}
+      ]
+    },
+    {
+      "name": "should reuse source topic for change log by default",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE T1 as SELECT * FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "2"}
+      ],
+      "outputs": [
+        {"topic": "T1", "key": 1, "value": "2"}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-changelog"
+        }
+      }
+    },
+    {
+      "name": "should NOT reuse source topic for change log if topology optimizations are off",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE T1 as SELECT * FROM test;"
+      ],
+      "properties": {
+        "ksql.streams.topology.optimization": "none"
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "2"}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-test_topic-changelog-changelog", "key": "1", "value": "2"},
+        {"topic": "T1", "key": 1, "value": "2"}
+      ]
+    }
+  ]
+}

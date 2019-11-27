@@ -39,15 +39,16 @@ import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
-import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
@@ -118,16 +119,53 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamToTable<K> streamToTable(
+  public static TableSource tableSource(
       final QueryContext.Stacker stacker,
+      final LogicalSchemaWithMetaAndKeyFields schema,
+      final String topicName,
       final Formats formats,
-      final ExecutionStep<KStreamHolder<K>> source
+      final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
+      final Optional<AutoOffsetReset> offsetReset,
+      final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamToTable<>(
-        source,
+    return new TableSource(
+        new DefaultExecutionStepProperties(
+            schema.getSchema(),
+            queryContext),
+        topicName,
         formats,
-        source.getProperties().withQueryContext(queryContext)
+        timestampPolicy,
+        timestampIndex,
+        offsetReset,
+        schema.getOriginalSchema(),
+        alias
+    );
+  }
+
+  public static WindowedTableSource tableSourceWindowed(
+      final QueryContext.Stacker stacker,
+      final LogicalSchemaWithMetaAndKeyFields schema,
+      final String topicName,
+      final Formats formats,
+      final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
+      final Optional<AutoOffsetReset> offsetReset,
+      final SourceName alias
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new WindowedTableSource(
+        new DefaultExecutionStepProperties(
+            schema.getSchema(),
+            queryContext),
+        topicName,
+        formats,
+        timestampPolicy,
+        timestampIndex,
+        offsetReset,
+        schema.getOriginalSchema(),
+        alias
     );
   }
 

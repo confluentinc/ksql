@@ -176,8 +176,10 @@ public class DataSourceNodeTest {
     when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
     when(timestampExtractionPolicy.getTimestampField()).thenReturn(TIMESTAMP_FIELD);
     when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any(), any()))
-        .thenReturn(stream);
-    when(stream.toTable(any(), any(), any())).thenReturn(table);
+        .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
+            .getDataSourceType() == DataSourceType.KSTREAM
+            ? stream : table
+        );
   }
 
   @Test
@@ -361,23 +363,7 @@ public class DataSourceNodeTest {
     final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any(), any());
     assertThat(returned, is(table));
-  }
-
-  @Test
-  public void shouldBuildTableWithCorrectContext() {
-    // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
-
-    // When:
-    node.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(stream).toTable(any(), any(), stackerCaptor.capture());
-    assertThat(
-        stackerCaptor.getValue().getQueryContext().getContext(),
-        equalTo(ImmutableList.of("0", "reduce")));
   }
 
   private DataSourceNode buildNodeWithMockSource() {

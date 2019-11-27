@@ -31,6 +31,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 public class DataSourceNode extends PlanNode {
 
   private static final String SOURCE_OP_NAME = "source";
-  private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
   private final SourceName alias;
@@ -60,7 +60,7 @@ public class DataSourceNode extends PlanNode {
       final SourceName alias,
       final List<SelectExpression> selectExpressions
   ) {
-    this(id, dataSource, alias, selectExpressions, SchemaKStream::forSource);
+    this(id, dataSource, alias, selectExpressions, SchemaKSourceFactory::buildSource);
   }
 
   DataSourceNode(
@@ -137,7 +137,7 @@ public class DataSourceNode extends PlanNode {
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final Stacker contextStacker = builder.buildNodeContext(getId().toString());
-    final SchemaKStream<?> schemaKStream = schemaKStreamFactory.create(
+    return schemaKStreamFactory.create(
         builder,
         dataSource,
         schema,
@@ -146,15 +146,6 @@ public class DataSourceNode extends PlanNode {
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField,
         alias
-    );
-    if (getDataSourceType() == DataSourceType.KSTREAM) {
-      return schemaKStream;
-    }
-    final Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
-    return schemaKStream.toTable(
-        dataSource.getKsqlTopic().getKeyFormat(),
-        dataSource.getKsqlTopic().getValueFormat(),
-        reduceContextStacker
     );
   }
 

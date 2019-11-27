@@ -50,7 +50,10 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin);
 
-  <K> KTableHolder<K> visitStreamToTable(StreamToTable<K> streamToTable);
+  KTableHolder<Struct> visitTableSource(TableSource tableSource);
+
+  KTableHolder<Windowed<Struct>> visitWindowedTableSource(
+      WindowedTableSource windowedTableSource);
 
   KTableHolder<Windowed<Struct>> visitStreamWindowedAggregate(
       StreamWindowedAggregate streamWindowedAggregate);

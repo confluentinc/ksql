@@ -136,7 +136,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinderFactory;
+  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityExtension securityExtension;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
@@ -378,7 +378,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       );
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final KsqlAuthorizationValidator authorizationValidator =
+      final Optional<KsqlAuthorizationValidator> authorizationValidator =
           KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
 
       container.addEndpoint(
@@ -491,7 +491,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
-    final KsqlAuthorizationValidator authorizationValidator =
+    final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(

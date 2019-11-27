@@ -402,12 +402,17 @@ public class RestTestExecutor implements Closeable {
 
     final ImmutableList<Response> expectedResponse = ImmutableList.of(queryResponse);
     final ImmutableList<String> statements = ImmutableList.of(querySql);
+    final long waitMs = 10;
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
     while (System.currentTimeMillis() < threshold) {
       final RestResponse<QueryStream> resp = restClient.makeQueryRequest(querySql, null);
       if (resp.isErroneous()) {
-        Thread.yield();
+        try {
+          Thread.sleep(waitMs);
+        } catch (InterruptedException e) {
+          // ignore
+        }
         LOG.info("Server responded with an error code to a pull query. "
             + "This could be because the materialized store is not yet warm.");
         continue;

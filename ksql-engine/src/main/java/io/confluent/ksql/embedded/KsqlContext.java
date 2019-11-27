@@ -76,7 +76,7 @@ public class KsqlContext implements AutoCloseable {
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext =
-        ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
+        ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     final ServiceInfo serviceInfo = ServiceInfo.create(ksqlConfig);

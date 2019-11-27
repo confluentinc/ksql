@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.rest.RestConfig;
@@ -110,6 +111,7 @@ public class PullQueryFunctionalTest {
       .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
+      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
@@ -121,6 +123,7 @@ public class PullQueryFunctionalTest {
       .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
+      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)

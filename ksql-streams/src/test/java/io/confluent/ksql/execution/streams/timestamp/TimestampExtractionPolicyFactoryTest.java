@@ -13,27 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.StringTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.LongColumnTimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.StringTimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;

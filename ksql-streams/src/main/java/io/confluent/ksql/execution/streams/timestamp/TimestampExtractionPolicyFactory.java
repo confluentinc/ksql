@@ -13,8 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -23,10 +24,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.StringTimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;

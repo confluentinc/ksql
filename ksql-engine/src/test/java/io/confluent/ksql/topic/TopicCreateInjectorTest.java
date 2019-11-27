@@ -52,7 +52,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

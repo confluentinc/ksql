@@ -13,23 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.common.testing.EqualsTester;
-import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.junit.Test;
 
-public class MetadataTimestampExtractionPolicyTest {
+public class LongColumnTimestampExtractionPolicyTest {
   @Test
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()
         .addEqualityGroup(
-            new MetadataTimestampExtractionPolicy(),
-            new MetadataTimestampExtractionPolicy())
-        .addEqualityGroup(
-            new MetadataTimestampExtractionPolicy(new UsePreviousTimeOnInvalidTimestamp()),
-            new MetadataTimestampExtractionPolicy(new UsePreviousTimeOnInvalidTimestamp())
-        )
+            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))),
+            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))))
+        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field2"))))
         .testEquals();
   }
 }

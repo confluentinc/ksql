@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
+import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

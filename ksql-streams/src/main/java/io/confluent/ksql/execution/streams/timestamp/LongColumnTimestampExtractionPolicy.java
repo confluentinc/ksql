@@ -13,33 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
-public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
+public class LongColumnTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
   private final ColumnRef timestampField;
-  @JsonProperty("format")
-  private final String format;
 
-  public StringTimestampExtractionPolicy(
-      @JsonProperty(value = "timestampField", required = true) final ColumnRef timestampField,
-      @JsonProperty(value = "format", required = true) final String format) {
+  public LongColumnTimestampExtractionPolicy(final ColumnRef timestampField) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
-    Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;
-    this.format = format;
   }
 
   @Override
-  public TimestampExtractor create(final int timestampColumnIndex) {
-    return new StringTimestampExtractor(format, timestampColumnIndex);
+  public TimestampExtractor create(final int columnIndex) {
+    return new LongTimestampExtractor(columnIndex);
   }
 
   @Override
@@ -49,7 +42,7 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
 
   @Override
   public int hashCode() {
-    return Objects.hash(timestampField, format);
+    return Objects.hash(timestampField);
   }
 
   @Override
@@ -57,12 +50,11 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
     if (this == other) {
       return true;
     }
-    if (!(other instanceof StringTimestampExtractionPolicy)) {
+    if (!(other instanceof LongColumnTimestampExtractionPolicy)) {
       return false;
     }
-    final StringTimestampExtractionPolicy otherPolicy
-        = (StringTimestampExtractionPolicy) other;
-    return Objects.equals(otherPolicy.timestampField, timestampField)
-        && Objects.equals(otherPolicy.format, format);
+    final LongColumnTimestampExtractionPolicy otherPolicy
+        = (LongColumnTimestampExtractionPolicy) other;
+    return Objects.equals(otherPolicy.timestampField, timestampField);
   }
 }

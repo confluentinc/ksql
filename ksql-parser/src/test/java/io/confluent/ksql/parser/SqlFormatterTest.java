@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -242,6 +243,31 @@ public class SqlFormatterTest {
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (`Foo` STRING, `Bar` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateTableStatementWithExplicitTimestamp() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .put(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("Foo"))
+            .put(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("%s"))
+            .build()
+    );
+    final CreateTable createTable = new CreateTable(
+        TEST,
+        ELEMENTS_WITH_KEY,
+        false,
+        props);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', "
+        + "TIMESTAMP='Foo', TIMESTAMP_FORMAT='%s', VALUE_FORMAT='JSON');"));
   }
 
   @Test

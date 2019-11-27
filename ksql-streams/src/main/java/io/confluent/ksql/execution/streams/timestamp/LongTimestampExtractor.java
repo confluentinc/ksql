@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

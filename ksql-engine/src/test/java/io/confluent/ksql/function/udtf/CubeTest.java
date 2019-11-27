@@ -30,25 +30,40 @@ public class CubeTest {
 
   @Test
   public void shouldCubeSingleColumn() {
-
+    // Given:
     Object[] args = {1};
+
+    // When:
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
+
+    // Then:
     assertThat(result.size(), is(2));
     assertThat(result.get(0), is(Collections.singletonList(null)));
     assertThat(result.get(1), is(Lists.newArrayList(1)));
+  }
 
+  @Test
+  public void shouldCubeSingleNullColumn() {
+    // Given:
     Object[] oneNull = {null};
-    result = cubeUdtf.cube(Arrays.asList(oneNull));
+
+    // When:
+    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
+
+    // Then:
     assertThat(result.size(), is(1));
     assertThat(result.get(0), is(Arrays.asList(new String[]{null})));
   }
 
   @Test
   public void shouldCubeColumnsWithDifferentTypes() {
-
+    // Given:
     Object[] args = {1, "foo"};
+
+    // When:
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
 
+    // Then:
     assertThat(result.size(), is(4));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
     assertThat(result.get(1), is(Arrays.asList(null, "foo")));
@@ -57,17 +72,30 @@ public class CubeTest {
   }
 
   @Test
-  public void shouldHandleNulls() {
-
+  public void shouldHandleOneNull() {
+    // Given:
     Object[] oneNull = {1, null};
+
+    // When:
     List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
+
+    // Then:
     assertThat(result.size(), is(2));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
     assertThat(result.get(1), is(Arrays.asList(1, null)));
+  }
 
+  @Test
+  public void shouldHandleAllNulls() {
+    // Given:
     Object[] allNull = {null, null};
-    result = cubeUdtf.cube(Arrays.asList(allNull));
+
+    // When:
+    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(allNull));
+
+    // Then:
     assertThat(result.size(), is(1));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
   }
+
 }

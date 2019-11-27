@@ -39,30 +39,36 @@ public class Cube {
   private <T> List<List<T>>  createAllCombinations(List<T> columns) {
 
     int combinations = 1 << columns.size();
-    // skipBitmask is a binary number representing the input. A set bit means that the input is not
-    // null in that index. This bitmask is used to skip duplicates when the input already contains
-    // a null field as that field should be "flipped" and should not count towards the actual
-    // combinations.
-    int skipBitmask = 0;
+    // when a column value is null there is only a single possibility for the output
+    // value [null] instead of two [null, original]. in order to avoid creating duplicate
+    // rows, we use nullMask: a binary number with set bits at non-null column
+    // indices (see comment below on usage)
+    int nullMask = 0;
     for (int i = 0; i < columns.size(); i++) {
-      int shift = columns.size() - 1 - i;
-      skipBitmask |=  columns.get(i) == null ? 0 << shift : 1 << shift;
+      if (columns.get(i) != null) {
+        nullMask |= 1 << (columns.size() - 1 - i);
+      }
     }
 
     List<List<T>> result = new ArrayList<>(combinations);
     // bitmask is a binary number where a set bit represents that the value at that index of input
-    // should be included - start with an empty bitmask (necessary for correctness)
-    for (int bitmask = 0; bitmask <= combinations - 1; bitmask++) {
-      // if the logical end result is greater or equal than the bitmask, we can safely skip because
-      // we know we saw before a value that was smaller than the bitmask. This holds because we
-      // start from an empty bitmask hence, for every index we first encounter a zero (smaller)
-      // and then a one (greater or equal).
-      if ((bitmask & skipBitmask) < bitmask) {
+    // should be included - (e.g. the bitmask 5 (101) represents that cols[2] and cols[0]
+    // should be set while cols[1] should be null).
+    // Start with an empty bitmask (necessary for correctness)
+    for (int bitMask = 0; bitMask <= combinations - 1; bitMask++) {
+      // canonicalBitMask represents which indices in the output
+      // row will be null after taking into consideration which values
+      // in columns were originally null
+      int canonicalBitMask = bitMask & nullMask;
+
+      if (canonicalBitMask != bitMask) {
+        // if the canonicalBitMask is not the same as bitMask, then this row is a logical
+        // duplicate of another row and we should not emit it
         continue;
       }
       List<T> row = new ArrayList<>(columns.size());
       for (int i = 0; i < columns.size(); i++) {
-        row.add(0, (bitmask & (1 << i)) == 0 ? null : columns.get(columns.size() -1 -i));
+        row.add(0, (bitMask & (1 << i)) == 0 ? null : columns.get(columns.size() - 1 - i));
       }
       result.add(row);
     }

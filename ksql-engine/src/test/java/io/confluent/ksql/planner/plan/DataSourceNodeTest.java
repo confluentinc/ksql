@@ -63,7 +63,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.TopologyDescription;
@@ -133,8 +132,6 @@ public class DataSourceNodeTest {
   @Mock
   private DataSource<?> dataSource;
   @Mock
-  private KsqlTopic ksqlTopic;
-  @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
   private KeySerde<String> keySerde;
@@ -167,13 +164,9 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 
-    when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
-    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
-    when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
     when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM

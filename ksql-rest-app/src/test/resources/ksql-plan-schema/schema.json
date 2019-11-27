@@ -696,32 +696,6 @@
       "title" : "streamTableJoinV1",
       "required" : [ "@type", "properties", "joinType", "formats", "left", "right" ]
     },
-    "StreamToTable" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "streamToTableV1" ],
-          "default" : "streamToTableV1"
-        },
-        "source" : {
-          "$ref" : "#/definitions/ExecutionStep"
-        },
-        "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
-        },
-        "properties" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/DefaultExecutionStepProperties"
-          } ]
-        }
-      },
-      "title" : "streamToTableV1",
-      "required" : [ "@type", "source", "formats", "properties" ]
-    },
     "StreamWindowedAggregate" : {
       "type" : "object",
       "additionalProperties" : false,
@@ -759,6 +733,84 @@
       },
       "title" : "streamWindowedAggregateV1",
       "required" : [ "@type", "properties", "source", "formats", "nonFuncColumnCount", "aggregations", "windowExpression" ]
+    },
+    "TableSource" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSourceV1" ],
+          "default" : "tableSourceV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
+        },
+        "offsetReset" : {
+          "type" : "string",
+          "enum" : [ "EARLIEST", "LATEST" ]
+        },
+        "sourceSchema" : {
+          "type" : "string"
+        },
+        "alias" : {
+          "type" : "string"
+        }
+      },
+      "title" : "tableSourceV1",
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
+    },
+    "WindowedTableSource" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "windowedTableSourceV1" ],
+          "default" : "windowedTableSourceV1"
+        },
+        "properties" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/DefaultExecutionStepProperties"
+          } ]
+        },
+        "topicName" : {
+          "type" : "string"
+        },
+        "formats" : {
+          "oneOf" : [ {
+            "$ref" : "#/definitions/FormatsV1"
+          } ]
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
+        },
+        "offsetReset" : {
+          "type" : "string",
+          "enum" : [ "EARLIEST", "LATEST" ]
+        },
+        "sourceSchema" : {
+          "type" : "string"
+        },
+        "alias" : {
+          "type" : "string"
+        }
+      },
+      "title" : "windowedTableSourceV1",
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
     },
     "TableAggregate" : {
       "type" : "object",
@@ -964,9 +1016,11 @@
       }, {
         "$ref" : "#/definitions/StreamTableJoin"
       }, {
-        "$ref" : "#/definitions/StreamToTable"
-      }, {
         "$ref" : "#/definitions/StreamWindowedAggregate"
+      }, {
+        "$ref" : "#/definitions/TableSource"
+      }, {
+        "$ref" : "#/definitions/WindowedTableSource"
       }, {
         "$ref" : "#/definitions/TableAggregate"
       }, {

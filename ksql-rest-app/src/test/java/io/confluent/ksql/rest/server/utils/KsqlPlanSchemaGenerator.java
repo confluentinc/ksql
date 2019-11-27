@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.rest.server.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
@@ -34,6 +36,8 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
@@ -136,6 +140,14 @@ public final class KsqlPlanSchemaGenerator {
   }
 
   public static void main(final String ...args) throws IOException {
-    MAPPER.writerWithDefaultPrettyPrinter().writeValue(System.out, generate());
+    System.out.print(getJsonText());
+  }
+
+  public static void generateTo(final Path schemaPath) throws IOException {
+    Files.write(schemaPath, getJsonText().getBytes(Charsets.UTF_8));
+  }
+
+  private static String getJsonText() throws JsonProcessingException {
+    return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(generate());
   }
 }

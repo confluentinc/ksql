@@ -43,7 +43,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -56,7 +55,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKSourceFactoryTest {
 
-  private static final int TIMESTAMP_INDEX = -1;
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(
       AutoOffsetReset.EARLIEST);
   private static final KeyField KEY_FIELD = KeyField.none();
@@ -87,8 +85,6 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private ValueFormat valueFormat;
   @Mock
-  private TimestampExtractionPolicy tsExtractorPolicy;
-  @Mock
   private FunctionRegistry functionRegistry;
 
   @Before
@@ -96,7 +92,6 @@ public class SchemaKSourceFactoryTest {
     when(dataSource.getSerdeOptions()).thenReturn(SERDE_OPTIONS);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
-    when(dataSource.getTimestampExtractionPolicy()).thenReturn(tsExtractorPolicy);
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);
     when(topic.getValueFormat()).thenReturn(valueFormat);
@@ -122,7 +117,6 @@ public class SchemaKSourceFactoryTest {
         dataSource,
         schemaWithStuff,
         contextStacker,
-        TIMESTAMP_INDEX,
         OFFSET_RESET,
         KEY_FIELD,
         ALIAS
@@ -149,7 +143,6 @@ public class SchemaKSourceFactoryTest {
         dataSource,
         schemaWithStuff,
         contextStacker,
-        TIMESTAMP_INDEX,
         OFFSET_RESET,
         KEY_FIELD,
         ALIAS
@@ -176,7 +169,6 @@ public class SchemaKSourceFactoryTest {
         dataSource,
         schemaWithStuff,
         contextStacker,
-        TIMESTAMP_INDEX,
         OFFSET_RESET,
         KEY_FIELD,
         ALIAS
@@ -203,7 +195,6 @@ public class SchemaKSourceFactoryTest {
         dataSource,
         schemaWithStuff,
         contextStacker,
-        TIMESTAMP_INDEX,
         OFFSET_RESET,
         KEY_FIELD,
         ALIAS

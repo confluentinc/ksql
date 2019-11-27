@@ -51,7 +51,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,7 +136,7 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 SerdeOption.none(),
                 KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
-                new MetadataTimestampExtractionPolicy(),
+                Optional.empty(),
                 false,
                 topic
             );
@@ -150,7 +149,7 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 SerdeOption.none(),
                 KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
-                new MetadataTimestampExtractionPolicy(),
+                Optional.empty(),
                 false,
                 topic
             );

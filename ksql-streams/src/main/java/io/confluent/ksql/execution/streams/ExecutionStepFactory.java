@@ -48,12 +48,12 @@ import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -73,8 +73,7 @@ public final class ExecutionStepFactory {
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
       final Formats formats,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
+      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
@@ -85,8 +84,7 @@ public final class ExecutionStepFactory {
             queryContext),
         topicName,
         formats,
-        timestampPolicy,
-        timestampIndex,
+        timestampColumn,
         offsetReset,
         schema.getOriginalSchema(),
         alias
@@ -98,8 +96,7 @@ public final class ExecutionStepFactory {
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
       final Formats formats,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
+      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
@@ -110,8 +107,7 @@ public final class ExecutionStepFactory {
             queryContext),
         topicName,
         formats,
-        timestampPolicy,
-        timestampIndex,
+        timestampColumn,
         offsetReset,
         schema.getOriginalSchema(),
         alias

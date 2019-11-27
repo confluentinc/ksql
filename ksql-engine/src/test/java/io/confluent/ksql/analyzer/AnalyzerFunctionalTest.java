@@ -67,7 +67,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -319,7 +318,7 @@ public class AnalyzerFunctionalTest {
         schema,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("FIELD1"))),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         ksqlTopic
     );
@@ -548,7 +547,7 @@ public class AnalyzerFunctionalTest {
         schema,
         SerdeOption.none(),
         KeyField.none(),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         topic
     );

@@ -25,7 +25,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -97,7 +97,7 @@ public class StructuredDataSourceTest {
           SourceName.of("some name"),
           schema,
           SerdeOption.none(), keyField,
-          mock(TimestampExtractionPolicy.class),
+          Optional.empty(),
           DataSourceType.KSTREAM,
           false,
           mock(KsqlTopic.class)

@@ -68,7 +68,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Arrays;
@@ -883,7 +882,7 @@ public class InsertValuesExecutorTest {
           schema,
           serdeOptions,
           valueKeyField,
-          new MetadataTimestampExtractionPolicy(),
+          Optional.empty(),
           false,
           topic
       );
@@ -894,7 +893,7 @@ public class InsertValuesExecutorTest {
           schema,
           serdeOptions,
           valueKeyField,
-          new MetadataTimestampExtractionPolicy(),
+          Optional.empty(),
           false,
           topic
       );

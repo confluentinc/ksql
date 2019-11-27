@@ -12,6 +12,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -27,7 +28,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.MatcherAssert;
@@ -59,7 +59,7 @@ public class DdlCommandExecTest {
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Mock
-  private TimestampExtractionPolicy timestampExtractionPolicy;
+  private TimestampColumn timestampColumn;
   @Mock
   private KsqlStream source;
 
@@ -242,7 +242,7 @@ public class DdlCommandExecTest {
         STREAM_NAME,
         SCHEMA,
         keyField.map(ColumnName::of),
-        timestampExtractionPolicy,
+        Optional.of(timestampColumn),
         serdeOptions,
         new KsqlTopic(
             "topic",
@@ -257,7 +257,7 @@ public class DdlCommandExecTest {
         TABLE_NAME,
         SCHEMA,
         keyField.map(ColumnName::of),
-        timestampExtractionPolicy,
+        Optional.of(timestampColumn),
         serdeOptions,
         new KsqlTopic(
             TOPIC_NAME,

@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +31,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final SourceName sourceName;
   private final LogicalSchema schema;
   private final Optional<ColumnName> keyField;
-  private final TimestampExtractionPolicy timestampExtractionPolicy;
+  private final Optional<TimestampColumn> timestampColumn;
   private final Set<SerdeOption> serdeOptions;
   private final KsqlTopic topic;
 
@@ -39,7 +39,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final SourceName sourceName,
       final LogicalSchema schema,
       final Optional<ColumnName> keyField,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Optional<TimestampColumn> timestampColumn,
       final Set<SerdeOption> serdeOptions,
       final KsqlTopic ksqlTopic
   ) {
@@ -47,8 +47,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.topic = Objects.requireNonNull(ksqlTopic, "topic");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
-    this.timestampExtractionPolicy =
-        Objects.requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy");
+    this.timestampColumn =
+        Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
   }
 
@@ -68,8 +68,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return schema;
   }
 
-  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return timestampExtractionPolicy;
+  public Optional<TimestampColumn> getTimestampColumn() {
+    return timestampColumn;
   }
 
   public Optional<ColumnName> getKeyField() {

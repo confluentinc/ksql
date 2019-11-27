@@ -47,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -58,6 +59,7 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -90,7 +92,7 @@ public class CreateSourceFactoryTest {
   private static final TableElement ELEMENT1 =
       tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
   private static final TableElement ELEMENT2 =
-      tableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING));
+      tableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.BIGINT));
   private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
   private static final TableElements TWO_ELEMENTS = TableElements.of(ELEMENT1, ELEMENT2);
   private static final String TOPIC_NAME = "some topic";
@@ -449,6 +451,83 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
+  public void shouldBuildTimestampColumnForStream() {
+    // Given:
+    givenProperty(
+        CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
+        new StringLiteral(quote(ELEMENT2.getName().name()))
+    );
+    final CreateStream statement =
+        new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
+        statement,
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(
+        cmd.getTimestampColumn(),
+        is(Optional.of(
+            new TimestampColumn(ColumnRef.withoutSource(ELEMENT2.getName()), Optional.empty()))
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildTimestampColumnForTable() {
+    // Given:
+    givenProperty(
+        CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
+        new StringLiteral(quote(ELEMENT2.getName().name()))
+    );
+    final CreateTable statement =
+        new CreateTable(SOME_NAME, TWO_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateTableCommand cmd = createSourceFactory.createTableCommand(
+        statement,
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(
+        cmd.getTimestampColumn(),
+        is(Optional.of(
+            new TimestampColumn(ColumnRef.withoutSource(ELEMENT2.getName()), Optional.empty()))
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildTimestampColumnWithFormat() {
+    // Given:
+    givenProperties(ImmutableMap.of(
+        CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
+        new StringLiteral(quote(ELEMENT1.getName().name())),
+        CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY,
+        new StringLiteral("%s")
+    ));
+    final CreateStream statement =
+        new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
+        statement,
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(
+        cmd.getTimestampColumn(),
+        is(Optional.of(
+            new TimestampColumn(ColumnRef.withoutSource(ELEMENT1.getName()), Optional.of("%s")))
+        )
+    );
+  }
+
+  @Test
   public void shouldBuildSchemaWithImplicitKeyFieldForStream() {
     // Given:
     final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
@@ -463,7 +542,7 @@ public class CreateSourceFactoryTest {
     assertThat(result.getSchema(), is(LogicalSchema.builder()
         .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -492,7 +571,7 @@ public class CreateSourceFactoryTest {
     assertThat(result.getSchema(), is(LogicalSchema.builder()
         .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -504,7 +583,7 @@ public class CreateSourceFactoryTest {
     final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -746,5 +825,9 @@ public class CreateSourceFactoryTest {
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;
+  }
+
+  private String quote(final String identifier) {
+    return String.format("`%s`", identifier);
   }
 }

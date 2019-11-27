@@ -147,7 +147,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
@@ -2167,7 +2166,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField.of(schema.value().get(0).ref()),
-              new MetadataTimestampExtractionPolicy(),
+              Optional.empty(),
               false,
               ksqlTopic
           ));
@@ -2180,7 +2179,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField.of(schema.value().get(0).ref()),
-              new MetadataTimestampExtractionPolicy(),
+              Optional.empty(),
               false,
               ksqlTopic
           ));

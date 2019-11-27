@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
+import io.confluent.ksql.execution.streams.ConsumedFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
@@ -196,7 +197,8 @@ public class SchemaKTableTest {
             groupedFactory,
             mock(JoinedFactory.class),
             mock(MaterializedFactory.class),
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }

@@ -149,13 +149,21 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
-    return SourceBuilder.buildStream(queryBuilder, streamSource);
+    return SourceBuilder.buildStream(
+        queryBuilder,
+        streamSource,
+        streamsFactories.getConsumedFactory()
+    );
   }
 
   @Override
   public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource) {
-    return SourceBuilder.buildWindowedStream(queryBuilder, windowedStreamSource);
+    return SourceBuilder.buildWindowedStream(
+        queryBuilder,
+        windowedStreamSource,
+        streamsFactories.getConsumedFactory()
+    );
   }
 
   @Override
@@ -189,6 +197,7 @@ public final class KSPlanBuilder implements PlanBuilder {
     return SourceBuilder.buildTable(
         queryBuilder,
         tableSource,
+        streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory()
     );
   }
@@ -200,6 +209,7 @@ public final class KSPlanBuilder implements PlanBuilder {
     return SourceBuilder.buildWindowedTable(
         queryBuilder,
         windowedTableSource,
+        streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory()
     );
   }

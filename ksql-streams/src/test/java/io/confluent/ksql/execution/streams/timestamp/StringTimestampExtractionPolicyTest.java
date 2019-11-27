@@ -13,21 +13,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.junit.Test;
 
-public class LongColumnTimestampExtractionPolicyTest {
+public class StringTimestampExtractionPolicyTest {
   @Test
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()
         .addEqualityGroup(
-            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))),
-            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))))
-        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field2"))))
+            new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "yyMMddHHmmssZ"),
+            new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "yyMMddHHmmssZ"))
+        .addEqualityGroup(new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field2")), "yyMMddHHmmssZ"))
+        .addEqualityGroup(new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "ddMMyyHHmmssZ"))
         .testEquals();
   }
 }

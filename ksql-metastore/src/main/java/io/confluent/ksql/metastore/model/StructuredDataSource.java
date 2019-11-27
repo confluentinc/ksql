@@ -20,12 +20,13 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
 import java.util.Set;
 
 @Immutable
@@ -35,7 +36,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   private final DataSourceType dataSourceType;
   private final LogicalSchema schema;
   private final KeyField keyField;
-  private final TimestampExtractionPolicy timestampExtractionPolicy;
+  private final Optional<TimestampColumn> timestampColumn;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
   private final ImmutableSet<SerdeOption> serdeOptions;
@@ -47,7 +48,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
-      final TimestampExtractionPolicy tsExtractionPolicy,
+      final Optional<TimestampColumn> tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final boolean casTarget,
       final KsqlTopic ksqlTopic
@@ -57,7 +58,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.schema = requireNonNull(schema, "schema");
     this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
-    this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
+    this.timestampColumn = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
@@ -104,9 +105,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     return casTarget;
   }
 
-  @Override
-  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return timestampExtractionPolicy;
+  public Optional<TimestampColumn> getTimestampColumn() {
+    return timestampColumn;
   }
 
   @Override

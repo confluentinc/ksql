@@ -44,7 +44,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -144,7 +143,7 @@ public class KsqlStructuredDataOutputNodeTest {
         new PlanNodeId("0"),
         sourceNode,
         SCHEMA,
-        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
+        Optional.empty(),
         KeyField.none(),
         ksqlTopic,
         Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
@@ -161,7 +160,7 @@ public class KsqlStructuredDataOutputNodeTest {
         new PlanNodeId("0"),
         sourceNode,
         SCHEMA,
-        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
+        Optional.empty(),
         KeyField.of(Optional.of(ColumnRef.withoutSource(ColumnName.of("something else")))),
         ksqlTopic,
         Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
@@ -328,7 +327,7 @@ public class KsqlStructuredDataOutputNodeTest {
         PLAN_NODE_ID,
         sourceNode,
         schema,
-        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
+        Optional.empty(),
         KEY_FIELD,
         ksqlTopic,
         partitionBy,

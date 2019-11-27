@@ -16,9 +16,9 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -31,11 +31,8 @@ public final class WindowedTableSource
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) Formats formats,
-      @JsonProperty(value = "timestampPolicy", required = true)
-          TimestampExtractionPolicy timestampPolicy,
-      @JsonProperty(value = "timestampIndex", required = true) int timestampIndex,
-      @JsonProperty(value = "offsetReset", required = true)
-          Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
       @JsonProperty(value = "alias", required = true) SourceName alias
   ) {
@@ -43,8 +40,7 @@ public final class WindowedTableSource
         properties,
         topicName,
         formats,
-        timestampPolicy,
-        timestampIndex,
+        timestampColumn,
         offsetReset,
         sourceSchema,
         alias

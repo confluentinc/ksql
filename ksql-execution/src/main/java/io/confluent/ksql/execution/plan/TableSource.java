@@ -17,9 +17,9 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -31,11 +31,8 @@ public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>
       @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "timestampPolicy", required = true)
-          final TimestampExtractionPolicy timestampPolicy,
-      @JsonProperty(value = "timestampIndex", required = true) final int timestampIndex,
-      @JsonProperty(value = "offsetReset", required = true)
-          final Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
       @JsonProperty(value = "alias", required = true) final SourceName alias
   ) {
@@ -43,8 +40,7 @@ public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>
         properties,
         topicName,
         formats,
-        timestampPolicy,
-        timestampIndex,
+        timestampColumn,
         offsetReset,
         sourceSchema,
         alias

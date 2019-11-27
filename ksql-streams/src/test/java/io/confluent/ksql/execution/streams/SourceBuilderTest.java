@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -28,6 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -59,11 +60,11 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
@@ -112,10 +113,16 @@ public class SourceBuilderTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
+  private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
+      new TimestampColumn(
+          ColumnRef.withoutSource(ColumnName.of("field2")),
+          Optional.empty()
+      )
+  );
+
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
   private static final String TOPIC_NAME = "topic";
-  private static final int TIMESTAMP_IDX = 1;
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
@@ -139,15 +146,19 @@ public class SourceBuilderTest {
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private KeySerde keySerde;
+  private KeySerde<Struct> keySerde;
   @Mock
-  private TimestampExtractionPolicy extractionPolicy;
-  @Mock
-  private TimestampExtractor extractor;
+  private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Mock
   private ProcessorContext processorCtx;
   @Mock
+  private ConsumedFactory consumedFactory;
+  @Mock
   private StreamsFactories streamsFactories;
+  @Mock
+  private Consumed<Struct, GenericRow> consumed;
+  @Mock
+  private Consumed<Windowed<Struct>, GenericRow> consumedWindowed;
   @Mock
   private MaterializedFactory materializationFactory;
   @Mock
@@ -155,7 +166,7 @@ public class SourceBuilderTest {
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
   @Captor
-  private ArgumentCaptor<Consumed<Object, GenericRow>> consumedCaptor;
+  private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
   private Optional<AutoOffsetReset> offsetReset = Optional.of(AutoOffsetReset.EARLIEST);
   private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
   private PlanBuilder planBuilder;
@@ -174,9 +185,6 @@ public class SourceBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    when(extractionPolicy.create(anyInt())).thenReturn(extractor);
-    when(extractionPolicy.getTimestampField())
-        .thenReturn(ColumnRef.withoutSource(ColumnName.of("field2")));
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
@@ -190,6 +198,7 @@ public class SourceBuilderTest {
     when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
     when(processorCtx.timestamp()).thenReturn(456L);
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
@@ -214,15 +223,29 @@ public class SourceBuilderTest {
     // Then:
     assertThat(builtKstream.getStream(), is(kStream));
     final InOrder validator = inOrder(streamsBuilder, kStream);
-    validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), consumedCaptor.capture());
+    validator.verify(streamsBuilder).stream(TOPIC_NAME, consumed);
     validator.verify(kStream, never()).mapValues(any(ValueMapper.class));
     validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
-    final Consumed consumed = consumedCaptor.getValue();
-    final Consumed expected = Consumed
-        .with(keySerde, valueSerde)
-        .withTimestampExtractor(extractor)
-        .withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
-    assertThat(consumed, equalTo(expected));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildStreamWithCorrectTimestampExtractor() {
+    // Given:
+    givenUnwindowedSourceStream();
+    final ConsumerRecord<Object, Object> record = mock(ConsumerRecord.class);
+    when(record.value()).thenReturn(new GenericRow("123", 456L));
+
+    // When:
+    streamSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withTimestampExtractor(timestampExtractorCaptor.capture());
+    final TimestampExtractor extractor = timestampExtractorCaptor.getValue();
+    assertThat(extractor.extract(record, 789), is(456L));
   }
 
   @Test
@@ -237,16 +260,12 @@ public class SourceBuilderTest {
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
     final InOrder validator = inOrder(streamsBuilder, kTable);
-    validator.verify(streamsBuilder)
-        .table(eq(TOPIC_NAME), consumedCaptor.capture(), eq(materialized));
+    validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed), any());
     validator.verify(kTable, never()).mapValues(any(ValueMapper.class));
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
-    final Consumed consumed = consumedCaptor.getValue();
-    final Consumed expected = Consumed
-        .with(keySerde, valueSerde)
-        .withTimestampExtractor(extractor)
-        .withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
-    assertThat(consumed, equalTo(expected));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
   }
 
   @Test
@@ -274,7 +293,6 @@ public class SourceBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldNotBuildWithOffsetResetIfNotProvided() {
     // Given:
     offsetReset = Optional.empty();
@@ -283,15 +301,10 @@ public class SourceBuilderTest {
     // When
     streamSource.build(planBuilder);
 
-    verify(streamsBuilder).stream(anyString(), consumedCaptor.capture());
-    final Consumed consumed = consumedCaptor.getValue();
-    assertThat(
-        consumed,
-        equalTo(
-            Consumed.with(keySerde, valueSerde)
-                .withTimestampExtractor(extractor)
-        )
-    );
+    // Then:
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verifyNoMoreInteractions(consumed, consumedFactory);
   }
 
   @Test
@@ -350,12 +363,12 @@ public class SourceBuilderTest {
   @Test
   public void shouldThrowOnMultiFieldKey() {
     // Given:
+    givenUnwindowedSourceStream();
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        extractionPolicy,
-        TIMESTAMP_IDX,
+        Optional.empty(),
         offsetReset,
         LogicalSchema.builder()
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
@@ -595,12 +608,13 @@ public class SourceBuilderTest {
   private void givenWindowedSourceStream() {
     when(keyFormat.isWindowed()).thenReturn(true);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
+    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        extractionPolicy,
-        TIMESTAMP_IDX,
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS
@@ -609,12 +623,13 @@ public class SourceBuilderTest {
 
   private void givenUnwindowedSourceStream() {
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        extractionPolicy,
-        TIMESTAMP_IDX,
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS
@@ -624,12 +639,13 @@ public class SourceBuilderTest {
   private void givenWindowedSourceTable() {
     when(keyFormat.isWindowed()).thenReturn(true);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
+    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        extractionPolicy,
-        TIMESTAMP_IDX,
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS
@@ -638,15 +654,22 @@ public class SourceBuilderTest {
 
   private void givenUnwindowedSourceTable() {
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        extractionPolicy,
-        TIMESTAMP_IDX,
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );
+  }
+
+  private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
+    when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
+    when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
+    when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
   }
 }

@@ -180,7 +180,8 @@ public class TableAggregateBuilderTest {
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
             materializedFactory,
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }

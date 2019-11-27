@@ -49,7 +49,6 @@ public final class SchemaKSourceFactory {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final QueryContext.Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -63,7 +62,6 @@ public final class SchemaKSourceFactory {
             dataSource,
             schemaWithMetaAndKeyFields,
             contextStacker,
-            timestampIndex,
             offsetReset,
             keyField,
             alias
@@ -72,7 +70,6 @@ public final class SchemaKSourceFactory {
             dataSource,
             schemaWithMetaAndKeyFields,
             contextStacker,
-            timestampIndex,
             offsetReset,
             keyField,
             alias
@@ -85,7 +82,6 @@ public final class SchemaKSourceFactory {
             dataSource,
             schemaWithMetaAndKeyFields,
             contextStacker,
-            timestampIndex,
             offsetReset,
             keyField,
             alias
@@ -94,7 +90,6 @@ public final class SchemaKSourceFactory {
             dataSource,
             schemaWithMetaAndKeyFields,
             contextStacker,
-            timestampIndex,
             offsetReset,
             keyField,
             alias
@@ -110,7 +105,6 @@ public final class SchemaKSourceFactory {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -120,8 +114,7 @@ public final class SchemaKSourceFactory {
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampExtractionPolicy(),
-        timestampIndex,
+        dataSource.getTimestampColumn(),
         offsetReset,
         alias
     );
@@ -139,7 +132,6 @@ public final class SchemaKSourceFactory {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -149,8 +141,7 @@ public final class SchemaKSourceFactory {
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampExtractionPolicy(),
-        timestampIndex,
+        dataSource.getTimestampColumn(),
         offsetReset,
         alias
     );
@@ -168,7 +159,6 @@ public final class SchemaKSourceFactory {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -178,8 +168,7 @@ public final class SchemaKSourceFactory {
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampExtractionPolicy(),
-        timestampIndex,
+        dataSource.getTimestampColumn(),
         offsetReset,
         alias
     );
@@ -197,7 +186,6 @@ public final class SchemaKSourceFactory {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -207,8 +195,7 @@ public final class SchemaKSourceFactory {
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampExtractionPolicy(),
-        timestampIndex,
+        dataSource.getTimestampColumn(),
         offsetReset,
         alias
     );

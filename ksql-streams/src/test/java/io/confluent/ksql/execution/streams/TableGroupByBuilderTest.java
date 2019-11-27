@@ -153,7 +153,8 @@ public class TableGroupByBuilderTest {
             groupedFactory,
             mock(JoinedFactory.class),
             mock(MaterializedFactory.class),
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }

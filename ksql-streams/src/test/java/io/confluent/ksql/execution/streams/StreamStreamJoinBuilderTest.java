@@ -140,7 +140,8 @@ public class StreamStreamJoinBuilderTest {
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
             mock(MaterializedFactory.class),
-            streamJoinedFactory
+            streamJoinedFactory,
+            mock(ConsumedFactory.class)
         )
     );
   }

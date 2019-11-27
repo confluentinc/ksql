@@ -28,6 +28,7 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
@@ -51,7 +52,6 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -302,7 +302,7 @@ public class RecoveryTest {
     final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
-    final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
+    final Matcher<Optional<TimestampColumn>> extractionColumnMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
     StructuredDataSourceMatcher(final DataSource<?> source) {
@@ -311,7 +311,7 @@ public class RecoveryTest {
       this.nameMatcher = equalTo(source.getName());
       this.schemaMatcher = equalTo(source.getSchema());
       this.sqlMatcher = equalTo(source.getSqlExpression());
-      this.extractionPolicyMatcher = equalTo(source.getTimestampExtractionPolicy());
+      this.extractionColumnMatcher = equalTo(source.getTimestampColumn());
       this.topicMatcher = sameTopic(source.getKsqlTopic());
     }
 
@@ -324,7 +324,7 @@ public class RecoveryTest {
               typeMatcher,
               schemaMatcher,
               sqlMatcher,
-              extractionPolicyMatcher,
+              extractionColumnMatcher,
               topicMatcher)
       );
     }
@@ -362,8 +362,8 @@ public class RecoveryTest {
         return false;
       }
       if (!test(
-          extractionPolicyMatcher,
-          other.getTimestampExtractionPolicy(),
+          extractionColumnMatcher,
+          other.getTimestampColumn(),
           description,
           "timestamp extraction policy mismatch")) {
         return false;

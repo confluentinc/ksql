@@ -121,10 +121,6 @@ public class StreamSourceBuilderTest {
   @Mock
   private WindowInfo windowInfo;
   @Mock
-  private KeyFormat keyFormat;
-  @Mock
-  private ValueFormat valueFormat;
-  @Mock
   private FormatInfo valueFormatInfo;
   @Mock
   private Serde<GenericRow> valueSerde;
@@ -142,8 +138,6 @@ public class StreamSourceBuilderTest {
   private Consumed<Struct, GenericRow> consumed;
   @Mock
   private Consumed<Windowed<Struct>, GenericRow> consumedWindowed;
-  @Captor
-  private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> mapperCaptor;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
   @Captor
@@ -170,9 +164,7 @@ public class StreamSourceBuilderTest {
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
-    when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
     when(processorCtx.timestamp()).thenReturn(456L);
-    when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
 
     planBuilder = new KSPlanBuilder(
@@ -298,8 +290,8 @@ public class StreamSourceBuilderTest {
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
-        Optional.empty(),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Optional.empty(), 
         offsetReset,
         LogicalSchema.builder()
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
@@ -429,7 +421,7 @@ public class StreamSourceBuilderTest {
 
     // Then:
     reset(queryBuilder);
-    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
     verify(queryBuilder).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
   }
 
@@ -443,7 +435,7 @@ public class StreamSourceBuilderTest {
 
     // Then:
     reset(queryBuilder);
-    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
     verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 
@@ -460,14 +452,13 @@ public class StreamSourceBuilderTest {
   }
 
   private void givenWindowedSource() {
-    when(keyFormat.isWindowed()).thenReturn(true);
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        windowInfo,
         Optional.of(
             new TimestampColumn(
                 ColumnRef.withoutSource(ColumnName.of("field2")),
@@ -481,13 +472,12 @@ public class StreamSourceBuilderTest {
   }
 
   private void givenUnwindowedSource() {
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         Optional.of(
             new TimestampColumn(
                 ColumnRef.withoutSource(ColumnName.of("field2")),

@@ -17,10 +17,10 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import java.util.Objects;
 
 @Immutable
 public class KsqlTopic {
@@ -28,11 +28,7 @@ public class KsqlTopic {
   private final KeyFormat keyFormat;
   private final ValueFormat valueFormat;
 
-  public KsqlTopic(
-      @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
-      @JsonProperty(value = "keyFormat", required = true) KeyFormat keyFormat,
-      @JsonProperty(value = "valueFormat", required = true) ValueFormat valueFormat
-  ) {
+  public KsqlTopic(String kafkaTopicName, KeyFormat keyFormat, ValueFormat valueFormat) {
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = requireNonNull(valueFormat, "valueFormat");
@@ -48,5 +44,24 @@ public class KsqlTopic {
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final KsqlTopic ksqlTopic = (KsqlTopic) o;
+    return Objects.equals(kafkaTopicName, ksqlTopic.kafkaTopicName)
+        && Objects.equals(keyFormat, ksqlTopic.keyFormat)
+        && Objects.equals(valueFormat, ksqlTopic.valueFormat);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(kafkaTopicName, keyFormat, valueFormat);
   }
 }

@@ -106,8 +106,8 @@ public class TableAggregateBuilderTest {
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
 
   @Mock
   private KGroupedTable<Struct, GenericRow> groupedTable;
@@ -232,7 +232,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT.getFormatInfo(), PHYSICAL_AGGREGATE_SCHEMA, CTX);
+    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
   }
 
   @Test
@@ -242,7 +242,7 @@ public class TableAggregateBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        VALUE_FORMAT.getFormatInfo(),
+        VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
         CTX
     );

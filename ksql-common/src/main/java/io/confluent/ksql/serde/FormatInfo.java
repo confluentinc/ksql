@@ -28,7 +28,7 @@ import java.util.Optional;
 @Immutable
 public final class FormatInfo {
   private final Format format;
-  private final Optional<String> avroFullSchemaName;
+  private final Optional<String> fullSchemaName;
   private final Optional<Delimiter> delimiter;
 
   public static FormatInfo of(final Format format) {
@@ -39,25 +39,25 @@ public final class FormatInfo {
   public static FormatInfo of(
       @JsonProperty(value = "format", required = true)
       final Format format,
-      @JsonProperty("avroSchemaFullName") final Optional<String> avroFullSchemaName,
+      @JsonProperty("fullSchemaName") final Optional<String> fullSchemaName,
       @JsonProperty("delimiter") final Optional<Delimiter> valueDelimiter) {
-    return new FormatInfo(format, avroFullSchemaName, valueDelimiter);
+    return new FormatInfo(format, fullSchemaName, valueDelimiter);
   }
 
   private FormatInfo(
       final Format format,
-      final Optional<String> avroFullSchemaName,
+      final Optional<String> fullSchemaName,
       final Optional<Delimiter> delimiter
   ) {
     this.format = Objects.requireNonNull(format, "format");
-    this.avroFullSchemaName = Objects.requireNonNull(avroFullSchemaName, "avroFullSchemaName");
+    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName");
 
-    if (format != Format.AVRO && avroFullSchemaName.isPresent()) {
+    if (format != Format.AVRO && fullSchemaName.isPresent()) {
       throw new KsqlException("Full schema name only supported with AVRO format");
     }
 
     if (format == Format.AVRO
-        && avroFullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
+        && fullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
       throw new KsqlException("Schema name cannot be empty");
     }
 
@@ -73,8 +73,8 @@ public final class FormatInfo {
     return format;
   }
 
-  public Optional<String> getAvroFullSchemaName() {
-    return avroFullSchemaName;
+  public Optional<String> getFullSchemaName() {
+    return fullSchemaName;
   }
 
   public Optional<Delimiter> getDelimiter() {
@@ -91,20 +91,20 @@ public final class FormatInfo {
     }
     final FormatInfo that = (FormatInfo) o;
     return format == that.format
-        && Objects.equals(avroFullSchemaName, that.avroFullSchemaName)
+        && Objects.equals(fullSchemaName, that.fullSchemaName)
         && Objects.equals(delimiter, that.delimiter);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, avroFullSchemaName, delimiter);
+    return Objects.hash(format, fullSchemaName, delimiter);
   }
 
   @Override
   public String toString() {
     return "FormatInfo{"
         + "format=" + format
-        + ", avroFullSchemaName=" + avroFullSchemaName
+        + ", fullSchemaName=" + fullSchemaName
         + ", delimiter=" + delimiter
         + '}';
   }

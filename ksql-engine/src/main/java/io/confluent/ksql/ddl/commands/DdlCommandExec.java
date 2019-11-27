@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -31,6 +33,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -70,11 +74,11 @@ public class DdlCommandExec {
           sql,
           createStream.getSourceName(),
           createStream.getSchema(),
-          createStream.getSerdeOptions(),
+          createStream.getFormats().getOptions(),
           getKeyField(createStream.getKeyField()),
           createStream.getTimestampColumn(),
           withQuery,
-          createStream.getTopic()
+          getKsqlTopic(createStream)
       );
       metaStore.putSource(ksqlStream);
       return new DdlCommandResult(true, "Stream created");
@@ -86,11 +90,11 @@ public class DdlCommandExec {
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
-          createTable.getSerdeOptions(),
+          createTable.getFormats().getOptions(),
           getKeyField(createTable.getKeyField()),
           createTable.getTimestampColumn(),
           withQuery,
-          createTable.getTopic()
+          getKsqlTopic(createTable)
       );
       metaStore.putSource(ksqlTable);
       return new DdlCommandResult(true, "Table created");
@@ -133,5 +137,13 @@ public class DdlCommandExec {
     return keyFieldName
         .map(columnName -> KeyField.of(ColumnRef.withoutSource(columnName)))
         .orElseGet(KeyField::none);
+  }
+
+  private static KsqlTopic getKsqlTopic(final CreateSourceCommand createSource) {
+    return new KsqlTopic(
+        createSource.getKafkaTopicName(),
+        KeyFormat.of(createSource.getFormats().getKeyFormat(), createSource.getWindowInfo()),
+        ValueFormat.of(createSource.getFormats().getValueFormat())
+    );
   }
 }

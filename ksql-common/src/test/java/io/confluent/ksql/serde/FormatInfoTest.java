@@ -116,10 +116,10 @@ public class FormatInfoTest {
 
   @Test
   public void shouldGetAvroSchemaName() {
-    assertThat(FormatInfo.of(AVRO, Optional.of("Something"), Optional.empty()).getAvroFullSchemaName(),
+    assertThat(FormatInfo.of(AVRO, Optional.of("Something"), Optional.empty()).getFullSchemaName(),
         is(Optional.of("Something")));
 
-    assertThat(FormatInfo.of(AVRO, Optional.empty(), Optional.empty()).getAvroFullSchemaName(),
+    assertThat(FormatInfo.of(AVRO, Optional.empty(), Optional.empty()).getFullSchemaName(),
         is(Optional.empty()));
   }
 

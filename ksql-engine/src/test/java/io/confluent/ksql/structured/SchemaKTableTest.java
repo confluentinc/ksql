@@ -185,9 +185,7 @@ public class SchemaKTableTest {
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
     joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
 
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     planBuilder = new KSPlanBuilder(
         queryBuilder,

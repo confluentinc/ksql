@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -22,6 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
 
+@Immutable
 public final class KTableHolder<K> {
   private final KTable<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
@@ -55,7 +57,12 @@ public final class KTableHolder<K> {
       final KeySerdeFactory<K> keySerdeFactory,
       final MaterializationInfo.Builder materializationBuilder
   ) {
-    return new KTableHolder<>(stream, schema, keySerdeFactory, Optional.of(materializationBuilder));
+    return new KTableHolder<>(
+        stream,
+        schema,
+        keySerdeFactory,
+        Optional.of(materializationBuilder)
+    );
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {

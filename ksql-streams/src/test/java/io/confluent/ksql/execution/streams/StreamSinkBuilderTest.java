@@ -72,8 +72,8 @@ public class StreamSinkBuilderTest {
       .withMetaAndKeyColsInValue();
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -154,7 +154,7 @@ public class StreamSinkBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        VALUE_FORMAT.getFormatInfo(),
+        VALUE_FORMAT,
         PHYSICAL_SCHEMA,
         queryContext
     );

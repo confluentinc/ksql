@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -37,23 +37,23 @@ public final class AvroUtil {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig
   ) {
-    final KsqlTopic topic = ddl.getTopic();
-    final FormatInfo format = topic.getValueFormat().getFormatInfo();
+    final Formats formats = ddl.getFormats();
+    final FormatInfo format = formats.getValueFormat();
     if (format.getFormat() != Format.AVRO) {
       return;
     }
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         ddl.getSchema(),
-        ddl.getSerdeOptions()
+        formats.getOptions()
     );
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
-        format.getAvroFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+        format.getFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
         ksqlConfig
     );
 
-    final String topicName = topic.getKafkaTopicName();
+    final String topicName = ddl.getKafkaTopicName();
 
     if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
       throw new KsqlStatementException(String.format(

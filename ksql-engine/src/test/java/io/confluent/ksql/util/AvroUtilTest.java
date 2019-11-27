@@ -30,6 +30,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,6 +43,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
@@ -100,10 +102,12 @@ public class AvroUtilTest {
 
   private static final String SCHEMA_NAME = "schema_name";
 
-  private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
-      "actual-name",
+  private static final String RESULT_TOPIC_NAME = "actual-name";
+
+  private static final Formats FORMATS = Formats.of(
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty()))
+      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
+      SerdeOption.none()
   );
 
   @Rule
@@ -118,9 +122,9 @@ public class AvroUtilTest {
 
   @Before
   public void setUp() {
-    when(ddlCommand.getSerdeOptions()).thenReturn(SerdeOption.none());
+    when(ddlCommand.getFormats()).thenReturn(FORMATS);
     when(ddlCommand.getSchema()).thenReturn(MUTLI_FIELD_SCHEMA);
-    when(ddlCommand.getTopic()).thenReturn(RESULT_TOPIC);
+    when(ddlCommand.getKafkaTopicName()).thenReturn(RESULT_TOPIC_NAME);
   }
 
   @Test
@@ -132,7 +136,7 @@ public class AvroUtilTest {
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
 
     // Then:
-    verify(srClient).testCompatibility(eq(RESULT_TOPIC.getKafkaTopicName() + "-value"), any());
+    verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any());
   }
 
   @Test
@@ -193,8 +197,12 @@ public class AvroUtilTest {
   public void shouldValidateUnwrappedSingleFieldSchemaEvolution() throws Exception {
     // Given:
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
-    when(ddlCommand.getSerdeOptions())
-        .thenReturn(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+    when(ddlCommand.getFormats())
+        .thenReturn(Formats.of(
+            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+            ValueFormat.of(FormatInfo.of(Format.AVRO)),
+            ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+        ));
     final PhysicalSchema schema = PhysicalSchema
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
@@ -252,7 +260,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not connect to Schema Registry service");
     expectedException.expectMessage(containsString(String.format(
         "Not authorized to access Schema Registry subject: [%s]",
-        ddlCommand.getTopic().getKafkaTopicName()
+        ddlCommand.getKafkaTopicName()
             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
     )));
 

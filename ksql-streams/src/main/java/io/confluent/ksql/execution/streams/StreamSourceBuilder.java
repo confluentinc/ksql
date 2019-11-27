@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
@@ -27,8 +28,8 @@ import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFa
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.Function;
@@ -53,17 +54,12 @@ public final class StreamSourceBuilder {
       final StreamSource streamSource,
       final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    if (keyFormat.getWindowInfo().isPresent()) {
-      throw new IllegalArgumentException("Windowed source");
-    }
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
 
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        keyFormat.getFormatInfo(),
+        streamSource.getFormats().getKeyFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -89,7 +85,7 @@ public final class StreamSourceBuilder {
             .getSourceSchema()
             .withAlias(streamSource.getAlias())
             .withMetaAndKeyColsInValue(),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+        KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
@@ -98,18 +94,14 @@ public final class StreamSourceBuilder {
       final WindowedStreamSource streamSource,
       final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    if (!keyFormat.getWindowInfo().isPresent()) {
-      throw new IllegalArgumentException("Not windowed source");
-    }
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
 
+    final WindowInfo windowInfo = streamSource.getWindowInfo();
     final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
-        keyFormat.getFormatInfo(),
-        keyFormat.getWindowInfo().get(),
+        streamSource.getFormats().getKeyFormat(),
+        windowInfo,
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -134,12 +126,7 @@ public final class StreamSourceBuilder {
         streamSource.getSourceSchema()
             .withAlias(streamSource.getAlias())
             .withMetaAndKeyColsInValue(),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(
-            fmt.getFormatInfo(),
-            fmt.getWindowInfo().get(),
-            schema,
-            ctx
-        )
+        KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
@@ -148,7 +135,7 @@ public final class StreamSourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
-        streamSource.getFormats().getValueFormat().getFormatInfo(),
+        streamSource.getFormats().getValueFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );

@@ -50,7 +50,7 @@ public final class StreamTableJoinBuilder {
         leftFormats.getOptions()
     );
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
-        leftFormats.getValueFormat().getFormatInfo(),
+        leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(SERDE_CTX).getQueryContext()
     );

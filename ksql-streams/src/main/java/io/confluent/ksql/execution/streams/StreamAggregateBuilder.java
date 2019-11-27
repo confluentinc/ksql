@@ -106,7 +106,7 @@ public final class StreamAggregateBuilder {
     return KTableHolder.materialized(
         aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
         resultSchema,
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx),
+        KeySerdeFactory.unwindowed(queryBuilder),
         materializationBuilder
     );
   }
@@ -172,14 +172,14 @@ public final class StreamAggregateBuilder {
       return KTableHolder.materialized(
           reduced,
           resultSchema,
-          KeySerdeFactory.windowed(queryBuilder),
+          KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
           materializationBuilder
       );
     }
     return KTableHolder.materialized(
         reduced.mapValues(windowSelectMapper),
         resultSchema,
-        KeySerdeFactory.windowed(queryBuilder),
+        KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
         materializationBuilder
     );
   }
@@ -214,12 +214,12 @@ public final class StreamAggregateBuilder {
           formats.getOptions()
       );
       keySerde = queryBuilder.buildKeySerde(
-          formats.getKeyFormat().getFormatInfo(),
+          formats.getKeyFormat(),
           physicalSchema,
           queryContext
       );
       valueSerde = queryBuilder.buildValueSerde(
-          formats.getValueFormat().getFormatInfo(),
+          formats.getValueFormat(),
           physicalSchema,
           queryContext
       );

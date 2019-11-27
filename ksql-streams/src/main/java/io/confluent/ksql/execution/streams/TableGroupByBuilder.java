@@ -53,12 +53,12 @@ public final class TableGroupByBuilder {
         formats.getOptions()
     );
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        formats.getKeyFormat().getFormatInfo(),
+        formats.getKeyFormat(),
         physicalSchema,
         queryContext
     );
     final Serde<GenericRow> valSerde = queryBuilder.buildValueSerde(
-        formats.getValueFormat().getFormatInfo(),
+        formats.getValueFormat(),
         physicalSchema,
         queryContext
     );

@@ -326,6 +326,9 @@
         },
         "filterExpression" : {
           "type" : "string"
+        },
+        "stepName" : {
+          "type" : "string"
         }
       },
       "title" : "streamFilterV1",
@@ -808,6 +811,9 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "filterExpression" : {
+          "type" : "string"
+        },
+        "stepName" : {
           "type" : "string"
         }
       },

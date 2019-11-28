@@ -571,7 +571,7 @@
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "offsetReset", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "alias" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",
@@ -698,9 +698,7 @@
           "type" : "string"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
@@ -739,6 +737,9 @@
         "formats" : {
           "$ref" : "#/definitions/Formats"
         },
+        "windowInfo" : {
+          "$ref" : "#/definitions/WindowInfo"
+        },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
@@ -754,7 +755,7 @@
         }
       },
       "title" : "windowedTableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "alias" ]
     },
     "TableAggregate" : {
       "type" : "object",

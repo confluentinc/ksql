@@ -42,6 +42,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -89,6 +90,7 @@ public final class StreamAggregateBuilder {
             queryBuilder,
             materializedFactory
         );
+
     final KTable<Struct, GenericRow> aggregated = groupedStream.getGroupedStream().aggregate(
         aggregateParams.getInitializer(),
         aggregateParams.getAggregator(),
@@ -103,8 +105,14 @@ public final class StreamAggregateBuilder {
             resultSchema
         );
 
+    final KTable<Struct, GenericRow> result = aggregated
+        .transformValues(
+            () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
+            Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
+        );
+
     return KTableHolder.materialized(
-        aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
+        result,
         resultSchema,
         KeySerdeFactory.unwindowed(queryBuilder),
         materializationBuilder
@@ -155,8 +163,10 @@ public final class StreamAggregateBuilder {
         ),
         null
     );
-    final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.mapValues(
-        aggregateParams.getAggregator().getResultMapper()
+
+    final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
+        () -> aggregateParams.<Windowed<Struct>>getAggregator().getResultMapper(),
+        Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
     );
 
     final MaterializationInfo.Builder materializationBuilder =

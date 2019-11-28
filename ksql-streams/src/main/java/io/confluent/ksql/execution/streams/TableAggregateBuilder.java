@@ -27,6 +27,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class TableAggregateBuilder {
@@ -77,7 +78,10 @@ public final class TableAggregateBuilder {
         aggregateParams.getAggregator(),
         aggregateParams.getUndoAggregator().get(),
         materialized
-    ).mapValues(aggregateParams.getAggregator().getResultMapper());
+    ).transformValues(
+        () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
+        Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
+    );
 
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(

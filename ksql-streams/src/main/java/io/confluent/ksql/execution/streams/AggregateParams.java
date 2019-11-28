@@ -47,19 +47,20 @@ public final class AggregateParams {
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
-  public KudafInitializer getInitializer() {
+  KudafInitializer getInitializer() {
     return initializer;
   }
 
-  public KudafAggregator getAggregator() {
+  @SuppressWarnings("unchecked")
+  <K> KudafAggregator<K> getAggregator() {
     return aggregator;
   }
 
-  public Optional<KudafUndoAggregator> getUndoAggregator() {
+  Optional<KudafUndoAggregator> getUndoAggregator() {
     return undoAggregator;
   }
 
-  public WindowSelectMapper getWindowSelectMapper() {
+  WindowSelectMapper getWindowSelectMapper() {
     return windowSelectMapper;
   }
 

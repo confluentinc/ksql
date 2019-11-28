@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +51,8 @@ public class SelectValueMapperTest {
   private static final ColumnName NAME0 = ColumnName.of("apple");
   private static final ColumnName NAME1 = ColumnName.of("cherry");
   private static final ColumnName NAME2 = ColumnName.of("banana");
-  private static final GenericRow ROW = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
+  private static final Object KEY = null; // Not used yet.
+  private static final GenericRow VALLUE = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
 
   @Mock
   private ExpressionMetadata col0;
@@ -61,11 +63,11 @@ public class SelectValueMapperTest {
   @Mock
   private ProcessingLogger processingLogger;
 
-  private KsqlValueTransformerWithKey<?> transformer;
+  private ValueTransformerWithKey<Object, GenericRow, GenericRow> transformer;
 
   @Before
   public void setup() {
-    final SelectValueMapper<?> selectValueMapper = new SelectValueMapper<>(
+    final SelectValueMapper<Object> selectValueMapper = new SelectValueMapper<>(
         ImmutableList.of(
             SelectValueMapper.SelectInfo.of(NAME0, col0),
             SelectValueMapper.SelectInfo.of(NAME1, col1),
@@ -82,7 +84,7 @@ public class SelectValueMapperTest {
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = transformer.transform(ROW);
+    final GenericRow result = transformer.transform(KEY, VALLUE);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -91,7 +93,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = transformer.transform(null);
+    final GenericRow result = transformer.transform(KEY, null);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -108,7 +110,9 @@ public class SelectValueMapperTest {
 
     // When:
     transformer.transform(
-        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
+        KEY,
+        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo")
+    );
 
     // Then:
     final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor

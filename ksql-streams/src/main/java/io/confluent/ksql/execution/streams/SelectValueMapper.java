@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -27,6 +28,7 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public class SelectValueMapper<K> {
 
@@ -40,7 +42,9 @@ public class SelectValueMapper<K> {
     return selects;
   }
 
-  public KsqlValueTransformerWithKey<K> getTransformer(final ProcessingLogger processingLogger) {
+  public ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformer(
+      final ProcessingLogger processingLogger
+  ) {
     return new SelectMapper<>(selects, processingLogger);
   }
 

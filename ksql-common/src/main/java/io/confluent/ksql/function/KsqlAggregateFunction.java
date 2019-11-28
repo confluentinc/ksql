@@ -43,6 +43,9 @@ public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
    */
   Merger<Struct, A> getMerger();
 
+  /**
+   * Converts from intermediate type to output type
+   */
   Function<A, O> getResultMapper();
 
   String getDescription();

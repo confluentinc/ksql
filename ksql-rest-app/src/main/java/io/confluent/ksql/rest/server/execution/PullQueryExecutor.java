@@ -41,7 +41,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.streams.SelectValueMapper;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.execution.streams.materialization.Locator;
@@ -94,6 +93,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class PullQueryExecutor {
@@ -585,7 +585,8 @@ public final class PullQueryExecutor {
                 .queryLoggerName(queryId, contextStacker.push("PROJECT").getQueryContext())
         );
 
-    final KsqlValueTransformerWithKey<Object> transformer = select.getTransformer(logger);
+    final ValueTransformerWithKey<Object, GenericRow, GenericRow> transformer = select
+        .getTransformer(logger);
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {

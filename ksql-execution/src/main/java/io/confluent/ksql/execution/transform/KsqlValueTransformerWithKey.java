@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform;
 
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -23,6 +24,7 @@ import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public final class StreamMapValuesBuilder {
   private StreamMapValuesBuilder() {
@@ -58,7 +60,8 @@ public final class StreamMapValuesBuilder {
             )
         );
 
-    final KsqlValueTransformerWithKey<K> transformer = selectMapper.getTransformer(logger);
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer = selectMapper
+        .getTransformer(logger);
 
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 

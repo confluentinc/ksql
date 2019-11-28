@@ -31,9 +31,9 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
-import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory.MaterializationFactory;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -55,6 +55,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationFactoryTest {
 

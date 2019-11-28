@@ -23,8 +23,8 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.function.BiFunction;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public final class TableMapValuesBuilder {
 
@@ -64,7 +64,8 @@ public final class TableMapValuesBuilder {
             )
         );
 
-    final KsqlValueTransformerWithKey<K> transformer = selectMapper.getTransformer(logger);
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer = selectMapper
+        .getTransformer(logger);
 
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
@@ -76,9 +77,9 @@ public final class TableMapValuesBuilder {
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.map(
                 pl -> {
-                  final BiFunction<K, GenericRow, GenericRow> mapper = selectMapper
-                      .getTransformer(pl)::transform;
-                  return (k, v) -> mapper.apply((K) k, v);
+                  final ValueTransformerWithKey<K, GenericRow, GenericRow> mapper = selectMapper
+                      .getTransformer(pl);
+                  return (k, v) -> mapper.transform((K) k, v);
                 },
                 selection.getSchema(),
                 PROJECT_OP_NAME

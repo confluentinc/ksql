@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.schema.ksql.Column;
@@ -58,7 +59,7 @@ public final class StreamSelectKeyBuilder {
     return new KStreamHolder<>(
         rekeyed,
         stream.getSchema(),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+        KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 

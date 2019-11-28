@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -35,6 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
@@ -65,17 +67,12 @@ public final class SourceBuilder {
       final StreamSource source,
       final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = source.getFormats().getKeyFormat();
-
-    expectWindowed(false, keyFormat);
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Struct> keySerde = buildNonWindowedKeySerde(
-        queryBuilder,
-        keyFormat,
+    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
         physicalSchema,
         source.getProperties().getQueryContext()
     );
@@ -98,7 +95,7 @@ public final class SourceBuilder {
     return new KStreamHolder<>(
         kstream,
         buildSchema(source),
-        (fmt, schema, ctx) -> buildNonWindowedKeySerde(queryBuilder, fmt, schema, ctx)
+        KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
@@ -107,17 +104,14 @@ public final class SourceBuilder {
       final WindowedStreamSource source,
       final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = source.getFormats().getKeyFormat();
-
-    expectWindowed(true, keyFormat);
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Windowed<Struct>> keySerde = buildWindowedKeySerde(
-        queryBuilder,
-        keyFormat,
+    final WindowInfo windowInfo = source.getWindowInfo();
+    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        windowInfo,
         physicalSchema,
         source.getProperties().getQueryContext()
     );
@@ -140,7 +134,7 @@ public final class SourceBuilder {
     return new KStreamHolder<>(
         kstream,
         buildSchema(source),
-        (fmt, schema, ctx) -> buildWindowedKeySerde(queryBuilder, fmt, schema, ctx)
+        KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
@@ -150,17 +144,12 @@ public final class SourceBuilder {
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory
   ) {
-    final KeyFormat keyFormat = source.getFormats().getKeyFormat();
-
-    expectWindowed(false, keyFormat);
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Struct> keySerde = buildNonWindowedKeySerde(
-        queryBuilder,
-        keyFormat,
+    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
         physicalSchema,
         source.getProperties().getQueryContext()
     );
@@ -191,7 +180,7 @@ public final class SourceBuilder {
     return KTableHolder.unmaterialized(
         ktable,
         buildSchema(source),
-        (fmt, schema, ctx) -> buildNonWindowedKeySerde(queryBuilder, fmt, schema, ctx)
+        KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
@@ -201,17 +190,14 @@ public final class SourceBuilder {
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory
   ) {
-    final KeyFormat keyFormat = source.getFormats().getKeyFormat();
-
-    expectWindowed(true, keyFormat);
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Windowed<Struct>> keySerde = buildWindowedKeySerde(
-        queryBuilder,
-        keyFormat,
+    final WindowInfo windowInfo = source.getWindowInfo();
+    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        windowInfo,
         physicalSchema,
         source.getProperties().getQueryContext()
     );
@@ -242,7 +228,7 @@ public final class SourceBuilder {
     return KTableHolder.unmaterialized(
         ktable,
         buildSchema(source),
-        (fmt, schema, ctx) -> buildWindowedKeySerde(queryBuilder, fmt, schema, ctx)
+        KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
@@ -282,7 +268,7 @@ public final class SourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
-        streamSource.getFormats().getValueFormat().getFormatInfo(),
+        streamSource.getFormats().getValueFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -362,16 +348,6 @@ public final class SourceBuilder {
       throw new IllegalStateException("Only single key fields are currently supported");
     }
     return schema.keyConnectSchema().fields().get(0);
-  }
-
-  private static void expectWindowed(
-      final boolean expectWindowed,
-      final KeyFormat keyFormat
-  ) {
-    if (keyFormat.getWindowInfo().isPresent() != expectWindowed) {
-      final String msg = expectWindowed ? "Not windowed" : "Windowed";
-      throw new IllegalArgumentException(msg + " source");
-    }
   }
 
   private static String tableChangeLogOpName(final ExecutionStepProperties props) {

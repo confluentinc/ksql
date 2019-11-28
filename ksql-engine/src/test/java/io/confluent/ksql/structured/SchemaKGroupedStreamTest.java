@@ -88,6 +88,10 @@ public class SchemaKGroupedStreamTest {
   private KeyFormat keyFormat;
   @Mock
   private ValueFormat valueFormat;
+  @Mock
+  private FormatInfo keyFormatInfo;
+  @Mock
+  private FormatInfo valueformatInfo;
 
   private final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
@@ -98,6 +102,8 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     when(sourceStep.getSchema()).thenReturn(IN_SCHEMA);
+    when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
         keyFormat,

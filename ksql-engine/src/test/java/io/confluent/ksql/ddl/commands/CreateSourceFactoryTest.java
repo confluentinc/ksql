@@ -64,9 +64,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -201,7 +199,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -221,7 +219,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -237,7 +235,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions(),
         not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
@@ -265,7 +263,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateTableCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -285,7 +283,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateTableCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -301,7 +299,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateTableCommand) cmd).getFormats().getOptions(),
         not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
@@ -447,7 +445,7 @@ public class CreateSourceFactoryTest {
         statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
-    assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
+    assertThat(cmd.getFormats().getOptions(), is(SOME_SERDE_OPTIONS));
   }
 
   @Test
@@ -611,7 +609,8 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.nonWindowed(FormatInfo.of(KAFKA))));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getWindowInfo(), is(Optional.empty()));
   }
 
   @Test
@@ -629,8 +628,9 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name"), Optional.empty()))));
+    assertThat(
+        cmd.getFormats().getValueFormat(),
+        is(FormatInfo.of(AVRO, Optional.of("full.schema.name"), Optional.empty())));
   }
 
   @Test
@@ -646,10 +646,8 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
-        FormatInfo.of(KAFKA),
-        WindowInfo.of(SESSION, Optional.empty()))
-    ));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getWindowInfo().get(), is(WindowInfo.of(SESSION, Optional.empty())));
   }
 
   @Test
@@ -668,10 +666,10 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
-        FormatInfo.of(KAFKA),
-        WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))
-    ));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(
+        cmd.getWindowInfo().get(),
+        is(WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1)))));
   }
 
   @Test
@@ -690,10 +688,9 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
-        FormatInfo.of(KAFKA),
-        WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))
-    ));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(
+        cmd.getWindowInfo().get(), is(WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2)))));
   }
 
   @Test

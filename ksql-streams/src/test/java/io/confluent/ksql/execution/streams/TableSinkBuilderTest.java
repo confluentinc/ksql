@@ -43,10 +43,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
@@ -73,8 +71,8 @@ public class TableSinkBuilderTest {
       .withMetaAndKeyColsInValue();
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -161,7 +159,7 @@ public class TableSinkBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        VALUE_FORMAT.getFormatInfo(),
+        VALUE_FORMAT,
         PHYSICAL_SCHEMA,
         queryContext
     );

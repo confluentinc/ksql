@@ -58,19 +58,18 @@
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
-        "serdeOptions" : {
-          "type" : "array",
-          "items" : {
-            "type" : "string",
-            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
-          }
+        "kafkaTopicName" : {
+          "type" : "string"
         },
-        "topic" : {
-          "$ref" : "#/definitions/KsqlTopic"
+        "formats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "windowInfo" : {
+          "$ref" : "#/definitions/WindowInfo"
         }
       },
       "title" : "createStreamV1",
-      "required" : [ "@type", "sourceName", "schema", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "kafkaTopicName", "formats" ]
     },
     "TimestampColumn" : {
       "type" : "object",
@@ -85,34 +84,25 @@
       },
       "required" : [ "column" ]
     },
-    "KsqlTopic" : {
+    "Formats" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
-        "kafkaTopicName" : {
-          "type" : "string"
-        },
         "keyFormat" : {
-          "$ref" : "#/definitions/KeyFormat"
+          "$ref" : "#/definitions/FormatInfo"
         },
         "valueFormat" : {
           "$ref" : "#/definitions/FormatInfo"
-        }
-      },
-      "required" : [ "kafkaTopicName", "keyFormat", "valueFormat" ]
-    },
-    "KeyFormat" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "formatInfo" : {
-          "$ref" : "#/definitions/FormatInfo"
         },
-        "windowInfo" : {
-          "$ref" : "#/definitions/WindowInfo"
+        "options" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
+          }
         }
       },
-      "required" : [ "formatInfo", "windowInfo" ]
+      "required" : [ "keyFormat", "valueFormat", "options" ]
     },
     "FormatInfo" : {
       "type" : "object",
@@ -122,10 +112,10 @@
           "type" : "string",
           "enum" : [ "JSON", "AVRO", "DELIMITED", "KAFKA" ]
         },
-        "delimiter" : {
+        "fullSchemaName" : {
           "type" : "string"
         },
-        "avroFullSchemaName" : {
+        "delimiter" : {
           "type" : "string"
         }
       },
@@ -166,19 +156,18 @@
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
-        "serdeOptions" : {
-          "type" : "array",
-          "items" : {
-            "type" : "string",
-            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
-          }
+        "kafkaTopicName" : {
+          "type" : "string"
         },
-        "topic" : {
-          "$ref" : "#/definitions/KsqlTopic"
+        "formats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "windowInfo" : {
+          "$ref" : "#/definitions/WindowInfo"
         }
       },
       "title" : "createTableV1",
-      "required" : [ "@type", "sourceName", "schema", "serdeOptions", "topic" ]
+      "required" : [ "@type", "sourceName", "schema", "kafkaTopicName", "formats" ]
     },
     "RegisterTypeCommand" : {
       "type" : "object",
@@ -284,9 +273,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "nonFuncColumnCount" : {
           "type" : "integer"
@@ -389,9 +376,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "groupByExpressions" : {
           "type" : "array",
@@ -421,9 +406,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "streamGroupByKeyV1",
@@ -504,9 +487,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "topicName" : {
           "type" : "string"
@@ -533,9 +514,7 @@
           "type" : "string"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
@@ -553,32 +532,6 @@
       },
       "title" : "streamSourceV1",
       "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
-    },
-    "FormatsV1" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "formatsV1" ],
-          "default" : "formatsV1"
-        },
-        "keyFormat" : {
-          "$ref" : "#/definitions/KeyFormat"
-        },
-        "valueFormat" : {
-          "$ref" : "#/definitions/FormatInfo"
-        },
-        "options" : {
-          "type" : "array",
-          "items" : {
-            "type" : "string",
-            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
-          }
-        }
-      },
-      "title" : "formatsV1",
-      "required" : [ "@type", "keyFormat", "valueFormat", "options" ]
     },
     "WindowedStreamSource" : {
       "type" : "object",
@@ -598,9 +551,13 @@
           "type" : "string"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
+        },
+        "windowInfo" : {
+          "$ref" : "#/definitions/WindowInfo"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         },
         "offsetReset" : {
           "type" : "string",
@@ -611,13 +568,10 @@
         },
         "alias" : {
           "type" : "string"
-        },
-        "timestampColumn" : {
-          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "offsetReset", "sourceSchema", "alias" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",
@@ -638,14 +592,10 @@
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
         "leftFormats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "rightFormats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "left" : {
           "$ref" : "#/definitions/ExecutionStep"
@@ -682,9 +632,7 @@
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "left" : {
           "$ref" : "#/definitions/ExecutionStep"
@@ -714,9 +662,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "nonFuncColumnCount" : {
           "type" : "integer"
@@ -791,9 +737,7 @@
           "type" : "string"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
@@ -830,9 +774,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "nonFuncColumnCount" : {
           "type" : "integer"
@@ -889,9 +831,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "groupByExpressions" : {
           "type" : "array",
@@ -951,9 +891,7 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "formats" : {
-          "oneOf" : [ {
-            "$ref" : "#/definitions/FormatsV1"
-          } ]
+          "$ref" : "#/definitions/Formats"
         },
         "topicName" : {
           "type" : "string"

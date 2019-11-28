@@ -54,10 +54,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashSet;
@@ -138,10 +136,6 @@ public class SourceBuilderTest {
   @Mock
   private WindowInfo windowInfo;
   @Mock
-  private KeyFormat keyFormat;
-  @Mock
-  private ValueFormat valueFormat;
-  @Mock
   private FormatInfo valueFormatInfo;
   @Mock
   private Serde<GenericRow> valueSerde;
@@ -195,9 +189,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
-    when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
     when(processorCtx.timestamp()).thenReturn(456L);
-    when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
@@ -367,7 +359,7 @@ public class SourceBuilderTest {
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         Optional.empty(),
         offsetReset,
         LogicalSchema.builder()
@@ -552,7 +544,7 @@ public class SourceBuilderTest {
 
     // Then:
     reset(queryBuilder);
-    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
     verify(queryBuilder).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
   }
 
@@ -566,11 +558,10 @@ public class SourceBuilderTest {
 
     // Then:
     reset(queryBuilder);
-    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
     verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldBuildTableWithCorrectStoreName() {
     // Given:
@@ -606,14 +597,13 @@ public class SourceBuilderTest {
   }
 
   private void givenWindowedSourceStream() {
-    when(keyFormat.isWindowed()).thenReturn(true);
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        windowInfo,
         TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
@@ -622,13 +612,12 @@ public class SourceBuilderTest {
   }
 
   private void givenUnwindowedSourceStream() {
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
@@ -637,14 +626,14 @@ public class SourceBuilderTest {
   }
 
   private void givenWindowedSourceTable() {
-    when(keyFormat.isWindowed()).thenReturn(true);
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        windowInfo,
         TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
@@ -653,13 +642,12 @@ public class SourceBuilderTest {
   }
 
   private void givenUnwindowedSourceTable() {
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
-        Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,

@@ -146,10 +146,8 @@ public class SchemaKStreamTest {
         ksqlConfig,
         functionRegistry);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
   }
 

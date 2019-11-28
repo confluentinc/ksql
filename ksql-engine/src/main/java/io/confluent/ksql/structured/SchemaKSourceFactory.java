@@ -33,11 +33,12 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 /**
- * Factor class used to create stream and table sources
+ * Factory class used to create stream and table sources
  */
 public final class SchemaKSourceFactory {
 
@@ -109,11 +110,15 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
+    final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
+        .orElseThrow(IllegalArgumentException::new);
+
     final WindowedStreamSource step = ExecutionStepFactory.streamSourceWindowed(
         contextStacker,
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
+        windowInfo,
         dataSource.getTimestampColumn(),
         offsetReset,
         alias
@@ -136,6 +141,10 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
+    if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
+      throw new IllegalArgumentException("windowed");
+    }
+
     final StreamSource step = ExecutionStepFactory.streamSource(
         contextStacker,
         schemaWithMetaAndKeyFields,
@@ -163,11 +172,15 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
+    final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
+        .orElseThrow(IllegalArgumentException::new);
+
     final WindowedTableSource step = ExecutionStepFactory.tableSourceWindowed(
         contextStacker,
         schemaWithMetaAndKeyFields,
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
+        windowInfo,
         dataSource.getTimestampColumn(),
         offsetReset,
         alias
@@ -190,6 +203,10 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
+    if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
+      throw new IllegalArgumentException("windowed");
+    }
+
     final TableSource step = ExecutionStepFactory.tableSource(
         contextStacker,
         schemaWithMetaAndKeyFields,

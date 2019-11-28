@@ -49,7 +49,7 @@ public final class StreamSinkBuilder {
         queryContext
     );
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
-        formats.getValueFormat().getFormatInfo(),
+        formats.getValueFormat(),
         physicalSchema,
         queryContext
     );

@@ -89,7 +89,7 @@ public class SelectValueMapper<K> {
     }
   }
 
-  private static final class SelectMapper<K> extends KsqlValueTransformerWithKey<K> {
+  private static final class SelectMapper<K> extends KsqlValueTransformerWithKey<K, GenericRow> {
 
     private final ImmutableList<SelectInfo> selects;
     private final ProcessingLogger processingLogger;

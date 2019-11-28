@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -34,6 +37,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Named;
 
 public final class StreamFlatMapBuilder {
 
@@ -43,12 +48,14 @@ public final class StreamFlatMapBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFlatMap<K> step,
-      final KsqlQueryBuilder queryBuilder) {
+      final KsqlQueryBuilder queryBuilder
+  ) {
     final List<FunctionCall> tableFunctions = step.getTableFunctions();
     final LogicalSchema schema = stream.getSchema();
-    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>(tableFunctions.size());
+    final Builder<TableFunctionApplier> tableFunctionAppliersBuilder = ImmutableList.builder();
     final CodeGenRunner codeGenRunner =
         new CodeGenRunner(schema, queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry());
+
     for (FunctionCall functionCall: tableFunctions) {
       final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
           functionCall.getArguments().size());
@@ -64,10 +71,19 @@ public final class StreamFlatMapBuilder {
       );
       final TableFunctionApplier tableFunctionApplier =
           new TableFunctionApplier(tableFunction, expressionMetadataList);
-      tableFunctionAppliers.add(tableFunctionApplier);
+      tableFunctionAppliersBuilder.add(tableFunctionApplier);
     }
+
+    final ImmutableList<TableFunctionApplier> tableFunctionAppliers = tableFunctionAppliersBuilder
+        .build();
+
+    final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
+        () -> new KudtfFlatMapper<>(tableFunctionAppliers),
+        Named.as("TABLE-FUNCTIONS-APPLY")
+    );
+
     return stream.withStream(
-        stream.getStream().flatMapValues(new KudtfFlatMapper(tableFunctionAppliers)),
+        mapped,
         buildSchema(
             stream.getSchema(),
             step.getTableFunctions(),

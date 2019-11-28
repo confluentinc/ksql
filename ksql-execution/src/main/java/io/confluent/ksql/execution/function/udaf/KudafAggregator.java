@@ -102,7 +102,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - initialUdafIndex);
   }
 
-  private final class ResultTransformer extends KsqlValueTransformerWithKey<K> {
+  private final class ResultTransformer extends KsqlValueTransformerWithKey<K, GenericRow> {
 
     @Override
     protected GenericRow transform(final GenericRow aggRow) {

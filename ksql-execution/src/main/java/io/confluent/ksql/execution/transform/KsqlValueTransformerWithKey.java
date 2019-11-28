@@ -21,20 +21,23 @@ import org.apache.kafka.streams.processor.ProcessorContext;
 
 /**
  * Base class for all {@code ValueTransformerWithKey} used in KS topologies by KSQL.
+ *
+ * @param <K> type of the key
+ * @param <R> type of the result
  */
-public abstract class KsqlValueTransformerWithKey<K>
-    implements ValueTransformerWithKey<K, GenericRow, GenericRow> {
+public abstract class KsqlValueTransformerWithKey<K, R>
+    implements ValueTransformerWithKey<K, GenericRow, R> {
 
   @Override
   public void init(final ProcessorContext processorContext) {
   }
 
   @Override
-  public GenericRow transform(final K readOnlyKey, final GenericRow value) {
+  public R transform(final K readOnlyKey, final GenericRow value) {
     return transform(value);
   }
 
-  protected abstract GenericRow transform(GenericRow value);
+  protected abstract R transform(GenericRow value);
 
   @Override
   public void close() {

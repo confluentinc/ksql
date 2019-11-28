@@ -33,7 +33,6 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInf
 import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory.MaterializationFactory;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -80,8 +79,6 @@ public class KsqlMaterializationFactoryTest {
   private BiFunction<Object, GenericRow, GenericRow> mapper;
   @Mock
   private BiPredicate<Object, GenericRow> predicate;
-  @Mock
-  private KsqlValueTransformerWithKey<Object> selectTransformer;
   @Mock
   private MaterializationFactory materializationFactory;
   @Mock

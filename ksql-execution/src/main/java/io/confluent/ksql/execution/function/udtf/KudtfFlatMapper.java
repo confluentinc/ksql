@@ -15,24 +15,26 @@
 
 package io.confluent.ksql.execution.function.udtf;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
  * Implements the actual flat-mapping logic - this is called by Kafka Streams
  */
 @Immutable
-public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<GenericRow>> {
+public class KudtfFlatMapper<K> extends KsqlValueTransformerWithKey<K, Iterable<GenericRow>> {
 
-  private final List<TableFunctionApplier> tableFunctionAppliers;
+  private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
   public KudtfFlatMapper(List<TableFunctionApplier> tableFunctionAppliers) {
-    this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
+    this.tableFunctionAppliers = ImmutableList.copyOf(requireNonNull(tableFunctionAppliers));
   }
 
   /*
@@ -40,17 +42,22 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
   in the design-proposals directory.
    */
   @Override
-  public Iterable<GenericRow> apply(GenericRow row) {
-    List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
+  protected Iterable<GenericRow> transform(final GenericRow value) {
+    if (value == null) {
+      return null;
+    }
+
+    final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
     for (TableFunctionApplier applier : tableFunctionAppliers) {
-      List<?> exploded = applier.apply(row);
+      List<?> exploded = applier.apply(value);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }
-    List<GenericRow> rows = new ArrayList<>(maxLength);
+
+    final List<GenericRow> rows = new ArrayList<>(maxLength);
     for (int i = 0; i < maxLength; i++) {
-      List<Object> newRow = new ArrayList<>(row.getColumns());
+      List<Object> newRow = new ArrayList<>(value.getColumns());
       for (Iterator<?> iter : iters) {
         if (iter.hasNext()) {
           newRow.add(iter.next());

@@ -61,7 +61,7 @@ public final class WindowSelectMapper {
     return new Transformer<>();
   }
 
-  private final class Transformer<K> extends KsqlValueTransformerWithKey<Windowed<K>> {
+  private final class Transformer<K> extends KsqlValueTransformerWithKey<Windowed<K>, GenericRow> {
 
     @Override
     protected GenericRow transform(final GenericRow value) {

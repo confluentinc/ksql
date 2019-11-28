@@ -148,13 +148,21 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
-    return StreamSourceBuilder.build(queryBuilder, streamSource);
+    return StreamSourceBuilder.build(
+        queryBuilder,
+        streamSource,
+        streamsFactories.getConsumedFactory()
+    );
   }
 
   @Override
   public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource) {
-    return StreamSourceBuilder.buildWindowed(queryBuilder, windowedStreamSource);
+    return StreamSourceBuilder.buildWindowed(
+        queryBuilder,
+        windowedStreamSource,
+        streamsFactories.getConsumedFactory()
+    );
   }
 
   @Override

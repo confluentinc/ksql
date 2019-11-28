@@ -16,10 +16,12 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -27,6 +29,7 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -34,7 +37,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -66,7 +68,9 @@ public class SourceDescriptionFactoryTest {
     consumerCollector.close();
   }
 
-  private static DataSource<?> buildDataSource(final String kafkaTopicName) {
+  private static DataSource<?> buildDataSource(
+      final String kafkaTopicName,
+      final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("field0"), SqlTypes.INTEGER)
         .build();
@@ -83,7 +87,7 @@ public class SourceDescriptionFactoryTest {
         schema,
         SerdeOption.none(),
         KeyField.of(schema.value().get(0).ref()),
-        new MetadataTimestampExtractionPolicy(),
+        timestampColumn,
         false,
         topic
     );
@@ -106,7 +110,7 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(kafkaTopicName);
+    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
     consumerCollector.onConsume(buildRecords(kafkaTopicName));
     StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 
@@ -126,5 +130,47 @@ public class SourceDescriptionFactoryTest {
     assertThat(
         sourceDescription.getErrorStats(),
         containsString(StreamsErrorCollector.CONSUMER_FAILED_MESSAGES));
+  }
+
+  @Test
+  public void shouldReturnEmptyTimestampColumn() {
+    // Given:
+    final String kafkaTopicName = "kafka";
+    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        "json",
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty());
+
+    // Then:
+    assertThat(sourceDescription.getTimestamp(), is(""));
+  }
+
+  @Test
+  public void shouldReturnTimestampColumnIfPresent() {
+    // Given:
+    final String kafkaTopicName = "kafka";
+    final DataSource<?> dataSource = buildDataSource(
+        kafkaTopicName,
+        Optional.of(
+            new TimestampColumn(ColumnRef.withoutSource(ColumnName.of("foo")), Optional.empty()))
+    );
+
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        "json",
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty());
+
+    // Then:
+    assertThat(sourceDescription.getTimestamp(), is("foo"));
   }
 }

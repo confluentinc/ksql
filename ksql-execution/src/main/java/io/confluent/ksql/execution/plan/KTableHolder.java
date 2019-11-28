@@ -60,7 +60,12 @@ public final class KTableHolder<K> {
       final KeySerdeFactory<K> keySerdeFactory,
       final MaterializationInfo.Builder materializationBuilder
   ) {
-    return new KTableHolder<>(stream, schema, keySerdeFactory, Optional.of(materializationBuilder));
+    return new KTableHolder<>(
+        stream,
+        schema,
+        keySerdeFactory,
+        Optional.of(materializationBuilder)
+    );
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {

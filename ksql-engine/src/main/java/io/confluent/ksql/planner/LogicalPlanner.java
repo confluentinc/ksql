@@ -23,6 +23,8 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -47,8 +49,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -96,8 +96,7 @@ public class LogicalPlanner {
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
     final LogicalSchema inputSchema = sourcePlanNode.getSchema();
-    final TimestampExtractionPolicy extractionPolicy =
-        getTimestampExtractionPolicy(inputSchema, analysis);
+    final Optional<TimestampColumn> timestampColumn = getTimestampColumn(inputSchema, analysis);
 
     if (!analysis.getInto().isPresent()) {
       return new KsqlBareOutputNode(
@@ -105,7 +104,7 @@ public class LogicalPlanner {
           sourcePlanNode,
           inputSchema,
           analysis.getLimitClause(),
-          extractionPolicy
+          timestampColumn
       );
     }
 
@@ -126,7 +125,7 @@ public class LogicalPlanner {
         new PlanNodeId(intoDataSource.getName().name()),
         sourcePlanNode,
         inputSchema,
-        extractionPolicy,
+        timestampColumn,
         keyField,
         intoDataSource.getKsqlTopic(),
         partitionByField,
@@ -161,15 +160,21 @@ public class LogicalPlanner {
     return KeyField.of(partitionBy);
   }
 
-  private TimestampExtractionPolicy getTimestampExtractionPolicy(
+  private Optional<TimestampColumn> getTimestampColumn(
       final LogicalSchema inputSchema,
       final Analysis analysis
   ) {
-    return TimestampExtractionPolicyFactory.create(
+    final Optional<ColumnRef> timestampColumnName =
+        analysis.getProperties().getTimestampColumnName();
+    final Optional<TimestampColumn> timestampColumn = timestampColumnName.map(
+        n -> new TimestampColumn(n, analysis.getProperties().getTimestampFormat())
+    );
+    TimestampExtractionPolicyFactory.validateTimestampColumn(
         ksqlConfig,
         inputSchema,
-        analysis.getProperties().getTimestampColumnName(),
-        analysis.getProperties().getTimestampFormat());
+        timestampColumn
+    );
+    return timestampColumn;
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {

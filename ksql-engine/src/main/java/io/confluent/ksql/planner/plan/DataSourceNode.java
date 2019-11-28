@@ -29,7 +29,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -142,7 +141,6 @@ public class DataSourceNode extends PlanNode {
         dataSource,
         schema,
         contextStacker.push(SOURCE_OP_NAME),
-        timestampIndex(),
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField,
         alias
@@ -165,22 +163,10 @@ public class DataSourceNode extends PlanNode {
         DataSource<?> dataSource,
         LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
         QueryContext.Stacker contextStacker,
-        int timestampIndex,
         Optional<AutoOffsetReset> offsetReset,
         KeyField keyField,
         SourceName alias
     );
-  }
-
-  private int timestampIndex() {
-    final LogicalSchema originalSchema = dataSource.getSchema();
-    final ColumnRef timestampField = dataSource.getTimestampExtractionPolicy().getTimestampField();
-    if (timestampField == null) {
-      return -1;
-    }
-
-    return originalSchema.valueColumnIndex(timestampField)
-        .orElseThrow(IllegalStateException::new);
   }
 
   private static Optional<Topology.AutoOffsetReset> getAutoOffsetReset(

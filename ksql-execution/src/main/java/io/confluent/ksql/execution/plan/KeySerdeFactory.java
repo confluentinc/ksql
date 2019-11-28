@@ -17,8 +17,9 @@ package io.confluent.ksql.execution.plan;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -26,21 +27,22 @@ import org.apache.kafka.streams.kstream.Windowed;
 @EffectivelyImmutable
 public interface KeySerdeFactory<K> {
   KeySerde<K> buildKeySerde(
-      KeyFormat keyFormat,
+      FormatInfo format,
       PhysicalSchema physicalSchema,
       QueryContext queryContext
   );
 
   static KeySerdeFactory<Struct> unwindowed(final KsqlQueryBuilder queryBuilder) {
-    return (fmt, schema, ctx) ->
-        queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx);
+    return queryBuilder::buildKeySerde;
   }
 
-  static KeySerdeFactory<Windowed<Struct>> windowed(final KsqlQueryBuilder queryBuilder) {
+  static KeySerdeFactory<Windowed<Struct>> windowed(
+      final KsqlQueryBuilder queryBuilder,
+      final WindowInfo windowInfo) {
     return (fmt, schema, ctx) ->
         queryBuilder.buildKeySerde(
-            fmt.getFormatInfo(),
-            fmt.getWindowInfo().get(),
+            fmt,
+            windowInfo,
             schema,
             ctx
         );

@@ -12,6 +12,8 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -26,8 +28,8 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.MatcherAssert;
@@ -48,7 +50,9 @@ public class DdlCommandExecTest {
       .valueColumn(ColumnName.of("F1"), SqlPrimitiveType.of("INTEGER"))
       .valueColumn(ColumnName.of("F2"), SqlPrimitiveType.of("VARCHAR"))
       .build();
-  private Set<SerdeOption> serdeOptions = SerdeOption.none();
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+  private static final Set<SerdeOption> SERDE_OPTIONS = SerdeOption.none();
 
   private CreateStreamCommand createStream;
   private CreateTableCommand createTable;
@@ -59,9 +63,11 @@ public class DdlCommandExecTest {
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Mock
-  private TimestampExtractionPolicy timestampExtractionPolicy;
+  private TimestampColumn timestampColumn;
   @Mock
   private KsqlStream source;
+  @Mock
+  private WindowInfo windowInfo;
 
   private DdlCommandExec cmdExec;
 
@@ -106,6 +112,7 @@ public class DdlCommandExecTest {
     assertThat(metaStore.getSource(STREAM_NAME).getSqlExpression(), is(SQL_TEXT));
   }
 
+  @Test
   public void shouldAddSinkStream() {
     // Given:
     givenCreateStreamWithKey(Optional.empty());
@@ -127,6 +134,36 @@ public class DdlCommandExecTest {
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+  }
+
+  @Test
+  public void shouldAddStreamWithCorrectKsqlTopic() {
+    // Given:
+    givenCreateStreamWithKey(Optional.empty());
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createStream, false);
+
+    // Then:
+    assertThat(
+        metaStore.getSource(STREAM_NAME).getKsqlTopic(),
+        equalTo(new KsqlTopic(TOPIC_NAME, KEY_FORMAT, VALUE_FORMAT))
+    );
+  }
+
+  @Test
+  public void shouldAddStreamWithCorrectWindowInfo() {
+    // Given:
+    givenCreateWindowedStream();
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createStream, false);
+
+    // Then:
+    assertThat(
+        metaStore.getSource(STREAM_NAME).getKsqlTopic().getKeyFormat().getWindowInfo().get(),
+        equalTo(windowInfo)
+    );
   }
 
   @Test
@@ -154,6 +191,21 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldAddTableWithCorrectWindowInfo() {
+    // Given:
+    givenCreateWindowedTable();
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createTable, false);
+
+    // Then:
+    assertThat(
+        metaStore.getSource(TABLE_NAME).getKsqlTopic().getKeyFormat().getWindowInfo().get(),
+        is(windowInfo)
+    );
+  }
+
+  @Test
   public void shouldAddTableWithCorrectSql() {
     // Given:
     givenCreateTableWithKey(Optional.empty());
@@ -165,6 +217,22 @@ public class DdlCommandExecTest {
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getSqlExpression(), is(SQL_TEXT));
   }
 
+  @Test
+  public void shouldAddTableWithCorrectTopic() {
+    // Given:
+    givenCreateTableWithKey(Optional.empty());
+
+    // When:
+    cmdExec.execute(SQL_TEXT, createTable, false);
+
+    // Then:
+    assertThat(
+        metaStore.getSource(TABLE_NAME).getKsqlTopic(),
+        equalTo(new KsqlTopic(TOPIC_NAME, KEY_FORMAT, VALUE_FORMAT))
+    );
+  }
+
+  @Test
   public void shouldAddSinkTable() {
     // Given:
     givenCreateTableWithKey(Optional.empty());
@@ -242,13 +310,44 @@ public class DdlCommandExecTest {
         STREAM_NAME,
         SCHEMA,
         keyField.map(ColumnName::of),
-        timestampExtractionPolicy,
-        serdeOptions,
-        new KsqlTopic(
-            "topic",
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON))
-        )
+        Optional.of(timestampColumn),
+        "topic",
+        Formats.of(
+            KEY_FORMAT,
+            VALUE_FORMAT,
+            SERDE_OPTIONS),
+        Optional.empty()
+    );
+  }
+
+  private void givenCreateWindowedStream() {
+    createStream = new CreateStreamCommand(
+        STREAM_NAME,
+        SCHEMA,
+        Optional.empty(),
+        Optional.of(timestampColumn),
+        "topic",
+        Formats.of(
+            KEY_FORMAT,
+            VALUE_FORMAT,
+            SERDE_OPTIONS),
+        Optional.of(windowInfo)
+    );
+  }
+
+  private void givenCreateWindowedTable() {
+    createTable = new CreateTableCommand(
+        TABLE_NAME,
+        SCHEMA,
+        Optional.empty(),
+        Optional.of(timestampColumn),
+        TOPIC_NAME,
+        Formats.of(
+            KEY_FORMAT,
+            VALUE_FORMAT,
+            SERDE_OPTIONS
+        ),
+        Optional.of(windowInfo)
     );
   }
 
@@ -257,13 +356,14 @@ public class DdlCommandExecTest {
         TABLE_NAME,
         SCHEMA,
         keyField.map(ColumnName::of),
-        timestampExtractionPolicy,
-        serdeOptions,
-        new KsqlTopic(
-            TOPIC_NAME,
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON))
-        )
+        Optional.of(timestampColumn),
+        TOPIC_NAME,
+        Formats.of(
+            KEY_FORMAT,
+            VALUE_FORMAT,
+            SERDE_OPTIONS
+        ),
+        Optional.empty()
     );
   }
 }

@@ -20,6 +20,9 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -44,8 +47,6 @@ import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -79,7 +80,7 @@ public final class CreateSourceFactory {
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
-    final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
+    final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
         statement.getProperties(),
         schema
@@ -101,9 +102,10 @@ public final class CreateSourceFactory {
         sourceName,
         schema,
         keyFieldName,
-        timestampExtractionPolicy,
-        serdeOptions,
-        topic
+        timestampColumn,
+        topic.getKafkaTopicName(),
+        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        topic.getKeyFormat().getWindowInfo()
     );
   }
 
@@ -115,7 +117,7 @@ public final class CreateSourceFactory {
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
-    final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
+    final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
         statement.getProperties(),
         schema
@@ -137,9 +139,10 @@ public final class CreateSourceFactory {
         sourceName,
         schema,
         keyFieldName,
-        timestampExtractionPolicy,
-        serdeOptions,
-        topic
+        timestampColumn,
+        topic.getKafkaTopicName(),
+        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        topic.getKeyFormat().getWindowInfo()
     );
   }
 
@@ -203,15 +206,18 @@ public final class CreateSourceFactory {
     return TopicFactory.create(properties);
   }
 
-  private static TimestampExtractionPolicy buildTimestampExtractor(
+  private static Optional<TimestampColumn> buildTimestampColumn(
       final KsqlConfig ksqlConfig,
       final CreateSourceProperties properties,
       final LogicalSchema schema
   ) {
     final Optional<ColumnRef> timestampName = properties.getTimestampColumnName();
-    final Optional<String> timestampFormat = properties.getTimestampFormat();
-    return TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, timestampName, timestampFormat);
+    final Optional<TimestampColumn> timestampColumn = timestampName.map(
+        n -> new TimestampColumn(n, properties.getTimestampFormat())
+    );
+    // create the final extraction policy to validate that the ref/format are OK
+    TimestampExtractionPolicyFactory.validateTimestampColumn(ksqlConfig, schema, timestampColumn);
+    return timestampColumn;
   }
 
   private static void validateSerdeCanHandleSchemas(

@@ -44,6 +44,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
@@ -59,10 +60,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -128,8 +127,8 @@ public class StreamAggregateBuilderTest {
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
   private static final Duration WINDOW = Duration.ofMillis(30000);
   private static final Duration HOP = Duration.ofMillis(10000);
 
@@ -210,7 +209,8 @@ public class StreamAggregateBuilderTest {
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
             materializedFactory,
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }
@@ -360,7 +360,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT.getFormatInfo(), PHYSICAL_AGGREGATE_SCHEMA, CTX);
+    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
   }
 
   @Test
@@ -373,7 +373,7 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        VALUE_FORMAT.getFormatInfo(),
+        VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
         CTX
     );
@@ -536,7 +536,32 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(queryBuilder)
-          .buildKeySerde(KEY_FORMAT.getFormatInfo(), PHYSICAL_AGGREGATE_SCHEMA, CTX);
+          .buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
+    }
+  }
+
+  @Test
+  public void shouldReturnCorrectSerdeForWindowedAggregate() {
+    for (final Runnable given : given()) {
+      // Given:
+      reset(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      given.run();
+
+      // When:
+      final KTableHolder<Windowed<Struct>> tableHolder = windowedAggregate.build(planBuilder);
+
+      // Then:
+      final KeySerdeFactory<Windowed<Struct>> serdeFactory = tableHolder.getKeySerdeFactory();
+      final FormatInfo mockFormat = mock(FormatInfo.class);
+      final PhysicalSchema mockSchema = mock(PhysicalSchema.class);
+      final QueryContext mockCtx = mock(QueryContext.class);
+      serdeFactory.buildKeySerde(mockFormat, mockSchema, mockCtx);
+      verify(queryBuilder).buildKeySerde(
+          same(mockFormat),
+          eq(windowedAggregate.getWindowExpression().getWindowInfo()),
+          same(mockSchema),
+          same(mockCtx)
+      );
     }
   }
 
@@ -552,7 +577,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(queryBuilder)
-          .buildValueSerde(VALUE_FORMAT.getFormatInfo(), PHYSICAL_AGGREGATE_SCHEMA, CTX);
+          .buildValueSerde(VALUE_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
     }
   }
 

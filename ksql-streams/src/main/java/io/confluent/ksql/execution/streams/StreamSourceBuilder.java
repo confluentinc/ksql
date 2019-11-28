@@ -20,13 +20,18 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -46,19 +51,15 @@ public final class StreamSourceBuilder {
 
   public static KStreamHolder<Struct> build(
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource streamSource
+      final StreamSource streamSource,
+      final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    if (keyFormat.getWindowInfo().isPresent()) {
-      throw new IllegalArgumentException("Windowed source");
-    }
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
 
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        keyFormat.getFormatInfo(),
+        streamSource.getFormats().getKeyFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -66,7 +67,9 @@ public final class StreamSourceBuilder {
     final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
         streamSource,
         keySerde,
-        valueSerde
+        valueSerde,
+        queryBuilder,
+        consumedFactory
     );
 
     final KStream<Struct, GenericRow> kstream = buildKStream(
@@ -82,26 +85,23 @@ public final class StreamSourceBuilder {
             .getSourceSchema()
             .withAlias(streamSource.getAlias())
             .withMetaAndKeyColsInValue(),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+        KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
   static KStreamHolder<Windowed<Struct>> buildWindowed(
       final KsqlQueryBuilder queryBuilder,
-      final WindowedStreamSource streamSource
+      final WindowedStreamSource streamSource,
+      final ConsumedFactory consumedFactory
   ) {
-    final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    if (!keyFormat.getWindowInfo().isPresent()) {
-      throw new IllegalArgumentException("Not windowed source");
-    }
-
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
 
+    final WindowInfo windowInfo = streamSource.getWindowInfo();
     final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
-        keyFormat.getFormatInfo(),
-        keyFormat.getWindowInfo().get(),
+        streamSource.getFormats().getKeyFormat(),
+        windowInfo,
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -109,7 +109,9 @@ public final class StreamSourceBuilder {
     final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
         streamSource,
         keySerde,
-        valueSerde
+        valueSerde,
+        queryBuilder,
+        consumedFactory
     );
 
     final KStream<Windowed<Struct>, GenericRow> kstream = buildKStream(
@@ -124,12 +126,7 @@ public final class StreamSourceBuilder {
         streamSource.getSourceSchema()
             .withAlias(streamSource.getAlias())
             .withMetaAndKeyColsInValue(),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(
-            fmt.getFormatInfo(),
-            fmt.getWindowInfo().get(),
-            schema,
-            ctx
-        )
+        KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
@@ -138,7 +135,7 @@ public final class StreamSourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
-        streamSource.getFormats().getValueFormat().getFormatInfo(),
+        streamSource.getFormats().getValueFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -164,15 +161,34 @@ public final class StreamSourceBuilder {
         .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
   }
 
+  private static TimestampExtractor timestampExtractor(
+      final KsqlConfig ksqlConfig,
+      final LogicalSchema sourceSchema,
+      final Optional<TimestampColumn> timestampColumn) {
+    final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
+        ksqlConfig,
+        sourceSchema,
+        timestampColumn
+    );
+    final int timestampIndex = timestampColumn.map(TimestampColumn::getColumn)
+        .map(c -> sourceSchema.valueColumnIndex(c).orElseThrow(IllegalStateException::new))
+        .orElse(-1);
+    return timestampPolicy.create(timestampIndex);
+  }
+
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
       final AbstractStreamSource<?> streamSource,
       final Serde<K> keySerde,
-      final Serde<GenericRow> valueSerde) {
-    final TimestampExtractionPolicy timestampPolicy = streamSource.getTimestampPolicy();
-    final int timestampIndex = streamSource.getTimestampIndex();
-    final TimestampExtractor timestampExtractor = timestampPolicy.create(timestampIndex);
-    final Consumed<K, GenericRow> consumed = Consumed
-        .with(keySerde, valueSerde)
+      final Serde<GenericRow> valueSerde,
+      final KsqlQueryBuilder queryBuilder,
+      final ConsumedFactory consumedFactory) {
+    final TimestampExtractor timestampExtractor = timestampExtractor(
+        queryBuilder.getKsqlConfig(),
+        streamSource.getSourceSchema(),
+        streamSource.getTimestampColumn()
+    );
+    final Consumed<K, GenericRow> consumed = consumedFactory
+        .create(keySerde, valueSerde)
         .withTimestampExtractor(timestampExtractor);
     return streamSource.getOffsetReset()
         .map(consumed::withOffsetResetPolicy)

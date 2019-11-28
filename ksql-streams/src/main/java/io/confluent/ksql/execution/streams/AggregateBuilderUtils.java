@@ -46,12 +46,12 @@ final class AggregateBuilderUtils {
         formats.getOptions()
     );
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        formats.getKeyFormat().getFormatInfo(),
+        formats.getKeyFormat(),
         physicalAggregationSchema,
         queryContext
     );
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
-        formats.getValueFormat().getFormatInfo(),
+        formats.getValueFormat(),
         physicalAggregationSchema,
         queryContext
     );

@@ -313,7 +313,7 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -338,7 +338,7 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
+    assertThat(((CreateTableCommand) cmd).getFormats().getOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 

@@ -22,9 +22,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -46,15 +44,13 @@ public final class StreamToTableBuilder {
         sourceStream.getSchema(),
         streamToTable.getFormats().getOptions()
     );
-    final ValueFormat valueFormat = streamToTable.getFormats().getValueFormat();
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
-        valueFormat.getFormatInfo(),
+        streamToTable.getFormats().getValueFormat(),
         physicalSchema,
         queryContext
     );
-    final KeyFormat keyFormat = streamToTable.getFormats().getKeyFormat();
     final KeySerde<K> keySerde = sourceStream.getKeySerdeFactory().buildKeySerde(
-        keyFormat,
+        streamToTable.getFormats().getKeyFormat(),
         physicalSchema,
         queryContext
     );

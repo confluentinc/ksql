@@ -41,7 +41,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.After;
 import org.junit.Before;
@@ -170,7 +170,7 @@ public class SourceTopicsExtractorTest {
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         sourceTopic
     );

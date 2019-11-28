@@ -119,7 +119,6 @@ public class SchemaKStream<K> {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final QueryContext.Stacker contextStacker,
-      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
@@ -131,8 +130,8 @@ public class SchemaKStream<K> {
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
           Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
-          dataSource.getTimestampExtractionPolicy(),
-          timestampIndex,
+          topic.getKeyFormat().getWindowInfo().get(),
+          dataSource.getTimestampColumn(),
           offsetReset,
           alias
       );
@@ -147,8 +146,7 @@ public class SchemaKStream<K> {
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
           Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
-          dataSource.getTimestampExtractionPolicy(),
-          timestampIndex,
+          dataSource.getTimestampColumn(),
           offsetReset,
           alias
       );

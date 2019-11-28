@@ -1,5 +1,5 @@
 site_name: ksqlDB
-site_url: https://docs.ksqldb.io
+site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
 copyright: Copyright &copy; 2019 <a href="https://www.confluent.io/">Confluent</a>.

@@ -30,10 +30,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import java.time.Duration;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -76,13 +74,13 @@ public class StreamStreamJoinBuilderTest {
   private static final PhysicalSchema RIGHT_PHYSICAL =
       PhysicalSchema.from(RIGHT_SCHEMA.withoutAlias(), SerdeOption.none());
   private static final Formats LEFT_FMT = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.JSON)),
+      FormatInfo.of(Format.KAFKA),
+      FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
   private static final Formats RIGHT_FMT = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO)),
+      FormatInfo.of(Format.KAFKA),
+      FormatInfo.of(Format.AVRO),
       SerdeOption.none()
   );
   private static final Duration BEFORE = Duration.ofMillis(1000);
@@ -122,7 +120,7 @@ public class StreamStreamJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(keySerdeFactory.buildKeySerde(any(KeyFormat.class), any(), any())).thenReturn(keySerde);
+    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
         .thenReturn(leftSerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO)), any(), any()))
@@ -140,7 +138,8 @@ public class StreamStreamJoinBuilderTest {
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
             mock(MaterializedFactory.class),
-            streamJoinedFactory
+            streamJoinedFactory,
+            mock(ConsumedFactory.class)
         )
     );
   }

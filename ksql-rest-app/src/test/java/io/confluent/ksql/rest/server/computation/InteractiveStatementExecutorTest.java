@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -44,7 +43,6 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -56,7 +54,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -112,7 +110,7 @@ public class InteractiveStatementExecutorTest {
   @Mock
   private StatementParser mockParser;
   @Mock
-  private HybridQueryIdGenerator mockQueryIdGenerator;
+  private SpecificQueryIdGenerator mockQueryIdGenerator;
   @Mock
   private KsqlEngine mockEngine;
   @Mock
@@ -134,7 +132,7 @@ public class InteractiveStatementExecutorTest {
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
-    final HybridQueryIdGenerator hybridQueryIdGenerator = new HybridQueryIdGenerator();
+    final SpecificQueryIdGenerator hybridQueryIdGenerator = new SpecificQueryIdGenerator();
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
@@ -220,7 +218,6 @@ public class InteractiveStatementExecutorTest {
     when(mockParser.parseSingleStatement(statementText)).thenThrow(exception);
     final Command command = new Command(
         statementText,
-        true,
         emptyMap(),
         emptyMap());
     final CommandId commandId =  new CommandId(
@@ -265,7 +262,6 @@ public class InteractiveStatementExecutorTest {
 
     final Command csasCommand = new Command(
         statementText,
-        true,
         emptyMap(),
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csasCommandId =  new CommandId(
@@ -298,7 +294,6 @@ public class InteractiveStatementExecutorTest {
         + " baz varchar) "
         + "WITH (kafka_topic = 'foo', "
         + "value_format = 'json');",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -333,7 +328,6 @@ public class InteractiveStatementExecutorTest {
         + " baz varchar) "
         + "WITH (kafka_topic = 'foo', "
         + "value_format = 'json');",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -432,7 +426,6 @@ public class InteractiveStatementExecutorTest {
     // Now drop should be successful
     final Command dropTableCommand2 = new Command(
         "drop table table1;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropTableCommandId2 =
@@ -450,7 +443,6 @@ public class InteractiveStatementExecutorTest {
     // DROP should succeed since no query is using the stream.
     final Command dropStreamCommand3 = new Command(
         "drop stream pageview;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId3 =
@@ -499,51 +491,15 @@ public class InteractiveStatementExecutorTest {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", true, emptyMap(), emptyMap()),
+            new Command("CSAS", emptyMap(), emptyMap()),
             Optional.empty(),
             0L
         )
     );
 
     // Then:
-    verify(mockQueryIdGenerator, times(1)).activateNewGenerator(anyLong());
+    verify(mockQueryIdGenerator, times(1)).setNextId(anyLong());
     verify(mockQuery, times(0)).start();
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldCascade4Dot1DropStreamCommand() {
-    // Given:
-    final DropStream mockDropStream = mockDropStream("foo");
-    when(mockMetaStore.getSource(SourceName.of("foo")))
-        .thenReturn(mock(DataSource.class));
-    when(mockMetaStore.getQueriesWithSink(SourceName.of("foo")))
-        .thenReturn(ImmutableSet.of("query-id"));
-    when(mockEngine.getMetaStore()).thenReturn(mockMetaStore);
-    when(mockEngine.getPersistentQuery(new QueryId("query-id"))).thenReturn(Optional.of(mockQueryMetadata));
-
-    final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
-    when(mockEngine.plan(eq(serviceContext), eqConfiguredStatement(PreparedStatement.of("DROP", mockDropStream))))
-        .thenReturn(plan);
-
-    when(mockEngine
-        .execute(
-            eq(serviceContext),
-            eqConfiguredPlan(plan))
-    ).thenReturn(ExecuteResult.of("SUCCESS"));
-
-    // When:
-    statementExecutorWithMocks.handleRestore(
-        new QueuedCommand(
-            new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS),
-            Optional.empty(),
-            0L
-        )
-    );
-
-    // Then:
-    verify(mockQueryMetadata, times(1)).close();
   }
 
   private  <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(PreparedStatement<T> preparedStatement) {
@@ -599,7 +555,7 @@ public class InteractiveStatementExecutorTest {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command(drop, true, emptyMap(), emptyMap()),
+            new Command(drop, emptyMap(), emptyMap()),
             Optional.empty(),
             0L
         )
@@ -619,7 +575,6 @@ public class InteractiveStatementExecutorTest {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement,
-                true,
                 Collections.singletonMap("ksql.run.script.statements", queryStatement),
                 emptyMap()),
             Optional.empty(),
@@ -643,8 +598,8 @@ public class InteractiveStatementExecutorTest {
         new QueuedCommand(
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
-                runScriptStatement, true,
-                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap()),
+                runScriptStatement,
+                Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap()),
             Optional.empty(),
             0L
         )
@@ -674,7 +629,7 @@ public class InteractiveStatementExecutorTest {
     statementExecutorWithMocks.handleStatement(
         new QueuedCommand(
             new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
-            new Command("terminate all", true, emptyMap(), emptyMap()),
+            new Command("terminate all", emptyMap(), emptyMap()),
             Optional.empty(),
             0L
         )
@@ -692,8 +647,8 @@ public class InteractiveStatementExecutorTest {
             + " pageid varchar, "
             + "userid varchar) "
             + "WITH (kafka_topic = 'pageview_topic_json', "
-            + "value_format = 'json');", true,
-            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+            + "value_format = 'json');",
+        emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
@@ -702,8 +657,8 @@ public class InteractiveStatementExecutorTest {
     final Command csasCommand = new Command(
         "CREATE STREAM user1pv AS "
             + "select * from pageview"
-            + " WHERE userid = 'user1';", true,
-            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+            + " WHERE userid = 'user1';",
+        emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASGen",
@@ -716,7 +671,6 @@ public class InteractiveStatementExecutorTest {
             + "FROM pageview "
             + "WINDOW TUMBLING ( SIZE 10 SECONDS) "
             + "GROUP BY pageid;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
@@ -733,7 +687,6 @@ public class InteractiveStatementExecutorTest {
   private void tryDropThatViolatesReferentialIntegrity() {
     final Command dropStreamCommand1 = new Command(
         "drop stream pageview;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM,
@@ -773,7 +726,6 @@ public class InteractiveStatementExecutorTest {
 
     final Command dropStreamCommand2 = new Command(
         "drop stream user1pv;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId2 =
@@ -809,7 +761,6 @@ public class InteractiveStatementExecutorTest {
 
     final Command dropTableCommand1 = new Command(
         "drop table table1;",
-        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropTableCommandId1 =
@@ -863,8 +814,8 @@ public class InteractiveStatementExecutorTest {
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_1;", true,
-            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        "TERMINATE CSAS_USER1PV_1;",
+        emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId1 =
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
@@ -874,8 +825,7 @@ public class InteractiveStatementExecutorTest {
 
     final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_2;",
-        true,
-      emptyMap(),
+        emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
@@ -899,6 +849,6 @@ public class InteractiveStatementExecutorTest {
 
   private static Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
     return new Command(
-        statementStr, true, emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        statementStr, emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
   }
 }

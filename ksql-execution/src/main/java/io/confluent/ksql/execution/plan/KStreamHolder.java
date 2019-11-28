@@ -35,7 +35,7 @@ public final class KStreamHolder<K> {
   ) {
     this.stream = Objects.requireNonNull(stream, "stream");
     this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.schema = Objects.requireNonNull(schema, "shcema");
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {

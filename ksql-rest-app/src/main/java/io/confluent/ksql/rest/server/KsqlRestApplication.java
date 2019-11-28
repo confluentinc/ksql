@@ -38,7 +38,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -125,7 +125,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  public static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
+  private static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
   private final KsqlRestConfig restConfig;
@@ -458,15 +458,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           new KsqlUncaughtExceptionHandler(LogManager::shutdown));
     }
 
-    final HybridQueryIdGenerator hybridQueryIdGenerator =
-        new HybridQueryIdGenerator();
+    final SpecificQueryIdGenerator specificQueryIdGenerator =
+        new SpecificQueryIdGenerator();
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
-        hybridQueryIdGenerator
+        specificQueryIdGenerator
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
@@ -483,7 +483,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
 
     final InteractiveStatementExecutor statementExecutor =
-        new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
+        new InteractiveStatementExecutor(serviceContext, ksqlEngine, specificQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 

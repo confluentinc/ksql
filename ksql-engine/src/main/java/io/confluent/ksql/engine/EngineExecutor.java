@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
@@ -227,23 +228,30 @@ final class EngineExecutor {
       return Optional.empty();
     }
     final CreateSourceCommand ddl;
+    final Formats formats = Formats.of(
+        outputNode.getKsqlTopic().getKeyFormat(),
+        outputNode.getKsqlTopic().getValueFormat(),
+        outputNode.getSerdeOptions()
+    );
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
-          outputNode.getTimestampExtractionPolicy(),
-          outputNode.getSerdeOptions(),
-          outputNode.getKsqlTopic()
+          outputNode.getTimestampColumn(),
+          outputNode.getKsqlTopic().getKafkaTopicName(),
+          formats,
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
       );
     } else {
       ddl = new CreateTableCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
-          outputNode.getTimestampExtractionPolicy(),
-          outputNode.getSerdeOptions(),
-          outputNode.getKsqlTopic()
+          outputNode.getTimestampColumn(),
+          outputNode.getKsqlTopic().getKafkaTopicName(),
+          formats,
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
       );
     }
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();

@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
+import io.confluent.ksql.execution.streams.ConsumedFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
@@ -74,7 +75,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -184,9 +184,7 @@ public class SchemaKTableTest {
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
     joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
 
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -196,7 +194,8 @@ public class SchemaKTableTest {
             groupedFactory,
             mock(JoinedFactory.class),
             mock(MaterializedFactory.class),
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }

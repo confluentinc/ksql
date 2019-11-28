@@ -51,7 +51,7 @@ public final class StreamStreamJoinBuilder {
         leftFormats.getOptions()
     );
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
-        leftFormats.getValueFormat().getFormatInfo(),
+        leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
     );
@@ -62,7 +62,7 @@ public final class StreamStreamJoinBuilder {
         rightFormats.getOptions()
     );
     final Serde<GenericRow> rightSerde = queryBuilder.buildValueSerde(
-        rightFormats.getValueFormat().getFormatInfo(),
+        rightFormats.getValueFormat(),
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()
     );

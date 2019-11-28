@@ -45,10 +45,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -103,8 +101,8 @@ public class StreamToTableBuilderTest {
 
   private final QueryContext.Stacker stacker = new QueryContext.Stacker();
   private final QueryContext queryContext = stacker.push("s2t").getQueryContext();
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+  private final FormatInfo valueFormat = FormatInfo.of(Format.JSON);
+  private final FormatInfo keyFormat = FormatInfo.of(Format.KAFKA);
   private final PhysicalSchema physicalSchema = PhysicalSchema.from(
       SCHEMA,
       SerdeOption.none()
@@ -139,7 +137,8 @@ public class StreamToTableBuilderTest {
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
             materializedFactory,
-            mock(StreamJoinedFactory.class)
+            mock(StreamJoinedFactory.class),
+            mock(ConsumedFactory.class)
         )
     );
   }
@@ -212,7 +211,7 @@ public class StreamToTableBuilderTest {
 
     // Then:
     verify(ksqlQueryBuilder).buildValueSerde(
-        valueFormat.getFormatInfo(),
+        valueFormat,
         physicalSchema,
         queryContext
     );

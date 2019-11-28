@@ -13,8 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -33,24 +34,32 @@ public final class TimestampExtractionPolicyFactory {
   private TimestampExtractionPolicyFactory() {
   }
 
+  public static void validateTimestampColumn(
+      final KsqlConfig ksqlConfig,
+      final LogicalSchema schema,
+      final Optional<TimestampColumn> timestampColumn
+  ) {
+    create(ksqlConfig, schema, timestampColumn);
+  }
+
   public static TimestampExtractionPolicy create(
       final KsqlConfig ksqlConfig,
       final LogicalSchema schema,
-      final Optional<ColumnRef> timestampColumnName,
-      final Optional<String> timestampFormat
+      final Optional<TimestampColumn> timestampColumn
   ) {
-    if (!timestampColumnName.isPresent()) {
+    if (!timestampColumn.isPresent()) {
       return new MetadataTimestampExtractionPolicy(getDefaultTimestampExtractor(ksqlConfig));
     }
 
-    final ColumnRef col = timestampColumnName.get();
+    final ColumnRef col = timestampColumn.get().getColumn();
+    final Optional<String> timestampFormat = timestampColumn.get().getFormat();
 
-    final Column timestampColumn = schema.findValueColumn(col)
+    final Column column = schema.findValueColumn(col)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + col.toString(FormatOptions.noEscape()) + "'"));
 
-    final SqlBaseType tsColumnType = timestampColumn.type().baseType();
+    final SqlBaseType tsColumnType = column.type().baseType();
     if (tsColumnType == SqlBaseType.STRING) {
 
       final String format = timestampFormat.orElseThrow(() -> new KsqlException(
@@ -72,7 +81,7 @@ public final class TimestampExtractionPolicyFactory {
     }
 
     throw new KsqlException(
-        "Timestamp column, " + timestampColumnName + ", should be LONG(INT64)"
+        "Timestamp column, " + col + ", should be LONG(INT64)"
             + " or a String with a "
             + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()
             + " specified");

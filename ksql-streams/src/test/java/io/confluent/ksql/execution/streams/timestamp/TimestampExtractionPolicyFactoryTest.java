@@ -13,13 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util.timestamp;
+package io.confluent.ksql.execution.streams.timestamp;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -28,8 +29,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
@@ -42,9 +41,6 @@ public class TimestampExtractionPolicyFactoryTest {
 
   private final LogicalSchema.Builder schemaBuilder2 = LogicalSchema.builder()
       .valueColumn(ColumnName.of("id"), SqlTypes.BIGINT);
-
-  private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-      .field("id", Schema.OPTIONAL_INT64_SCHEMA);
 
   private KsqlConfig ksqlConfig;
 
@@ -63,7 +59,6 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.empty(),
             Optional.empty()
         );
 
@@ -90,7 +85,6 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.empty(),
             Optional.empty()
         );
   }
@@ -102,7 +96,6 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.empty(),
             Optional.empty()
         );
 
@@ -124,7 +117,6 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.empty(),
             Optional.empty()
         );
 
@@ -146,8 +138,13 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schema,
-            Optional.of(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))),
-            Optional.empty());
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase())),
+                    Optional.empty()
+                )
+            )
+        );
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
@@ -165,8 +162,12 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.of(ColumnRef.withoutSource(ColumnName.of("whateva"))),
-            Optional.empty()
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of("whateva")),
+                    Optional.empty()
+                )
+            )
         );
   }
 
@@ -183,8 +184,13 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schema,
-            Optional.of(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))),
-            Optional.of("yyyy-MM-DD"));
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of(field.toUpperCase())),
+                    Optional.of("yyyy-MM-DD")
+                )
+            )
+        );
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
@@ -208,8 +214,13 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schema,
-            Optional.of(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))),
-            Optional.empty());
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of(field.toUpperCase())),
+                    Optional.empty()
+                )
+            )
+        );
   }
 
   @Test
@@ -227,8 +238,13 @@ public class TimestampExtractionPolicyFactoryTest {
     TimestampExtractionPolicyFactory
         .create(ksqlConfig,
             schema,
-            Optional.of(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))),
-            Optional.of("b"));
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase())),
+                    Optional.of("b")
+                )
+            )
+        );
   }
 
   @Test
@@ -246,7 +262,12 @@ public class TimestampExtractionPolicyFactoryTest {
     TimestampExtractionPolicyFactory
         .create(ksqlConfig,
             schema,
-            Optional.of(ColumnRef.withoutSource(ColumnName.of(field))),
-            Optional.empty());
+            Optional.of(
+                new TimestampColumn(
+                    ColumnRef.withoutSource(ColumnName.of(field)),
+                    Optional.empty()
+                )
+            )
+        );
   }
 }

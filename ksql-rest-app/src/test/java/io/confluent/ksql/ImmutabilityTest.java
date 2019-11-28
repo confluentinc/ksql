@@ -31,6 +31,9 @@ import org.junit.runners.Parameterized;
 
 /**
  * Test that any type annotated as immutable _is_ immutable
+ *
+ * <p>Note: there are multiple copies of this test to ensure all types are tested.
+ * However, this does mean some times are tested multiple types.
  */
 @RunWith(Parameterized.class)
 public class ImmutabilityTest {

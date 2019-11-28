@@ -17,12 +17,14 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.Consumed;
 
 public class StreamsFactories {
   private final GroupedFactory groupedFactory;
   private final JoinedFactory joinedFactory;
   private final MaterializedFactory materializedFactory;
   private final StreamJoinedFactory streamJoinedFactory;
+  private final ConsumedFactory consumedFactory;
 
   public static StreamsFactories create(final KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig);
@@ -30,7 +32,8 @@ public class StreamsFactories {
         GroupedFactory.create(),
         JoinedFactory.create(),
         MaterializedFactory.create(),
-        StreamJoinedFactory.create()
+        StreamJoinedFactory.create(),
+        Consumed::with
     );
   }
 
@@ -38,11 +41,13 @@ public class StreamsFactories {
       final GroupedFactory groupedFactory,
       final JoinedFactory joinedFactory,
       final MaterializedFactory materializedFactory,
-      final StreamJoinedFactory streamJoinedFactory) {
+      final StreamJoinedFactory streamJoinedFactory,
+      final ConsumedFactory consumedFactory) {
     this.groupedFactory = Objects.requireNonNull(groupedFactory);
     this.joinedFactory = Objects.requireNonNull(joinedFactory);
     this.materializedFactory = Objects.requireNonNull(materializedFactory);
     this.streamJoinedFactory = Objects.requireNonNull(streamJoinedFactory);
+    this.consumedFactory = Objects.requireNonNull(consumedFactory);
   }
 
   public GroupedFactory getGroupedFactory() {
@@ -59,5 +64,9 @@ public class StreamsFactories {
 
   public StreamJoinedFactory getStreamJoinedFactory() {
     return streamJoinedFactory;
+  }
+
+  public ConsumedFactory getConsumedFactory() {
+    return consumedFactory;
   }
 }

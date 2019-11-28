@@ -39,8 +39,8 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
@@ -451,7 +451,7 @@ public class KsqlAuthorizationValidatorImplTest {
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),
-        new MetadataTimestampExtractionPolicy(),
+        Optional.empty(),
         false,
         sourceTopic
     );

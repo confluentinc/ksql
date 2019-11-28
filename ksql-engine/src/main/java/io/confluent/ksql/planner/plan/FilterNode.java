@@ -94,7 +94,7 @@ public class FilterNode extends PlanNode {
         .filter(
             getPredicate(),
             WHERE_FILTER_OP_NAME,
-            contextStacker.push(WHERE_FILTER_OP_NAME)
+            contextStacker.push(WHERE_FILTER_OP_NAME.toLowerCase())
         );
   }
 }

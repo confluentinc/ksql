@@ -47,20 +47,20 @@ Topologies:
     Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
       --> KSTREAM-TRANSFORMVALUES-0000000001
     Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
-      --> KSTREAM-FILTER-0000000002
+      --> WHERE-FILTER-0
       <-- KSTREAM-SOURCE-0000000000
-    Processor: KSTREAM-FILTER-0000000002 (stores: [])
-      --> TABLE-FUNCTIONS-APPLY
+    Processor: WHERE-FILTER-0 (stores: [])
+      --> TABLE-FUNCTIONS-APPLY-1
       <-- KSTREAM-TRANSFORMVALUES-0000000001
-    Processor: TABLE-FUNCTIONS-APPLY (stores: [])
-      --> SELECT-0
-      <-- KSTREAM-FILTER-0000000002
-    Processor: SELECT-0 (stores: [])
+    Processor: TABLE-FUNCTIONS-APPLY-1 (stores: [])
+      --> SELECT-2
+      <-- WHERE-FILTER-0
+    Processor: SELECT-2 (stores: [])
       --> KSTREAM-MAPVALUES-0000000005
-      <-- TABLE-FUNCTIONS-APPLY
+      <-- TABLE-FUNCTIONS-APPLY-1
     Processor: KSTREAM-MAPVALUES-0000000005 (stores: [])
       --> KSTREAM-SINK-0000000006
-      <-- SELECT-0
+      <-- SELECT-2
     Sink: KSTREAM-SINK-0000000006 (topic: OUTPUT)
       <-- KSTREAM-MAPVALUES-0000000005
 

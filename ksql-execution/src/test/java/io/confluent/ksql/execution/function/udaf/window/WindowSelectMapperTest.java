@@ -25,6 +25,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.FunctionName;
 import java.util.ArrayList;
 import java.util.Arrays;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -76,16 +77,17 @@ public class WindowSelectMapperTest {
   @Test
   public void shouldUpdateRowWithWindowBounds() {
     // Given:
-    WindowSelectMapper mapper = new WindowSelectMapper(
-        1,
-        ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
-    );
+    final ValueTransformerWithKey<Windowed<Object>, GenericRow, GenericRow> mapper =
+        new WindowSelectMapper(
+            1,
+            ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
+        ).getTransformer();
 
     Window window = new SessionWindow(12345L, 54321L);
     GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
 
     // When:
-    GenericRow result = mapper.apply(new Windowed<>("k", window), row);
+    GenericRow result = mapper.transform(new Windowed<>("k", window), row);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
@@ -95,12 +97,14 @@ public class WindowSelectMapperTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void shouldThrowIfRowNotBigEnough() {
     // Given:
-    WindowSelectMapper mapper = new WindowSelectMapper(0, ImmutableList.of(windowStartFunc));
+    final ValueTransformerWithKey<Windowed<Object>, GenericRow, GenericRow> mapper =
+        new WindowSelectMapper(0, ImmutableList.of(windowStartFunc))
+            .getTransformer();
 
     Window window = new SessionWindow(12345L, 54321L);
     GenericRow row = new GenericRow(new ArrayList<>());
 
     // When:
-    mapper.apply(new Windowed<>("k", window), row);
+    mapper.transform(new Windowed<>("k", window), row);
   }
 }

@@ -30,7 +30,7 @@ public abstract class KsqlValueTransformerWithKey<K>
   }
 
   @Override
-  public GenericRow transform(final K key, final GenericRow value) {
+  public GenericRow transform(final K readOnlyKey, final GenericRow value) {
     return transform(value);
   }
 

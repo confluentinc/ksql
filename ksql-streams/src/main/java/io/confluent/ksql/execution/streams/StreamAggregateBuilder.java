@@ -108,7 +108,7 @@ public final class StreamAggregateBuilder {
     final KTable<Struct, GenericRow> result = aggregated
         .transformValues(
             () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
-            Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
+            Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
         );
 
     return KTableHolder.materialized(
@@ -164,9 +164,9 @@ public final class StreamAggregateBuilder {
         null
     );
 
-    final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
+    KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
         () -> aggregateParams.<Windowed<Struct>>getAggregator().getResultMapper(),
-        Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
+        Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
     );
 
     final MaterializationInfo.Builder materializationBuilder =
@@ -178,16 +178,15 @@ public final class StreamAggregateBuilder {
         );
 
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
-    if (!windowSelectMapper.hasSelects()) {
-      return KTableHolder.materialized(
-          reduced,
-          resultSchema,
-          KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
-          materializationBuilder
+    if (windowSelectMapper.hasSelects()) {
+      reduced = reduced.transformValues(
+          windowSelectMapper::<Struct>getTransformer,
+          Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-WINDOW-SELECT"))
       );
     }
+
     return KTableHolder.materialized(
-        reduced.mapValues(windowSelectMapper),
+        reduced,
         resultSchema,
         KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
         materializationBuilder

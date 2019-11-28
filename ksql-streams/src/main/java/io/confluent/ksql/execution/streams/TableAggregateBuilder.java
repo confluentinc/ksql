@@ -80,7 +80,7 @@ public final class TableAggregateBuilder {
         materialized
     ).transformValues(
         () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
-        Named.as(queryBuilder.buildUniqueNodeName("TRANSFORM-TO-AGGREGATE-OUTPUT"))
+        Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
     );
 
     final MaterializationInfo.Builder materializationBuilder =

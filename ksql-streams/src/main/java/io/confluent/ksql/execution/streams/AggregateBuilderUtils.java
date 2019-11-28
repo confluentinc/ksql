@@ -67,7 +67,7 @@ final class AggregateBuilderUtils {
     final BiFunction<Object, GenericRow, GenericRow> resultMapper = aggregator
         .getResultMapper()::transform;
 
-    final String stepName = "TRANSFORM-TO-AGGREGATE-OUTPUT";
+    final String stepName = "AGGREGATE-TO-OUTPUT-SCHEMA";
 
     return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
         .map(pl -> resultMapper, outputSchema, stepName);

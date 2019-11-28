@@ -79,8 +79,8 @@ import org.apache.kafka.streams.kstream.SessionWindowedKStream;
 import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.TimeWindowedKStream;
 import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.Windows;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -89,6 +89,8 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -182,6 +184,9 @@ public class StreamAggregateBuilderTest {
   private Materialized<Struct, GenericRow, SessionStore<Bytes, byte[]>> sessionWindowMaterialized;
   @Mock
   private ExecutionStep<KGroupedStreamHolder> sourceStep;
+  @Captor
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<Windowed<Struct>, GenericRow, GenericRow>>
+      transformerCaptor;
 
   private PlanBuilder planBuilder;
   private StreamAggregate aggregate;
@@ -593,7 +598,7 @@ public class StreamAggregateBuilderTest {
   public void shouldBuildAggregatorParamsCorrectlyForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      reset(
+      clearInvocations(
           groupedStream,
           timeWindowedStream,
           sessionWindowedStream,
@@ -618,11 +623,11 @@ public class StreamAggregateBuilderTest {
   public void shouldAddWindowBoundariesIfSpecified() {
     for (final Runnable given : given()) {
       // Given:
-      reset(
+      clearInvocations(
           groupedStream, timeWindowedStream, sessionWindowedStream, windowed, windowedWithResults);
       when(windowSelectMapper.hasSelects()).thenReturn(true);
-      when(windowedWithResults.mapValues(any(ValueMapperWithKey.class))).thenReturn(
-          windowedWithWindowBoundaries);
+      when(windowedWithResults.transformValues(any(), any(Named.class))).thenReturn(
+          (KTable) windowedWithWindowBoundaries);
       given.run();
 
       // When:
@@ -631,7 +636,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       assertThat(result.getTable(), is(windowedWithWindowBoundaries));
-      verify(windowedWithResults).mapValues(windowSelectMapper);
+      verify(windowedWithResults).transformValues(transformerCaptor.capture(), any(Named.class));
     }
   }
 

@@ -18,19 +18,19 @@ package io.confluent.ksql.execution.function.udaf.window;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * Used to handle the special cased {WindowStart} and {WindowEnd}.
  */
-public final class WindowSelectMapper
-    implements ValueMapperWithKey<Windowed<?>, GenericRow, GenericRow> {
+public final class WindowSelectMapper {
 
   public static final String WINDOW_START_NAME = "WindowStart";
   public static final String WINDOW_END_NAME = "WindowEnd";
@@ -57,14 +57,31 @@ public final class WindowSelectMapper
     return !windowSelects.isEmpty();
   }
 
-  @Override
-  public GenericRow apply(Windowed<?> readOnlyKey, GenericRow row) {
-    Window window = readOnlyKey.window();
+  public <K> ValueTransformerWithKey<Windowed<K>, GenericRow, GenericRow> getTransformer() {
+    return new Transformer<>();
+  }
 
-    windowSelects.forEach((index, type) ->
-        row.getColumns().set(index, type.mapper.apply(window)));
+  private final class Transformer<K> extends KsqlValueTransformerWithKey<Windowed<K>> {
 
-    return row;
+    @Override
+    protected GenericRow transform(final GenericRow value) {
+      // Not called.
+      return null;
+    }
+
+    @Override
+    public GenericRow transform(final Windowed<K> readOnlyKey, final GenericRow value) {
+      if (value == null) {
+        return null;
+      }
+
+      final Window window = readOnlyKey.window();
+
+      windowSelects.forEach((index, type) ->
+          value.getColumns().set(index, type.mapper.apply(window)));
+
+      return value;
+    }
   }
 
   private enum Type {

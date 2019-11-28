@@ -363,6 +363,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -393,6 +394,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKTable = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -422,6 +424,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -432,7 +435,8 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableFilter(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                filterNode.getPredicate()
+                filterNode.getPredicate(),
+                "step"
             )
         )
     );

@@ -353,6 +353,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -382,6 +383,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -409,6 +411,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -419,7 +422,8 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamFilter(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                filterNode.getPredicate()
+                filterNode.getPredicate(),
+                "step"
             )
         )
     );

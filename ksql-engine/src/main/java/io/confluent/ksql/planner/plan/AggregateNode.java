@@ -61,7 +61,7 @@ public class AggregateNode extends PlanNode {
   private static final String PREPARE_OP_NAME = "prepare";
   private static final String AGGREGATION_OP_NAME = "aggregate";
   private static final String GROUP_BY_OP_NAME = "groupby";
-  private static final String FILTER_OP_NAME = "filter";
+  private static final String HAVING_FILTER_OP_NAME = "having-filter";
   private static final String PROJECT_OP_NAME = "project";
 
   private static final String PRE_AGGR_SELECT_NODE_NAME = "PRE-AGGREGATE-SELECT";
@@ -236,7 +236,11 @@ public class AggregateNode extends PlanNode {
         .map(internalSchema::resolveToInternal);
 
     if (havingExpression.isPresent()) {
-      aggregated = aggregated.filter(havingExpression.get(), contextStacker.push(FILTER_OP_NAME));
+      aggregated = aggregated.filter(
+          havingExpression.get(),
+          HAVING_FILTER_OP_NAME.toUpperCase(),
+          contextStacker.push(HAVING_FILTER_OP_NAME)
+      );
     }
 
     final List<SelectExpression> finalSelects = internalSchema

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -156,13 +157,16 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker
+      final String stepName,
+      final Stacker contextStacker
   ) {
     final StreamFilter<K> step = ExecutionStepFactory.streamFilter(
         contextStacker,
         sourceStep,
-        rewriteTimeComparisonForFilter(filterExpression)
+        rewriteTimeComparisonForFilter(filterExpression),
+        stepName
     );
+
     return new SchemaKStream<>(
         step,
         keyFormat,

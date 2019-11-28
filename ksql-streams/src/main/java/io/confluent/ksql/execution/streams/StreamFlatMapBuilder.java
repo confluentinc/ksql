@@ -79,7 +79,7 @@ public final class StreamFlatMapBuilder {
 
     final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
         () -> new KudtfFlatMapper<>(tableFunctionAppliers),
-        Named.as("TABLE-FUNCTIONS-APPLY")
+        Named.as(queryBuilder.buildUniqueNodeName("TABLE-FUNCTIONS-APPLY"))
     );
 
     return stream.withStream(

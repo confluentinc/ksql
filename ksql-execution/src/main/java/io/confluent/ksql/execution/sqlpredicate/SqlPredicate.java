@@ -17,21 +17,20 @@ package io.confluent.ksql.execution.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.CodeGenSpec;
-import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Objects;
-import org.apache.kafka.streams.kstream.Predicate;
+import java.util.Optional;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -76,51 +75,52 @@ public final class SqlPredicate {
     }
   }
 
-  public <K> Predicate<K, GenericRow> getPredicate(final ProcessingLogger processingLogger) {
-    Objects.requireNonNull(processingLogger, "processingLogger");
+  public <K> ValueTransformerWithKey<K, GenericRow, Optional<GenericRow>> getTransformer(
+      final ProcessingLogger processingLogger
+  ) {
+    return new Transformer<>(processingLogger);
+  }
 
-    return (key, row) -> {
-      if (row == null) {
-        return false;
+  private final class Transformer<K> extends KsqlValueTransformerWithKey<K, Optional<GenericRow>> {
+
+    private final ProcessingLogger processingLogger;
+
+    Transformer(final ProcessingLogger processingLogger) {
+      this.processingLogger = requireNonNull(processingLogger, "processingLogger");
+    }
+
+    @Override
+    protected Optional<GenericRow> transform(final GenericRow value) {
+      if (value == null) {
+        return Optional.empty();
       }
 
       try {
         Object[] values = new Object[spec.arguments().size()];
-        spec.resolve(row, values);
-        return (Boolean) ee.evaluate(values);
+        spec.resolve(value, values);
+        final boolean result = (Boolean) ee.evaluate(values);
+        return result
+            ? Optional.of(value)
+            : Optional.empty();
+
       } catch (Exception e) {
-        logProcessingError(processingLogger, e, row);
+        logProcessingError(processingLogger, e, value);
+        return Optional.empty();
       }
-      return false;
-    };
-  }
+    }
 
-  Expression getFilterExpression() {
-    return filterExpression;
-  }
+    private void logProcessingError(
+        final ProcessingLogger processingLogger,
+        final Exception e,
+        final GenericRow row
+    ) {
+      final String msg = String.format(
+          "Error evaluating predicate %s: %s",
+          filterExpression,
+          e.getMessage()
+      );
 
-  @VisibleForTesting
-  int[] getColumnIndexes() {
-    // As this is only used for testing it is ok to do the array copy.
-    // We need to revisit the tests for this class and remove this.
-    return spec.arguments()
-        .stream()
-        .map(ArgumentSpec::colIndex)
-        .mapToInt(idx -> idx.orElse(-1))
-        .toArray();
-  }
-
-  private void logProcessingError(
-      final ProcessingLogger processingLogger,
-      final Exception e,
-      final GenericRow row
-  ) {
-    final String msg = String.format(
-        "Error evaluating predicate %s: %s",
-        filterExpression,
-        e.getMessage()
-    );
-
-    processingLogger.error(EngineProcessingLogMessageFactory.recordProcessingError(msg, e, row));
+      processingLogger.error(EngineProcessingLogMessageFactory.recordProcessingError(msg, e, row));
+    }
   }
 }

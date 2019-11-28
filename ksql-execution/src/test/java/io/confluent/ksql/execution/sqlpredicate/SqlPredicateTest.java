@@ -28,9 +28,8 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -48,10 +47,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,12 +66,13 @@ public class SqlPredicateTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
+      .keyColumn(ColumnName.of("ID"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
       .build()
-      .withAlias(SourceName.of("TEST1"))
-      .withMetaAndKeyColsInValue();
+      .withAlias(SourceName.of("TEST1"));
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
 
@@ -87,6 +88,8 @@ public class SqlPredicateTest {
       FunctionName.of("LEN"),
       LenDummy.class
   );
+
+  private static final GenericRow VALUE = new GenericRow(22L, 33.3, "a string");
 
   @Mock
   private ProcessingLogger processingLogger;
@@ -107,41 +110,29 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void testFilter() {
+  public void shouldPassFilter() {
     // Given:
-    SqlPredicate predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
+    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.LESS_THAN, COL0, new LongLiteral(100)));
+
+    final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>> predicate = sqlPredicate
+        .getTransformer(processingLogger);
 
     // When/Then:
-    assertThat(
-        predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("(TEST1.COL0 > 100)")
-    );
-    assertThat(predicate.getColumnIndexes().length, equalTo(1));
-
+    assertThat(predicate.transform("key", VALUE), is(Optional.of(VALUE)));
   }
 
   @Test
-  public void testFilterBiggerExpression() {
+  public void shouldNotPassFilter() {
     // Given:
-    SqlPredicate predicate = givenSqlPredicateFor(
-        new LogicalBinaryExpression(
-            LogicalBinaryExpression.Type.AND,
-            new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)),
-            new ComparisonExpression(
-                Type.EQUAL,
-                new FunctionCall(FunctionName.of("LEN"), ImmutableList.of(COL2)),
-                new IntegerLiteral(5)
-            )
-        )
-    );
+    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.GREATER_THAN, COL0, new LongLiteral(100)));
+
+    final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>> predicate = sqlPredicate
+        .getTransformer(processingLogger);
 
     // When/Then:
-    assertThat(
-        predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))")
-    );
-    assertThat(predicate.getColumnIndexes().length, equalTo(3));
+    assertThat(predicate.transform("key", VALUE), is(Optional.empty()));
   }
 
   @Test
@@ -150,10 +141,11 @@ public class SqlPredicateTest {
     SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
-    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
+    final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>> predicate = sqlPredicate
+        .getTransformer(processingLogger);
 
     // When/Then:
-    assertThat(predicate.test("key", null), is(false));
+    assertThat(predicate.transform("key", null), is(Optional.empty()));
   }
 
   @Test
@@ -162,12 +154,13 @@ public class SqlPredicateTest {
     SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
-    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
+    final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>> predicate = sqlPredicate
+        .getTransformer(processingLogger);
 
     // When:
-    predicate.test(
+    predicate.transform(
         "key",
-        new GenericRow(0L, "key", Collections.emptyList())
+        new GenericRow("wrong", "types", "in", "here", "to", "force", "error")
     );
 
     // Then:

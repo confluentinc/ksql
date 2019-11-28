@@ -29,10 +29,13 @@
  import io.confluent.ksql.query.QueryId;
  import io.confluent.ksql.schema.ksql.LogicalSchema;
  import io.confluent.ksql.util.KsqlConfig;
+ import java.util.Optional;
  import java.util.function.BiPredicate;
  import org.apache.kafka.connect.data.Struct;
  import org.apache.kafka.streams.kstream.KTable;
- import org.apache.kafka.streams.kstream.Predicate;
+ import org.apache.kafka.streams.kstream.Named;
+ import org.apache.kafka.streams.kstream.ValueMapper;
+ import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
  import org.junit.Before;
  import org.junit.Rule;
  import org.junit.Test;
@@ -48,7 +51,7 @@ public class TableFilterBuilderTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private Predicate predicate;
+  private ValueTransformerWithKey<Struct, GenericRow, Optional<GenericRow>> preTransformer;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -70,7 +73,11 @@ public class TableFilterBuilderTest {
   @Mock
   private KTable<Struct, GenericRow> sourceKTable;
   @Mock
-  private KTable<Struct, GenericRow> filteredKTable;
+  private KTable<Struct, Optional<GenericRow>> preKTable;
+  @Mock
+  private KTable<Struct, Optional<GenericRow>> filteredKTable;
+  @Mock
+  private KTable<Struct, GenericRow> postKTable;
   @Mock
   private Expression filterExpression;
   @Mock
@@ -101,22 +108,26 @@ public class TableFilterBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
-    when(sourceKTable.filter(any())).thenReturn(filteredKTable);
+    when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
+    when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
+    when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
+    when(sqlPredicate.getTransformer(any())).thenReturn((ValueTransformerWithKey) preTransformer);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
         queryContext
     );
-    step = new TableFilter<>(properties, sourceStep, filterExpression);
+    step = new TableFilter<>(properties, sourceStep, filterExpression, "stepName");
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
     ;
+    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
@@ -126,15 +137,13 @@ public class TableFilterBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldFilterSourceTable() {
     // When:
     final KTableHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(result.getTable(), is(filteredKTable));
+    assertThat(result.getTable(), is(postKTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
-    verify(sourceKTable).filter(predicate);
   }
 
   @Test
@@ -166,27 +175,38 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar.FILTER");
+    verify(processingLoggerFactory).getLogger("foo.bar.stepName");
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldFilterMaterialization() {
     // When:
     step.build(planBuilder);
 
     // Then:
-    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("FILTER"));
+    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("stepName"));
 
     // Given:
     final BiPredicate<Object, GenericRow> biPredicate = predicateFactoryCaptor
         .getValue()
         .apply(processingLogger);
 
+    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
+
     // When:
-    biPredicate.test(key, value);
+    boolean result = biPredicate.test(key, value);
 
     // Then:
-    verify(predicate).test(key, value);
+    verify(preTransformer).transform(key, value);
+    assertThat(result, is(false));
+
+    // Given:
+    when(preTransformer.transform(any(), any())).thenReturn(Optional.of(new GenericRow()));
+
+    // When:
+    result = biPredicate.test(key, value);
+
+    // Then:
+    assertThat(result, is(true));
   }
 }

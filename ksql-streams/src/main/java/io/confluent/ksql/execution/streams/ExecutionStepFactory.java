@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
@@ -197,15 +198,17 @@ public final class ExecutionStepFactory {
   }
 
   public static <K> StreamFilter<K> streamFilter(
-      final QueryContext.Stacker stacker,
+      final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
-      final Expression filterExpression
+      final Expression filterExpression,
+      final String stepName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFilter<>(
         source.getProperties().withQueryContext(queryContext),
         source,
-        filterExpression
+        filterExpression,
+        stepName
     );
   }
 
@@ -312,15 +315,17 @@ public final class ExecutionStepFactory {
   }
 
   public static <K> TableFilter<K> tableFilter(
-      final QueryContext.Stacker stacker,
+      final Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
-      final Expression filterExpression
+      final Expression filterExpression,
+      final String stepName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableFilter<>(
         source.getProperties().withQueryContext(queryContext),
         source,
-        filterExpression
+        filterExpression,
+        stepName
     );
   }
 

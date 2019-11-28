@@ -15,17 +15,20 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import java.util.Optional;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public final class TableFilterBuilder {
-
-  private static final String FILTER_OP_NAME = "FILTER";
 
   private TableFilterBuilder() {
   }
@@ -43,9 +46,10 @@ public final class TableFilterBuilder {
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
+    final Stacker contextStacker = Stacker.of(
         step.getProperties().getQueryContext()
     );
+
     final SqlPredicate predicate = sqlPredicateFactory.create(
         step.getFilterExpression(),
         table.getSchema(),
@@ -59,19 +63,37 @@ public final class TableFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push(FILTER_OP_NAME).getQueryContext()
+                contextStacker.push(step.getStepName()).getQueryContext()
             )
+        );
+
+    final KTable<K, GenericRow> filtered = table.getTable()
+        .transformValues(
+            () -> predicate.getTransformer(processingLogger),
+            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName() + "-PRE-PROCESS"))
+        )
+        .filter(
+            (k, v) -> v.isPresent(),
+            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName()))
+        )
+        .mapValues(
+            Optional::get,
+            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName() + "-POST-PROCESS"))
         );
 
     return table
         .withTable(
-            table.getTable().filter(predicate.getPredicate(processingLogger)),
+            filtered,
             table.getSchema()
         )
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.filter(
-                pl -> predicate.getPredicate(pl)::test,
-                FILTER_OP_NAME
+                pl -> {
+                  final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>>
+                      transformer = predicate.getTransformer(pl);
+                  return (k, v) -> transformer.transform(k, v).isPresent();
+                },
+                step.getStepName()
             ))
         );
   }

@@ -62,7 +62,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
-  private static final String FILTER_NODE = "KSTREAM-FILTER-0000000002";
+  private static final String FILTER_NODE = "WHERE-FILTER-unique";
   private static final String FILTER_MAPVALUES_NODE = "SELECT-unique";
   private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 

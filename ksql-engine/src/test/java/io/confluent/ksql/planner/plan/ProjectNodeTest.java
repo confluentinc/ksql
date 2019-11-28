@@ -57,8 +57,6 @@ public class ProjectNodeTest {
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
-  private static final KeyField SOURCE_KEY_FIELD = KeyField
-      .of(ColumnRef.withoutSource(ColumnName.of("source-key")));
 
   @Mock
   private PlanNode source;
@@ -74,7 +72,6 @@ public class ProjectNodeTest {
   @SuppressWarnings("unchecked")
   @Before
   public void init() {
-    when(source.getKeyField()).thenReturn(SOURCE_KEY_FIELD);
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0, SELECT_1));

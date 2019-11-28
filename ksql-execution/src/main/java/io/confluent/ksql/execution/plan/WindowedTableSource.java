@@ -26,20 +26,21 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public final class WindowedStreamSource
-    extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
+public final class WindowedTableSource
+    extends AbstractStreamSource<KTableHolder<Windowed<Struct>>> {
 
   private final WindowInfo windowInfo;
 
-  public WindowedStreamSource(
+  public WindowedTableSource(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
-      @JsonProperty("timestampColumn")  Optional<TimestampColumn> timestampColumn,
-      @JsonProperty("offsetReset") Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) SourceName alias) {
+      @JsonProperty(value = "alias", required = true) SourceName alias
+  ) {
     super(
         properties,
         topicName,
@@ -57,7 +58,7 @@ public final class WindowedStreamSource
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> build(PlanBuilder builder) {
-    return builder.visitWindowedStreamSource(this);
+  public KTableHolder<Windowed<Struct>> build(PlanBuilder builder) {
+    return builder.visitWindowedTableSource(this);
   }
 }

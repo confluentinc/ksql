@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,13 +35,17 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -49,10 +54,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashSet;
@@ -61,6 +64,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -68,6 +72,8 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -76,6 +82,7 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,7 +95,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 
-public class StreamSourceBuilderTest {
+public class SourceBuilderTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
@@ -104,18 +111,26 @@ public class StreamSourceBuilderTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
+  private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
+      new TimestampColumn(
+          ColumnRef.withoutSource(ColumnName.of("field2")),
+          Optional.empty()
+      )
+  );
+
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
   private static final String TOPIC_NAME = "topic";
 
-  @Mock
-  private QueryContext ctx;
+  private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
   private KStream kStream;
+  @Mock
+  private KTable kTable;
   @Mock
   private FormatInfo keyFormatInfo;
   @Mock
@@ -138,6 +153,10 @@ public class StreamSourceBuilderTest {
   private Consumed<Struct, GenericRow> consumed;
   @Mock
   private Consumed<Windowed<Struct>, GenericRow> consumedWindowed;
+  @Mock
+  private MaterializedFactory materializationFactory;
+  @Mock
+  private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
   @Captor
@@ -148,6 +167,8 @@ public class StreamSourceBuilderTest {
 
   private StreamSource streamSource;
   private WindowedStreamSource windowedStreamSource;
+  private TableSource tableSource;
+  private WindowedTableSource windowedTableSource;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -160,12 +181,19 @@ public class StreamSourceBuilderTest {
   public void setup() {
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
+    when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
+    when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
+    when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(456L);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
+    when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
+    when(materializationFactory.create(any(), any(), any()))
+        .thenReturn((Materialized) materialized);
 
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -179,7 +207,7 @@ public class StreamSourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceStream() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
 
     // When:
     final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
@@ -199,7 +227,7 @@ public class StreamSourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldBuildStreamWithCorrectTimestampExtractor() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
     final ConsumerRecord<Object, Object> record = mock(ConsumerRecord.class);
     when(record.value()).thenReturn(new GenericRow("123", 456L));
 
@@ -214,9 +242,28 @@ public class StreamSourceBuilderTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldReturnCorrectSchemaForUnwindowedSource() {
+  public void shouldApplyCorrectTransformationsToSourceTable() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceTable();
+
+    // When:
+    final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKTable.getTable(), is(kTable));
+    final InOrder validator = inOrder(streamsBuilder, kTable);
+    validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed), any());
+    validator.verify(kTable, never()).mapValues(any(ValueMapper.class));
+    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaForUnwindowedSourceStream() {
+    // Given:
+    givenUnwindowedSourceStream();
 
     // When:
     final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
@@ -226,11 +273,22 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  public void shouldReturnCorrectSchemaForUnwindowedSourceTable() {
+    // Given:
+    givenUnwindowedSourceTable();
+
+    // When:
+    final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKTable.getSchema(), is(SCHEMA));
+  }
+
+  @Test
   public void shouldNotBuildWithOffsetResetIfNotProvided() {
     // Given:
     offsetReset = Optional.empty();
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
 
     // When
     streamSource.build(planBuilder);
@@ -244,7 +302,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldBuildSourceValueSerdeCorrectly() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
 
     // When:
     streamSource.build(planBuilder);
@@ -256,7 +314,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldBuildSourceKeySerdeCorrectly() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceStream();
 
     // When:
     windowedStreamSource.build(planBuilder);
@@ -271,10 +329,9 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldReturnCorrectSchemaForWindowedSource() {
+  public void shouldReturnCorrectSchemaForWindowedSourceStream() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceStream();
 
     // When:
     final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder);
@@ -284,14 +341,26 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
+  public void shouldReturnCorrectSchemaForWindowedSourceTable() {
+    // Given:
+    givenWindowedSourceTable();
+
+    // When:
+    final KTableHolder<Windowed<Struct>> builtKTable = windowedTableSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKTable.getSchema(), is(SCHEMA));
+  }
+
+  @Test
   public void shouldThrowOnMultiFieldKey() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        Optional.empty(), 
+        Optional.empty(),
         offsetReset,
         LogicalSchema.builder()
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
@@ -309,9 +378,9 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  public void shouldAddRowTimeAndRowKeyColumns() {
+  public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedStream() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(streamSource);
 
@@ -323,9 +392,23 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
+  public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedTable() {
+    // Given:
+    givenUnwindowedSourceTable();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(tableSource);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(KEY, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(new GenericRow(456L, "foo", "baz", 123)));
+  }
+
+  @Test
   public void shouldHandleNullKey() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(streamSource);
 
@@ -339,9 +422,9 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  public void shouldAddRowTimeAndTimeWindowedRowKeyColumns() {
+  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToStream() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceStream();
     final ValueTransformerWithKey<Windowed<Struct>, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(windowedStreamSource);
 
@@ -359,9 +442,29 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  public void shouldAddRowTimeAndSessionWindowedRowKeyColumns() {
+  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToTable() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceTable();
+    final ValueTransformerWithKey<Windowed<Struct>, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(windowedTableSource);
+
+    final Windowed<Struct> key = new Windowed<>(
+        KEY,
+        new TimeWindow(10L, 20L)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(new GenericRow(456L, "foo : Window{start=10 end=-}", "baz", 123)));
+  }
+
+  @Test
+  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToStream() {
+    // Given:
+    givenWindowedSourceStream();
     final ValueTransformerWithKey<Windowed<Struct>, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(windowedStreamSource);
 
@@ -379,9 +482,29 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
+  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTable() {
+    // Given:
+    givenWindowedSourceTable();
+    final ValueTransformerWithKey<Windowed<Struct>, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(windowedTableSource);
+
+    final Windowed<Struct> key = new Windowed<>(
+        KEY,
+        new SessionWindow(10L, 20L)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(new GenericRow(456L, "foo : Window{start=10 end=20}", "baz", 123)));
+  }
+
+  @Test
   public void shouldUseCorrectSerdeForWindowedKey() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceStream();
 
     // When:
     windowedStreamSource.build(planBuilder);
@@ -398,7 +521,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldUseCorrectSerdeForNonWindowedKey() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
 
     // When:
     streamSource.build(planBuilder);
@@ -414,7 +537,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldReturnCorrectSerdeFactory() {
     // Given:
-    givenUnwindowedSource();
+    givenUnwindowedSourceStream();
 
     // When:
     final KStreamHolder<?> stream = streamSource.build(planBuilder);
@@ -428,7 +551,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldReturnCorrectSerdeFactoryForWindowedSource() {
     // Given:
-    givenWindowedSource();
+    givenWindowedSourceStream();
 
     // When:
     final KStreamHolder<?> stream = windowedStreamSource.build(planBuilder);
@@ -439,6 +562,17 @@ public class StreamSourceBuilderTest {
     verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 
+  @Test
+  public void shouldBuildTableWithCorrectStoreName() {
+    // Given:
+    givenUnwindowedSourceTable();
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(materializationFactory).create(keySerde, valueSerde, "base-reduce");
+  }
 
   @SuppressWarnings("unchecked")
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromStreamSource(
@@ -451,7 +585,18 @@ public class StreamSourceBuilderTest {
     return transformer;
   }
 
-  private void givenWindowedSource() {
+  @SuppressWarnings("unchecked")
+  private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromTableSource(
+      final AbstractStreamSource<?> streamSource
+  ) {
+    streamSource.build(planBuilder);
+    verify(kTable).transformValues(transformSupplierCaptor.capture());
+    final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
+    transformer.init(processorCtx);
+    return transformer;
+  }
+
+  private void givenWindowedSourceStream() {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
@@ -459,31 +604,51 @@ public class StreamSourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
-        Optional.of(
-            new TimestampColumn(
-                ColumnRef.withoutSource(ColumnName.of("field2")),
-                Optional.empty()
-            )
-        ),
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );
   }
 
-  private void givenUnwindowedSource() {
+  private void givenUnwindowedSourceStream() {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        Optional.of(
-            new TimestampColumn(
-                ColumnRef.withoutSource(ColumnName.of("field2")),
-                Optional.empty()
-            )
-        ),
+        TIMESTAMP_COLUMN,
+        offsetReset,
+        SOURCE_SCHEMA,
+        ALIAS
+    );
+  }
+
+  private void givenWindowedSourceTable() {
+    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
+    windowedTableSource = new WindowedTableSource(
+        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        TOPIC_NAME,
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        windowInfo,
+        TIMESTAMP_COLUMN,
+        offsetReset,
+        SOURCE_SCHEMA,
+        ALIAS
+    );
+  }
+
+  private void givenUnwindowedSourceTable() {
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    givenConsumed(consumed, keySerde);
+    tableSource = new TableSource(
+        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        TOPIC_NAME,
+        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        TIMESTAMP_COLUMN,
         offsetReset,
         SOURCE_SCHEMA,
         ALIAS

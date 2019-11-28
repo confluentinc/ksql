@@ -3,7 +3,6 @@ package io.confluent.ksql.util.timestamp;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.hamcrest.Description;

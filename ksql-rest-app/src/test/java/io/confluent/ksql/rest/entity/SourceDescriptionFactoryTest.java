@@ -37,7 +37,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.execution.streams.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;

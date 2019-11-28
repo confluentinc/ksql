@@ -269,7 +269,13 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private static final Collection<CompatibilityBreakingStreamsConfig>
-      COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of();
+      COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
+          // Turn on optimizations by default, unless the user explicitly disables in config:
+          new CompatibilityBreakingStreamsConfig(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.OPTIMIZE,
+            StreamsConfig.OPTIMIZE)
+  );
 
   private static final class CompatibilityBreakingStreamsConfig {
     final String name;

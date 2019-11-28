@@ -43,6 +43,7 @@ public final class QueryContext {
     }
   }
 
+  @SuppressWarnings("unused")// Invoked via reflection by Jackson
   @JsonCreator
   private QueryContext(final String context) {
     this(ImmutableList.copyOf(context.split(DELIMITER)));

@@ -80,7 +80,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-      .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
       .build();
 
   private final ServiceContext serviceContext;

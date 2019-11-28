@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -194,7 +193,6 @@ public class JoinNodeTest {
     setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
     setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
 
-    when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
     when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
     when(rightSchemaKTable.getKeyField()).thenReturn(rightJoinField);
   }
@@ -264,7 +262,7 @@ public class JoinNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList("KTABLE-SOURCE-0000000001")));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test2")));
   }
 
@@ -947,8 +945,6 @@ public class JoinNodeTest {
       final SchemaKStream stream
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
-    final LogicalSchema schema = node.getSchema();
-    when(stream.getSchema()).thenReturn(schema);
     when(stream.selectKey(any(), eq(true), any())).thenReturn(stream);
     when(node.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
   }

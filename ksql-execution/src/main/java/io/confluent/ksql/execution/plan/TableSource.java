@@ -20,28 +20,22 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.WindowInfo;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
-import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
-public final class WindowedStreamSource
-    extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
+public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>> {
 
-  private final WindowInfo windowInfo;
-
-  public WindowedStreamSource(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
-      @JsonProperty(value = "topicName", required = true) String topicName,
-      @JsonProperty(value = "formats", required = true) Formats formats,
-      @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
-      @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
-      @JsonProperty("offsetReset") Optional<AutoOffsetReset> offsetReset,
-      @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) SourceName alias) {
+  public TableSource(
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) final SourceName alias
+  ) {
     super(
         properties,
         topicName,
@@ -51,15 +45,10 @@ public final class WindowedStreamSource
         sourceSchema,
         alias
     );
-    this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
-  }
-
-  public WindowInfo getWindowInfo() {
-    return windowInfo;
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> build(PlanBuilder builder) {
-    return builder.visitWindowedStreamSource(this);
+  public KTableHolder<Struct> build(PlanBuilder builder) {
+    return builder.visitTableSource(this);
   }
 }

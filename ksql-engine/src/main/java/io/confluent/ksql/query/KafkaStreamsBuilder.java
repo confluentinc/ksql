@@ -15,10 +15,27 @@
 
 package io.confluent.ksql.query;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
 
 public interface KafkaStreamsBuilder {
-  KafkaStreams buildKafkaStreams(StreamsBuilder builder, Map<String, Object> conf);
+  BuildResult buildKafkaStreams(StreamsBuilder builder, Map<String, Object> conf);
+
+  class BuildResult {
+
+    final Topology topology;
+    final KafkaStreams kafkaStreams;
+
+    public BuildResult(
+        final Topology topology,
+        final KafkaStreams kafkaStreams
+    ) {
+      this.topology = requireNonNull(topology, "topology");
+      this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
+    }
+  }
 }

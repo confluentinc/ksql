@@ -24,9 +24,11 @@ import io.confluent.ksql.rest.server.utils.KsqlPlanSchemaGenerator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class KsqlPlanSchemaTest {
+  private static final Path BASE_PATH = Paths.get("src/test/resources");
   private static final Path SCHEMA_PATH = Paths.get("ksql-plan-schema/schema.json");
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -46,5 +48,11 @@ public class KsqlPlanSchemaTest {
         jsonSchema,
         is(expected)
     );
+  }
+
+  @Ignore
+  @Test
+  public void runMeToRegenerateSchemaFile() throws Exception {
+    KsqlPlanSchemaGenerator.generateTo(BASE_PATH.resolve(SCHEMA_PATH));
   }
 }

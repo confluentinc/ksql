@@ -18,25 +18,36 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Window;
@@ -44,28 +55,30 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.apache.kafka.streams.state.KeyValueStore;
 
-public final class StreamSourceBuilder {
-  private StreamSourceBuilder() {
+public final class SourceBuilder {
+
+  private SourceBuilder() {
   }
 
-  public static KStreamHolder<Struct> build(
+  public static KStreamHolder<Struct> buildStream(
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource streamSource,
+      final StreamSource source,
       final ConsumedFactory consumedFactory
   ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        streamSource.getFormats().getKeyFormat(),
+        source.getFormats().getKeyFormat(),
         physicalSchema,
-        streamSource.getProperties().getQueryContext()
+        source.getProperties().getQueryContext()
     );
 
     final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
-        streamSource,
+        source,
         keySerde,
         valueSerde,
         queryBuilder,
@@ -73,41 +86,38 @@ public final class StreamSourceBuilder {
     );
 
     final KStream<Struct, GenericRow> kstream = buildKStream(
-        streamSource,
+        source,
         queryBuilder,
         consumed,
-        nonWindowedRowKeyGenerator(streamSource.getSourceSchema())
+        nonWindowedRowKeyGenerator(source.getSourceSchema())
     );
 
     return new KStreamHolder<>(
         kstream,
-        streamSource
-            .getSourceSchema()
-            .withAlias(streamSource.getAlias())
-            .withMetaAndKeyColsInValue(),
+        buildSchema(source),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
-  static KStreamHolder<Windowed<Struct>> buildWindowed(
+  static KStreamHolder<Windowed<Struct>> buildWindowedStream(
       final KsqlQueryBuilder queryBuilder,
-      final WindowedStreamSource streamSource,
+      final WindowedStreamSource source,
       final ConsumedFactory consumedFactory
   ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final WindowInfo windowInfo = streamSource.getWindowInfo();
+    final WindowInfo windowInfo = source.getWindowInfo();
     final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
-        streamSource.getFormats().getKeyFormat(),
+        source.getFormats().getKeyFormat(),
         windowInfo,
         physicalSchema,
-        streamSource.getProperties().getQueryContext()
+        source.getProperties().getQueryContext()
     );
 
     final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
-        streamSource,
+        source,
         keySerde,
         valueSerde,
         queryBuilder,
@@ -115,18 +125,141 @@ public final class StreamSourceBuilder {
     );
 
     final KStream<Windowed<Struct>, GenericRow> kstream = buildKStream(
-        streamSource,
+        source,
         queryBuilder,
         consumed,
-        windowedRowKeyGenerator(streamSource.getSourceSchema())
+        windowedRowKeyGenerator(source.getSourceSchema())
     );
 
     return new KStreamHolder<>(
         kstream,
-        streamSource.getSourceSchema()
-            .withAlias(streamSource.getAlias())
-            .withMetaAndKeyColsInValue(),
+        buildSchema(source),
         KeySerdeFactory.windowed(queryBuilder, windowInfo)
+    );
+  }
+
+  public static KTableHolder<Struct> buildTable(
+      final KsqlQueryBuilder queryBuilder,
+      final TableSource source,
+      final ConsumedFactory consumedFactory,
+      final MaterializedFactory materializedFactory
+  ) {
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+
+    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        physicalSchema,
+        source.getProperties().getQueryContext()
+    );
+
+    final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
+        source,
+        keySerde,
+        valueSerde,
+        queryBuilder,
+        consumedFactory
+    );
+
+    final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactory.create(
+            keySerde,
+            valueSerde,
+            tableChangeLogOpName(source.getProperties())
+        );
+
+    final KTable<Struct, GenericRow> ktable = buildKTable(
+        source,
+        queryBuilder,
+        consumed,
+        nonWindowedRowKeyGenerator(source.getSourceSchema()),
+        materialized
+    );
+
+    return KTableHolder.unmaterialized(
+        ktable,
+        buildSchema(source),
+        KeySerdeFactory.unwindowed(queryBuilder)
+    );
+  }
+
+  static KTableHolder<Windowed<Struct>> buildWindowedTable(
+      final KsqlQueryBuilder queryBuilder,
+      final WindowedTableSource source,
+      final ConsumedFactory consumedFactory,
+      final MaterializedFactory materializedFactory
+  ) {
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+
+    final WindowInfo windowInfo = source.getWindowInfo();
+    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        windowInfo,
+        physicalSchema,
+        source.getProperties().getQueryContext()
+    );
+
+    final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
+        source,
+        keySerde,
+        valueSerde,
+        queryBuilder,
+        consumedFactory
+    );
+
+    final Materialized<Windowed<Struct>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactory.create(
+            keySerde,
+            valueSerde,
+            tableChangeLogOpName(source.getProperties())
+        );
+
+    final KTable<Windowed<Struct>, GenericRow> ktable = buildKTable(
+        source,
+        queryBuilder,
+        consumed,
+        windowedRowKeyGenerator(source.getSourceSchema()),
+        materialized
+    );
+
+    return KTableHolder.unmaterialized(
+        ktable,
+        buildSchema(source),
+        KeySerdeFactory.windowed(queryBuilder, windowInfo)
+    );
+  }
+
+  private static LogicalSchema buildSchema(final AbstractStreamSource<?> source) {
+    return source
+        .getSourceSchema()
+        .withAlias(source.getAlias())
+        .withMetaAndKeyColsInValue();
+  }
+
+  private static KeySerde<Struct> buildNonWindowedKeySerde(
+      final KsqlQueryBuilder queryBuilder,
+      final KeyFormat fmt,
+      final PhysicalSchema schema,
+      final QueryContext ctx
+  ) {
+    return queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx);
+  }
+
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
+  private static KeySerde<Windowed<Struct>> buildWindowedKeySerde(
+      final KsqlQueryBuilder queryBuilder,
+      final KeyFormat fmt,
+      final PhysicalSchema schema,
+      final QueryContext ctx
+  ) {
+    return queryBuilder.buildKeySerde(
+        fmt.getFormatInfo(),
+        fmt.getWindowInfo().get(),
+        schema,
+        ctx
     );
   }
 
@@ -158,6 +291,20 @@ public final class StreamSourceBuilder {
         .stream(streamSource.getTopicName(), consumed);
 
     return stream
+        .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
+  }
+
+  private static <K> KTable<K, GenericRow> buildKTable(
+      final AbstractStreamSource streamSource,
+      final KsqlQueryBuilder queryBuilder,
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, String> rowKeyGenerator,
+      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
+  ) {
+    final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
+        .table(streamSource.getTopicName(), consumed, materialized);
+
+    return table
         .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
   }
 
@@ -201,6 +348,15 @@ public final class StreamSourceBuilder {
       throw new IllegalStateException("Only single key fields are currently supported");
     }
     return schema.keyConnectSchema().fields().get(0);
+  }
+
+  private static String tableChangeLogOpName(final ExecutionStepProperties props) {
+    final List<String> parts = props.getQueryContext().getContext();
+    Stacker stacker = new Stacker();
+    for (final String part : parts.subList(0, parts.size() - 1)) {
+      stacker = stacker.push(part);
+    }
+    return StreamsUtil.buildOpName(stacker.push("reduce").getQueryContext());
   }
 
   private static Function<Windowed<Struct>, String> windowedRowKeyGenerator(

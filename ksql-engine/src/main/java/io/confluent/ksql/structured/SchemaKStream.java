@@ -130,6 +130,7 @@ public class SchemaKStream<K> {
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
           Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
+          topic.getKeyFormat().getWindowInfo().get(),
           dataSource.getTimestampColumn(),
           offsetReset,
           alias

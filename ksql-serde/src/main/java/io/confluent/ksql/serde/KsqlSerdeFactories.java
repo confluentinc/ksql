@@ -62,7 +62,7 @@ final class KsqlSerdeFactories implements SerdeFactories {
   static KsqlSerdeFactory create(final FormatInfo format) {
     switch (format.getFormat()) {
       case AVRO:
-        final String schemaFullName = format.getAvroFullSchemaName()
+        final String schemaFullName = format.getFullSchemaName()
             .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
         return new KsqlAvroSerdeFactory(schemaFullName);

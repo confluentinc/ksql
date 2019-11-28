@@ -37,10 +37,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
@@ -84,8 +82,8 @@ public class StreamGroupByBuilderTest {
       STEP_CTX
   );
   private static final Formats FORMATS = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.JSON)),
+      FormatInfo.of(Format.KAFKA),
+      FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
 
@@ -219,7 +217,7 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildKeySerde(
-        FORMATS.getKeyFormat().getFormatInfo(),
+        FORMATS.getKeyFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX
     );
@@ -232,7 +230,7 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        FORMATS.getValueFormat().getFormatInfo(),
+        FORMATS.getValueFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX
     );
@@ -274,7 +272,7 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildKeySerde(
-        FORMATS.getKeyFormat().getFormatInfo(),
+        FORMATS.getKeyFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX);
   }
@@ -286,7 +284,7 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        FORMATS.getValueFormat().getFormatInfo(),
+        FORMATS.getValueFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX
     );

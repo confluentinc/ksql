@@ -17,13 +17,13 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
-import java.util.Set;
 
 @Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
@@ -33,16 +33,18 @@ public class CreateStreamCommand extends CreateSourceCommand {
       @JsonProperty(value = "keyField") Optional<ColumnName> keyField,
       @JsonProperty(value = "timestampColumn")
       Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "serdeOptions", required = true) Set<SerdeOption> serdeOptions,
-      @JsonProperty(value = "topic", required = true) KsqlTopic ksqlTopic
+      @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
   ) {
     super(
         sourceName,
         schema,
         keyField,
         timestampColumn,
-        serdeOptions,
-        ksqlTopic
+        kafkaTopicName,
+        formats,
+        windowInfo
     );
   }
 

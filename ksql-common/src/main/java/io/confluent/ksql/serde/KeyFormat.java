@@ -43,6 +43,10 @@ public final class KeyFormat {
     return new KeyFormat(format, Optional.of(windowInfo));
   }
 
+  public static KeyFormat of(final FormatInfo format, final Optional<WindowInfo> windowInfo) {
+    return new KeyFormat(format, windowInfo);
+  }
+
   @JsonCreator
   private KeyFormat(
       @JsonProperty(value = "formatInfo", required = true) final FormatInfo format,

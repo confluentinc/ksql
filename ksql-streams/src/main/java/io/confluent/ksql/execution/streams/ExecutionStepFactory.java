@@ -54,6 +54,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -73,6 +74,7 @@ public final class ExecutionStepFactory {
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
       final Formats formats,
+      final WindowInfo windowInfo,
       final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
@@ -84,6 +86,7 @@ public final class ExecutionStepFactory {
             queryContext),
         topicName,
         formats,
+        windowInfo,
         timestampColumn,
         offsetReset,
         schema.getOriginalSchema(),

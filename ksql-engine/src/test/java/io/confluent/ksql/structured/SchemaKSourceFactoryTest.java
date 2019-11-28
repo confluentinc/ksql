@@ -39,9 +39,11 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
@@ -83,9 +85,15 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private KeyFormat keyFormat;
   @Mock
+  private FormatInfo keyFormatInfo;
+  @Mock
   private ValueFormat valueFormat;
   @Mock
+  private FormatInfo valueFormatInfo;
+  @Mock
   private FunctionRegistry functionRegistry;
+  @Mock
+  private WindowInfo windowInfo;
 
   @Before
   public void setUp() {
@@ -103,6 +111,9 @@ public class SchemaKSourceFactoryTest {
 
     when(builder.getKsqlConfig()).thenReturn(CONFIG);
     when(builder.getFunctionRegistry()).thenReturn(functionRegistry);
+
+    when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
   }
 
   @Test
@@ -110,6 +121,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(keyFormat.isWindowed()).thenReturn(true);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -136,6 +148,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -162,6 +175,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(keyFormat.isWindowed()).thenReturn(true);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -188,6 +202,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(

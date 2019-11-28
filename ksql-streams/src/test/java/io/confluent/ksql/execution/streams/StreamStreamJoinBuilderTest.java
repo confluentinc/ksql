@@ -30,7 +30,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import java.time.Duration;
 import org.apache.kafka.common.serialization.Serde;
@@ -108,7 +107,7 @@ public class StreamStreamJoinBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Mock
   private Serde<GenericRow> leftSerde;
   @Mock

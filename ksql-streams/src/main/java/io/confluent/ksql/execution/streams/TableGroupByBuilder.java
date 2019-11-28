@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -52,7 +51,7 @@ public final class TableGroupByBuilder {
         sourceSchema,
         formats.getOptions()
     );
-    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext

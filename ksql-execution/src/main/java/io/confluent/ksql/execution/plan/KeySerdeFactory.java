@@ -18,13 +18,13 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public interface KeySerdeFactory<K> {
-  KeySerde<K> buildKeySerde(
+  Serde<K> buildKeySerde(
       FormatInfo format,
       PhysicalSchema physicalSchema,
       QueryContext queryContext

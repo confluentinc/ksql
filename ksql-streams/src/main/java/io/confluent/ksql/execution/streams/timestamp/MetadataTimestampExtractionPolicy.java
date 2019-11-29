@@ -16,12 +16,10 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
-@Immutable
 public class MetadataTimestampExtractionPolicy implements TimestampExtractionPolicy {
   private final TimestampExtractor timestampExtractor;
 

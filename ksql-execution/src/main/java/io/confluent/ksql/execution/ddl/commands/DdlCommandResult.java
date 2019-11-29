@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class DdlCommandResult {

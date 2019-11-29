@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.configdef;
 
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import org.apache.kafka.common.config.ConfigDef;
 /**
  * Wrapper around ConfigDef to disable modification.
  */
+@EffectivelyImmutable
 public final class UnmodifiableConfigDef extends ConfigDef {
 
   public static UnmodifiableConfigDef of(final ConfigDef configDef) {

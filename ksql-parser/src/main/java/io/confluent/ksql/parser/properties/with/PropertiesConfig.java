@@ -18,9 +18,9 @@ package io.confluent.ksql.parser.properties.with;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.properties.with.ConfigMetaData;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 /**
  * Helper for handling 'with clause' properties.
  */
-@Immutable
+@EffectivelyImmutable
 final class PropertiesConfig extends AbstractConfig {
 
   private final ConfigMetaData configDetails;

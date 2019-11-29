@@ -14,18 +14,20 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
+@Immutable
 public final class LogicalSchemaWithMetaAndKeyFields {
   private final LogicalSchema schema;
 
-  LogicalSchemaWithMetaAndKeyFields(LogicalSchema schema) {
+  private LogicalSchemaWithMetaAndKeyFields(LogicalSchema schema) {
     this.schema = schema;
   }
 
-  public static LogicalSchemaWithMetaAndKeyFields fromOriginal(
+  static LogicalSchemaWithMetaAndKeyFields fromOriginal(
       SourceName alias,
       LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(

@@ -19,14 +19,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 @Immutable
 public final class Delimiter {
 
-  private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap
+  private static final ImmutableMap<String, Character> NAMED_DELIMITERS = ImmutableMap
       .<String, Character>builder()
       .put("TAB", '\t')
       .put("SPACE", ' ')

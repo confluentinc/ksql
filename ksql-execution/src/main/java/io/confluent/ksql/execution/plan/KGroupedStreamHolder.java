@@ -15,15 +15,18 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 
+@Immutable
 public final class KGroupedStreamHolder {
-  final KGroupedStream<Struct, GenericRow> groupedStream;
-  final LogicalSchema schema;
+
+  private final KGroupedStream<Struct, GenericRow> groupedStream;
+  private final LogicalSchema schema;
 
   private KGroupedStreamHolder(
       KGroupedStream<Struct, GenericRow> groupedStream,

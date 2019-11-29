@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.function.types;
 
+import com.google.errorprone.annotations.Immutable;
+
 /**
  * A {@code ArgType} represents the types that can be used as part
  * of a {@link io.confluent.ksql.function.FunctionSignature} - this is
@@ -26,6 +28,7 @@ package io.confluent.ksql.function.types;
  * wider range of types that are useful for defining functions (e.g.
  * generics and variable arguments).</p>
  */
+@Immutable
 public abstract class ParamType {
 
   @Override
@@ -36,5 +39,4 @@ public abstract class ParamType {
 
   @Override
   public abstract String toString();
-
 }

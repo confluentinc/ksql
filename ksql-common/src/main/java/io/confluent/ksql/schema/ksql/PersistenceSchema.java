@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -36,6 +37,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 @Immutable
 public final class PersistenceSchema {
 
+  @EffectivelyImmutable
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
 

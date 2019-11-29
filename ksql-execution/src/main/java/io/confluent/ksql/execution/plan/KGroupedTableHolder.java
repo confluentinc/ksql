@@ -15,13 +15,16 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 
+@Immutable
 public final class KGroupedTableHolder {
+
   private final KGroupedTable<Struct, GenericRow> groupedTable;
   private final LogicalSchema schema;
 

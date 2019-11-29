@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -29,7 +30,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class ProjectNode extends PlanNode {
@@ -38,7 +38,7 @@ public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
   private final LogicalSchema schema;
-  private final List<SelectExpression> projectExpressions;
+  private final ImmutableList<SelectExpression> projectExpressions;
   private final KeyField keyField;
 
   public ProjectNode(

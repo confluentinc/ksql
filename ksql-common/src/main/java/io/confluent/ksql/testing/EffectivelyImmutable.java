@@ -13,22 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.connect;
+package io.confluent.ksql.testing;
 
-import org.apache.kafka.connect.data.Schema;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Formatter for Connect schema type.
- *
- * <p>Converts a Connect schema to human readable text.
+ * Annotation used to annotate a field or type that is known to be immutable, but which the
+ * {@code ImmutableTester}, in the ksql-testing module, can not prove is immutable.
  */
-public interface SchemaFormatter {
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.TYPE})
+public @interface EffectivelyImmutable {
 
-  /**
-   * Convert the supplied Connect schema into a human readable (ish) string.
-   *
-   * @param schema the schema to format.
-   * @return the schema formatted as a human readable string.
-   */
-  String format(Schema schema);
 }

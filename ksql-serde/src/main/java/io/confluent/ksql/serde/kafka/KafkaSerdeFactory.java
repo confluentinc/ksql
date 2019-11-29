@@ -27,7 +27,6 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
@@ -43,7 +42,7 @@ import org.apache.kafka.connect.data.Struct;
 @Immutable
 public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
-  private static final Map<Type, Serde<?>> SERDE = ImmutableMap.of(
+  private static final ImmutableMap<Type, Serde<?>> SERDE = ImmutableMap.of(
       Type.STRING, Serdes.String(),
       Type.INT32, Serdes.Integer(),
       Type.INT64, Serdes.Long(),

@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -132,6 +133,8 @@ public class DataSourceNodeTest {
   @Mock
   private DataSource<?> dataSource;
   @Mock
+  private MetaStore metaStore;
+  @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
   private KeySerde<String> keySerde;
@@ -172,6 +175,7 @@ public class DataSourceNodeTest {
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
         );
+    when(metaStore.getSource(SourceName.of("datasource"))).thenReturn((DataSource) SOME_SOURCE);
   }
 
   @Test
@@ -367,9 +371,9 @@ public class DataSourceNodeTest {
     final SchemaKStream stream = node.buildStream(ksqlStreamBuilder);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable table = (SchemaKTable) stream;
-      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      table.getSourceTableStep().build(new KSPlanBuilder(metaStore, ksqlStreamBuilder));
     } else {
-      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      stream.getSourceStep().build(new KSPlanBuilder(metaStore, ksqlStreamBuilder));
     }
     return stream;
   }

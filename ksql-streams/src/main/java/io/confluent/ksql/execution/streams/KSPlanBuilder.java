@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.metastore.MetaStore;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -52,13 +53,15 @@ import org.apache.kafka.streams.kstream.Windowed;
  * Kafka Streams app
  */
 public final class KSPlanBuilder implements PlanBuilder {
+  private final MetaStore metaStore;
   private final KsqlQueryBuilder queryBuilder;
   private final SqlPredicateFactory sqlPredicateFactory;
   private final AggregateParamsFactory aggregateParamFactory;
   private final StreamsFactories streamsFactories;
 
-  public KSPlanBuilder(final KsqlQueryBuilder queryBuilder) {
+  public KSPlanBuilder(final MetaStore metaStore, final KsqlQueryBuilder queryBuilder) {
     this(
+        metaStore,
         queryBuilder,
         SqlPredicate::new,
         new AggregateParamsFactory(),
@@ -67,10 +70,12 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   public KSPlanBuilder(
+      final MetaStore metaStore,
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory,
       final AggregateParamsFactory aggregateParamFactory,
       final StreamsFactories streamsFactories) {
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
     this.sqlPredicateFactory = Objects.requireNonNull(sqlPredicateFactory, "sqlPredicateFactory");
     this.aggregateParamFactory =
@@ -150,6 +155,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
     return SourceBuilder.buildStream(
+        metaStore,
         queryBuilder,
         streamSource,
         streamsFactories.getConsumedFactory()
@@ -160,6 +166,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource) {
     return SourceBuilder.buildWindowedStream(
+        metaStore,
         queryBuilder,
         windowedStreamSource,
         streamsFactories.getConsumedFactory()
@@ -195,6 +202,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public KTableHolder<Struct> visitTableSource(final TableSource tableSource) {
     return SourceBuilder.buildTable(
+        metaStore,
         queryBuilder,
         tableSource,
         streamsFactories.getConsumedFactory(),
@@ -207,6 +215,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final WindowedTableSource windowedTableSource
   ) {
     return SourceBuilder.buildWindowedTable(
+        metaStore,
         queryBuilder,
         windowedTableSource,
         streamsFactories.getConsumedFactory(),

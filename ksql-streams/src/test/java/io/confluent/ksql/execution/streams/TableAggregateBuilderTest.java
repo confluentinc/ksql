@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -171,6 +172,7 @@ public class TableAggregateBuilderTest {
     );
     when(sourceStep.build(any())).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         mock(SqlPredicateFactory.class),
         aggregateParamsFactory,

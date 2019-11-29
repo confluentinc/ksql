@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -144,6 +145,7 @@ public class TableGroupByBuilderTest {
         GROUPBY_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),

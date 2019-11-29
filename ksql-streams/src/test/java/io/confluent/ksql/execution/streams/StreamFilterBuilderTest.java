@@ -23,6 +23,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -103,6 +104,7 @@ public class StreamFilterBuilderTest {
         queryContext
     );
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         predicateFactory,
         mock(AggregateParamsFactory.class),

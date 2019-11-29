@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -202,6 +203,7 @@ public class StreamAggregateBuilderTest {
     when(aggregateParams.getWindowSelectMapper()).thenReturn(windowSelectMapper);
     when(windowSelectMapper.hasSelects()).thenReturn(false);
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         mock(SqlPredicateFactory.class),
         aggregateParamsFactory,

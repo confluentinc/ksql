@@ -49,13 +49,11 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -73,11 +71,8 @@ public final class ExecutionStepFactory {
   public static WindowedStreamSource streamSourceWindowed(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
-      final String topicName,
-      final Formats formats,
-      final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
+      final SourceName sourceName,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -85,12 +80,8 @@ public final class ExecutionStepFactory {
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),
-        topicName,
-        formats,
-        windowInfo,
-        timestampColumn,
         offsetReset,
-        schema.getOriginalSchema(),
+        sourceName,
         alias
     );
   }
@@ -98,10 +89,8 @@ public final class ExecutionStepFactory {
   public static StreamSource streamSource(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
-      final String topicName,
-      final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
+      final SourceName sourceName,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -109,11 +98,8 @@ public final class ExecutionStepFactory {
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),
-        topicName,
-        formats,
-        timestampColumn,
         offsetReset,
-        schema.getOriginalSchema(),
+        sourceName,
         alias
     );
   }
@@ -121,10 +107,8 @@ public final class ExecutionStepFactory {
   public static TableSource tableSource(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
-      final String topicName,
-      final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
+      final SourceName sourceName,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -132,11 +116,8 @@ public final class ExecutionStepFactory {
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),
-        topicName,
-        formats,
-        timestampColumn,
         offsetReset,
-        schema.getOriginalSchema(),
+        sourceName,
         alias
     );
   }
@@ -144,11 +125,8 @@ public final class ExecutionStepFactory {
   public static WindowedTableSource tableSourceWindowed(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
-      final String topicName,
-      final Formats formats,
-      final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn,
       final Optional<AutoOffsetReset> offsetReset,
+      final SourceName sourceName,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -156,12 +134,8 @@ public final class ExecutionStepFactory {
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),
-        topicName,
-        formats,
-        windowInfo,
-        timestampColumn,
         offsetReset,
-        schema.getOriginalSchema(),
+        sourceName,
         alias
     );
   }

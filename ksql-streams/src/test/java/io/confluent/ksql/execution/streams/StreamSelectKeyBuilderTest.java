@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -113,6 +114,7 @@ public class StreamSelectKeyBuilderTest {
     when(sourceStep.build(any())).thenReturn(
         new KStreamHolder<>(kstream, SCHEMA, mock(KeySerdeFactory.class)));
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),

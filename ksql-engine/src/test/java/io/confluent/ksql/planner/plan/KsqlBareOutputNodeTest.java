@@ -98,7 +98,7 @@ public class KsqlBareOutputNodeTest {
         .buildLogicalPlan(ksqlConfig, SIMPLE_SELECT_WITH_FILTER, metaStore);
 
     stream = planNode.buildStream(ksqlStreamBuilder);
-    stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    stream.getSourceStep().build(new KSPlanBuilder(metaStore, ksqlStreamBuilder));
   }
 
   @Test

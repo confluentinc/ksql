@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
@@ -29,11 +28,8 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 @Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final ExecutionStepProperties properties;
-  private final String topicName;
-  private final Formats formats;
-  private final Optional<TimestampColumn> timestampColumn;
   private final Optional<AutoOffsetReset> offsetReset;
-  private final LogicalSchema sourceSchema;
+  private final SourceName sourceName;
   private final SourceName alias;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
@@ -45,18 +41,12 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   @VisibleForTesting
   public AbstractStreamSource(
       ExecutionStepProperties properties,
-      String topicName,
-      Formats formats,
-      Optional<TimestampColumn> timestampColumn,
       Optional<AutoOffsetReset> offsetReset,
-      LogicalSchema sourceSchema,
+      SourceName sourceName,
       SourceName alias) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.topicName = Objects.requireNonNull(topicName, "topicName");
-    this.formats = Objects.requireNonNull(formats, "formats");
-    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
-    this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
+    this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.alias = Objects.requireNonNull(alias, "alias");
   }
 
@@ -70,28 +60,16 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
     return Collections.emptyList();
   }
 
-  public LogicalSchema getSourceSchema() {
-    return sourceSchema;
-  }
-
   public Optional<AutoOffsetReset> getOffsetReset() {
     return offsetReset;
   }
 
-  public Optional<TimestampColumn> getTimestampColumn() {
-    return timestampColumn;
-  }
-
-  public Formats getFormats() {
-    return formats;
-  }
-
-  public String getTopicName() {
-    return topicName;
-  }
-
   public SourceName getAlias() {
     return alias;
+  }
+
+  public SourceName getSourceName() {
+    return sourceName;
   }
 
   @Override
@@ -104,22 +82,18 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
     }
     AbstractStreamSource that = (AbstractStreamSource) o;
     return Objects.equals(properties, that.properties)
-        && Objects.equals(topicName, that.topicName)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(offsetReset, that.offsetReset)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceName, that.sourceName)
+        && Objects.equals(alias, that.alias);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         properties,
-        topicName,
-        formats,
-        timestampColumn,
         offsetReset,
-        sourceSchema
+        sourceName,
+        alias
     );
   }
 }

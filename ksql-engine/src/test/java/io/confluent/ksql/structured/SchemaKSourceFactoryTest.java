@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -39,14 +38,10 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,10 +55,8 @@ public class SchemaKSourceFactoryTest {
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(
       AutoOffsetReset.EARLIEST);
   private static final KeyField KEY_FIELD = KeyField.none();
+  private static final SourceName SOURCE = SourceName.of("alice");
   private static final SourceName ALIAS = SourceName.of("bob");
-  private static final Set<SerdeOption> SERDE_OPTIONS = ImmutableSet
-      .of(SerdeOption.UNWRAP_SINGLE_VALUES);
-  private static final String TOPIC_NAME = "fred";
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   @Mock
@@ -75,8 +68,6 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private LogicalSchema schema;
   @Mock
-  private LogicalSchema originalSchema;
-  @Mock
   private Stacker contextStacker;
   @Mock
   private QueryContext queryContext;
@@ -85,35 +76,24 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private KeyFormat keyFormat;
   @Mock
-  private FormatInfo keyFormatInfo;
-  @Mock
-  private ValueFormat valueFormat;
-  @Mock
-  private FormatInfo valueFormatInfo;
-  @Mock
   private FunctionRegistry functionRegistry;
   @Mock
   private WindowInfo windowInfo;
 
   @Before
   public void setUp() {
-    when(dataSource.getSerdeOptions()).thenReturn(SERDE_OPTIONS);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
-    when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(dataSource.getName()).thenReturn(SOURCE);
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);
-    when(topic.getValueFormat()).thenReturn(valueFormat);
 
     when(schemaWithStuff.getSchema()).thenReturn(schema);
-    when(schemaWithStuff.getOriginalSchema()).thenReturn(originalSchema);
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
     when(builder.getKsqlConfig()).thenReturn(CONFIG);
     when(builder.getFunctionRegistry()).thenReturn(functionRegistry);
 
-    when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
-    when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
   }
 
   @Test

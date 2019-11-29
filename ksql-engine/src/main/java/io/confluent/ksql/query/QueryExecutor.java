@@ -29,10 +29,10 @@ import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFa
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -77,7 +77,7 @@ public final class QueryExecutor {
   private final Map<String, Object> overrides;
   private final ProcessingLogContext processingLogContext;
   private final ServiceContext serviceContext;
-  private final FunctionRegistry functionRegistry;
+  private final MetaStore metaStore;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
   private final KsMaterializationFactory ksMaterializationFactory;
@@ -89,14 +89,14 @@ public final class QueryExecutor {
       final Map<String, Object> overrides,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
+      final MetaStore metaStore,
       final Consumer<QueryMetadata> queryCloseCallback) {
     this(
         ksqlConfig,
         overrides,
         processingLogContext,
         serviceContext,
-        functionRegistry,
+        metaStore,
         queryCloseCallback,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
@@ -111,7 +111,7 @@ public final class QueryExecutor {
       final Map<String, Object> overrides,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
+      final MetaStore metaStore,
       final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
@@ -124,7 +124,7 @@ public final class QueryExecutor {
         "processingLogContext"
     );
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.queryCloseCallback = Objects.requireNonNull(
         queryCloseCallback,
         "queryCloseCallback"
@@ -199,7 +199,7 @@ public final class QueryExecutor {
       final String planSummary
   ) {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
+    final PlanBuilder planBuilder = new KSPlanBuilder(metaStore, ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
     final String persistenceQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
@@ -249,7 +249,7 @@ public final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final OptionalInt limit) {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
+    final PlanBuilder planBuilder = new KSPlanBuilder(metaStore, ksqlQueryBuilder);
     final Object buildResult = physicalPlan.build(planBuilder);
     final KStream<?, GenericRow> kstream;
     if (buildResult instanceof KStreamHolder<?>) {
@@ -269,7 +269,7 @@ public final class QueryExecutor {
         ksqlConfig,
         serviceContext,
         processingLogContext,
-        functionRegistry,
+        metaStore,
         queryId
     );
   }

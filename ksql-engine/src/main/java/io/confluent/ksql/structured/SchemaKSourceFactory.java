@@ -33,7 +33,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
@@ -110,17 +109,14 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
-    final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
+    dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
     final WindowedStreamSource step = ExecutionStepFactory.streamSourceWindowed(
         contextStacker,
         schemaWithMetaAndKeyFields,
-        dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
-        windowInfo,
-        dataSource.getTimestampColumn(),
         offsetReset,
+        dataSource.getName(),
         alias
     );
 
@@ -148,10 +144,8 @@ public final class SchemaKSourceFactory {
     final StreamSource step = ExecutionStepFactory.streamSource(
         contextStacker,
         schemaWithMetaAndKeyFields,
-        dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
         offsetReset,
+        dataSource.getName(),
         alias
     );
 
@@ -172,17 +166,14 @@ public final class SchemaKSourceFactory {
       final KeyField keyField,
       final SourceName alias
   ) {
-    final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
+    dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
     final WindowedTableSource step = ExecutionStepFactory.tableSourceWindowed(
         contextStacker,
         schemaWithMetaAndKeyFields,
-        dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
-        windowInfo,
-        dataSource.getTimestampColumn(),
         offsetReset,
+        dataSource.getName(),
         alias
     );
 
@@ -210,10 +201,8 @@ public final class SchemaKSourceFactory {
     final TableSource step = ExecutionStepFactory.tableSource(
         contextStacker,
         schemaWithMetaAndKeyFields,
-        dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
         offsetReset,
+        dataSource.getName(),
         alias
     );
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -36,9 +37,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -47,6 +48,10 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -54,8 +59,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashSet;
@@ -105,6 +112,7 @@ public class SourceBuilderTest {
       .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
+  private static final SourceName SOURCE = SourceName.of("source");
   private static final SourceName ALIAS = SourceName.of("alias");
   private static final LogicalSchema SCHEMA =
       SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
@@ -157,6 +165,8 @@ public class SourceBuilderTest {
   private MaterializedFactory materializationFactory;
   @Mock
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
+  @Mock
+  private MetaStore metaStore;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
   @Captor
@@ -196,6 +206,7 @@ public class SourceBuilderTest {
         .thenReturn((Materialized) materialized);
 
     planBuilder = new KSPlanBuilder(
+        metaStore,
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
@@ -356,17 +367,30 @@ public class SourceBuilderTest {
   public void shouldThrowOnMultiFieldKey() {
     // Given:
     givenUnwindowedSourceStream();
+    when(metaStore.getSource(SOURCE)).thenReturn(
+        new KsqlStream<>(
+            "sql",
+            SOURCE,
+            LogicalSchema.builder()
+                .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
+                .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
+                .valueColumns(SCHEMA.value())
+                .build(),
+            SERDE_OPTIONS,
+            KeyField.none(),
+            Optional.empty(),
+            false,
+            new KsqlTopic(
+                TOPIC_NAME,
+                KeyFormat.nonWindowed(keyFormatInfo),
+                ValueFormat.of(valueFormatInfo)
+            )
+        )
+    );
     final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        Optional.empty(),
         offsetReset,
-        LogicalSchema.builder()
-            .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
-            .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
-            .valueColumns(SCHEMA.value())
-            .build(),
+        SOURCE,
         ALIAS
     );
 
@@ -599,14 +623,26 @@ public class SourceBuilderTest {
   private void givenWindowedSourceStream() {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
+    when(metaStore.getSource(SOURCE)).thenReturn(
+        new KsqlStream<>(
+            "sql",
+            SOURCE,
+            SOURCE_SCHEMA,
+            SERDE_OPTIONS,
+            KeyField.none(),
+            TIMESTAMP_COLUMN,
+            false,
+            new KsqlTopic(
+                TOPIC_NAME,
+                KeyFormat.windowed(keyFormatInfo, windowInfo),
+                ValueFormat.of(valueFormatInfo)
+            )
+        )
+    );
     windowedStreamSource = new WindowedStreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        windowInfo,
-        TIMESTAMP_COLUMN,
         offsetReset,
-        SOURCE_SCHEMA,
+        SOURCE,
         ALIAS
     );
   }
@@ -614,13 +650,26 @@ public class SourceBuilderTest {
   private void givenUnwindowedSourceStream() {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
+    when(metaStore.getSource(SOURCE)).thenReturn(
+        new KsqlStream<>(
+            "sql",
+            SOURCE,
+            SOURCE_SCHEMA,
+            SERDE_OPTIONS,
+            KeyField.none(),
+            TIMESTAMP_COLUMN,
+            false,
+            new KsqlTopic(
+                TOPIC_NAME,
+                KeyFormat.nonWindowed(keyFormatInfo),
+                ValueFormat.of(valueFormatInfo)
+            )
+        )
+    );
     streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        TIMESTAMP_COLUMN,
         offsetReset,
-        SOURCE_SCHEMA,
+        SOURCE,
         ALIAS
     );
   }
@@ -629,14 +678,26 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
+    when(metaStore.getSource(SOURCE)).thenReturn(
+        new KsqlTable<>(
+            "sql",
+            SOURCE,
+            SOURCE_SCHEMA,
+            SERDE_OPTIONS,
+            KeyField.none(),
+            TIMESTAMP_COLUMN,
+            false,
+            new KsqlTopic(
+                TOPIC_NAME,
+                KeyFormat.windowed(keyFormatInfo, windowInfo),
+                ValueFormat.of(valueFormatInfo)
+            )
+        )
+    );
     windowedTableSource = new WindowedTableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        windowInfo,
-        TIMESTAMP_COLUMN,
         offsetReset,
-        SOURCE_SCHEMA,
+        SOURCE,
         ALIAS
     );
   }
@@ -644,13 +705,26 @@ public class SourceBuilderTest {
   private void givenUnwindowedSourceTable() {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
+    when(metaStore.getSource(SOURCE)).thenReturn(
+        new KsqlTable<>(
+            "sql",
+            SOURCE,
+            SOURCE_SCHEMA,
+            SERDE_OPTIONS,
+            KeyField.none(),
+            TIMESTAMP_COLUMN,
+            false,
+            new KsqlTopic(
+                TOPIC_NAME,
+                KeyFormat.nonWindowed(keyFormatInfo),
+                ValueFormat.of(valueFormatInfo)
+            )
+        )
+    );
     tableSource = new TableSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
-        TIMESTAMP_COLUMN,
         offsetReset,
-        SOURCE_SCHEMA,
+        SOURCE,
         ALIAS
     );
   }

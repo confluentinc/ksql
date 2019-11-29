@@ -30,6 +30,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metrics.ConsumerCollector;
@@ -131,7 +132,7 @@ public class QueryExecutorTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private FunctionRegistry functionRegistry;
+  private MetaStore metaStore;
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
@@ -185,7 +186,7 @@ public class QueryExecutorTest {
         OVERRIDES,
         processingLogContext,
         serviceContext,
-        functionRegistry,
+        metaStore,
         closeCallback,
         kafkaStreamsBuilder,
         streamsBuilder,

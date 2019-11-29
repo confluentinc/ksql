@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -144,6 +145,7 @@ public class StreamGroupByBuilderTest {
         GROUP_BY_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
+        mock(MetaStore.class),
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),

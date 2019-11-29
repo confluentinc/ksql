@@ -187,6 +187,7 @@ public class SchemaKTableTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     planBuilder = new KSPlanBuilder(
+        metaStore,
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),

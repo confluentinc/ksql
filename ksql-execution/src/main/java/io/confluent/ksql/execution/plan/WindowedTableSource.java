@@ -16,11 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.WindowInfo;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -29,32 +25,13 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class WindowedTableSource
     extends AbstractStreamSource<KTableHolder<Windowed<Struct>>> {
 
-  private final WindowInfo windowInfo;
-
   public WindowedTableSource(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
-      @JsonProperty(value = "topicName", required = true) String topicName,
-      @JsonProperty(value = "formats", required = true) Formats formats,
-      @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
-      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
-      @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
+      @JsonProperty(value = "sourceName", required = true) SourceName sourceName,
       @JsonProperty(value = "alias", required = true) SourceName alias
   ) {
-    super(
-        properties,
-        topicName,
-        formats,
-        timestampColumn,
-        offsetReset,
-        sourceSchema,
-        alias
-    );
-    this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
-  }
-
-  public WindowInfo getWindowInfo() {
-    return windowInfo;
+    super(properties, offsetReset, sourceName, alias);
   }
 
   @Override

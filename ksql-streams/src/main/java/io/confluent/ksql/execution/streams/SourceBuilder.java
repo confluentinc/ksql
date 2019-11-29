@@ -18,7 +18,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -32,9 +31,10 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -63,21 +63,24 @@ public final class SourceBuilder {
   }
 
   public static KStreamHolder<Struct> buildStream(
+      final MetaStore metaStore,
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource source,
+      final StreamSource step,
       final ConsumedFactory consumedFactory
   ) {
+    final DataSource<?> source = metaStore.getSource(step.getSourceName());
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, step, source, physicalSchema);
 
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+        source.getKsqlTopic().getKeyFormat().getFormatInfo(),
         physicalSchema,
-        source.getProperties().getQueryContext()
+        step.getProperties().getQueryContext()
     );
 
     final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
+        step,
         source,
         keySerde,
         valueSerde,
@@ -89,34 +92,37 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        nonWindowedRowKeyGenerator(source.getSourceSchema())
+        nonWindowedRowKeyGenerator(source.getSchema())
     );
 
     return new KStreamHolder<>(
         kstream,
-        buildSchema(source),
+        buildSchema(step, source),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
   static KStreamHolder<Windowed<Struct>> buildWindowedStream(
+      final MetaStore metaStore,
       final KsqlQueryBuilder queryBuilder,
-      final WindowedStreamSource source,
+      final WindowedStreamSource step,
       final ConsumedFactory consumedFactory
   ) {
+    final DataSource<?> source = metaStore.getSource(step.getSourceName());
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, step, source, physicalSchema);
 
-    final WindowInfo windowInfo = source.getWindowInfo();
+    final WindowInfo windowInfo = source.getKsqlTopic().getKeyFormat().getWindowInfo().get();
     final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+        source.getKsqlTopic().getKeyFormat().getFormatInfo(),
         windowInfo,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        step.getProperties().getQueryContext()
     );
 
     final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
+        step,
         source,
         keySerde,
         valueSerde,
@@ -128,33 +134,36 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        windowedRowKeyGenerator(source.getSourceSchema())
+        windowedRowKeyGenerator(source.getSchema())
     );
 
     return new KStreamHolder<>(
         kstream,
-        buildSchema(source),
+        buildSchema(step, source),
         KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
   public static KTableHolder<Struct> buildTable(
+      final MetaStore metaStore,
       final KsqlQueryBuilder queryBuilder,
-      final TableSource source,
+      final TableSource step,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory
   ) {
+    final DataSource<?> source = metaStore.getSource(step.getSourceName());
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, step, source, physicalSchema);
 
     final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+        source.getKsqlTopic().getKeyFormat().getFormatInfo(),
         physicalSchema,
-        source.getProperties().getQueryContext()
+        step.getProperties().getQueryContext()
     );
 
     final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
+        step,
         source,
         keySerde,
         valueSerde,
@@ -166,43 +175,46 @@ public final class SourceBuilder {
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties())
+            tableChangeLogOpName(step.getProperties())
         );
 
     final KTable<Struct, GenericRow> ktable = buildKTable(
         source,
         queryBuilder,
         consumed,
-        nonWindowedRowKeyGenerator(source.getSourceSchema()),
+        nonWindowedRowKeyGenerator(source.getSchema()),
         materialized
     );
 
     return KTableHolder.unmaterialized(
         ktable,
-        buildSchema(source),
+        buildSchema(step, source),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
 
   static KTableHolder<Windowed<Struct>> buildWindowedTable(
+      final MetaStore metaStore,
       final KsqlQueryBuilder queryBuilder,
-      final WindowedTableSource source,
+      final WindowedTableSource step,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory
   ) {
+    final DataSource<?> source = metaStore.getSource(step.getSourceName());
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, step, source, physicalSchema);
 
-    final WindowInfo windowInfo = source.getWindowInfo();
+    final WindowInfo windowInfo = source.getKsqlTopic().getKeyFormat().getWindowInfo().get();
     final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+        source.getKsqlTopic().getKeyFormat().getFormatInfo(),
         windowInfo,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        step.getProperties().getQueryContext()
     );
 
     final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
+        step,
         source,
         keySerde,
         valueSerde,
@@ -214,95 +226,73 @@ public final class SourceBuilder {
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties())
+            tableChangeLogOpName(step.getProperties())
         );
 
     final KTable<Windowed<Struct>, GenericRow> ktable = buildKTable(
         source,
         queryBuilder,
         consumed,
-        windowedRowKeyGenerator(source.getSourceSchema()),
+        windowedRowKeyGenerator(source.getSchema()),
         materialized
     );
 
     return KTableHolder.unmaterialized(
         ktable,
-        buildSchema(source),
+        buildSchema(step, source),
         KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
-  private static LogicalSchema buildSchema(final AbstractStreamSource<?> source) {
+  private static LogicalSchema buildSchema(
+      final AbstractStreamSource<?> step, final DataSource<?> source) {
     return source
-        .getSourceSchema()
-        .withAlias(source.getAlias())
+        .getSchema()
+        .withAlias(step.getAlias())
         .withMetaAndKeyColsInValue();
-  }
-
-  private static KeySerde<Struct> buildNonWindowedKeySerde(
-      final KsqlQueryBuilder queryBuilder,
-      final KeyFormat fmt,
-      final PhysicalSchema schema,
-      final QueryContext ctx
-  ) {
-    return queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx);
-  }
-
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
-  private static KeySerde<Windowed<Struct>> buildWindowedKeySerde(
-      final KsqlQueryBuilder queryBuilder,
-      final KeyFormat fmt,
-      final PhysicalSchema schema,
-      final QueryContext ctx
-  ) {
-    return queryBuilder.buildKeySerde(
-        fmt.getFormatInfo(),
-        fmt.getWindowInfo().get(),
-        schema,
-        ctx
-    );
   }
 
   private static Serde<GenericRow> getValueSerde(
       final KsqlQueryBuilder queryBuilder,
-      final AbstractStreamSource<?> streamSource,
+      final AbstractStreamSource<?> step,
+      final DataSource<?> source,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
-        streamSource.getFormats().getValueFormat(),
+        source.getKsqlTopic().getValueFormat().getFormatInfo(),
         physicalSchema,
-        streamSource.getProperties().getQueryContext()
+        step.getProperties().getQueryContext()
     );
   }
 
-  private static PhysicalSchema getPhysicalSchema(final AbstractStreamSource streamSource) {
+  private static PhysicalSchema getPhysicalSchema(final DataSource<?> source) {
     return PhysicalSchema.from(
-        streamSource.getSourceSchema(),
-        streamSource.getFormats().getOptions()
+        source.getSchema(),
+        source.getSerdeOptions()
     );
   }
 
   private static <K> KStream<K, GenericRow> buildKStream(
-      final AbstractStreamSource streamSource,
+      final DataSource<?> source,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, String> rowKeyGenerator
   ) {
-    KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
-        .stream(streamSource.getTopicName(), consumed);
+    final KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
+        .stream(source.getKsqlTopic().getKafkaTopicName(), consumed);
 
     return stream
         .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
   }
 
   private static <K> KTable<K, GenericRow> buildKTable(
-      final AbstractStreamSource streamSource,
+      final DataSource<?> source,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, String> rowKeyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
   ) {
     final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
-        .table(streamSource.getTopicName(), consumed, materialized);
+        .table(source.getKsqlTopic().getKafkaTopicName(), consumed, materialized);
 
     return table
         .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
@@ -324,20 +314,21 @@ public final class SourceBuilder {
   }
 
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
-      final AbstractStreamSource<?> streamSource,
+      final AbstractStreamSource<?> step,
+      final DataSource<?> source,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
       final KsqlQueryBuilder queryBuilder,
       final ConsumedFactory consumedFactory) {
     final TimestampExtractor timestampExtractor = timestampExtractor(
         queryBuilder.getKsqlConfig(),
-        streamSource.getSourceSchema(),
-        streamSource.getTimestampColumn()
+        source.getSchema(),
+        source.getTimestampColumn()
     );
     final Consumed<K, GenericRow> consumed = consumedFactory
         .create(keySerde, valueSerde)
         .withTimestampExtractor(timestampExtractor);
-    return streamSource.getOffsetReset()
+    return step.getOffsetReset()
         .map(consumed::withOffsetResetPolicy)
         .orElse(consumed);
   }

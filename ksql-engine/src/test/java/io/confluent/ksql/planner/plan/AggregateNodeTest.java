@@ -106,6 +106,7 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(FUNCTION_REGISTRY);
 
   @Before
   public void setUp() {
@@ -345,14 +346,14 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
     final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(ksqlStreamBuilder);
-    schemaKTable.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    schemaKTable.getSourceTableStep().build(
+        new KSPlanBuilder(metaStore, ksqlStreamBuilder));
     return schemaKTable;
   }
 
-  private static AggregateNode buildAggregateNode(final String queryString) {
-    final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private AggregateNode buildAggregateNode(final String queryString) {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(KSQL_CONFIG, queryString, newMetaStore);
+        .buildLogicalPlan(KSQL_CONFIG, queryString, metaStore);
 
     return (AggregateNode) planNode.getSource();
   }

@@ -967,19 +967,18 @@ public class JoinNodeTest {
   }
 
   private void buildJoin(final String queryString) {
-    buildJoinNode(queryString);
+    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    buildJoinNode(metaStore, queryString);
     final SchemaKStream stream = joinNode.buildStream(ksqlStreamBuilder);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable table = (SchemaKTable) stream;
-      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      table.getSourceTableStep().build(new KSPlanBuilder(metaStore, ksqlStreamBuilder));
     } else {
-      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      stream.getSourceStep().build(new KSPlanBuilder(metaStore, ksqlStreamBuilder));
     }
   }
 
-  private void buildJoinNode(final String queryString) {
-    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-
+  private void buildJoinNode(final MetaStore metaStore, final String queryString) {
     final KsqlBareOutputNode planNode =
         (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(ksqlConfig, queryString, metaStore);
 

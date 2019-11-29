@@ -69,12 +69,12 @@ public class AggregateNode extends PlanNode {
   private final PlanNode source;
   private final LogicalSchema schema;
   private final KeyField keyField;
-  private final List<Expression> groupByExpressions;
+  private final ImmutableList<Expression> groupByExpressions;
   private final Optional<WindowExpression> windowExpression;
-  private final List<Expression> aggregateFunctionArguments;
-  private final List<FunctionCall> functionList;
-  private final List<ColumnReferenceExp> requiredColumns;
-  private final List<Expression> finalSelectExpressions;
+  private final ImmutableList<Expression> aggregateFunctionArguments;
+  private final ImmutableList<FunctionCall> functionList;
+  private final ImmutableList<ColumnReferenceExp> requiredColumns;
+  private final ImmutableList<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -96,15 +96,17 @@ public class AggregateNode extends PlanNode {
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
-    this.groupByExpressions = requireNonNull(groupByExpressions, "groupByExpressions");
+    this.groupByExpressions = ImmutableList
+        .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
     this.windowExpression = requireNonNull(windowExpression, "windowExpression");
-    this.aggregateFunctionArguments =
-        requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments");
-    this.functionList = requireNonNull(functionList, "functionList");
-    this.requiredColumns =
-        ImmutableList.copyOf(requireNonNull(requiredColumns, "requiredColumns"));
-    this.finalSelectExpressions =
-        requireNonNull(finalSelectExpressions, "finalSelectExpressions");
+    this.aggregateFunctionArguments = ImmutableList
+        .copyOf(requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments"));
+    this.functionList = ImmutableList
+        .copyOf(requireNonNull(functionList, "functionList"));
+    this.requiredColumns = ImmutableList
+        .copyOf(requireNonNull(requiredColumns, "requiredColumns"));
+    this.finalSelectExpressions = ImmutableList
+        .copyOf(requireNonNull(finalSelectExpressions, "finalSelectExpressions"));
     this.havingExpressions = havingExpressions;
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);

@@ -35,9 +35,9 @@ import org.apache.kafka.common.config.ConfigDef;
 public final class ConfigMetaData {
 
   private final UnmodifiableConfigDef configDef;
-  private final Set<String> configNames;
-  private final List<String> orderedConfigNames;
-  private final Set<String> shortConfigs;
+  private final ImmutableSet<String> configNames;
+  private final ImmutableList<String> orderedConfigNames;
+  private final ImmutableSet<String> shortConfigs;
 
   static ConfigMetaData of(final ConfigDef configDef) {
     return new ConfigMetaData(configDef);
@@ -66,19 +66,19 @@ public final class ConfigMetaData {
     return shortConfigs;
   }
 
-  private static Set<String> configNames(final ConfigDef configDef) {
-    return configDef.names().stream()
+  private static ImmutableSet<String> configNames(final ConfigDef configDef) {
+    return ImmutableSet.copyOf(configDef.names().stream()
         .map(String::toUpperCase)
-        .collect(Collectors.toSet());
+        .collect(Collectors.toSet()));
   }
 
-  private static List<String> orderedConfigNames(final Set<String> configNames) {
+  private static ImmutableList<String> orderedConfigNames(final Set<String> configNames) {
     final List<String> names = new ArrayList<>(configNames);
     names.sort(Comparator.naturalOrder());
     return ImmutableList.copyOf(names);
   }
 
-  private static Set<String> configsOfTypeShort(final ConfigDef configDef) {
+  private static ImmutableSet<String> configsOfTypeShort(final ConfigDef configDef) {
     return ImmutableSet.copyOf(
         configDef.configKeys().entrySet().stream()
             .filter(e -> e.getValue().type() == ConfigDef.Type.SHORT)

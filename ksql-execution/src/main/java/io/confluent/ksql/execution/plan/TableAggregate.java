@@ -14,8 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
@@ -29,7 +32,7 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStep<KGroupedTableHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
-  private final List<FunctionCall> aggregations;
+  private final ImmutableList<FunctionCall> aggregations;
 
   public TableAggregate(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
@@ -39,11 +42,12 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
       @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
       @JsonProperty(value = "aggregations", required = true)
       List<FunctionCall> aggregations) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
-    this.formats = Objects.requireNonNull(formats, "formats");
+    this.properties = requireNonNull(properties, "properties");
+    this.source = requireNonNull(source, "source");
+    this.formats = requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = Objects.requireNonNull(aggregations, "aggValToFunctionMap");
+    this.aggregations = ImmutableList
+        .copyOf(requireNonNull(aggregations, "aggValToFunctionMap"));
   }
 
   @Override

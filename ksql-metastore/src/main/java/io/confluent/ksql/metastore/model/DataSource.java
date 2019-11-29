@@ -20,9 +20,11 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Optional;
 import java.util.Set;
 
+@EffectivelyImmutable
 public interface DataSource<K> {
 
   enum DataSourceType {

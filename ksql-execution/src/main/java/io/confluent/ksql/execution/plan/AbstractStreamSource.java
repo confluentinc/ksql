@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
+@Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final ExecutionStepProperties properties;
   private final String topicName;

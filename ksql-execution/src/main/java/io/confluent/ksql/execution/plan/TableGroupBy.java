@@ -14,8 +14,11 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
@@ -27,7 +30,7 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
-  private final List<Expression> groupByExpressions;
+  private final ImmutableList<Expression> groupByExpressions;
 
   public TableGroupBy(
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
@@ -36,10 +39,11 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
       @JsonProperty(value = "groupByExpressions", required = true)
       List<Expression> groupByExpressions
   ) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
-    this.formats = Objects.requireNonNull(formats, "formats");
-    this.groupByExpressions = Objects.requireNonNull(groupByExpressions, "groupByExpressions");
+    this.properties = requireNonNull(properties, "properties");
+    this.source = requireNonNull(source, "source");
+    this.formats = requireNonNull(formats, "formats");
+    this.groupByExpressions = ImmutableList
+        .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
 public final class KStreamHolder<K> {
+
   private final KStream<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
   private final LogicalSchema schema;

@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class SchemaInfo {
 
   private final SqlBaseType type;
-  private final List<FieldInfo> fields;
+  private final ImmutableList<FieldInfo> fields;
   private final SchemaInfo memberSchema;
 
   @JsonCreator
@@ -68,11 +68,17 @@ public class SchemaInfo {
   }
 
   @Override
-  public boolean equals(final Object other) {
-    return other instanceof SchemaInfo
-        && Objects.equals(type, ((SchemaInfo)other).type)
-        && Objects.equals(fields, ((SchemaInfo)other).fields)
-        && Objects.equals(memberSchema, ((SchemaInfo)other).memberSchema);
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final SchemaInfo that = (SchemaInfo) o;
+    return type == that.type
+        && Objects.equals(fields, that.fields)
+        && Objects.equals(memberSchema, that.memberSchema);
   }
 
   @Override
@@ -80,7 +86,8 @@ public class SchemaInfo {
     return Objects.hash(type, fields, memberSchema);
   }
 
-  private static final Map<SqlBaseType, Function<SchemaInfo, String>> TO_TYPE_STRING =
+  @EffectivelyImmutable
+  private static final ImmutableMap<SqlBaseType, Function<SchemaInfo, String>> TO_TYPE_STRING =
       ImmutableMap.<SqlBaseType, Function<SchemaInfo, String>>builder()
           .put(SqlBaseType.STRING, si -> "VARCHAR(STRING)")
           .put(

@@ -16,9 +16,9 @@
 package io.confluent.ksql.types;
 
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.function.BiConsumer;
 /**
  * Instance of {@link io.confluent.ksql.schema.ksql.types.SqlStruct}.
  */
-@Immutable
+@EffectivelyImmutable
 public final class KsqlStruct {
 
   private final SqlStruct schema;

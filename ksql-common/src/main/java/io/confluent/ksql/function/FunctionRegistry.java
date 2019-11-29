@@ -17,9 +17,11 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 
+@EffectivelyImmutable
 public interface FunctionRegistry {
 
   SqlType DEFAULT_FUNCTION_ARG_SCHEMA = SqlTypes.BIGINT;

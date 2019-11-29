@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +38,7 @@ public final class MaterializationInfo {
 
   private final String stateStoreName;
   private final LogicalSchema stateStoreSchema;
-  private final List<TransformInfo> transforms;
+  private final ImmutableList<TransformInfo> transforms;
   private final LogicalSchema schema;
 
   public String stateStoreName() {
@@ -143,6 +144,7 @@ public final class MaterializationInfo {
     }
   }
 
+  @EffectivelyImmutable
   public interface TransformInfo {
 
     <R> R visit(TransformVisitor<R> visitor);

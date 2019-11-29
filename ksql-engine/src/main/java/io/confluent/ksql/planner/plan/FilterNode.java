@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -26,7 +27,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class FilterNode extends PlanNode {
@@ -34,7 +34,7 @@ public class FilterNode extends PlanNode {
   private static final String WHERE_FILTER_OP_NAME = "WHERE-FILTER";
   private final PlanNode source;
   private final Expression predicate;
-  private final List<SelectExpression> selectExpressions;
+  private final ImmutableList<SelectExpression> selectExpressions;
 
   public FilterNode(
       final PlanNodeId id,

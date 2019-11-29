@@ -20,9 +20,11 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@EffectivelyImmutable
 public interface KeySerdeFactory<K> {
   KeySerde<K> buildKeySerde(
       FormatInfo format,

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
@@ -68,6 +69,7 @@ public interface KsqlParser {
     }
   }
 
+  @Immutable
   final class PreparedStatement<T extends Statement> {
 
     private final String statementText;

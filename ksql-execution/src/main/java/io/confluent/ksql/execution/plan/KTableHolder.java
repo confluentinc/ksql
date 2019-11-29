@@ -19,15 +19,18 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
 public final class KTableHolder<K> {
+
   private final KTable<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
   private final LogicalSchema schema;
+  @EffectivelyImmutable // Ignored
   private final Optional<MaterializationInfo.Builder> materializationBuilder;
 
   private KTableHolder(

@@ -22,10 +22,10 @@ import java.util.stream.Collectors;
 
 public final class StructType extends ObjectType {
 
-  private final Map<String, ParamType> schema;
+  private final ImmutableMap<String, ParamType> schema;
 
   private StructType(Map<String, ParamType> schema) {
-    this.schema = schema;
+    this.schema = ImmutableMap.copyOf(Objects.requireNonNull(schema, "schema"));
   }
 
   public static StructType.Builder builder() {

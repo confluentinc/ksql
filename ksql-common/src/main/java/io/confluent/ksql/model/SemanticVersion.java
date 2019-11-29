@@ -16,12 +16,14 @@
 package io.confluent.ksql.model;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Comparator;
 import java.util.Objects;
 
 @Immutable
 public final class SemanticVersion implements Comparable<SemanticVersion> {
 
+  @EffectivelyImmutable
   private static final Comparator<SemanticVersion> COMPARATOR =
       Comparator.comparingInt(SemanticVersion::major)
       .thenComparingInt(SemanticVersion::minor)

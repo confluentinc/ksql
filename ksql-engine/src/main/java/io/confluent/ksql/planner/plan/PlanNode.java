@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -26,7 +27,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 
-
+@Immutable
 public abstract class PlanNode {
 
   private final PlanNodeId id;

@@ -29,7 +29,7 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KTableHolder<K>> source;
-  private final List<SelectExpression> selectExpressions;
+  private final ImmutableList<SelectExpression> selectExpressions;
   private final String selectNodeName;
 
   public TableMapValues(

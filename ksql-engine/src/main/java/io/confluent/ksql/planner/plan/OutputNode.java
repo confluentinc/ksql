@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.query.QueryId;
@@ -28,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import javax.annotation.concurrent.Immutable;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @Immutable

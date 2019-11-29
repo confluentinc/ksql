@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import java.util.Collections;
@@ -25,13 +29,14 @@ import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@Immutable
 public class StreamWindowedAggregate
     implements ExecutionStep<KTableHolder<Windowed<Struct>>> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
-  private final List<FunctionCall> aggregations;
+  private final ImmutableList<FunctionCall> aggregations;
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
@@ -43,12 +48,12 @@ public class StreamWindowedAggregate
       @JsonProperty(value = "aggregations", required = true) List<FunctionCall> aggregations,
       @JsonProperty(value = "windowExpression", required = true)
       KsqlWindowExpression windowExpression) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
-    this.formats = Objects.requireNonNull(formats, "formats");
+    this.properties = requireNonNull(properties, "properties");
+    this.source = requireNonNull(source, "source");
+    this.formats = requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = Objects.requireNonNull(aggregations, "aggregations");
-    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
+    this.aggregations = ImmutableList.copyOf(requireNonNull(aggregations, "aggregations"));
+    this.windowExpression = requireNonNull(windowExpression, "windowExpression");
   }
 
   @Override

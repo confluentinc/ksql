@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.function;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ParamType;
 
+@Immutable
 public final class ParameterInfo {
 
   private final String name;

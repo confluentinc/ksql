@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
@@ -28,6 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 @JsonSubTypes({
     @Type(value = DefaultExecutionStepProperties.class, name = "default"),
 })
+@Immutable
 public interface ExecutionStepProperties {
   LogicalSchema getSchema();
 

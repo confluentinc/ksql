@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -26,6 +27,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@Immutable
 public final class WindowedStreamSource
     extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
 
@@ -36,7 +38,7 @@ public final class WindowedStreamSource
       @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
-      @JsonProperty("timestampColumn")  Optional<TimestampColumn> timestampColumn,
+      @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
       @JsonProperty("offsetReset") Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
       @JsonProperty(value = "alias", required = true) SourceName alias) {

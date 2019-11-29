@@ -16,7 +16,8 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.analyzer.Analysis;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -38,7 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * A node in the logical plan which represents a flat map operation - transforming a single row into
@@ -49,15 +49,15 @@ public class FlatMapNode extends PlanNode {
 
   private final PlanNode source;
   private final LogicalSchema outputSchema;
-  private final List<SelectExpression> finalSelectExpressions;
-  private final Analysis analysis;
+  private final ImmutableList<SelectExpression> finalSelectExpressions;
+  private final ImmutableAnalysis analysis;
   private final FunctionRegistry functionRegistry;
 
   public FlatMapNode(
       final PlanNodeId id,
       final PlanNode source,
       final FunctionRegistry functionRegistry,
-      final Analysis analysis
+      final ImmutableAnalysis analysis
   ) {
     super(id, source.getNodeOutputType());
     this.source = Objects.requireNonNull(source, "source");
@@ -117,10 +117,11 @@ public class FlatMapNode extends PlanNode {
     );
   }
 
-  private List<SelectExpression> buildFinalSelectExpressions() {
+  private ImmutableList<SelectExpression> buildFinalSelectExpressions() {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter();
-    final List<SelectExpression> selectExpressions = new ArrayList<>();
+
+    final ImmutableList.Builder<SelectExpression> selectExpressions = ImmutableList.builder();
     for (final SelectExpression select : analysis.getSelectExpressions()) {
       final Expression exp = select.getExpression();
       selectExpressions.add(
@@ -130,7 +131,7 @@ public class FlatMapNode extends PlanNode {
                   tableFunctionExpressionRewriter::process, exp)
           ));
     }
-    return selectExpressions;
+    return selectExpressions.build();
   }
 
   private class TableFunctionExpressionRewriter

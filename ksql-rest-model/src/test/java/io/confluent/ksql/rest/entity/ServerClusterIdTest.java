@@ -15,36 +15,43 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Collections;
-import java.util.Map;
+import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.entity.ServerClusterId.Scope;
 import org.junit.Test;
 
 public class ServerClusterIdTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+
+  private static final String JSON = "{"
+      + "\"scope\":{"
+      + "\"path\":[\"p1\",\"p2\"],"
+      + "\"clusters\":{\"kafka-cluster\":\"kafka1\",\"ksql-cluster\":\"ksql1\"}"
+      + "},"
+      + "\"id\":\"\""
+      + "}";
+
+  private static final ServerClusterId CLUSTER_ID = new ServerClusterId(new Scope(
+      ImmutableList.of("p1", "p2"),
+      ImmutableMap.of(
+          "kafka-cluster", "kafka1",
+          "ksql-cluster", "ksql1"
+      )
+  ));
+
   @Test
-  public void shouldReturnServerClusterId() {
-    // Given:
-    final ServerClusterId serverClusterId = ServerClusterId.of("kafka1", "ksql1");
+  public void shouldSerializeToJson() throws Exception {
+    assertThat(OBJECT_MAPPER.writeValueAsString(CLUSTER_ID), is(JSON));
+  }
 
-    // When:
-    final String id = serverClusterId.getId();
-    final Map<String, Object> scope = serverClusterId.getScope();
-
-    // Then:
-    assertThat(id, is(""));
-    assertThat(
-        scope,
-        equalTo(ImmutableMap.of(
-            "path", Collections.emptyList(),
-            "clusters", ImmutableMap.of(
-                "kafka-cluster", "kafka1",
-                "ksql-cluster", "ksql1")
-        ))
-    );
+  @Test
+  public void shouldDeserializeFromJson() throws Exception {
+    assertThat(OBJECT_MAPPER.readValue(JSON, ServerClusterId.class), is(CLUSTER_ID));
   }
 }

@@ -13,22 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.connect;
+package io.confluent.ksql.analyzer;
 
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.List;
 
-/**
- * Formatter for Connect schema type.
- *
- * <p>Converts a Connect schema to human readable text.
- */
-public interface SchemaFormatter {
+@EffectivelyImmutable
+public interface ImmutableAnalysis {
 
-  /**
-   * Convert the supplied Connect schema into a human readable (ish) string.
-   *
-   * @param schema the schema to format.
-   * @return the schema formatted as a human readable string.
-   */
-  String format(Schema schema);
+  List<FunctionCall> getTableFunctions();
+
+  List<SelectExpression> getSelectExpressions();
 }

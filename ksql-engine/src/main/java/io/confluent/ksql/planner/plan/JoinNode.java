@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -59,7 +60,7 @@ public class JoinNode extends PlanNode {
   private final ColumnRef rightJoinFieldName;
   private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
-  private final List<SelectExpression> selectExpressions;
+  private final ImmutableList<SelectExpression> selectExpressions;
 
   public JoinNode(
       final PlanNodeId id,
@@ -78,7 +79,8 @@ public class JoinNode extends PlanNode {
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
-    this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
+    this.selectExpressions = ImmutableList
+        .copyOf(Objects.requireNonNull(selectExpressions, "selectExpressions"));
 
     final Column leftKeyCol = validateSchemaColumn(leftJoinFieldName, left.getSchema());
     validateSchemaColumn(rightJoinFieldName, right.getSchema());

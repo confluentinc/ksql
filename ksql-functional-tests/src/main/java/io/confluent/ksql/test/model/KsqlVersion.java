@@ -17,6 +17,7 @@ package io.confluent.ksql.test.model;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.SemanticVersion;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.Version;
 import java.util.Comparator;
 import java.util.Objects;
@@ -29,6 +30,7 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
   private static final Pattern VERSION_PATTERN = Pattern
       .compile("(\\d+)\\.(\\d+)(.\\d+)?(-SNAPSHOT)?");
 
+  @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =
       Comparator.comparing(KsqlVersion::getVersion);
 

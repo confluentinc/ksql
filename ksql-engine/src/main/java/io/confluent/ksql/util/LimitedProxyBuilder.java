@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Primitives;
+import com.google.errorprone.annotations.Immutable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * Creates a proxy around an instance of a class, only allowing white listed function calls.
@@ -323,7 +323,7 @@ public final class LimitedProxyBuilder<T> {
   @Immutable
   static final class MethodParams {
 
-    private final List<Class<?>> paramTypes;
+    private final ImmutableList<Class<?>> paramTypes;
 
     MethodParams(final Class<?>... params) {
       this.paramTypes = asList(params);
@@ -343,7 +343,7 @@ public final class LimitedProxyBuilder<T> {
           .collect(Collectors.joining(","));
     }
 
-    private static List<Class<?>> asList(final Class<?>[] params) {
+    private static ImmutableList<Class<?>> asList(final Class<?>[] params) {
       return ImmutableList.<Class<?>>builder().add(params).build();
     }
   }

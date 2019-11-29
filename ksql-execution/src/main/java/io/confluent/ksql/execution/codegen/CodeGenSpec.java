@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.List;
@@ -141,6 +142,7 @@ public final class CodeGenSpec {
     private final String name;
     private final Class<?> type;
     private final OptionalInt columnIndex;
+    @EffectivelyImmutable
     private final Optional<Kudf> kudf;
 
     ArgumentSpec(String name, Class<?> type, OptionalInt columnIndex, Optional<Kudf> kudf) {

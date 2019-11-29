@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * Pojo holding field name and expression of a select item.

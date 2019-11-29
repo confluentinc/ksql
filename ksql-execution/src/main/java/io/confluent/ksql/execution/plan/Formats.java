@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
@@ -28,11 +27,11 @@ import java.util.Set;
 
 @Immutable
 public final class Formats {
+
   private final FormatInfo keyFormat;
   private final FormatInfo valueFormat;
-  private final Set<SerdeOption> options;
+  private final ImmutableSet<SerdeOption> options;
 
-  @JsonCreator
   public Formats(
       @JsonProperty(value = "keyFormat", required = true) final FormatInfo keyFormat,
       @JsonProperty(value = "valueFormat", required = true) final FormatInfo valueFormat,

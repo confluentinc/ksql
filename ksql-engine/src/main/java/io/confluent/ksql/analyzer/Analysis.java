@@ -52,7 +52,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Analysis {
+public class Analysis implements ImmutableAnalysis {
 
   private final ResultMaterialization resultMaterialization;
   private Optional<Into> into = Optional.empty();

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
@@ -49,6 +50,7 @@ import java.util.List;
     @Type(value = TableSink.class, name = "tableSinkV1"),
     @Type(value = TableTableJoin.class, name = "tableTableJoinV1")
 })
+@Immutable
 public interface ExecutionStep<S> {
   ExecutionStepProperties getProperties();
 

@@ -13,20 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.streams.materialization;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.util.KsqlException;
 
-public interface SqlPredicateFactory {
+public final class PullProcessingContext implements KsqlProcessingContext {
 
-  SqlPredicate create(
-      Expression filterExpression,
-      LogicalSchema schema,
-      KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry
-  );
+  public static final PullProcessingContext INSTANCE = new PullProcessingContext();
+
+  @Override
+  public long getRowTime() {
+    throw new KsqlException("ROWTIME is not currently exposed by pull queries. "
+        + "See https://github.com/confluentinc/ksql/issues/3623.");
+  }
 }

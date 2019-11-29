@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,17 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.function.udaf.window;
+package io.confluent.ksql.execution.transform.window;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -57,20 +57,18 @@ public final class WindowSelectMapper {
     return !windowSelects.isEmpty();
   }
 
-  public <K> ValueTransformerWithKey<Windowed<K>, GenericRow, GenericRow> getTransformer() {
+  public <K> KsqlTransformer<Windowed<K>, GenericRow> getTransformer() {
     return new Transformer<>();
   }
 
-  private final class Transformer<K> extends KsqlValueTransformerWithKey<Windowed<K>, GenericRow> {
+  private final class Transformer<K> implements KsqlTransformer<Windowed<K>, GenericRow> {
 
     @Override
-    protected GenericRow transform(final GenericRow value) {
-      // Not called.
-      return null;
-    }
-
-    @Override
-    public GenericRow transform(final Windowed<K> readOnlyKey, final GenericRow value) {
+    public GenericRow transform(
+        final Windowed<K> readOnlyKey,
+        final GenericRow value,
+        final KsqlProcessingContext ctx
+    ) {
       if (value == null) {
         return null;
       }

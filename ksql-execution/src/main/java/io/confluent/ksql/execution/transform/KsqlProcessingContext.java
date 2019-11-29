@@ -13,20 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
+/**
+ * Context passed to transformers
+ */
+public interface KsqlProcessingContext {
 
-public interface SqlPredicateFactory {
+  /**
+   * @return ROWTIME
+   */
+  long getRowTime();
 
-  SqlPredicate create(
-      Expression filterExpression,
-      LogicalSchema schema,
-      KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry
-  );
 }

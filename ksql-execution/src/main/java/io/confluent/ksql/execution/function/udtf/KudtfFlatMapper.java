@@ -20,7 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -29,7 +30,7 @@ import java.util.List;
  * Implements the actual flat-mapping logic - this is called by Kafka Streams
  */
 @Immutable
-public class KudtfFlatMapper<K> extends KsqlValueTransformerWithKey<K, Iterable<GenericRow>> {
+public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRow>> {
 
   private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
@@ -41,8 +42,13 @@ public class KudtfFlatMapper<K> extends KsqlValueTransformerWithKey<K, Iterable<
   This function zips results from multiple table functions together as described in KLIP-9
   in the design-proposals directory.
    */
+
   @Override
-  protected Iterable<GenericRow> transform(final GenericRow value) {
+  public Iterable<GenericRow> transform(
+      final K readOnlyKey,
+      final GenericRow value,
+      final KsqlProcessingContext ctx
+  ) {
     if (value == null) {
       return null;
     }

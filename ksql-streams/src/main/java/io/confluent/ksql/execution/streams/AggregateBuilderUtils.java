@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -64,12 +63,9 @@ final class AggregateBuilderUtils {
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    final BiFunction<Object, GenericRow, GenericRow> resultMapper = aggregator
-        .getResultMapper()::transform;
-
     final String stepName = "AGGREGATE-TO-OUTPUT-SCHEMA";
 
     return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
-        .map(pl -> resultMapper, outputSchema, stepName);
+        .map(pl -> aggregator.getResultMapper(), outputSchema, stepName);
   }
 }

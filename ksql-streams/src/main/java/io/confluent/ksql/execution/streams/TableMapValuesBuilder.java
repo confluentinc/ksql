@@ -21,10 +21,13 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.select.SelectValueMapper;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public final class TableMapValuesBuilder {
 
@@ -64,23 +67,19 @@ public final class TableMapValuesBuilder {
             )
         );
 
-    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer = selectMapper
-        .getTransformer(logger);
-
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
     return table
         .withTable(
-            table.getTable().transformValues(() -> transformer, selectName),
+            table.getTable().transformValues(
+                () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+                selectName
+            ),
             selection.getSchema()
         )
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.map(
-                pl -> {
-                  final ValueTransformerWithKey<K, GenericRow, GenericRow> mapper = selectMapper
-                      .getTransformer(pl);
-                  return (k, v) -> mapper.transform((K) k, v);
-                },
+                pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
                 selection.getSchema(),
                 PROJECT_OP_NAME
             ))

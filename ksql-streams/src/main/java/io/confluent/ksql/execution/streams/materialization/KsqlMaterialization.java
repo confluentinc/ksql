@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Instant;
@@ -59,7 +60,7 @@ class KsqlMaterialization implements Materialization {
 
   interface Transform {
 
-    Optional<GenericRow> apply(Object key, GenericRow value);
+    Optional<GenericRow> apply(Object key, GenericRow value, KsqlProcessingContext ctx);
   }
 
   /**
@@ -109,7 +110,12 @@ class KsqlMaterialization implements Materialization {
   ) {
     GenericRow intermediate = value;
     for (final Transform transform : transforms) {
-      final Optional<GenericRow> result = transform.apply(key, intermediate);
+      final Optional<GenericRow> result = transform.apply(
+          key,
+          intermediate,
+          PullProcessingContext.INSTANCE
+      );
+
       if (!result.isPresent()) {
         return Optional.empty();
       }

@@ -51,6 +51,7 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;

@@ -18,7 +18,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -26,6 +26,8 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -91,6 +93,8 @@ public final class StreamAggregateBuilder {
             materializedFactory
         );
 
+    final KudafAggregator<Struct> aggregator = aggregateParams.getAggregator();
+
     final KTable<Struct, GenericRow> aggregated = groupedStream.getGroupedStream().aggregate(
         aggregateParams.getInitializer(),
         aggregateParams.getAggregator(),
@@ -107,7 +111,7 @@ public final class StreamAggregateBuilder {
 
     final KTable<Struct, GenericRow> result = aggregated
         .transformValues(
-            () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
+            () -> new KsTransformer<>(aggregator.getResultMapper()),
             Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
         );
 
@@ -164,8 +168,10 @@ public final class StreamAggregateBuilder {
         null
     );
 
+    final KudafAggregator<Windowed<Struct>> aggregator = aggregateParams.getAggregator();
+
     KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
-        () -> aggregateParams.<Windowed<Struct>>getAggregator().getResultMapper(),
+        () -> new KsTransformer<>(aggregator.getResultMapper()),
         Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
     );
 
@@ -180,7 +186,7 @@ public final class StreamAggregateBuilder {
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
     if (windowSelectMapper.hasSelects()) {
       reduced = reduced.transformValues(
-          windowSelectMapper::<Struct>getTransformer,
+          () -> new KsTransformer<>(windowSelectMapper.getTransformer()),
           Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-WINDOW-SELECT"))
       );
     }

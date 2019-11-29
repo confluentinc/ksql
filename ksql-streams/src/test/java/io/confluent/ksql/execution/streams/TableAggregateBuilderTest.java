@@ -45,6 +45,8 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -58,7 +60,6 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -66,14 +67,10 @@ import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -130,7 +127,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private KudafAggregator<Struct> aggregator;
   @Mock
-  private ValueTransformerWithKey<Struct, GenericRow, GenericRow> resultMapper;
+  private KsqlTransformer<Struct, GenericRow> resultMapper;
   @Mock
   private KudafUndoAggregator undoAggregator;
   @Mock
@@ -143,9 +140,8 @@ public class TableAggregateBuilderTest {
   private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ExecutionStep<KGroupedTableHolder> sourceStep;
-  @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier<? super Struct,? super GenericRow,?>>
-      resultMapperSupplier;
+  @Mock
+  private KsqlProcessingContext ctx;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;
@@ -280,16 +276,16 @@ public class TableAggregateBuilderTest {
     assertThat(info.getTransforms(), hasSize(1));
 
     final MapperInfo aggMapInfo = (MapperInfo) info.getTransforms().get(0);
-    final BiFunction<Object, GenericRow, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
+    final KsqlTransformer<Object, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
 
     // Given:
     final Struct key = mock(Struct.class);
     final GenericRow value = mock(GenericRow.class);
 
     // When:
-    mapper.apply(key, value);
+    mapper.transform(key, value, ctx);
 
     // Then:
-    verify(resultMapper).transform(key, value);
+    verify(resultMapper).transform(key, value, ctx);
   }
 }

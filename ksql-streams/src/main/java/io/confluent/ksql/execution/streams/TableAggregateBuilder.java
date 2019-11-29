@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -79,7 +80,7 @@ public final class TableAggregateBuilder {
         aggregateParams.getUndoAggregator().get(),
         materialized
     ).transformValues(
-        () -> aggregateParams.<Struct>getAggregator().getResultMapper(),
+        () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
         Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
     );
 

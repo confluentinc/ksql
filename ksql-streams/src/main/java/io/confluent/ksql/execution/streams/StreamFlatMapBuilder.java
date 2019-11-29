@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.function.udtf.KudtfFlatMapper;
 import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -78,7 +79,7 @@ public final class StreamFlatMapBuilder {
         .build();
 
     final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
-        () -> new KudtfFlatMapper<>(tableFunctionAppliers),
+        () -> new KsTransformer<>(new KudtfFlatMapper<>(tableFunctionAppliers)),
         Named.as(queryBuilder.buildUniqueNodeName("TABLE-FUNCTIONS-APPLY"))
     );
 

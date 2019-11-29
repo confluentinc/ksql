@@ -21,7 +21,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Collections;
 import java.util.Optional;
@@ -80,18 +82,25 @@ public final class StreamFilterBuilder {
     );
   }
 
-  private static <K, V> ValueTransformerWithKey<K, V, Iterable<V>> toFlatMapTransformer(
-      final ValueTransformerWithKey<K, V, Optional<V>> transformer
+  private static <K> ValueTransformerWithKey<
+      K,
+      GenericRow,
+      Iterable<GenericRow>
+      > toFlatMapTransformer(
+          final KsqlTransformer<K, Optional<GenericRow>> transformer
   ) {
-    return new ValueTransformerWithKey<K, V, Iterable<V>>() {
+    final ValueTransformerWithKey<K, GenericRow, Optional<GenericRow>> delegate =
+        new KsTransformer<>(transformer);
+
+    return new ValueTransformerWithKey<K, GenericRow, Iterable<GenericRow>>() {
       @Override
       public void init(final ProcessorContext context) {
-        transformer.init(context);
+        delegate.init(context);
       }
 
       @Override
-      public Iterable<V> transform(final K readOnlyKey, final V value) {
-        final Optional<V> result = transformer.transform(readOnlyKey, value);
+      public Iterable<GenericRow> transform(final K readOnlyKey, final GenericRow value) {
+        final Optional<GenericRow> result = delegate.transform(readOnlyKey, value);
         return result
             .map(Collections::singletonList)
             .orElse(Collections.emptyList());
@@ -99,7 +108,7 @@ public final class StreamFilterBuilder {
 
       @Override
       public void close() {
-        transformer.close();
+        delegate.close();
       }
     };
   }

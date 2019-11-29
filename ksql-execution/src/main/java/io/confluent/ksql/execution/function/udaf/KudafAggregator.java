@@ -19,14 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.function.UdafAggregator;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.UdafAggregator;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public class KudafAggregator<K> implements UdafAggregator<K> {
 
@@ -65,7 +65,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     return aggRowValue;
   }
 
-  public ValueTransformerWithKey<K, GenericRow, GenericRow> getResultMapper() {
+  public KsqlTransformer<K, GenericRow> getResultMapper() {
     return new ResultTransformer();
   }
 
@@ -102,25 +102,29 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - initialUdafIndex);
   }
 
-  private final class ResultTransformer extends KsqlValueTransformerWithKey<K, GenericRow> {
+  private final class ResultTransformer implements KsqlTransformer<K, GenericRow> {
 
     @Override
-    protected GenericRow transform(final GenericRow aggRow) {
-      if (aggRow == null) {
+    public GenericRow transform(
+        final K readOnlyKey,
+        final GenericRow value,
+        final KsqlProcessingContext ctx
+    ) {
+      if (value == null) {
         return null;
       }
 
       final List<Object> columns = new ArrayList<>(columnCount);
 
       for (int idx = 0; idx < initialUdafIndex; idx++) {
-        columns.add(idx, aggRow.getColumns().get(idx));
+        columns.add(idx, value.getColumns().get(idx));
       }
 
       for (int idx = initialUdafIndex; idx < columnCount; idx++) {
         final KsqlAggregateFunction<Object, Object, Object> function =
             aggregateFunctionForColumn(idx);
 
-        final Object agg = aggRow.getColumns().get(idx);
+        final Object agg = value.getColumns().get(idx);
         final Object reduced = function.getResultMapper().apply(agg);
         columns.add(idx, reduced);
       }

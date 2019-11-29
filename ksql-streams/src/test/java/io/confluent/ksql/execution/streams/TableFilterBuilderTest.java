@@ -21,7 +21,9 @@
  import io.confluent.ksql.execution.plan.KeySerdeFactory;
  import io.confluent.ksql.execution.plan.PlanBuilder;
  import io.confluent.ksql.execution.plan.TableFilter;
- import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+ import io.confluent.ksql.execution.transform.KsqlTransformer;
+ import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
  import io.confluent.ksql.function.FunctionRegistry;
  import io.confluent.ksql.logging.processing.ProcessingLogContext;
  import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -30,12 +32,10 @@
  import io.confluent.ksql.schema.ksql.LogicalSchema;
  import io.confluent.ksql.util.KsqlConfig;
  import java.util.Optional;
- import java.util.function.BiPredicate;
  import org.apache.kafka.connect.data.Struct;
  import org.apache.kafka.streams.kstream.KTable;
  import org.apache.kafka.streams.kstream.Named;
  import org.apache.kafka.streams.kstream.ValueMapper;
- import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
  import org.junit.Before;
  import org.junit.Rule;
  import org.junit.Test;
@@ -46,12 +46,13 @@
  import org.mockito.junit.MockitoRule;
 
 public class TableFilterBuilderTest {
+
   @Mock
   private SqlPredicateFactory predicateFactory;
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private ValueTransformerWithKey<Struct, GenericRow, Optional<GenericRow>> preTransformer;
+  private KsqlTransformer<Struct, Optional<GenericRow>> preTransformer;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -88,8 +89,11 @@ public class TableFilterBuilderTest {
   private Struct key;
   @Mock
   private GenericRow value;
+  @Mock
+  private KsqlProcessingContext ctx;
   @Captor
-  private ArgumentCaptor<TransformFactory<BiPredicate<Object, GenericRow>>> predicateFactoryCaptor;
+  private ArgumentCaptor<TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>>>
+      predicateFactoryCaptor;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -117,7 +121,7 @@ public class TableFilterBuilderTest {
     when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
     when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getTransformer(any())).thenReturn((ValueTransformerWithKey) preTransformer);
+    when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) preTransformer);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
@@ -127,7 +131,7 @@ public class TableFilterBuilderTest {
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
     ;
-    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
+    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
@@ -187,26 +191,27 @@ public class TableFilterBuilderTest {
     verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("stepName"));
 
     // Given:
-    final BiPredicate<Object, GenericRow> biPredicate = predicateFactoryCaptor
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = predicateFactoryCaptor
         .getValue()
         .apply(processingLogger);
 
-    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
+    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    boolean result = biPredicate.test(key, value);
+    Optional<GenericRow> result = predicate.transform(key, value, ctx);
 
     // Then:
-    verify(preTransformer).transform(key, value);
-    assertThat(result, is(false));
+    verify(preTransformer).transform(key, value, ctx);
+    assertThat(result, is(Optional.empty()));
 
     // Given:
-    when(preTransformer.transform(any(), any())).thenReturn(Optional.of(new GenericRow()));
+    when(preTransformer.transform(any(), any(), any()))
+        .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
 
     // When:
-    result = biPredicate.test(key, value);
+    result = predicate.transform(key, value, ctx);
 
     // Then:
-    assertThat(result, is(true));
+    assertThat(result, is(Optional.of(value)));
   }
 }

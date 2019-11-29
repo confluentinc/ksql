@@ -18,7 +18,8 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -30,7 +31,6 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,7 +45,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private ValueTransformerWithKey<Struct, GenericRow, Optional<GenericRow>> predicate;
+  private KsqlTransformer<Struct, Optional<GenericRow>> predicate;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -99,7 +99,7 @@ public class StreamFilterBuilderTest {
         .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getTransformer(any())).thenReturn((ValueTransformerWithKey) predicate);
+    when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) predicate);
     when(sourceStep.build(any())).thenReturn(new KStreamHolder<>(
         sourceKStream,
         schema,

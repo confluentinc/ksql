@@ -21,10 +21,10 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,7 +52,7 @@ public class MaterializationInfoTest {
 
 
   @Mock
-  private TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory;
+  private TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory;
 
   @Before
   public void setUp() {

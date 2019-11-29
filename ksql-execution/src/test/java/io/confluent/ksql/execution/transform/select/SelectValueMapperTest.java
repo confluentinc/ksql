@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform.select;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
@@ -37,7 +39,6 @@ import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,8 +63,10 @@ public class SelectValueMapperTest {
   private ExpressionMetadata col2;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private KsqlProcessingContext ctx;
 
-  private ValueTransformerWithKey<Object, GenericRow, GenericRow> transformer;
+  private KsqlTransformer<Object, GenericRow> transformer;
 
   @Before
   public void setup() {
@@ -84,7 +87,7 @@ public class SelectValueMapperTest {
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = transformer.transform(KEY, VALLUE);
+    final GenericRow result = transformer.transform(KEY, VALLUE, ctx);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -93,7 +96,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = transformer.transform(KEY, null);
+    final GenericRow result = transformer.transform(KEY, null, ctx);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -111,7 +114,8 @@ public class SelectValueMapperTest {
     // When:
     transformer.transform(
         KEY,
-        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo")
+        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"),
+        ctx
     );
 
     // Then:

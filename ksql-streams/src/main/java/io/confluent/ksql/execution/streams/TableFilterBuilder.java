@@ -21,12 +21,12 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 
 public final class TableFilterBuilder {
 
@@ -69,7 +69,7 @@ public final class TableFilterBuilder {
 
     final KTable<K, GenericRow> filtered = table.getTable()
         .transformValues(
-            () -> predicate.getTransformer(processingLogger),
+            () -> new KsTransformer<>(predicate.getTransformer(processingLogger)),
             Named.as(queryBuilder.buildUniqueNodeName(step.getStepName() + "-PRE-PROCESS"))
         )
         .filter(
@@ -88,11 +88,7 @@ public final class TableFilterBuilder {
         )
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.filter(
-                pl -> {
-                  final ValueTransformerWithKey<Object, GenericRow, Optional<GenericRow>>
-                      transformer = predicate.getTransformer(pl);
-                  return (k, v) -> transformer.transform(k, v).isPresent();
-                },
+                predicate::getTransformer,
                 step.getStepName()
             ))
         );

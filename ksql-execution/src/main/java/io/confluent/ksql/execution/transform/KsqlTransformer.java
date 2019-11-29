@@ -16,31 +16,18 @@
 package io.confluent.ksql.execution.transform;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
-import org.apache.kafka.streams.processor.ProcessorContext;
 
 /**
- * Base class for all {@code ValueTransformerWithKey} used in KS topologies by KSQL.
+ * Transform step.
  *
- * @param <K> type of the key
- * @param <R> type of the result
+ * <p>Decoupled from any specific implementation, e.g. Kafka streams.
+ *
+ * <p>Transforms a single input row: read-only key + value.
+ *
+ * @param <K> the type of the key
+ * @param <R> the return type
  */
-public abstract class KsqlValueTransformerWithKey<K, R>
-    implements ValueTransformerWithKey<K, GenericRow, R> {
+public interface KsqlTransformer<K, R> {
 
-  @Override
-  public void init(final ProcessorContext processorContext) {
-  }
-
-  @Override
-  public R transform(final K readOnlyKey, final GenericRow value) {
-    return transform(value);
-  }
-
-  protected abstract R transform(GenericRow value);
-
-  @Override
-  public void close() {
-  }
+  R transform(K readOnlyKey, GenericRow value, KsqlProcessingContext ctx);
 }
-

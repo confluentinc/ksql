@@ -20,13 +20,13 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -100,7 +100,7 @@ public final class MaterializationInfo {
      * @return A builder instance with this transformation.
      */
     public Builder map(
-        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory,
         final LogicalSchema resultSchema,
         final String stepName
     ) {
@@ -108,7 +108,6 @@ public final class MaterializationInfo {
       this.schema = dropMetaColumns(resultSchema);
       return this;
     }
-
 
     /**
      * Adds a transform that filters rows from the materialization.
@@ -118,7 +117,7 @@ public final class MaterializationInfo {
      * @return A builder instance with this transformation.
      */
     public Builder filter(
-        final TransformFactory<BiPredicate<Object, GenericRow>> predicateFactory,
+        final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicateFactory,
         final String stepName
     ) {
       transforms.add(new PredicateInfo(predicateFactory, stepName));
@@ -163,18 +162,18 @@ public final class MaterializationInfo {
 
   public static class MapperInfo implements TransformInfo {
 
-    private final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory;
+    private final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory;
     private final String stepName;
 
     MapperInfo(
-        final TransformFactory<BiFunction<Object, GenericRow, GenericRow>> mapperFactory,
+        final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory,
         final String stepName
     ) {
       this.mapperFactory = requireNonNull(mapperFactory, "mapperFactory");
       this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public BiFunction<Object, GenericRow, GenericRow> getMapper(
+    public KsqlTransformer<Object, GenericRow> getMapper(
         final Function<String, ProcessingLogger> loggerFactory
     ) {
       return mapperFactory.apply(loggerFactory.apply(stepName));
@@ -187,18 +186,18 @@ public final class MaterializationInfo {
 
   public static class PredicateInfo implements TransformInfo {
 
-    private final TransformFactory<BiPredicate<Object, GenericRow>> predicate;
+    private final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicate;
     private final String stepName;
 
     PredicateInfo(
-        final TransformFactory<BiPredicate<Object, GenericRow>> predicate,
+        final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicate,
         final String stepName
     ) {
       this.predicate = Objects.requireNonNull(predicate, "predicate");
       this.stepName = requireNonNull(stepName, "stepName");
     }
 
-    public BiPredicate<Object, GenericRow> getPredicate(
+    public KsqlTransformer<Object, Optional<GenericRow>> getPredicate(
         final Function<String, ProcessingLogger> loggerFactory
     ) {
       return predicate.apply(loggerFactory.apply(stepName));

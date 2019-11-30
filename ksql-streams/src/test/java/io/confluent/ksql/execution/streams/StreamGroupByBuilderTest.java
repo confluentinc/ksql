@@ -17,9 +17,8 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -75,8 +74,8 @@ public class StreamGroupByBuilderTest {
   private static final QueryContext STEP_CTX =
       new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES
-      = new DefaultExecutionStepProperties(SCHEMA, SOURCE_CTX);
-  private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
+      = new ExecutionStepProperties(SCHEMA, SOURCE_CTX);
+  private static final ExecutionStepProperties PROPERTIES = new ExecutionStepProperties(
       SCHEMA,
       STEP_CTX
   );

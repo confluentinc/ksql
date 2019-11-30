@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -100,7 +100,7 @@ public class StreamSinkBuilderTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(source.build(any())).thenReturn(new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory));
     sink = new StreamSink<>(
-        new DefaultExecutionStepProperties(SCHEMA, queryContext),
+        new ExecutionStepProperties(SCHEMA, queryContext),
         source,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC

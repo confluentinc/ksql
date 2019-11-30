@@ -18,7 +18,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -82,7 +82,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedStreamSource(
-        new DefaultExecutionStepProperties(
+        new ExecutionStepProperties(
             schema.getSchema(),
             queryContext),
         topicName,
@@ -106,7 +106,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource(
-        new DefaultExecutionStepProperties(
+        new ExecutionStepProperties(
             schema.getSchema(),
             queryContext),
         topicName,
@@ -129,7 +129,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSource(
-        new DefaultExecutionStepProperties(
+        new ExecutionStepProperties(
             schema.getSchema(),
             queryContext),
         topicName,
@@ -153,7 +153,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedTableSource(
-        new DefaultExecutionStepProperties(
+        new ExecutionStepProperties(
             schema.getSchema(),
             queryContext),
         topicName,
@@ -175,7 +175,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSink<>(
-        new DefaultExecutionStepProperties(outputSchema, queryContext),
+        new ExecutionStepProperties(outputSchema, queryContext),
         source,
         formats,
         topicName
@@ -190,7 +190,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFlatMap<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new ExecutionStepProperties(resultSchema, queryContext),
         source,
         tableFunctions
     );
@@ -223,7 +223,7 @@ public final class ExecutionStepFactory {
         queryBuilder.getFunctionRegistry()
     );
 
-    final DefaultExecutionStepProperties properties = new DefaultExecutionStepProperties(
+    final ExecutionStepProperties properties = new ExecutionStepProperties(
         selection.getSchema(),
         stacker.getQueryContext()
     );
@@ -246,7 +246,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamTableJoin<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new ExecutionStepProperties(resultSchema, queryContext),
         joinType,
         formats,
         left,
@@ -266,7 +266,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamStreamJoin<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new ExecutionStepProperties(resultSchema, queryContext),
         joinType,
         leftFormats,
         rightFormats,
@@ -285,7 +285,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSelectKey(
-        new DefaultExecutionStepProperties(
+        new ExecutionStepProperties(
             source.getProperties().getSchema(),
             queryContext
         ),
@@ -304,7 +304,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSink<>(
-        new DefaultExecutionStepProperties(outputSchema, queryContext),
+        new ExecutionStepProperties(outputSchema, queryContext),
         source,
         formats,
         topicName
@@ -338,7 +338,7 @@ public final class ExecutionStepFactory {
         queryBuilder.getFunctionRegistry()
     );
 
-    final DefaultExecutionStepProperties properties = new DefaultExecutionStepProperties(
+    final ExecutionStepProperties properties = new ExecutionStepProperties(
         selection.getSchema(),
         stacker.getQueryContext()
     );
@@ -360,7 +360,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableTableJoin<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new ExecutionStepProperties(resultSchema, queryContext),
         joinType,
         left,
         right
@@ -393,7 +393,7 @@ public final class ExecutionStepFactory {
     final LogicalSchema schema =
         getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new StreamAggregate(
-        new DefaultExecutionStepProperties(schema, queryContext),
+        new ExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
@@ -414,7 +414,7 @@ public final class ExecutionStepFactory {
     final LogicalSchema schema =
         getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(schema, queryContext),
+        new ExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
@@ -463,7 +463,7 @@ public final class ExecutionStepFactory {
     final LogicalSchema schema =
         getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new TableAggregate(
-        new DefaultExecutionStepProperties(schema, queryContext),
+        new ExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,

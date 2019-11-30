@@ -11,9 +11,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -98,7 +97,7 @@ public class StreamFilterBuilderTest {
     sourceWithSerdeFactory =
         new KStreamHolder<>(sourceKStream, schema, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceWithSerdeFactory);
-    final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
+    final ExecutionStepProperties properties = new ExecutionStepProperties(
         schema,
         queryContext
     );

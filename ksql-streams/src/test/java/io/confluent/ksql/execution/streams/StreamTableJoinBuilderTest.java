@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -136,7 +136,7 @@ public class StreamTableJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,
         LEFT_FMT,
         left,
@@ -147,7 +147,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
     join = new StreamTableJoin(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.OUTER,
         LEFT_FMT,
         left,
@@ -159,7 +159,7 @@ public class StreamTableJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.INNER,
         LEFT_FMT,
         left,

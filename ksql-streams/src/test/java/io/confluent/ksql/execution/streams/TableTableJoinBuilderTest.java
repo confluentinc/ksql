@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -95,7 +95,7 @@ public class TableTableJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,
         left,
         right
@@ -106,7 +106,7 @@ public class TableTableJoinBuilderTest {
   private void givenOuterJoin() {
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.OUTER,
         left,
         right
@@ -117,7 +117,7 @@ public class TableTableJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new DefaultExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepProperties(SCHEMA, CTX),
         JoinType.INNER,
         left,
         right

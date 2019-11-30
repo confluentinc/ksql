@@ -14,28 +14,65 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Objects;
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = As.PROPERTY
-)
-@JsonSubTypes({
-    @Type(value = DefaultExecutionStepProperties.class, name = "default"),
-})
 @Immutable
-public interface ExecutionStepProperties {
-  LogicalSchema getSchema();
+public final class ExecutionStepProperties {
+  private final QueryContext queryContext;
+  private final LogicalSchema schema;
 
-  String getId();
+  public ExecutionStepProperties(
+      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
+      @JsonProperty(value = "queryContext", required = true) final QueryContext queryContext) {
+    this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
+    this.schema = Objects.requireNonNull(schema, "schema");
+  }
 
-  QueryContext getQueryContext();
+  public LogicalSchema getSchema() {
+    return schema;
+  }
 
-  ExecutionStepProperties withQueryContext(QueryContext queryContext);
+  @JsonIgnore
+  public String getId() {
+    return queryContext.toString();
+  }
+
+  public QueryContext getQueryContext() {
+    return queryContext;
+  }
+
+  public ExecutionStepProperties withQueryContext(final QueryContext queryContext) {
+    return new ExecutionStepProperties(schema, queryContext);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ExecutionStepProperties that = (ExecutionStepProperties) o;
+    return Objects.equals(queryContext, that.queryContext)
+        && Objects.equals(schema, that.schema);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(queryContext, schema);
+  }
+
+  @Override
+  public String toString() {
+    return "ExecutionStepProperties{"
+        + "queryContext='" + queryContext.toString() + '\''
+        + ", schema=" + schema
+        + '}';
+  }
 }

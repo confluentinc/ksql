@@ -39,7 +39,7 @@ import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -221,7 +221,7 @@ public class StreamAggregateBuilderTest {
     when(groupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(aggregated);
     when(aggregated.mapValues(any(ValueMapper.class))).thenReturn(aggregatedWithResults);
     aggregate = new StreamAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -242,7 +242,7 @@ public class StreamAggregateBuilderTest {
   private void givenTumblingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -254,7 +254,7 @@ public class StreamAggregateBuilderTest {
   private void givenHoppingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -277,7 +277,7 @@ public class StreamAggregateBuilderTest {
         .thenReturn(windowed);
     when(windowed.mapValues(any(ValueMapper.class))).thenReturn(windowedWithResults);
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,

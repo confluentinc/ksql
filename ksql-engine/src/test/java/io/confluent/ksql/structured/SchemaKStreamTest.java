@@ -34,9 +34,8 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -783,7 +782,7 @@ public class SchemaKStreamTest {
     reset(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceProperties.withQueryContext(any())).thenAnswer(
-        i -> new DefaultExecutionStepProperties(schema, (QueryContext) i.getArguments()[0])
+        i -> new ExecutionStepProperties(schema, (QueryContext) i.getArguments()[0])
     );
   }
 

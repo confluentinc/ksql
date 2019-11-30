@@ -27,9 +27,8 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -91,7 +90,7 @@ public class StreamSelectKeyBuilderTest {
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
-  private final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
+  private final ExecutionStepProperties properties = new ExecutionStepProperties(
       SCHEMA,
       queryContext
   );

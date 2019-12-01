@@ -79,7 +79,6 @@ public class DataGenTest {
         "topic",
         "key",
         0,
-        0L,
         "srUrl",
         null,
         1,

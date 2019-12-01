@@ -37,9 +37,6 @@ import org.apache.kafka.connect.data.Struct;
 
 public class DataGenProducer {
 
-  // Max 500 ms between messsages.
-  public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
-
   private final SerializerFactory<Struct> keySerializerFactory;
   private final SerializerFactory<GenericRow> valueSerializerFactory;
 
@@ -57,7 +54,6 @@ public class DataGenProducer {
       final String kafkaTopicName,
       final String key,
       final int messageCount,
-      final long maxInterval,
       final boolean printRows,
       final Optional<RateLimiter> rateLimiter
   ) {
@@ -85,7 +81,6 @@ public class DataGenProducer {
             rowGenerator,
             producer,
             kafkaTopicName,
-            maxInterval,
             printRows,
             rateLimiter
         );
@@ -96,7 +91,6 @@ public class DataGenProducer {
             rowGenerator,
             producer,
             kafkaTopicName,
-            maxInterval,
             printRows,
             rateLimiter
         );
@@ -111,7 +105,6 @@ public class DataGenProducer {
       final RowGenerator rowGenerator,
       final KafkaProducer<Struct, GenericRow> producer,
       final String kafkaTopicName,
-      final long maxInterval,
       final boolean printRows,
       final Optional<RateLimiter> rateLimiter
   ) {
@@ -130,14 +123,6 @@ public class DataGenProducer {
             genericRowPair.getLeft(),
             genericRowPair.getRight(),
             printRows));
-
-    try {
-      final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
-
-      Thread.sleep((long) (interval * Math.random()));
-    } catch (final InterruptedException e) {
-      // Ignore the exception.
-    }
   }
 
   private Serializer<Struct> getKeySerializer() {

@@ -16,8 +16,13 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.io.Console;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.BindException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +58,7 @@ public final class ConnectExecutable implements Executable {
   @Override
   public void startAsync() {
     try {
+      printWorkerProps();
       connect = connectDistributed.startConnect(workerProps);
     } catch (final ConnectException e) {
       if (e.getCause() instanceof IOException && e.getCause().getCause() instanceof BindException) {
@@ -60,6 +66,19 @@ public final class ConnectExecutable implements Executable {
       } else {
         throw e;
       }
+    }
+  }
+
+  private void printWorkerProps() {
+    final Console console = System.console();
+    if (console == null) {
+      return;
+    }
+
+    try (PrintWriter writer =
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+      workerProps.forEach((key, value) -> writer.printf("%s = %s%n", key, value));
+      writer.flush();
     }
   }
 

@@ -199,7 +199,7 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
-    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+    return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
   private static RepartitionNode buildRepartitionNode(

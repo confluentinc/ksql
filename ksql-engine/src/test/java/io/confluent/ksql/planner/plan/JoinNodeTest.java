@@ -275,7 +275,7 @@ public class JoinNodeTest {
         = (TopologyDescription.Processor) getNodeByName(topology, "Join");
     final List<String> predecessors = leftJoin.predecessors().stream()
         .map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-reduce")));
+    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-Reduce")));
     assertThat(predecessors, equalTo(Collections.singletonList("Join-repartition-source")));
   }
 

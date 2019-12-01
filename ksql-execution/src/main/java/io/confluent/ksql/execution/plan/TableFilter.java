@@ -28,18 +28,15 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final Expression filterExpression;
-  private final String stepName;
 
   public TableFilter(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "filterExpression", required = true) Expression filterExpression,
-      @JsonProperty(value = "stepName", required = true) final String stepName
+      @JsonProperty(value = "filterExpression", required = true) Expression filterExpression
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.filterExpression = Objects.requireNonNull(filterExpression, "filterExpression");
-    this.stepName = Objects.requireNonNull(stepName, "stepName");
   }
 
   @Override
@@ -61,10 +58,6 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
     return source;
   }
 
-  public String getStepName() {
-    return stepName;
-  }
-
   @Override
   public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitTableFilter(this);
@@ -81,13 +74,12 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
     TableFilter<?> that = (TableFilter<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(filterExpression, that.filterExpression)
-        && Objects.equals(stepName, that.stepName);
+        && Objects.equals(filterExpression, that.filterExpression);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, filterExpression, stepName);
+    return Objects.hash(properties, source, filterExpression);
   }
 }

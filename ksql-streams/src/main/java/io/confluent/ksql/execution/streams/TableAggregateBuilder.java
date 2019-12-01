@@ -68,7 +68,7 @@ public final class TableAggregateBuilder {
     final LogicalSchema resultSchema = aggregateParams.getSchema();
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         AggregateBuilderUtils.buildMaterialized(
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
             aggregate.getFormats(),
             queryBuilder,
@@ -81,13 +81,13 @@ public final class TableAggregateBuilder {
         materialized
     ).transformValues(
         () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
-        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+        Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
             aggregateParams.getAggregator(),
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
             resultSchema
         );

@@ -570,7 +570,7 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder);
 
     // Then:
-    verify(materializationFactory).create(keySerde, valueSerde, "base-reduce");
+    verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
   }
 
   @SuppressWarnings("unchecked")

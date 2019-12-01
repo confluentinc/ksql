@@ -49,10 +49,6 @@ public final class StreamFilterBuilder {
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory predicateFactory
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
-        step.getProperties().getQueryContext()
-    );
-
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
         stream.getSchema(),
@@ -66,14 +62,14 @@ public final class StreamFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push(step.getStepName()).getQueryContext()
+                step.getProperties().getQueryContext()
             )
         );
 
     final KStream<K, GenericRow> filtered = stream.getStream()
         .flatTransformValues(
             () -> toFlatMapTransformer(predicate.getTransformer(processingLogger)),
-            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName()))
+            Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
         );
 
     return stream.withStream(

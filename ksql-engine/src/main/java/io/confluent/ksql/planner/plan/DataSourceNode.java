@@ -44,7 +44,7 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 @Immutable
 public class DataSourceNode extends PlanNode {
 
-  private static final String SOURCE_OP_NAME = "source";
+  private static final String SOURCE_OP_NAME = "Source";
 
   private final DataSource<?> dataSource;
   private final SourceName alias;

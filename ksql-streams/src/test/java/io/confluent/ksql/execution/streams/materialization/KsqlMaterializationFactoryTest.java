@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
@@ -96,7 +97,7 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private KsqlProcessingContext ctx;
   @Captor
-  private ArgumentCaptor<Function<String, ProcessingLogger>> loggerCaptor;
+  private ArgumentCaptor<Function<QueryContext, ProcessingLogger>> loggerCaptor;
 
   private final QueryId queryId = new QueryId("start");
   private final Stacker contextStacker = new Stacker();
@@ -136,21 +137,27 @@ public class KsqlMaterializationFactoryTest {
   @Test
   public void shouldUseCorrectLoggerForPredicate() {
     // When:
-    factory.create(materialization, info, queryId, contextStacker);
+    factory.create(materialization, info, queryId, new Stacker().push("filter"));
 
     // Then:
     verify(predicateInfo).getPredicate(loggerCaptor.capture());
-    assertThat(loggerCaptor.getValue().apply("filter"), is(filterProcessingLogger));
+    assertThat(
+        loggerCaptor.getValue().apply(new Stacker().push("filter").getQueryContext()),
+        is(filterProcessingLogger)
+    );
   }
 
   @Test
   public void shouldUseCorrectLoggerForSelectMapper() {
     // When:
-    factory.create(materialization, info, queryId, contextStacker);
+    factory.create(materialization, info, queryId, new Stacker().push("project"));
 
     // Then:
     verify(mapperInfo).getMapper(loggerCaptor.capture());
-    assertThat(loggerCaptor.getValue().apply("project"), is(mapProcessingLogger));
+    assertThat(
+        loggerCaptor.getValue().apply(new Stacker().push("project").getQueryContext()),
+        is(mapProcessingLogger)
+    );
   }
 
   @Test

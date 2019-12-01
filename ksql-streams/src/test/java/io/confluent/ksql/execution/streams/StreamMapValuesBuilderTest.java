@@ -79,7 +79,7 @@ public class StreamMapValuesBuilderTest {
       SelectExpression.of(ColumnName.of("expr2"), EXPRESSION2)
   );
 
-  private static final String SELECT_STEP_NAME = "StepName";
+  private static final String SELECT_STEP_NAME = "foo-bar";
 
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
@@ -110,7 +110,7 @@ public class StreamMapValuesBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private final QueryContext context =
-      new QueryContext.Stacker().getQueryContext();
+      new QueryContext.Stacker().push("foo").push("bar").getQueryContext();
 
   private PlanBuilder planBuilder;
   private StreamMapValues<Struct> step;
@@ -125,7 +125,6 @@ public class StreamMapValuesBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(
         sourceKStream.transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
@@ -135,8 +134,7 @@ public class StreamMapValuesBuilderTest {
     step = new StreamMapValues<>(
         properties,
         sourceStep,
-        SELECT_EXPRESSIONS,
-        SELECT_STEP_NAME
+        SELECT_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -167,9 +165,10 @@ public class StreamMapValuesBuilderTest {
         nameCaptor.capture()
     );
 
-    assertThat(NamedTestAccessor.getName(nameCaptor.getValue()), is(SELECT_STEP_NAME + "-unique"));
+    assertThat(NamedTestAccessor.getName(nameCaptor.getValue()), is(SELECT_STEP_NAME));
   }
 
+  @Test
   public void shouldReturnCorrectSchema() {
     // When:
     final KStreamHolder<Struct> result = step.build(planBuilder);
@@ -190,6 +189,6 @@ public class StreamMapValuesBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("qid.PROJECT");
+    verify(processingLoggerFactory).getLogger("qid.foo.bar");
   }
 }

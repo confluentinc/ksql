@@ -120,9 +120,13 @@ public final class KsqlMaterializationFactory {
       return predicate::transform;
     }
 
-    private ProcessingLogger getLogger(final String stepName) {
+    private ProcessingLogger getLogger(final QueryContext queryContext) {
+      QueryContext.Stacker stacker = this.stacker;
+      for (final String ctx : queryContext.getContext()) {
+        stacker = stacker.push(ctx);
+      }
       return processingLogContext.getLoggerFactory().getLogger(
-          QueryLoggerUtil.queryLoggerName(queryId, stacker.push(stepName).getQueryContext())
+          QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext())
       );
     }
   }

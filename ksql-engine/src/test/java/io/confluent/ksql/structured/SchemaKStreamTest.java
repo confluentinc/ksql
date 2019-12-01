@@ -80,8 +80,6 @@ public class SchemaKStreamTest {
   private static final Expression COL1 =
       new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL1")));
 
-  private static final String SELECT_NODE_NAME = "SelectStep";
-
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KeyField validJoinKeyField = KeyField
@@ -140,7 +138,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 
@@ -163,7 +160,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 
@@ -174,8 +170,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamMapValues(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                selectExpressions,
-                SELECT_NODE_NAME
+                selectExpressions
             )
         )
     );
@@ -214,7 +209,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -231,7 +226,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -248,7 +243,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -264,7 +259,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -279,7 +274,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -295,7 +290,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -310,7 +305,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -326,7 +321,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 
@@ -349,7 +343,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -378,7 +371,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -406,7 +398,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -417,8 +408,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamFilter(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                filterNode.getPredicate(),
-                "step"
+                filterNode.getPredicate()
             )
         )
     );

@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -36,9 +37,7 @@ public final class StreamMapValuesBuilder {
       final StreamMapValues<K> step,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
-        step.getProperties().getQueryContext()
-    );
+    final QueryContext queryContext = step.getProperties().getQueryContext();
 
     final LogicalSchema sourceSchema = stream.getSchema();
 
@@ -55,13 +54,11 @@ public final class StreamMapValuesBuilder {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                queryBuilder.getQueryId(),
-                contextStacker.push("PROJECT").getQueryContext()
-            )
+            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
         );
 
-    final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
+    final Named selectName =
+        Named.as(StreamsUtil.buildOpName(queryContext));
 
     return stream.withStream(
         stream.getStream().transformValues(

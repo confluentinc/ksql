@@ -309,7 +309,7 @@ public class DataSourceNodeTest {
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
-        equalTo(ImmutableList.of("0", "source"))
+        equalTo(ImmutableList.of("0", "Source"))
     );
   }
 
@@ -332,7 +332,7 @@ public class DataSourceNodeTest {
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
-        equalTo(ImmutableList.of("0", "source"))
+        equalTo(ImmutableList.of("0", "Source"))
     );
   }
 

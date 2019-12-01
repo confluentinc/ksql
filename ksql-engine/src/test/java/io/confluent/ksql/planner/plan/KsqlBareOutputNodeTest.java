@@ -63,8 +63,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
-  private static final String FILTER_NODE = "WHERE-FILTER-unique";
-  private static final String FILTER_MAPVALUES_NODE = "SELECT-unique";
+  private static final String FILTER_NODE = "WhereFilter";
+  private static final String FILTER_MAPVALUES_NODE = "Project";
   private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 
   private SchemaKStream stream;
@@ -93,7 +93,6 @@ public class KsqlBareOutputNodeTest {
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(ksqlStreamBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
 
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(ksqlConfig, SIMPLE_SELECT_WITH_FILTER, metaStore);

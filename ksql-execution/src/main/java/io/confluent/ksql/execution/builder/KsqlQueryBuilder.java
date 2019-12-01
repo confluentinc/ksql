@@ -53,7 +53,6 @@ public final class KsqlQueryBuilder {
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
   private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
-  private final AtomicInteger nodeIdGenerator = new AtomicInteger();
 
   public static KsqlQueryBuilder of(
       StreamsBuilder streamsBuilder, KsqlConfig ksqlConfig, ServiceContext serviceContext,
@@ -184,9 +183,5 @@ public final class KsqlQueryBuilder {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }
     schemas.put(loggerNamePrefix, schema);
-  }
-
-  public String buildUniqueNodeName(final String prefix) {
-    return prefix + "-" + nodeIdGenerator.getAndIncrement();
   }
 }

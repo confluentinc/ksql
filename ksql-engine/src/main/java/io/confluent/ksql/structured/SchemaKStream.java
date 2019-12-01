@@ -116,14 +116,12 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final String stepName,
       final Stacker contextStacker
   ) {
     final StreamFilter<K> step = ExecutionStepFactory.streamFilter(
         contextStacker,
         sourceStep,
-        rewriteTimeComparisonForFilter(filterExpression),
-        stepName
+        rewriteTimeComparisonForFilter(filterExpression)
     );
 
     return new SchemaKStream<>(
@@ -143,7 +141,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
-      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
@@ -151,8 +148,7 @@ public class SchemaKStream<K> {
     final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
 
     return new SchemaKStream<>(

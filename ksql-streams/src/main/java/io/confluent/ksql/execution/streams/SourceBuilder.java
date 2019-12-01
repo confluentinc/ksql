@@ -360,7 +360,7 @@ public final class SourceBuilder {
     for (final String part : parts.subList(0, parts.size() - 1)) {
       stacker = stacker.push(part);
     }
-    return StreamsUtil.buildOpName(stacker.push("reduce").getQueryContext());
+    return StreamsUtil.buildOpName(stacker.push("Reduce").getQueryContext());
   }
 
   private static Function<Windowed<Struct>, String> windowedRowKeyGenerator(

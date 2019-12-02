@@ -31,6 +31,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 
 /**
@@ -50,8 +51,8 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
       final Range<Instant> windowStartBounds
   ) {
     try {
-      final ReadOnlyWindowStore<Struct, GenericRow> store = stateStore
-          .store(QueryableStoreTypes.windowStore());
+      final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedWindowStore());
 
       final Instant lower = windowStartBounds.hasLowerBound()
           ? windowStartBounds.lowerEndpoint()
@@ -61,16 +62,26 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
           ? windowStartBounds.upperEndpoint()
           : Instant.ofEpochMilli(Long.MAX_VALUE);
 
-      try (WindowStoreIterator<GenericRow> it = store.fetch(key, lower, upper)) {
+      try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it = store.fetch(key, lower, upper)) {
 
         final Builder<WindowedRow> builder = ImmutableList.builder();
 
         while (it.hasNext()) {
-          final KeyValue<Long, GenericRow> next = it.next();
+          final KeyValue<Long, ValueAndTimestamp<GenericRow>> next = it.next();
           final Instant windowStart = Instant.ofEpochMilli(next.key);
+
           if (windowStartBounds.contains(windowStart)) {
             final Window window = Window.of(windowStart, Optional.empty());
-            builder.add(WindowedRow.of(stateStore.schema(), key, window, next.value));
+
+            final WindowedRow row = WindowedRow.of(
+                stateStore.schema(),
+                key,
+                window,
+                next.value.value(),
+                next.value.timestamp()
+            );
+
+            builder.add(row);
           }
         }
 

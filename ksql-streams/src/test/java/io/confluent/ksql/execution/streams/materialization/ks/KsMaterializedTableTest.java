@@ -34,13 +34,16 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.state.QueryableStoreTypes.KeyValueStoreType;
+import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -60,7 +63,9 @@ public class KsMaterializedTableTest {
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlyKeyValueStore<Struct, GenericRow> tableStore;
+  private ReadOnlyKeyValueStore<Struct, ValueAndTimestamp<GenericRow>> tableStore;
+  @Captor
+  private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 
   private KsMaterializedTable table;
 
@@ -72,6 +77,7 @@ public class KsMaterializedTableTest {
     when(stateStore.schema()).thenReturn(SCHEMA);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -107,14 +113,14 @@ public class KsMaterializedTableTest {
     table.get(A_KEY);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
     table.get(A_KEY);
 
     // Then:
-    verify(stateStore).store(any(KeyValueStoreType.class));
+    verify(stateStore).store(storeTypeCaptor.capture());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
   }
 
   @Test
@@ -139,12 +145,13 @@ public class KsMaterializedTableTest {
   public void shouldReturnValueIfKeyPresent() {
     // Given:
     final GenericRow value = new GenericRow("col0");
-    when(tableStore.get(any())).thenReturn(value);
+    final long rowTime = 2343553L;
+    when(tableStore.get(any())).thenReturn(ValueAndTimestamp.make(value, rowTime));
 
     // When:
     final Optional<Row> result = table.get(A_KEY);
 
     // Then:
-    assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value))));
+    assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value, rowTime))));
   }
 }

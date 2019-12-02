@@ -106,7 +106,7 @@ public class Analysis implements ImmutableAnalysis {
     return Collections.unmodifiableList(selectExpressions);
   }
 
-  Set<ColumnRef> getSelectColumnRefs() {
+  public Set<ColumnRef> getSelectColumnRefs() {
     return Collections.unmodifiableSet(selectColumnRefs);
   }
 

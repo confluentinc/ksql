@@ -63,6 +63,7 @@ public class KsqlMaterializationTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("k");
+  private static final long A_ROWTIME = 12335L;
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
       Instant.now(),
       Instant.now().plusSeconds(10)
@@ -74,14 +75,16 @@ public class KsqlMaterializationTest {
   private static final Row ROW = Row.of(
       SCHEMA,
       A_KEY,
-      A_VALUE
+      A_VALUE,
+      A_ROWTIME
   );
 
   private static final WindowedRow WINDOWED_ROW = WindowedRow.of(
       SCHEMA,
       A_KEY,
       A_WINDOW,
-      A_VALUE
+      A_VALUE,
+      A_ROWTIME
   );
 
   @Mock
@@ -112,6 +115,7 @@ public class KsqlMaterializationTest {
     when(innerWindowed.get(any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -383,9 +387,9 @@ public class KsqlMaterializationTest {
     final Window window3 = mock(Window.class);
 
     final ImmutableList<WindowedRow> rows = ImmutableList.of(
-        WindowedRow.of(SCHEMA, A_KEY, window1, A_VALUE),
-        WindowedRow.of(SCHEMA, A_KEY, window2, A_VALUE),
-        WindowedRow.of(SCHEMA, A_KEY, window3, A_VALUE)
+        WindowedRow.of(SCHEMA, A_KEY, window1, A_VALUE, A_ROWTIME),
+        WindowedRow.of(SCHEMA, A_KEY, window2, A_VALUE, A_ROWTIME),
+        WindowedRow.of(SCHEMA, A_KEY, window3, A_VALUE, A_ROWTIME)
     );
 
     when(innerWindowed.get(any(), any())).thenReturn(rows);

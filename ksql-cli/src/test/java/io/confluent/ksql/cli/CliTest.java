@@ -607,14 +607,14 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT * FROM X WHERE ROWKEY='ITEM_1';", localCli);
+      run("SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT * FROM X WHERE ROWKEY='ITEM_1';",
+        "SELECT ROWKEY, COUNT FROM X WHERE ROWKEY='ITEM_1';",
         containsRows(
             row("ITEM_1", "1")
         )

@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
@@ -27,7 +26,6 @@ import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -159,20 +157,6 @@ public class PullQueryValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Pull queries don't support LIMIT clauses.");
-
-    // When:
-    validator.validate(analysis);
-  }
-
-  @Test
-  public void shouldThrowOnRowTimeInProjection() {
-    // Given:
-    when(analysis.getSelectColumnRefs())
-        .thenReturn(ImmutableSet.of(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Pull queries don't support ROWTIME in select columns.");
 
     // When:
     validator.validate(analysis);

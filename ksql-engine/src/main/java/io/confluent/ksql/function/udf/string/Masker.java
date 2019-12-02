@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.util.KsqlException;
 
 class Masker {
 
@@ -74,8 +75,17 @@ class Masker {
     return c;
   }
 
-  static int getMaskCharacter(final String stringMask) {
-    return stringMask == null ? NO_MASK : stringMask.codePointAt(0);
+  static int getMaskCharacter(final String mask) {
+    if (mask == null) {
+      return NO_MASK;
+    }
+
+    if (mask.length() != 1) {
+      throw new KsqlException("Invalid mask character. "
+          + "Must be only single character, but was '" + mask + "'");
+    }
+
+    return  mask.codePointAt(0);
   }
 
   static void validateParams(final String udfName, final int numChars) {

@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -36,33 +35,29 @@ public class CreateStreamAsSelectTest {
       ImmutableMap.of("KAFKA_TOPIC", new StringLiteral("value"))
   );
   private static final Query SOME_QUERY = mock(Query.class);
-  private static final Optional<Expression> EXPRESSION = Optional.of(mock(Expression.class));
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, SOME_PROPS, EXPRESSION),
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, SOME_PROPS),
             new CreateStreamAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true,
-                SOME_PROPS, EXPRESSION)
+                SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SourceName.of("diff"), SOME_QUERY, true, SOME_PROPS,
-                EXPRESSION)
+            new CreateStreamAsSelect(SourceName.of("diff"), SOME_QUERY, true, SOME_PROPS
+            )
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, mock(Query.class), true, SOME_PROPS, EXPRESSION)
+            new CreateStreamAsSelect(SOME_NAME, mock(Query.class), true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, false, SOME_PROPS, EXPRESSION)
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, false, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none(),
-                EXPRESSION)
-        )
-        .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, SOME_PROPS, Optional.empty())
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none()
+            )
         )
         .testEquals();
   }

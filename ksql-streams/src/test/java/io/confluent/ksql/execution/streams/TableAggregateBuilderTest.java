@@ -56,7 +56,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
 import java.util.Optional;
@@ -133,7 +132,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock

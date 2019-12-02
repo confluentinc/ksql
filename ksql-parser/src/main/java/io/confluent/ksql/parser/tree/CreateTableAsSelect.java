@@ -40,7 +40,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final boolean notExists,
       final CreateSourceAsProperties properties
   ) {
-    super(location, name, query, notExists, properties, Optional.empty());
+    super(location, name, query, notExists, properties);
   }
 
   private CreateTableAsSelect(
@@ -62,7 +62,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName(), true, getProperties(), Optional.empty());
+    return Sink.of(getName(), true, getProperties());
   }
 
   @Override

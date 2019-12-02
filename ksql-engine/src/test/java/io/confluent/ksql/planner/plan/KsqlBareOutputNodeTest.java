@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -37,10 +38,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -50,6 +49,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
@@ -59,6 +59,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
@@ -77,7 +78,7 @@ public class KsqlBareOutputNodeTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
 
   @Before
   public void before() {
@@ -126,9 +127,9 @@ public class KsqlBareOutputNodeTest {
   public void shouldCreateCorrectSchema() {
     final LogicalSchema schema = stream.getSchema();
     assertThat(schema.value(), contains(
-        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
-        Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
+        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
+        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
   }
 
   @Test

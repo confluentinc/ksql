@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KStream;
@@ -66,7 +65,7 @@ public final class StreamStreamJoinBuilder {
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()
     );
-    final KeySerde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext

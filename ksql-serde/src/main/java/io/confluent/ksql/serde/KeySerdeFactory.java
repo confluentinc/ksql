@@ -20,6 +20,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -39,7 +40,7 @@ public interface KeySerdeFactory {
    * @param processingLogContext processing logger context.
    * @return the value serde.
    */
-  KeySerde<Struct> create(
+  Serde<Struct> create(
       FormatInfo format,
       PersistenceSchema schema,
       KsqlConfig ksqlConfig,
@@ -60,7 +61,7 @@ public interface KeySerdeFactory {
    * @param processingLogContext processing logger context.
    * @return the value serde.
    */
-  KeySerde<Windowed<Struct>> create(
+  Serde<Windowed<Struct>> create(
       FormatInfo format,
       WindowInfo window,
       PersistenceSchema schema,

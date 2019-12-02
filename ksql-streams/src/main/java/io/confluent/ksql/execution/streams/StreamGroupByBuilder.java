@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -97,7 +96,7 @@ public final class StreamGroupByBuilder {
         schema,
         formats.getOptions()
     );
-    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext

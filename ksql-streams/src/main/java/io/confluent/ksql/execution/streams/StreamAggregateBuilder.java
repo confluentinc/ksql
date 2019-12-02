@@ -35,7 +35,6 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import java.time.Duration;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -206,7 +205,7 @@ public final class StreamAggregateBuilder {
     final KGroupedStream<Struct, GenericRow> groupedStream;
     final KsqlQueryBuilder queryBuilder;
     final MaterializedFactory materializedFactory;
-    final KeySerde<Struct> keySerde;
+    final Serde<Struct> keySerde;
     final Serde<GenericRow> valueSerde;
     final AggregateParams aggregateParams;
 

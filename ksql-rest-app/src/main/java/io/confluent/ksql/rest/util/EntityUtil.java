@@ -26,7 +26,6 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,10 +35,9 @@ public final class EntityUtil {
   }
 
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
-    final List<FieldInfo> allFields = new ArrayList<>();
-    allFields.addAll(getFields(schema.metadata(), "meta"));
-    allFields.addAll(getFields(schema.key(), "key"));
-    allFields.addAll(getFields(schema.value(), "value"));
+    final List<FieldInfo> allFields = schema.columns().stream()
+        .map(EntityUtil::toFieldInfo)
+        .collect(Collectors.toList());
 
     if (allFields.isEmpty()) {
       throw new IllegalArgumentException("Root schema should contain columns: " + schema);
@@ -48,15 +46,13 @@ public final class EntityUtil {
     return allFields;
   }
 
-  private static List<FieldInfo> getFields(final List<Column> columns, final String type) {
-    return columns.stream()
-        .map(col -> SqlTypeWalker.visit(
-            Field.of(col.ref().aliasedFieldName(), col.type()), new Converter()))
-        .collect(Collectors.toList());
-  }
-
   public static SchemaInfo schemaInfo(final SqlType type) {
     return SqlTypeWalker.visit(type, new Converter());
+  }
+
+  private static FieldInfo toFieldInfo(final Column column) {
+    return SqlTypeWalker.visit(
+        Field.of(column.ref().aliasedFieldName(), column.type()), new Converter());
   }
 
   private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {

@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -47,9 +48,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -64,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
@@ -90,7 +90,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("UnstableApiUsage")
+@SuppressWarnings({"UnstableApiUsage", "unchecked"})
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
@@ -100,7 +100,7 @@ public class AggregateNodeTest {
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Mock
   private ProcessorContext ctx;
   @Captor
@@ -250,9 +250,9 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getSchema().value(), contains(
-        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE),
-        Column.of(ColumnName.of("KSQL_COL_2"), SqlTypes.BIGINT)));
+        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE),
+        valueColumn(ColumnName.of("KSQL_COL_2"), SqlTypes.BIGINT)));
   }
 
   @Test

@@ -188,6 +188,10 @@ public final class StatementRewriter<C> {
       final Optional<GroupBy> groupBy = node.getGroupBy()
           .map(exp -> ((GroupBy) rewriter.apply(exp, context)));
 
+      // don't rewrite the partitionBy because we expect it to be
+      // exactly as it was (a single, un-aliased, column reference)
+      final Optional<Expression> partitionBy = node.getPartitionBy();
+
       final Optional<Expression> having = node.getHaving()
           .map(exp -> (processExpression(exp, context)));
 
@@ -198,6 +202,7 @@ public final class StatementRewriter<C> {
           windowExpression,
           where,
           groupBy,
+          partitionBy,
           having,
           node.getResultMaterialization(),
           node.isPullQuery(),
@@ -364,16 +369,12 @@ public final class StatementRewriter<C> {
         return result.get();
       }
 
-      final Optional<Expression> partitionBy = node.getPartitionByColumn()
-          .map(exp -> processExpression(exp, context));
-
       return new CreateStreamAsSelect(
           node.getLocation(),
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
-          node.getProperties(),
-          partitionBy
+          node.getProperties()
       );
     }
 
@@ -416,14 +417,11 @@ public final class StatementRewriter<C> {
         return result.get();
       }
 
-      final Optional<Expression> rewrittenPartitionBy = node.getPartitionByColumn()
-          .map(exp -> processExpression(exp, context));
-
       return new InsertInto(
           node.getLocation(),
           node.getTarget(),
-          (Query) rewriter.apply(node.getQuery(), context),
-          rewrittenPartitionBy);
+          (Query) rewriter.apply(node.getQuery(), context)
+      );
     }
 
     @Override

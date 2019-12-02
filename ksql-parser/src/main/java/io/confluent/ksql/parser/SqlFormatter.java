@@ -120,6 +120,13 @@ public final class SqlFormatter {
             .append('\n');
       }
 
+      if (node.getPartitionBy().isPresent()) {
+        append(indent, "PARTITION BY "
+            + ExpressionFormatterUtil
+            .formatExpression(node.getPartitionBy().get()))
+            .append('\n');
+      }
+
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
             + ExpressionFormatterUtil.formatExpression(node.getHaving().get()))
@@ -292,7 +299,6 @@ public final class SqlFormatter {
       builder.append(escapedName(node.getTarget()));
       builder.append(" ");
       process(node.getQuery(), indent);
-      processPartitionBy(node.getPartitionByColumn(), indent);
       return null;
     }
 
@@ -481,7 +487,6 @@ public final class SqlFormatter {
       builder.append(" AS ");
 
       process(node.getQuery(), indent);
-      processPartitionBy(node.getPartitionByColumn(), indent);
     }
 
     private static String formatTableElement(final TableElement e) {

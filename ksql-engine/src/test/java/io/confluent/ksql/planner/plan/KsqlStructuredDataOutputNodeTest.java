@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -105,14 +104,12 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private KsqlStructuredDataOutputNode outputNode;
   private LogicalSchema schema;
-  private Optional<ColumnRef> partitionBy;
   private boolean createInto;
 
   @SuppressWarnings("unchecked")
   @Before
   public void before() {
     schema = SCHEMA;
-    partitionBy = Optional.empty();
     createInto = true;
 
     when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
@@ -136,40 +133,6 @@ public class KsqlStructuredDataOutputNodeTest {
     buildNode();
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfPartitionByAndKeyFieldNone() {
-    // When:
-    new KsqlStructuredDataOutputNode(
-        new PlanNodeId("0"),
-        sourceNode,
-        SCHEMA,
-        Optional.empty(),
-        KeyField.none(),
-        ksqlTopic,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
-        OptionalInt.empty(),
-        false,
-        SerdeOption.none(),
-        SourceName.of("0"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfPartitionByDoesNotMatchKeyField() {
-    // When:
-    new KsqlStructuredDataOutputNode(
-        new PlanNodeId("0"),
-        sourceNode,
-        SCHEMA,
-        Optional.empty(),
-        KeyField.of(Optional.of(ColumnRef.withoutSource(ColumnName.of("something else")))),
-        ksqlTopic,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
-        OptionalInt.empty(),
-        false,
-        SerdeOption.none(),
-        SourceName.of("0"));
-  }
-
   @Test
   public void shouldBuildSourceNode() {
     // When:
@@ -177,60 +140,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-  }
-
-  @Test
-  public void shouldPartitionByFieldNameInPartitionByProperty() {
-    // Given:
-    givenNodePartitioningByKey("key");
-
-    // When:
-    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(sourceStream).selectKey(
-        KEY_FIELD.ref().get(),
-        false,
-        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
-    );
-
-    assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
-  }
-
-  @Test
-  public void shouldPartitionByRowKey() {
-    // Given:
-    givenNodePartitioningByKey("ROWKEY");
-
-    // When:
-    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(sourceStream).selectKey(
-        ColumnRef.withoutSource(ColumnName.of("ROWKEY")),
-        false,
-        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
-    );
-
-    assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
-  }
-
-  @Test
-  public void shouldPartitionByRowTime() {
-    // Given:
-    givenNodePartitioningByKey("ROWTIME");
-
-    // When:
-    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(sourceStream).selectKey(
-        ColumnRef.withoutSource(ColumnName.of("ROWTIME")),
-        false,
-        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
-    );
-
-    assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
   }
 
   @Test
@@ -313,7 +222,6 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   private void givenNodePartitioningByKey(final String field) {
-    this.partitionBy = Optional.of(ColumnRef.withoutSource(ColumnName.of(field)));
     buildNode();
   }
 
@@ -330,7 +238,6 @@ public class KsqlStructuredDataOutputNodeTest {
         Optional.empty(),
         KEY_FIELD,
         ksqlTopic,
-        partitionBy,
         OptionalInt.empty(),
         createInto,
         SerdeOption.none(),

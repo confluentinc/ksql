@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -47,7 +46,7 @@ final class AggregateBuilderUtils {
         aggregateSchema,
         formats.getOptions()
     );
-    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalAggregationSchema,
         queryContext

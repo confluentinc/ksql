@@ -17,7 +17,6 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -30,22 +29,19 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   private final Query query;
   private final boolean notExists;
   private final CreateSourceAsProperties properties;
-  private final Optional<Expression> partitionByColumn;
 
   CreateAsSelect(
       final Optional<NodeLocation> location,
       final SourceName name,
       final Query query,
       final boolean notExists,
-      final CreateSourceAsProperties properties,
-      final Optional<Expression> partitionByColumn
+      final CreateSourceAsProperties properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
     this.query = requireNonNull(query, "query");
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
-    this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
   CreateAsSelect(
@@ -57,8 +53,8 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         other.name,
         other.query,
         other.notExists,
-        properties,
-        other.partitionByColumn);
+        properties
+    );
   }
 
   public abstract CreateAsSelect copyWith(CreateSourceAsProperties properties);
@@ -80,10 +76,6 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return properties;
   }
 
-  public Optional<Expression> getPartitionByColumn() {
-    return partitionByColumn;
-  }
-
   @Override
   public int hashCode() {
     return Objects.hash(name, query, properties, notExists, getClass());
@@ -101,8 +93,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return Objects.equals(name, o.name)
         && Objects.equals(query, o.query)
         && Objects.equals(notExists, o.notExists)
-        && Objects.equals(properties, o.properties)
-        && Objects.equals(partitionByColumn, o.partitionByColumn);
+        && Objects.equals(properties, o.properties);
   }
 
   @Override
@@ -111,7 +102,6 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         + ", query=" + query
         + ", notExists=" + notExists
         + ", properties=" + properties
-        + ", partitionByColumn=" + partitionByColumn
         + '}';
   }
 }

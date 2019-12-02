@@ -144,6 +144,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
@@ -161,6 +162,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
@@ -179,6 +181,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
@@ -197,6 +200,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)

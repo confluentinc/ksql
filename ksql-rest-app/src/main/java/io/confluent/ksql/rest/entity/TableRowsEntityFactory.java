@@ -59,6 +59,7 @@ public final class TableRowsEntityFactory {
       final Optional<WindowType> windowType
   ) {
     final LogicalSchema adjusted = LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumns(schema.key())
         .valueColumns(schema.metadata())
         .valueColumns(schema.value())
@@ -78,6 +79,7 @@ public final class TableRowsEntityFactory {
         : TIME_WINDOW_COLUMNS;
 
     return LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumns(schema.key())
         .keyColumns(additionalKeyCols)
         .valueColumns(schema.value())

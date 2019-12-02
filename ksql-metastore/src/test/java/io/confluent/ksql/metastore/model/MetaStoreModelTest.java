@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -48,6 +49,7 @@ import org.junit.runners.Parameterized;
 /**
  * Meta test to ensure all model classes meet certain requirements
  */
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(Parameterized.class)
 public class MetaStoreModelTest {
 
@@ -64,7 +66,7 @@ public class MetaStoreModelTest {
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty()))
-      .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER))
+      .put(Column.class, Column.of(Optional.empty(), ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)

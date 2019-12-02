@@ -37,7 +37,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -98,7 +97,7 @@ public class StreamGroupByBuilderTest {
   @Mock
   private ExecutionStep sourceStep;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
@@ -128,7 +127,7 @@ public class StreamGroupByBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(groupedFactory.create(any(), any(KeySerde.class), any())).thenReturn(grouped);
+    when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
     when(sourceStream.filter(any())).thenReturn(filteredStream);
     when(filteredStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))

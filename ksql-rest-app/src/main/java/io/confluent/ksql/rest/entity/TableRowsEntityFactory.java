@@ -35,12 +35,14 @@ import org.apache.kafka.connect.data.Struct;
  */
 public final class TableRowsEntityFactory {
 
+  @SuppressWarnings("deprecation")
   private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
-      .of(Column.of(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
+      .of(Column.legacySystemWindowColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
 
+  @SuppressWarnings("deprecation")
   private static final List<Column> SESSION_WINDOW_COLUMNS = ImmutableList.<Column>builder()
       .addAll(TIME_WINDOW_COLUMNS)
-      .add(Column.of(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
+      .add(Column.legacySystemWindowColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
       .build();
 
   private TableRowsEntityFactory() {

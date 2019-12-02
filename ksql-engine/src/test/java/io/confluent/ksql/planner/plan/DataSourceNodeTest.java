@@ -50,7 +50,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -134,7 +133,7 @@ public class DataSourceNodeTest {
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
-  private KeySerde<String> keySerde;
+  private Serde<String> keySerde;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
@@ -160,7 +159,7 @@ public class DataSourceNodeTest {
             .push(inv.getArgument(0).toString()));
 
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
-        .thenReturn((KeySerde)keySerde);
+        .thenReturn((Serde)keySerde);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 

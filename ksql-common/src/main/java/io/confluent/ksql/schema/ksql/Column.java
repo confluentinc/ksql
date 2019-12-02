@@ -26,56 +26,74 @@ import java.util.Optional;
  * A named field within KSQL schema types.
  */
 @Immutable
-public final class Column {
+public final class Column implements SimpleColumn {
+
+  public enum Namespace {
+    META,
+    KEY,
+    VALUE
+  }
 
   private final ColumnRef ref;
   private final SqlType type;
+  private final Namespace namespace;
+  private final int index;
 
   /**
-   * @param name the name of the field.
-   * @param type the type of the field.
-   * @return the immutable field.
+   * @deprecated do not use in new code. Will be removed soon.
    */
-  public static Column of(final ColumnName name, final SqlType type) {
-    return new Column(ColumnRef.withoutSource(name), type);
+  @Deprecated
+  public static Column legacyKeyFieldColumn(
+      final ColumnName name,
+      final SqlType type
+  ) {
+    return Column.of(Optional.empty(), name, type, Namespace.VALUE, Integer.MAX_VALUE);
   }
 
   /**
-   * @param ref  the column reference
-   * @param type the type of the column
-   * @return the immutable column
+   * @deprecated do not use in new code. Will be removed soon.
    */
-  public static Column of(final ColumnRef ref, final SqlType type) {
-    return new Column(ref, type);
-  }
-
-  /**
-   * @param source the name of the source of the field.
-   * @param name the name of the field.
-   * @param type the type of the field.
-   * @return the immutable field.
-   */
-  public static Column of(final SourceName source, final ColumnName name, final SqlType type) {
-    return new Column(ColumnRef.of(source, name), type);
+  @Deprecated
+  public static Column legacySystemWindowColumn(
+      final ColumnName name,
+      final SqlType type
+  ) {
+    return Column.of(Optional.empty(), name, type, Namespace.KEY, Integer.MAX_VALUE);
   }
 
   /**
    * @param source the name of the source of the field.
    * @param name the name of the field.
    * @param type the type of the field.
+   * @param namespace the namespace of the field.
+   * @param indexWithinNamespace the column index within the namespace.
+   *
    * @return the immutable field.
    */
   public static Column of(
       final Optional<SourceName> source,
       final ColumnName name,
-      final SqlType type
+      final SqlType type,
+      final Namespace namespace,
+      final int indexWithinNamespace
   ) {
-    return new Column(ColumnRef.of(source, name), type);
+    return new Column(ColumnRef.of(source, name), type, namespace, indexWithinNamespace);
   }
 
-  private Column(final ColumnRef ref, final SqlType type) {
+  private Column(
+      final ColumnRef ref,
+      final SqlType type,
+      final Namespace namespace,
+      final int index
+  ) {
     this.ref = Objects.requireNonNull(ref, "name");
     this.type = Objects.requireNonNull(type, "type");
+    this.namespace = Objects.requireNonNull(namespace, "namespace");
+    this.index = index;
+
+    if (index < 0) {
+      throw new IllegalArgumentException("Invalid column index: " + index);
+    }
   }
 
   /**
@@ -95,6 +113,7 @@ public final class Column {
   /**
    * @return the type of the field.
    */
+  @Override
   public SqlType type() {
     return type;
   }
@@ -102,8 +121,23 @@ public final class Column {
   /**
    * @return the column reference
    */
+  @Override
   public ColumnRef ref() {
     return ref;
+  }
+
+  /**
+   * @return the column namespace.
+   */
+  public Namespace namespace() {
+    return namespace;
+  }
+
+  /**
+   * @return index of the column <i>within the namespace</i>.
+   */
+  public int index() {
+    return index;
   }
 
   /**
@@ -112,8 +146,12 @@ public final class Column {
    * @param source the source to set of the new field.
    * @return the new field.
    */
-  public Column withSource(final SourceName source) {
-    return new Column(ref.withSource(source), type);
+  Column withSource(final SourceName source) {
+    return new Column(ref.withSource(source), type, namespace, index);
+  }
+
+  Column withoutSource() {
+    return new Column(ref.withoutSource(), type, namespace, index);
   }
 
   @Override
@@ -125,13 +163,15 @@ public final class Column {
       return false;
     }
     final Column that = (Column) o;
-    return Objects.equals(ref, that.ref)
-        && Objects.equals(type, that.type);
+    return Objects.equals(index, that.index)
+        && Objects.equals(namespace, that.namespace)
+        && Objects.equals(type, that.type)
+        && Objects.equals(ref, that.ref);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ref, type);
+    return Objects.hash(index, namespace, ref, type);
   }
 
   @Override
@@ -140,8 +180,12 @@ public final class Column {
   }
 
   public String toString(final FormatOptions formatOptions) {
+    final String fmtNs = namespace == Namespace.VALUE
+        ? ""
+        : " " + namespace;
+
     final String fmtType = type.toString(formatOptions);
 
-    return ref.toString(formatOptions) + " " + fmtType;
+    return ref.toString(formatOptions) + " " + fmtType + fmtNs;
   }
 }

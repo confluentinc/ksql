@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -173,7 +172,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseInnerSerializerForWrappedSchema() {
     // When:
-    final KeySerde<Struct> result = factory.create(
+    final Serde<Struct> result = factory.create(
         FORMAT,
         WRAPPED_SCHEMA,
         CONFIG,
@@ -189,7 +188,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseUnwrappingSerializerForUnwrappedSchema() {
     // When:
-    final KeySerde<Struct> result = factory.create(
+    final Serde<Struct> result = factory.create(
         FORMAT,
         UNWRAPPED_SCHEMA,
         CONFIG,
@@ -205,7 +204,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseLoggingDeserializer() {
     // When:
-    final KeySerde<Struct> result = factory.create(
+    final Serde<Struct> result = factory.create(
         FORMAT,
         WRAPPED_SCHEMA,
         CONFIG,
@@ -221,7 +220,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseSessionWindowedSerde() {
     // When:
-    final KeySerde<Windowed<Struct>> result = factory.create(
+    final Serde<Windowed<Struct>> result = factory.create(
         FORMAT,
         WindowInfo.of(WindowType.SESSION, Optional.empty()),
         WRAPPED_SCHEMA,
@@ -239,7 +238,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseTimeWindowedSerdeForHopping() {
     // When:
-    final KeySerde<Windowed<Struct>> result = factory.create(
+    final Serde<Windowed<Struct>> result = factory.create(
         FORMAT,
         WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10))),
         WRAPPED_SCHEMA,
@@ -257,7 +256,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldUseTimeWindowedSerdeForTumbling() {
     // When:
-    final KeySerde<Windowed<Struct>> result = factory.create(
+    final Serde<Windowed<Struct>> result = factory.create(
         FORMAT,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMinutes(10))),
         WRAPPED_SCHEMA,
@@ -292,7 +291,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldCloseInnerSerde() {
     // Given:
-    final KeySerde<Struct> keySerde = factory.create(
+    final Serde<Struct> keySerde = factory.create(
         FORMAT,
         WRAPPED_SCHEMA,
         CONFIG,
@@ -307,126 +306,5 @@ public class GenericKeySerDeTest {
     // Then:
     verify(innerSerializer).close();
     verify(innerDeserializer).close();
-  }
-
-  @Test
-  public void shouldRebindNoneWindowedToNewSchema() {
-    // Given:
-    final KeySerde<Struct> keySerde = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // When:
-    final KeySerde<Struct> rebound = keySerde.rebind(UNWRAPPED_SCHEMA);
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Long.class
-    );
-
-    assertThat(rebound.isWindowed(), is(false));
-    assertThat(rebound.serializer(), is(instanceOf(UnwrappedKeySerializer.class)));
-  }
-
-  @Test
-  public void shouldRebindWindowedToNewSchema() {
-    // Given:
-    final KeySerde<Windowed<Struct>> keySerde = factory.create(
-        FORMAT,
-        WINDOW,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    clearInvocations(serdeFactories);
-
-    // When:
-    final KeySerde<Struct> rebound = keySerde.rebind(UNWRAPPED_SCHEMA);
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Long.class
-    );
-
-    assertThat(rebound.isWindowed(), is(false));
-    assertThat(rebound.serializer(), is(instanceOf(UnwrappedKeySerializer.class)));
-  }
-
-  @Test
-  public void shouldRebindNoneWindowedToWindow() {
-    // Given:
-    final KeySerde<Struct> keySerde = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    clearInvocations(serdeFactories);
-
-    // When:
-    final KeySerde<Windowed<Struct>> rebound = keySerde.rebind(WINDOW);
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Struct.class
-    );
-
-    assertThat(rebound.isWindowed(), is(true));
-    assertThat(rebound.serializer(), is(instanceOf(SessionWindowedSerializer.class)));
-  }
-
-  @Test
-  public void shouldRebindWindowedToWindow() {
-    // Given:
-    final KeySerde<Windowed<Struct>> keySerde = factory.create(
-        FORMAT,
-        WINDOW,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    clearInvocations(serdeFactories);
-
-    // When:
-    final KeySerde<Windowed<Struct>> rebound = keySerde
-        .rebind(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(10))));
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Struct.class
-    );
-
-    assertThat(rebound.isWindowed(), is(true));
-    assertThat(rebound.serializer(), is(instanceOf(TimeWindowedSerializer.class)));
   }
 }

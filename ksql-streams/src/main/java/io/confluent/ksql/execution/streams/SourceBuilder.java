@@ -32,10 +32,10 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -71,7 +71,7 @@ public final class SourceBuilder {
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         source.getFormats().getKeyFormat(),
         physicalSchema,
         source.getProperties().getQueryContext()
@@ -109,7 +109,7 @@ public final class SourceBuilder {
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
     final WindowInfo windowInfo = source.getWindowInfo();
-    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
         source.getFormats().getKeyFormat(),
         windowInfo,
         physicalSchema,
@@ -148,7 +148,7 @@ public final class SourceBuilder {
 
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
-    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         source.getFormats().getKeyFormat(),
         physicalSchema,
         source.getProperties().getQueryContext()
@@ -195,7 +195,7 @@ public final class SourceBuilder {
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, source, physicalSchema);
 
     final WindowInfo windowInfo = source.getWindowInfo();
-    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+    final Serde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
         source.getFormats().getKeyFormat(),
         windowInfo,
         physicalSchema,
@@ -239,7 +239,7 @@ public final class SourceBuilder {
         .withMetaAndKeyColsInValue();
   }
 
-  private static KeySerde<Struct> buildNonWindowedKeySerde(
+  private static Serde<Struct> buildNonWindowedKeySerde(
       final KsqlQueryBuilder queryBuilder,
       final KeyFormat fmt,
       final PhysicalSchema schema,
@@ -249,7 +249,7 @@ public final class SourceBuilder {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  private static KeySerde<Windowed<Struct>> buildWindowedKeySerde(
+  private static Serde<Windowed<Struct>> buildWindowedKeySerde(
       final KsqlQueryBuilder queryBuilder,
       final KeyFormat fmt,
       final PhysicalSchema schema,
@@ -311,15 +311,19 @@ public final class SourceBuilder {
   private static TimestampExtractor timestampExtractor(
       final KsqlConfig ksqlConfig,
       final LogicalSchema sourceSchema,
-      final Optional<TimestampColumn> timestampColumn) {
+      final Optional<TimestampColumn> timestampColumn
+  ) {
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
         ksqlConfig,
         sourceSchema,
         timestampColumn
     );
+
     final int timestampIndex = timestampColumn.map(TimestampColumn::getColumn)
-        .map(c -> sourceSchema.valueColumnIndex(c).orElseThrow(IllegalStateException::new))
+        .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
+        .map(Column::index)
         .orElse(-1);
+
     return timestampPolicy.create(timestampIndex);
   }
 

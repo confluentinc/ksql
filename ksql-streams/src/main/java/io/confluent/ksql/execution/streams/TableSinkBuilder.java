@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.util.SinkSchemaUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeySerde;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -43,7 +42,7 @@ public final class TableSinkBuilder {
     final LogicalSchema schema = SinkSchemaUtil.sinkSchema(table.getSchema());
     final Formats formats = tableSink.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
-    final KeySerde<K> keySerde = table.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = table.getKeySerdeFactory().buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext

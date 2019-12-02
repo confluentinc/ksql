@@ -58,7 +58,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
   }
 
   @Override
-  public KeySerde<Struct> create(
+  public Serde<Struct> create(
       final FormatInfo format,
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
@@ -66,7 +66,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final Serde<Struct> inner = createInner(
+    return createInner(
         format,
         schema,
         ksqlConfig,
@@ -75,22 +75,11 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         processingLogContext,
         getTargetType(schema)
     );
-
-    return createKeySerde(
-        inner,
-        false,
-        format,
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory,
-        loggerNamePrefix,
-        processingLogContext
-    );
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Override
-  public KeySerde<Windowed<Struct>> create(
+  public Serde<Windowed<Struct>> create(
       final FormatInfo format,
       final WindowInfo window,
       final PersistenceSchema schema,
@@ -109,84 +98,9 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         getTargetType(schema)
     );
 
-    final Serde<Windowed<Struct>> windowedSerde = window.getType().requiresWindowSize()
+    return window.getType().requiresWindowSize()
         ? new TimeWindowedSerde<>(inner, window.getSize().get().toMillis())
         : new SessionWindowedSerde<>(inner);
-
-    return createKeySerde(
-        windowedSerde,
-        true,
-        format,
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory,
-        loggerNamePrefix,
-        processingLogContext
-    );
-  }
-
-  private <T> KeySerde<T> createKeySerde(
-      final Serde<T> serde,
-      final boolean windowed,
-      final FormatInfo format,
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
-  ) {
-    return new KeySerde<T>() {
-
-      @Override
-      public void configure(final Map<String, ?> configs, final boolean isKey) {
-        serde.configure(configs, isKey);
-      }
-
-      @Override
-      public void close() {
-        serde.close();
-      }
-
-      @Override
-      public Serializer<T> serializer() {
-        return serde.serializer();
-      }
-
-      @Override
-      public Deserializer<T> deserializer() {
-        return serde.deserializer();
-      }
-
-      @Override
-      public KeySerde<Struct> rebind(final PersistenceSchema newKeySchema) {
-        return create(
-            format,
-            newKeySchema,
-            ksqlConfig,
-            schemaRegistryClientFactory,
-            loggerNamePrefix,
-            processingLogContext
-        );
-      }
-
-      @Override
-      public KeySerde<Windowed<Struct>> rebind(final WindowInfo window) {
-        return create(
-            format,
-            window,
-            schema,
-            ksqlConfig,
-            schemaRegistryClientFactory,
-            loggerNamePrefix,
-            processingLogContext
-        );
-      }
-
-      @Override
-      public boolean isWindowed() {
-        return windowed;
-      }
-    };
   }
 
   private <T> Serde<Struct> createInner(

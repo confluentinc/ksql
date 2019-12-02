@@ -54,7 +54,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -140,9 +139,9 @@ public class SourceBuilderTest {
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Mock
-  private KeySerde<Windowed<Struct>> windowedKeySerde;
+  private Serde<Windowed<Struct>> windowedKeySerde;
   @Mock
   private ProcessorContext processorCtx;
   @Mock

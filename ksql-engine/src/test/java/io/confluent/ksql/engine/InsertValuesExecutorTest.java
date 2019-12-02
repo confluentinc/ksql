@@ -59,7 +59,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -139,7 +138,7 @@ public class InsertValuesExecutorTest {
   @Mock
   private KsqlEngine engine;
   @Mock
-  private KeySerde<Struct> keySerDe;
+  private Serde<Struct> keySerDe;
   @Mock
   private Serializer<Struct> keySerializer;
   @Mock

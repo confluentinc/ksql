@@ -190,6 +190,26 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
   }
 
+  @Test
+  public void shouldMaintainColumnOrder() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(ColumnName.of("field0"), SqlTypes.DOUBLE)
+        .keyColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+        .build();
+
+    // When:
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    assertThat(fields, hasSize(2));
+    assertThat(fields.get(0).getName(), equalTo("field0"));
+    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("DOUBLE"));
+    assertThat(fields.get(1).getName(), equalTo("field1"));
+    assertThat(fields.get(1).getSchema().getTypeName(), equalTo("INTEGER"));
+  }
+
   private static void shouldBuildCorrectPrimitiveField(
       final SqlType primitiveSchema,
       final String schemaName

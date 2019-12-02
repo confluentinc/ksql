@@ -25,6 +25,7 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -34,6 +35,7 @@ import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.ServiceContext;
@@ -407,8 +409,10 @@ public class RestTestExecutor implements Closeable {
     while (System.currentTimeMillis() < threshold) {
       final RestResponse<QueryStream> resp = restClient.makeQueryRequest(querySql, null);
       if (resp.isErroneous()) {
+        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
         LOG.info("Server responded with an error code to a pull query. "
-            + "This could be because the materialized store is not yet warm.");
+            + "This could be because the materialized store is not yet warm."
+            + System.lineSeparator() + errorMessage);
         threadYield();
         continue;
       }
@@ -418,6 +422,7 @@ public class RestTestExecutor implements Closeable {
 
       try {
         verifyResponses(actualResponses, expectedResponse, statements);
+        LOG.info("Correct response received");
         return;
       } catch (final AssertionError e) {
         // Potentially, state stores not warm yet
@@ -426,6 +431,7 @@ public class RestTestExecutor implements Closeable {
         threadYield();
       }
     }
+    LOG.info("Timed out waiting for correct response");
   }
 
   private static void threadYield() {
@@ -434,6 +440,39 @@ public class RestTestExecutor implements Closeable {
       Thread.sleep(1);
     } catch (InterruptedException e) {
       // ignore
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void matchResponseFields(
+      final Map<String, Object> actual,
+      final Map<String, Object> expected,
+      final List<String> statements,
+      final int idx,
+      final String path
+  ) {
+    // Expected does not need to include everything, only keys that need to be tested:
+    for (final Entry<String, Object> e : expected.entrySet()) {
+      final String expectedKey = e.getKey();
+      final Object expectedValue = replaceMacros(e.getValue(), statements, idx);
+      final String baseReason = "Response mismatch at " + path;
+      assertThat(baseReason, actual, hasKey(expectedKey));
+
+      final Object actualValue = actual.get(expectedKey);
+      final String newPath = path + "->" + expectedKey;
+
+      if (expectedValue instanceof Map) {
+        assertThat(actualValue, instanceOf(Map.class));
+        matchResponseFields(
+            (Map<String, Object>) actualValue,
+            (Map<String, Object>) expectedValue,
+            statements,
+            idx,
+            newPath
+        );
+      } else {
+        assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+      }
     }
   }
 
@@ -489,22 +528,16 @@ public class RestTestExecutor implements Closeable {
       assertThat("Expected admin response", expectedType, is("admin"));
       assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
 
-      final Map<String, Object> expected = (Map<String, Object>)expectedPayload;
+      final Map<String, Object> expected = (Map<String, Object>) expectedPayload;
 
       final Map<String, Object> actualPayload = asJson(entity, PAYLOAD_TYPE);
 
-      // Expected does not need to include everything, only keys that need to be tested:
-      for (final Entry<String, Object> e : expected.entrySet()) {
-        final String key = e.getKey();
-        final Object value = replaceMacros(e.getValue(), statements, idx);
-        final String baseReason = "Response mismatch at index " + idx;
-        assertThat(baseReason, actualPayload, hasKey(key));
-        assertThat(baseReason + " on key: " + key, actualPayload.get(key), is(value));
-      }
+      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin");
     }
   }
 
-  private static class RqttQueryResponse implements RqttResponse {
+  @VisibleForTesting
+  static class RqttQueryResponse implements RqttResponse {
 
     private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
         new TypeReference<Map<String, Object>>() {
@@ -529,21 +562,23 @@ public class RestTestExecutor implements Closeable {
 
       final List<?> expectedRows = (List<?>) expectedPayload;
 
-      assertThat("row count mismatch", rows.size(), is(expectedRows.size()));
+      assertThat(
+          "row count mismatch. Got:" + System.lineSeparator() + rows,
+          rows.size(),
+          is(expectedRows.size())
+      );
 
       for (int i = 0; i != rows.size(); ++i) {
-        assertThat("Each row should JSON object", expectedRows.get(i), is(instanceOf(Map.class)));
+        assertThat(
+            "Each row should be JSON object",
+            expectedRows.get(i),
+            is(instanceOf(Map.class))
+        );
+
         final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
-
-        // Expected does not need to include everything, only keys that need to be tested:
-        for (final Entry<String, Object> e : expected.entrySet()) {
-          final String key = e.getKey();
-          final Object value = replaceMacros(e.getValue(), statements, idx);
-          final String baseReason = "Response mismatch at index " + idx;
-          assertThat(baseReason, actual, hasKey(key));
-          assertThat(baseReason + " on key: " + key, expected.get(key), is(value));
-        }
+        matchResponseFields(actual, expected, statements, idx,
+            "responses[" + idx + "]->query[" + i + "]");
       }
     }
   }

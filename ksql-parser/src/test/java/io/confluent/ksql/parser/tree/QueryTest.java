@@ -52,6 +52,9 @@ public class QueryTest {
   private static final Optional<GroupBy> SOME_GROUP_BY = Optional.of(
       mock(GroupBy.class)
   );
+  private static final Optional<Expression> SOME_PARTITION_BY = Optional.of(
+      mock(Expression.class)
+  );
   private static final Optional<Expression> SOME_HAVING = Optional.of(
       mock(Expression.class)
   );
@@ -62,48 +65,52 @@ public class QueryTest {
     new EqualsTester()
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT),
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT),
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT),
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT),
             new Query(Optional.of(OTHER_LOCATION), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), OTHER_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, Optional.empty(), SOME_PARTITION_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+        )
+        .addEqualityGroup(
+            new Query(Optional.empty(), OTHER_SELECT, SOME_FROM, SOME_WINDOW,
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, OTHER_RELATION, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, Optional.empty(), SOME_WHERE,
-                SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
                 Optional.empty(),
-                SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, Optional.empty(), Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), Optional.empty(), FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
-                SOME_GROUP_BY, SOME_HAVING, CHANGES, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, CHANGES, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, false, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, false, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, OptionalInt.empty())
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, OptionalInt.empty())
         )
         .testEquals();
   }

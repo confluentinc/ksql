@@ -279,8 +279,7 @@ public class AstBuilder {
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
-          CreateSourceAsProperties.from(properties),
-          getPartitionBy(context.identifier())
+          CreateSourceAsProperties.from(properties)
       );
     }
 
@@ -320,8 +319,7 @@ public class AstBuilder {
       return new InsertInto(
           getLocation(context),
           targetName,
-          query,
-          getPartitionBy(context.identifier()));
+          query);
     }
 
     @Override
@@ -406,6 +404,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
+          getPartitionBy(context.partitionBy),
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
           pullQuery,

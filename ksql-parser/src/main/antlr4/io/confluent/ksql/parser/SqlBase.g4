@@ -53,15 +53,14 @@ statement
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
     | CREATE STREAM (IF NOT EXISTS)? sourceName
-            (WITH tableProperties)? AS query
-                                       (PARTITION BY identifier)?           #createStreamAs
+            (WITH tableProperties)? AS query                                #createStreamAs
     | CREATE TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
-    | INSERT INTO sourceName query (PARTITION BY identifier)?               #insertInto
+    | INSERT INTO sourceName query                                          #insertInto
     | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
@@ -78,6 +77,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
+      (PARTITION BY partitionBy=identifier)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?

@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -29,10 +28,9 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
-      final CreateSourceAsProperties properties,
-      final Optional<Expression> partitionByColumn
+      final CreateSourceAsProperties properties
   ) {
-    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
+    this(Optional.empty(), name, query, notExists, properties);
   }
 
   public CreateStreamAsSelect(
@@ -40,9 +38,8 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
-      final CreateSourceAsProperties properties,
-      final Optional<Expression> partitionByColumn) {
-    super(location, name, query, notExists, properties, partitionByColumn);
+      final CreateSourceAsProperties properties) {
+    super(location, name, query, notExists, properties);
   }
 
   private CreateStreamAsSelect(
@@ -54,7 +51,7 @@ public class CreateStreamAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName(), true, getProperties(), getPartitionByColumn());
+    return Sink.of(getName(), true, getProperties());
   }
 
   @Override

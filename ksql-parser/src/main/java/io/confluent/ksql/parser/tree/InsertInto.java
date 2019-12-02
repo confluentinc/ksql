@@ -33,26 +33,22 @@ public class InsertInto
 
   private final SourceName target;
   private final Query query;
-  private final Optional<Expression> partitionByColumn;
 
   public InsertInto(
       final SourceName target,
-      final Query query,
-      final Optional<Expression> partitionByColumn
+      final Query query
   ) {
-    this(Optional.empty(), target, query, partitionByColumn);
+    this(Optional.empty(), target, query);
   }
 
   public InsertInto(
       final Optional<NodeLocation> location,
       final SourceName target,
-      final Query query,
-      final Optional<Expression> partitionByColumn
+      final Query query
   ) {
     super(location);
     this.target = requireNonNull(target, "target");
     this.query = requireNonNull(query, "query");
-    this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
   public SourceName getTarget() {
@@ -65,12 +61,12 @@ public class InsertInto
   }
 
   public Optional<Expression> getPartitionByColumn() {
-    return partitionByColumn;
+    return query.getPartitionBy();
   }
 
   @Override
   public Sink getSink() {
-    return Sink.of(target, false, CreateSourceAsProperties.none(), partitionByColumn);
+    return Sink.of(target, false, CreateSourceAsProperties.none());
   }
 
   @Override
@@ -93,8 +89,7 @@ public class InsertInto
     }
     final InsertInto o = (InsertInto) obj;
     return Objects.equals(target, o.target)
-           && Objects.equals(query, o.query)
-           && Objects.equals(partitionByColumn, o.partitionByColumn);
+           && Objects.equals(query, o.query);
   }
 
   @Override
@@ -102,7 +97,6 @@ public class InsertInto
     return toStringHelper(this)
         .add("target", target)
         .add("query", query)
-        .add("partitionBy", partitionByColumn)
         .toString();
   }
 }

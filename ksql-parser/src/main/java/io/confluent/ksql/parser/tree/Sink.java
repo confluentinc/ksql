@@ -18,14 +18,8 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.util.KsqlException;
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Pojo holding sink information
@@ -36,7 +30,6 @@ public final class Sink {
   private final SourceName name;
   private final boolean createSink;
   private final CreateSourceAsProperties properties;
-  private final Optional<ColumnRef> partitionBy;
 
   /**
    * Info about the sink of a query.
@@ -44,43 +37,24 @@ public final class Sink {
    * @param name the name of the sink.
    * @param createSink indicates if name should be created, (CSAS/CTAS), or not (INSERT INTO).
    * @param properties properties of the sink.
-   * @param partitionBy an optional partition by expression
    * @return the pojo.
    */
   public static Sink of(
       final SourceName name,
       final boolean createSink,
-      final CreateSourceAsProperties properties,
-      final Optional<Expression> partitionBy
+      final CreateSourceAsProperties properties
   ) {
-    if (partitionBy.isPresent()) {
-      final Expression partitionByExp = partitionBy.get();
-      if (partitionByExp instanceof ColumnReferenceExp) {
-        return new Sink(
-            name,
-            createSink,
-            properties,
-            Optional.of(((ColumnReferenceExp) partitionByExp).getReference())
-        );
-      }
-
-      throw new KsqlException(
-          "Expected partition by to be a valid column but got " + partitionByExp);
-    }
-
-    return new Sink(name, createSink, properties, Optional.empty());
+    return new Sink(name, createSink, properties);
   }
 
   private Sink(
       final SourceName name,
       final boolean createSink,
-      final CreateSourceAsProperties properties,
-      final Optional<ColumnRef> partitionBy
+      final CreateSourceAsProperties properties
   ) {
     this.name = requireNonNull(name, "name");
     this.properties = requireNonNull(properties, "properties");
     this.createSink = createSink;
-    this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
   }
 
   public SourceName getName() {
@@ -93,9 +67,5 @@ public final class Sink {
 
   public CreateSourceAsProperties getProperties() {
     return properties;
-  }
-
-  public Optional<ColumnRef> getPartitionBy() {
-    return partitionBy;
   }
 }

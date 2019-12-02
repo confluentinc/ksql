@@ -520,8 +520,8 @@ public class SqlFormatterTest {
 
     assertThat(result, is("CREATE STREAM S AS SELECT *\n"
         + "FROM ADDRESS ADDRESS\n"
-        + "EMIT CHANGES\n"
-        + "PARTITION BY ADDRESS"
+        + "PARTITION BY ADDRESS\n"
+        + "EMIT CHANGES"
     ));
   }
 
@@ -534,8 +534,8 @@ public class SqlFormatterTest {
 
     assertThat(result, startsWith("INSERT INTO ADDRESS SELECT *\n"
         + "FROM ADDRESS ADDRESS\n"
-        + "EMIT CHANGES\n"
-        + "PARTITION BY ADDRESS"
+        + "PARTITION BY ADDRESS\n"
+        + "EMIT CHANGES"
     ));
   }
 

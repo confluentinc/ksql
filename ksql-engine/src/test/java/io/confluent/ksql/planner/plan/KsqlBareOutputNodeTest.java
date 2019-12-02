@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -37,7 +38,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeySerde;
@@ -59,6 +59,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
@@ -126,9 +127,9 @@ public class KsqlBareOutputNodeTest {
   public void shouldCreateCorrectSchema() {
     final LogicalSchema schema = stream.getSchema();
     assertThat(schema.value(), contains(
-        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
-        Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
+        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
+        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
   }
 
   @Test

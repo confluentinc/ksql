@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.metastore.model;
 
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
@@ -54,6 +56,7 @@ public class KeyFieldTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     final ColumnRef keyField = ColumnRef.withoutSource(ColumnName.of("key"));
@@ -134,6 +137,7 @@ public class KeyFieldTest {
     keyField.resolve(SCHEMA);
   }
 
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
   public void shouldResolveKeyField() {
     // Given:
@@ -143,7 +147,8 @@ public class KeyFieldTest {
     final Optional<Column> resolved = keyField.resolve(SCHEMA);
 
     // Then:
-    assertThat(resolved, is(Optional.of(Column.of(VALID_COL_REF, VALID_COL_TYPE))));
+    assertThat(resolved, is(not(Optional.empty())));
+    assertThat(resolved.get(), is(valueColumn(VALID_COL_REF.source(), VALID_COL_REF.name(), VALID_COL_TYPE)));
   }
 
   @Test

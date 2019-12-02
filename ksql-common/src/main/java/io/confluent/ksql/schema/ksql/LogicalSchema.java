@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.schema.ksql;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -32,9 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -47,23 +44,19 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class LogicalSchema {
 
-  private static final NamespacedColumn IMPLICIT_TIME_COLUMN = NamespacedColumn.of(
-      Column.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT),
-      Namespace.META
-  );
+  private static final Column IMPLICIT_TIME_COLUMN = Column
+      .of(Optional.empty(), SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT, Column.Namespace.META, 0);
 
-  private static final NamespacedColumn IMPLICIT_KEY_COLUMN = NamespacedColumn.of(
-      Column.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING),
-      Namespace.KEY
-  );
+  private static final Column IMPLICIT_KEY_COLUMN = Column
+      .of(Optional.empty(), SchemaUtil.ROWKEY_NAME, SqlTypes.STRING, Column.Namespace.KEY, 0);
 
-  private final ImmutableList<NamespacedColumn> columns;
+  private final ImmutableList<Column> columns;
 
   public static Builder builder() {
     return new Builder();
   }
 
-  private LogicalSchema(final ImmutableList<NamespacedColumn> columns) {
+  private LogicalSchema(final ImmutableList<Column> columns) {
     this.columns = Objects.requireNonNull(columns, "columns");
   }
 
@@ -79,7 +72,7 @@ public final class LogicalSchema {
    * @return the schema of the metadata.
    */
   public List<Column> metadata() {
-    return byNamespace(NamespacedColumn::column)
+    return byNamespace()
         .get(Namespace.META);
   }
 
@@ -87,7 +80,7 @@ public final class LogicalSchema {
    * @return the schema of the key.
    */
   public List<Column> key() {
-    return byNamespace(NamespacedColumn::column)
+    return byNamespace()
         .get(Namespace.KEY);
   }
 
@@ -95,7 +88,7 @@ public final class LogicalSchema {
    * @return the schema of the value.
    */
   public List<Column> value() {
-    return byNamespace(NamespacedColumn::column)
+    return byNamespace()
         .get(Namespace.VALUE);
   }
 
@@ -103,9 +96,7 @@ public final class LogicalSchema {
    * @return all columns in the schema.
    */
   public List<Column> columns() {
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    columns.forEach(c -> builder.add(c.column()));
-    return builder.build();
+    return columns;
   }
 
   /**
@@ -115,8 +106,7 @@ public final class LogicalSchema {
    * @return the column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findColumn(final ColumnRef columnRef) {
-    return findNamespacedColumn(withRef(columnRef))
-        .map(NamespacedColumn::column);
+    return findColumnMatching(withRef(columnRef));
   }
 
   /**
@@ -126,26 +116,7 @@ public final class LogicalSchema {
    * @return the value column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findValueColumn(final ColumnRef columnRef) {
-    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withRef(columnRef)))
-        .map(NamespacedColumn::column);
-  }
-
-  /**
-   * Find the index of the column with the supplied exact {@code target}.
-   *
-   * @param target the exact name of the column to get the index of.
-   * @return the index if it exists or else {@code empty()}.
-   */
-  public OptionalInt valueColumnIndex(final ColumnRef target) {
-    int idx = 0;
-    for (final Column column : value()) {
-      if (column.ref().equals(target)) {
-        return OptionalInt.of(idx);
-      }
-      ++idx;
-    }
-
-    return OptionalInt.empty();
+    return findColumnMatching(withNamespace(Namespace.VALUE).and(withRef(columnRef)));
   }
 
   /**
@@ -163,7 +134,7 @@ public final class LogicalSchema {
       throw new IllegalStateException("Already aliased");
     }
 
-    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     columns.stream()
         .map(c -> c.withSource(alias))
         .forEach(builder::add);
@@ -181,9 +152,9 @@ public final class LogicalSchema {
       throw new IllegalStateException("Not aliased");
     }
 
-    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     columns.stream()
-        .map(NamespacedColumn::noSource)
+        .map(Column::withoutSource)
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
@@ -212,7 +183,7 @@ public final class LogicalSchema {
    */
   public boolean isAliased() {
     // Either all columns are aliased, or none:
-    return columns.get(0).column().source().isPresent();
+    return columns.get(0).source().isPresent();
   }
 
   /**
@@ -240,7 +211,7 @@ public final class LogicalSchema {
    * @return {@code true} if the column matches the name of any metadata column.
    */
   public boolean isMetaColumn(final ColumnName columnName) {
-    return findNamespacedColumn(withNamespace(Namespace.META).and(withName(columnName)))
+    return findColumnMatching(withNamespace(Namespace.META).and(withName(columnName)))
         .isPresent();
   }
 
@@ -249,7 +220,7 @@ public final class LogicalSchema {
    * @return {@code true} if the column matches the name of any key column.
    */
   public boolean isKeyColumn(final ColumnName columnName) {
-    return findNamespacedColumn(withNamespace(Namespace.KEY).and(withName(columnName)))
+    return findColumnMatching(withNamespace(Namespace.KEY).and(withName(columnName)))
         .isPresent();
   }
 
@@ -284,20 +255,15 @@ public final class LogicalSchema {
         .collect(Collectors.joining(", ", "[", "]"));
   }
 
-  private Optional<NamespacedColumn> findNamespacedColumn(
-      final Predicate<NamespacedColumn> predicate
-  ) {
+  private Optional<Column> findColumnMatching(final Predicate<Column> predicate) {
     return columns.stream()
         .filter(predicate)
         .findFirst();
   }
 
-  private <T> Map<Namespace, List<T>> byNamespace(final Function<NamespacedColumn, T> mapper) {
-    final Map<Namespace, List<T>> byNamespace = columns.stream()
-        .collect(Collectors.groupingBy(
-            NamespacedColumn::namespace,
-            Collectors.mapping(mapper, Collectors.toList())
-        ));
+  private Map<Namespace, List<Column>> byNamespace() {
+    final Map<Namespace, List<Column>> byNamespace = columns.stream()
+        .collect(Collectors.groupingBy(Column::namespace));
 
     Arrays.stream(Namespace.values())
         .forEach(ns -> byNamespace.putIfAbsent(ns, ImmutableList.of()));
@@ -306,46 +272,51 @@ public final class LogicalSchema {
   }
 
   private LogicalSchema rebuild(final boolean withMetaAndKeyColsInValue) {
-    final Map<Namespace, List<NamespacedColumn>> byNamespace = byNamespace(Function.identity());
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
-    final List<NamespacedColumn> metadata = byNamespace.get(Namespace.META);
-    final List<NamespacedColumn> key = byNamespace.get(Namespace.KEY);
-    final List<NamespacedColumn> value = byNamespace.get(Namespace.VALUE);
+    final List<Column> metadata = byNamespace.get(Namespace.META);
+    final List<Column> key = byNamespace.get(Namespace.KEY);
+    final List<Column> value = byNamespace.get(Namespace.VALUE);
 
-    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     builder.addAll(metadata);
     builder.addAll(key);
 
+    int valueIndex = 0;
     if (withMetaAndKeyColsInValue) {
-      metadata.stream()
-          .map(c -> NamespacedColumn.of(c.column(), Namespace.VALUE))
-          .forEach(builder::add);
+      for (final Column c : metadata) {
+        builder.add(Column.of(c.source(), c.name(), c.type(), Namespace.VALUE, valueIndex++));
+      }
 
-      key.stream()
-          .map(c -> NamespacedColumn.of(c.column(), Namespace.VALUE))
-          .forEach(builder::add);
+      for (final Column c : key) {
+        builder.add(Column.of(c.source(), c.name(), c.type(), Namespace.VALUE, valueIndex++));
+      }
     }
 
-    value.stream()
-        .filter(c -> !findNamespacedColumn(
-            (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-                .and(withRef(c.column().ref()))
-            )).isPresent())
-        .forEach(builder::add);
+    for (final Column c : value) {
+      if (findColumnMatching(
+          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
+              .and(withRef(c.ref()))
+          )).isPresent()) {
+        continue;
+      }
+
+      builder.add(Column.of(c.source(), c.name(), c.type(), Namespace.VALUE, valueIndex++));
+    }
 
     return new LogicalSchema(builder.build());
   }
 
-  private static Predicate<NamespacedColumn> withRef(final ColumnRef ref) {
-    return c -> c.column().ref().equals(ref);
+  private static Predicate<Column> withRef(final ColumnRef ref) {
+    return c -> c.ref().equals(ref);
   }
 
-  private static Predicate<NamespacedColumn> withName(final ColumnName name) {
-    return c -> c.column().name().equals(name);
+  private static Predicate<Column> withName(final ColumnName name) {
+    return c -> c.name().equals(name);
   }
 
-  private static Predicate<NamespacedColumn> withNamespace(final Namespace ns) {
+  private static Predicate<Column> withNamespace(final Namespace ns) {
     return c -> c.namespace() == ns;
   }
 
@@ -365,7 +336,7 @@ public final class LogicalSchema {
 
   public static class Builder {
 
-    private final ImmutableList.Builder<NamespacedColumn> explicitColumns = ImmutableList.builder();
+    private final ImmutableList.Builder<Column> explicitColumns = ImmutableList.builder();
 
     private final Set<ColumnRef> seenKeys = new HashSet<>();
     private final Set<ColumnRef> seenValues = new HashSet<>();
@@ -379,43 +350,64 @@ public final class LogicalSchema {
       return this;
     }
 
-    public Builder keyColumn(final ColumnName columnName, final SqlType type) {
-      keyColumn(Column.of(columnName, type));
-      return this;
-    }
-
-    public Builder keyColumn(final Column column) {
-      addColumn(NamespacedColumn.of(column, Namespace.KEY));
-      return this;
-    }
-
-    public Builder keyColumns(final Iterable<? extends Column> columns) {
+    public Builder keyColumns(final Iterable<? extends SimpleColumn> columns) {
       columns.forEach(this::keyColumn);
       return this;
     }
 
-    public Builder valueColumn(final ColumnName columnName, final SqlType type) {
-      valueColumn(Column.of(columnName, type));
+    public Builder keyColumn(final ColumnName columnName, final SqlType type) {
+      keyColumn(Optional.empty(), columnName, type);
       return this;
     }
 
-    public Builder valueColumn(final SourceName source, final ColumnName name, final SqlType type) {
-      valueColumn(Column.of(source, name, type));
+    public Builder keyColumn(final SourceName source, final ColumnName name, final SqlType type) {
+      keyColumn(Optional.of(source), name, type);
       return this;
     }
 
-    public Builder valueColumn(final Column column) {
-      addColumn(NamespacedColumn.of(column, Namespace.VALUE));
+    public Builder keyColumn(final SimpleColumn col) {
+      return keyColumn(col.ref().source(), col.ref().name(), col.type());
+    }
+
+    private Builder keyColumn(
+        final Optional<SourceName> source,
+        final ColumnName name,
+        final SqlType type
+    ) {
+      addColumn(Column.of(source, name, type, Column.Namespace.KEY, seenKeys.size()));
       return this;
     }
 
-    public Builder valueColumns(final Iterable<? extends Column> column) {
+    public Builder valueColumns(final Iterable<? extends SimpleColumn> column) {
       column.forEach(this::valueColumn);
       return this;
     }
 
+    public Builder valueColumn(final ColumnName columnName, final SqlType type) {
+      valueColumn(Optional.empty(), columnName, type);
+      return this;
+    }
+
+    public Builder valueColumn(final SourceName source, final ColumnName name, final SqlType type) {
+      valueColumn(Optional.of(source), name, type);
+      return this;
+    }
+
+    public Builder valueColumn(final SimpleColumn col) {
+      return valueColumn(col.ref().source(), col.ref().name(), col.type());
+    }
+
+    private Builder valueColumn(
+        final Optional<SourceName> source,
+        final ColumnName name,
+        final SqlType type
+    ) {
+      addColumn(Column.of(source, name, type, Column.Namespace.VALUE, seenValues.size()));
+      return this;
+    }
+
     public LogicalSchema build() {
-      final ImmutableList.Builder<NamespacedColumn> allColumns = ImmutableList.builder();
+      final ImmutableList.Builder<Column> allColumns = ImmutableList.builder();
 
       if (addImplicitRowTime) {
         allColumns.add(IMPLICIT_TIME_COLUMN);
@@ -430,17 +422,17 @@ public final class LogicalSchema {
       return new LogicalSchema(allColumns.build());
     }
 
-    private void addColumn(final NamespacedColumn column) {
+    private void addColumn(final Column column) {
       switch (column.namespace()) {
         case KEY:
-          if (!seenKeys.add(column.column().ref())) {
+          if (!seenKeys.add(column.ref())) {
             throw new KsqlException("Duplicate keys found in schema: " + column);
           }
           addImplicitRowKey = false;
           break;
 
         case VALUE:
-          if (!seenValues.add(column.column().ref())) {
+          if (!seenValues.add(column.ref())) {
             throw new KsqlException("Duplicate values found in schema: " + column);
           }
           break;
@@ -450,81 +442,6 @@ public final class LogicalSchema {
       }
 
       explicitColumns.add(column);
-    }
-  }
-
-  private enum Namespace {
-    META,
-    KEY,
-    VALUE
-  }
-
-  @Immutable
-  private static final class NamespacedColumn {
-
-    private final Column column;
-    private final Namespace namespace;
-
-    static NamespacedColumn of(
-        final Column column,
-        final Namespace namespace
-    ) {
-      return new NamespacedColumn(column, namespace);
-    }
-
-    private NamespacedColumn(
-        final Column column,
-        final Namespace namespace
-    ) {
-      this.column = requireNonNull(column, "column");
-      this.namespace = requireNonNull(namespace, "namespace");
-    }
-
-    Column column() {
-      return column;
-    }
-
-    Namespace namespace() {
-      return namespace;
-    }
-
-    NamespacedColumn withSource(final SourceName sourceName) {
-      return NamespacedColumn.of(column.withSource(sourceName), namespace);
-    }
-
-    NamespacedColumn noSource() {
-      return NamespacedColumn.of(Column.of(column.name(), column.type()), namespace);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final NamespacedColumn that = (NamespacedColumn) o;
-      return Objects.equals(column, that.column)
-          && namespace == that.namespace;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(column, namespace);
-    }
-
-    @Override
-    public String toString() {
-      return toString(FormatOptions.none());
-    }
-
-    public String toString(final FormatOptions formatOptions) {
-      final String postFix = namespace == Namespace.VALUE
-          ? ""
-          : " " + namespace;
-
-      return column.toString(formatOptions) + postFix;
     }
   }
 }

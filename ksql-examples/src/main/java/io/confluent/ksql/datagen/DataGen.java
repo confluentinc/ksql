@@ -231,9 +231,7 @@ public final class DataGen {
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
-              .put("maxInterval",
-                  (builder, argVal) -> printMaxIntervalIsDeprecatedMessage()
-              )
+              .put("maxInterval", (builder, argVal) -> printMaxIntervalIsDeprecatedMessage())
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
               .put("propertiesFile",
                   (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal).get())
@@ -246,6 +244,7 @@ public final class DataGen {
         System.err.println("*maxInterval* parameter is *DEPRECATED*");
         System.err.println("the value will be ignored "
                                + "and parameter will be removed in future releases");
+        System.err.println("Please use *msgRate* parameter to adjust sending message frequency");
         System.err.flush();
       }
 

@@ -150,8 +150,6 @@ public final class DataGen {
         + "key=<name of key column> " + newLine
         + "[iterations=<number of rows> (if no value is specified, datagen will produce "
             + "indefinitely)] " + newLine
-        + "[maxInterval=<Max time in ms between rows> (defaults to 500)]"
-            + " parameter is DEPRECATED and will be removed in the future releases" + newLine
         + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
         + "[nThreads=<number of producer threads to start>] " + newLine
         + "[msgRate=<rate to produce in msgs/second>] " + newLine

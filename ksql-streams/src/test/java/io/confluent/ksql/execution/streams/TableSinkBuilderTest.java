@@ -43,7 +43,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -85,7 +84,7 @@ public class TableSinkBuilderTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> source;
   @Mock
-  private KeySerde<Struct>  keySerde;
+  private Serde<Struct>  keySerde;
   @Mock
   private Serde<GenericRow> valSerde;
   @Captor

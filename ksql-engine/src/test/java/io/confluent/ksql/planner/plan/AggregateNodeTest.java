@@ -49,7 +49,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -64,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
@@ -99,7 +99,7 @@ public class AggregateNodeTest {
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private Serde<Struct> keySerde;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 

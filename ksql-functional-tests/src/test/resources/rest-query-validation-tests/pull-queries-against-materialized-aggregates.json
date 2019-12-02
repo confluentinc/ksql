@@ -454,7 +454,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-           {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` STRING KEY, `COUNT2` BIGINT"}},
+           {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["10", 1582501512000, 1]}}
         ]}
       ]
@@ -474,7 +474,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` STRING KEY, `COUNT2` BIGINT"}},
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["10", 1582501512000, 1]}}
         ]}
       ]
@@ -497,7 +497,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` STRING KEY, `COUNT2` BIGINT"}},
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["10", 1582501512000, 1]}},
           {"row":{"columns":["10", 1582501552000, 1]}}
         ]}

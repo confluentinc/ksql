@@ -207,7 +207,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           1,
           mock(ClusterTerminator.class),
-          serverState
+          serverState,
+          "ksql-service-id"
       );
 
       this.ksqlResource = new KsqlResource(

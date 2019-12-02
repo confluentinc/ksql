@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -72,6 +73,7 @@ public class CommandRunnerTest {
 
   @Before
   public void setup() {
+    MetricCollectors.initialize();
     when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
     when(command.getStatement()).thenReturn("something that is not terminate");
@@ -90,7 +92,9 @@ public class CommandRunnerTest {
         1,
         clusterTerminator,
         executor,
-        serverState);
+        serverState,
+        "ksql-service-id"
+    );
   }
 
   @Test

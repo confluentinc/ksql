@@ -59,7 +59,7 @@ public class PullQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + System.lineSeparator()
       + "Note: Persistent queries, e.g. `CREATE TABLE AS ...`, have an implicit "
-      + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements.";
+      + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements for clarify.";
 
   private static final String NEW_QUERY_SYNTAX_LONG_HELP = ""
       + NEW_QUERY_SYNTAX_SHORT_HELP

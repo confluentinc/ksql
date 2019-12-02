@@ -26,7 +26,6 @@ public class KsqlExceptionMapper implements ExceptionMapper<Throwable> {
 
   @Override
   public Response toResponse(final Throwable exception) {
-    // TODO: Distinguish between exceptions that warrant a stack trace and ones that don't
     if (exception instanceof KsqlRestException) {
       final KsqlRestException restException = (KsqlRestException)exception;
       return restException.getResponse();

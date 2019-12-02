@@ -245,6 +245,7 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
     assertThat(messages.get(1),
@@ -287,6 +288,7 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
     assertThat(messages.get(1),

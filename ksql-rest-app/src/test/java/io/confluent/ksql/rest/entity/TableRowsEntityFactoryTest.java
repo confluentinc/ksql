@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -33,6 +32,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +79,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("x", false));
+    assertThat(output.get(0), contains("x", ROWTIME, false));
   }
 
   @Test
@@ -111,8 +111,9 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(2));
-    assertThat(output.get(0), contains("x", now.toEpochMilli(), true));
-    assertThat(output.get(1), contains("y", now.toEpochMilli(), now.toEpochMilli(), false));
+    assertThat(output.get(0), contains("x", now.toEpochMilli(), ROWTIME, true));
+    assertThat(output.get(1),
+        contains("y", now.toEpochMilli(), now.toEpochMilli(), ROWTIME, false));
   }
 
   @Test
@@ -133,16 +134,23 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(1));
-    assertThat(output.get(0), contains("k", null, null, null, null));
+    assertThat(output.get(0), contains("k", ROWTIME, null, null, null, null));
   }
 
   @Test
-  public void shouldReturnSameSchemaIfNotWindowed() {
+  public void shouldJustDuplicateRowTimeInValueIfNotWindowed() {
     // When:
     final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, Optional.empty());
 
     // Then:
-    assertThat(result, is(sameInstance(SCHEMA)));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
+        .build()
+    ));
   }
 
   @Test
@@ -156,6 +164,7 @@ public class TableRowsEntityFactoryTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
@@ -173,6 +182,7 @@ public class TableRowsEntityFactoryTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
@@ -191,6 +201,7 @@ public class TableRowsEntityFactoryTest {
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
         .keyColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()

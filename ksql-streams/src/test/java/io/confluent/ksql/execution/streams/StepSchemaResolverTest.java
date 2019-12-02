@@ -120,7 +120,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        1,
+        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 
@@ -144,7 +144,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        1,
+        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE")),
         new TumblingWindowExpression(10, TimeUnit.SECONDS)
     );
@@ -327,7 +327,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedTableSource,
         formats,
-        1,
+        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 

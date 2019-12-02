@@ -260,8 +260,11 @@
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
-        "nonFuncColumnCount" : {
-          "type" : "integer"
+        "nonAggregateColumns" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         },
         "aggregationFunctions" : {
           "type" : "array",
@@ -271,7 +274,7 @@
         }
       },
       "title" : "streamAggregateV1",
-      "required" : [ "@type", "properties", "source", "internalFormats", "nonFuncColumnCount", "aggregationFunctions" ]
+      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations" ]
     },
     "ExecutionStepPropertiesV1" : {
       "type" : "object",
@@ -602,8 +605,11 @@
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
-        "nonFuncColumnCount" : {
-          "type" : "integer"
+        "nonAggregateColumns" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         },
         "aggregationFunctions" : {
           "type" : "array",
@@ -616,7 +622,7 @@
         }
       },
       "title" : "streamWindowedAggregateV1",
-      "required" : [ "@type", "properties", "source", "internalFormats", "nonFuncColumnCount", "aggregationFunctions", "windowExpression" ]
+      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations", "windowExpression" ]
     },
     "TableSource" : {
       "type" : "object",
@@ -701,8 +707,11 @@
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
-        "nonFuncColumnCount" : {
-          "type" : "integer"
+        "nonAggregateColumns" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         },
         "aggregationFunctions" : {
           "type" : "array",
@@ -712,7 +721,7 @@
         }
       },
       "title" : "tableAggregateV1",
-      "required" : [ "@type", "properties", "source", "internalFormats", "nonFuncColumnCount", "aggregationFunctions" ]
+      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations" ]
     },
     "TableFilter" : {
       "type" : "object",

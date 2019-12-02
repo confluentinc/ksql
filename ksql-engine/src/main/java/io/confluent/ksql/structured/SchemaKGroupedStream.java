@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -72,7 +73,7 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
@@ -87,7 +88,7 @@ public class SchemaKGroupedStream {
           contextStacker,
           sourceStep,
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-          nonFuncColumnCount,
+          nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
       );
@@ -97,7 +98,7 @@ public class SchemaKGroupedStream {
           contextStacker,
           sourceStep,
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-          nonFuncColumnCount,
+          nonAggregateColumns,
           aggregations
       );
     }

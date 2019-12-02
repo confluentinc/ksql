@@ -25,23 +25,25 @@ import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
 
-  private final int initialUdafIndex;
+  private final List<Integer> nonAggColumnIndexes;
   private final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions;
 
   public KudafUndoAggregator(
-      int initialUdafIndex, List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
+      List<Integer> nonAggColumnIndexes,
+      List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
   ) {
     Objects.requireNonNull(aggregateFunctions, "aggregateFunctions");
     this.aggregateFunctions = ImmutableList.copyOf(aggregateFunctions);
-    this.initialUdafIndex = initialUdafIndex;
+    this.nonAggColumnIndexes = ImmutableList.copyOf(nonAggColumnIndexes);
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(Struct k, GenericRow rowValue, GenericRow aggRowValue) {
     int idx = 0;
-    for (; idx < initialUdafIndex; idx++) {
-      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
+    for (; idx < nonAggColumnIndexes.size(); idx++) {
+      final int idxInRow = nonAggColumnIndexes.get(idx);
+      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idxInRow));
     }
 
     for (TableAggregationFunction function : aggregateFunctions) {
@@ -54,8 +56,8 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
     return aggRowValue;
   }
 
-  public int getInitialUdafIndex() {
-    return initialUdafIndex;
+  public List<Integer> getNonAggColumnIndexes() {
+    return nonAggColumnIndexes;
   }
 
   public List<TableAggregationFunction<?, ?, ?>> getAggregateFunctions() {

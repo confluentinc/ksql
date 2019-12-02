@@ -30,14 +30,17 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator<K> implements UdafAggregator<K> {
 
-  private final int initialUdafIndex;
+  private final List<Integer> nonAggColumnIndexes;
   private final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions;
   private final int columnCount;
 
-  public KudafAggregator(int initialUdafIndex, List<KsqlAggregateFunction<?, ?, ?>> functions) {
-    this.initialUdafIndex = initialUdafIndex;
+  public KudafAggregator(
+      List<Integer> nonAggColumnIndexes,
+      List<KsqlAggregateFunction<?, ?, ?>> functions) {
+    this.nonAggColumnIndexes =
+        ImmutableList.copyOf(requireNonNull(nonAggColumnIndexes, "nonAggColumnIndexes"));
     this.aggregateFunctions = ImmutableList.copyOf(requireNonNull(functions, "functions"));
-    this.columnCount = initialUdafIndex + aggregateFunctions.size();
+    this.columnCount = nonAggColumnIndexes.size() + aggregateFunctions.size();
 
     if (aggregateFunctions.isEmpty()) {
       throw new IllegalArgumentException("Aggregator needs aggregate functions");
@@ -47,8 +50,10 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
   @Override
   public GenericRow apply(K k, GenericRow rowValue, GenericRow aggRowValue) {
     // copy over group-by and aggregate parameter columns into the output row
+    int initialUdafIndex = nonAggColumnIndexes.size();
     for (int idx = 0; idx < initialUdafIndex; idx++) {
-      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
+      int idxInRow = nonAggColumnIndexes.get(idx);
+      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idxInRow));
     }
 
     // compute the aggregation and write it into the output row. Its assumed that
@@ -75,11 +80,13 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     return (key, aggRowOne, aggRowTwo) -> {
       List<Object> columns = new ArrayList<>(columnCount);
 
+      int initialUdafIndex = nonAggColumnIndexes.size();
       for (int idx = 0; idx < initialUdafIndex; idx++) {
-        if (aggRowOne.getColumns().get(idx) == null) {
-          columns.add(idx, aggRowTwo.getColumns().get(idx));
+        int idxInRow = nonAggColumnIndexes.get(idx);
+        if (aggRowOne.getColumns().get(idxInRow) == null) {
+          columns.add(idx, aggRowTwo.getColumns().get(idxInRow));
         } else {
-          columns.add(idx, aggRowOne.getColumns().get(idx));
+          columns.add(idx, aggRowOne.getColumns().get(idxInRow));
         }
       }
 
@@ -99,7 +106,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
   private KsqlAggregateFunction<Object, Object, Object> aggregateFunctionForColumn(
       final int columnIndex
   ) {
-    return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - initialUdafIndex);
+    return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - nonAggColumnIndexes.size());
   }
 
   private final class ResultTransformer implements KsqlTransformer<K, GenericRow> {
@@ -116,11 +123,11 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
 
       final List<Object> columns = new ArrayList<>(columnCount);
 
-      for (int idx = 0; idx < initialUdafIndex; idx++) {
-        columns.add(idx, value.getColumns().get(idx));
+      for (int idx = 0; idx < nonAggColumnIndexes.size(); idx++) {
+        columns.add(idx, value.getColumns().get(nonAggColumnIndexes.get(idx)));
       }
 
-      for (int idx = initialUdafIndex; idx < columnCount; idx++) {
+      for (int idx = nonAggColumnIndexes.size(); idx < columnCount; idx++) {
         final KsqlAggregateFunction<Object, Object, Object> function =
             aggregateFunctionForColumn(idx);
 

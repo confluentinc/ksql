@@ -310,7 +310,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -318,7 +318,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations
     );
   }
@@ -327,7 +327,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final KsqlWindowExpression window
   ) {
@@ -336,7 +336,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations,
         window
     );
@@ -370,7 +370,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedTableHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -378,7 +378,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations
     );
   }

@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.clearInvocations;
@@ -117,6 +116,10 @@ public class StreamAggregateBuilderTest {
       .valueColumn(ColumnName.of("OUTPUT0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("OUTPUT1"), SqlTypes.STRING)
       .build();
+  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
+      INPUT_SCHEMA.value().get(0).ref(),
+      INPUT_SCHEMA.value().get(1).ref()
+  );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
       SerdeOption.none()
@@ -206,7 +209,7 @@ public class StreamAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), anyInt(), any(), any()))
+    when(aggregateParamsFactory.create(any(), any(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
@@ -242,7 +245,7 @@ public class StreamAggregateBuilderTest {
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        2,
+        NON_AGG_COLUMNS,
         FUNCTIONS
     );
   }
@@ -264,7 +267,7 @@ public class StreamAggregateBuilderTest {
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        2,
+        NON_AGG_COLUMNS,
         FUNCTIONS,
         new TumblingWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
     );
@@ -276,7 +279,7 @@ public class StreamAggregateBuilderTest {
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        2,
+        NON_AGG_COLUMNS,
         FUNCTIONS,
         new HoppingWindowExpression(
             WINDOW.getSeconds(),
@@ -300,7 +303,7 @@ public class StreamAggregateBuilderTest {
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        2,
+        NON_AGG_COLUMNS,
         FUNCTIONS,
         new SessionWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
     );
@@ -407,7 +410,12 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(aggregateParamsFactory).create(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
+    verify(aggregateParamsFactory).create(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        FUNCTIONS
+    );
   }
 
   @Test
@@ -611,7 +619,7 @@ public class StreamAggregateBuilderTest {
           aggregated,
           aggregateParamsFactory
       );
-      when(aggregateParamsFactory.create(any(), anyInt(), any(), any()))
+      when(aggregateParamsFactory.create(any(), any(), any(), any()))
           .thenReturn(aggregateParams);
       given.run();
 
@@ -620,7 +628,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(aggregateParamsFactory)
-          .create(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
+          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS);
     }
   }
 

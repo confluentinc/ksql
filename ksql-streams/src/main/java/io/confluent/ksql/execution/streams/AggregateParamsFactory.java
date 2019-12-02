@@ -28,8 +28,11 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -51,29 +54,30 @@ public class AggregateParamsFactory {
 
   public AggregateParams createUndoable(
       final LogicalSchema schema,
-      final int initialUdafIndex,
+      final List<ColumnRef> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList
   ) {
-    return create(schema, initialUdafIndex, functionRegistry, functionList, true);
+    return create(schema, nonAggregateColumns, functionRegistry, functionList, true);
   }
 
   public AggregateParams create(
       final LogicalSchema schema,
-      final int initialUdafIndex,
+      final List<ColumnRef> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList
   ) {
-    return create(schema, initialUdafIndex, functionRegistry, functionList, false);
+    return create(schema, nonAggregateColumns, functionRegistry, functionList, false);
   }
 
   private AggregateParams create(
       final LogicalSchema schema,
-      final int initialUdafIndex,
+      final List<ColumnRef> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList,
       final boolean table
   ) {
+    final List<Integer> nonAggColumnIndexes = nonAggColumnIndexes(schema, nonAggregateColumns);
     final List<KsqlAggregateFunction<?, ?, ?>> functions = ImmutableList.copyOf(
         functionList.stream().map(
             funcCall -> UdafUtil.resolveAggregateFunction(
@@ -90,32 +94,44 @@ public class AggregateParamsFactory {
       for (final KsqlAggregateFunction function : functions) {
         tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
       }
-      undoAggregator = Optional.of(new KudafUndoAggregator(initialUdafIndex, tableFunctions));
+      undoAggregator = Optional.of(new KudafUndoAggregator(nonAggColumnIndexes, tableFunctions));
     } else {
       undoAggregator = Optional.empty();
     }
     return new AggregateParams(
-        new KudafInitializer(initialUdafIndex, initialValueSuppliers),
-        aggregatorFactory.create(initialUdafIndex, functions),
+        new KudafInitializer(nonAggregateColumns.size(), initialValueSuppliers),
+        aggregatorFactory.create(nonAggColumnIndexes, functions),
         undoAggregator,
-        new WindowSelectMapper(initialUdafIndex, functions),
-        buildSchema(schema, initialUdafIndex, functions, true),
-        buildSchema(schema, initialUdafIndex, functions, false)
+        new WindowSelectMapper(nonAggregateColumns.size(), functions),
+        buildSchema(schema, nonAggregateColumns, functions, true),
+        buildSchema(schema, nonAggregateColumns, functions, false)
     );
+  }
+
+  private static List<Integer> nonAggColumnIndexes(
+      final LogicalSchema schema,
+      final List<ColumnRef> nonAggregateColumns
+  ) {
+    final List<Integer> indexes = new ArrayList<>(nonAggregateColumns.size());
+    for (final ColumnRef columnRef : nonAggregateColumns) {
+      indexes.add(schema.findValueColumn(columnRef).map(Column::index).orElseThrow(
+          () -> new IllegalStateException("invalid column ref: "  + columnRef)
+      ));
+    }
+    return Collections.unmodifiableList(indexes);
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema schema,
-      final int initialUdafIndex,
+      final List<ColumnRef> nonAggregateColumns,
       final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions,
       final boolean useAggregate) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Column> cols = schema.value();
 
     schemaBuilder.keyColumns(schema.key());
 
-    for (int i = 0; i < initialUdafIndex; i++) {
-      schemaBuilder.valueColumn(cols.get(i));
+    for (final ColumnRef columnRef : nonAggregateColumns) {
+      schemaBuilder.valueColumn(schema.findValueColumn(columnRef).get());
     }
 
     for (int i = 0; i < aggregateFunctions.size(); i++) {
@@ -132,7 +148,7 @@ public class AggregateParamsFactory {
 
   interface KudafAggregatorFactory {
     KudafAggregator create(
-        int initialUdafIndex,
+        List<Integer> nonAggColumnIndexes,
         List<KsqlAggregateFunction<?, ?, ?>> functions
     );
   }

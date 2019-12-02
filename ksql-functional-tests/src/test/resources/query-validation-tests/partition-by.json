@@ -101,6 +101,15 @@
       }
     },
     {
+      "name": "partition by project ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ROWKEY AS OLDKEY from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "key": "foo", "value": {"ID":  10}}],
+      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"OLDKEY": "foo"}}]
+    },
+    {
       "name": "partition by ROWKEY",
       "statements": [
         "CREATE STREAM INPUT (ID bigint) with (kafka_topic='input', value_format='JSON');",

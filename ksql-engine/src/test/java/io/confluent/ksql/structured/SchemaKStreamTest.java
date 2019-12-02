@@ -437,7 +437,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
-        true,
         childContextStacker);
 
     // Then:
@@ -452,7 +451,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
-        true,
         childContextStacker);
 
     // Then:
@@ -462,8 +460,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
-                true
+                ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))
             )
         )
     );
@@ -475,7 +472,6 @@ public class SchemaKStreamTest {
 
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         ColumnRef.withoutSource(ColumnName.of("won't find me")),
-        true,
         childContextStacker);
 
     assertThat(rekeyedSchemaKStream.getKeyField(), is(validJoinKeyField));

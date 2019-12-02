@@ -280,8 +280,7 @@ public final class ExecutionStepFactory {
   public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<?>> source,
-      final ColumnRef fieldName,
-      final boolean updateRowKey
+      final ColumnRef fieldName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSelectKey(
@@ -290,8 +289,7 @@ public final class ExecutionStepFactory {
             queryContext
         ),
         source,
-        fieldName,
-        updateRowKey
+        fieldName
     );
   }
 

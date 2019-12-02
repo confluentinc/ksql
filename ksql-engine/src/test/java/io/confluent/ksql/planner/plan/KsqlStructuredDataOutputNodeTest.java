@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -120,7 +119,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
-    when(sourceStream.selectKey(any(), anyBoolean(), any()))
+    when(sourceStream.selectKey(any(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
     when(resultWithKeySelected.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);

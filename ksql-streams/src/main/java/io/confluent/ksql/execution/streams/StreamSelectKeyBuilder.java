@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 
@@ -42,7 +41,6 @@ public final class StreamSelectKeyBuilder {
 
     final int keyIndexInValue = keyColumn.index();
 
-    final boolean updateRowKey = selectKey.isUpdateRowKey();
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream
         .filter((key, value) ->
@@ -51,13 +49,7 @@ public final class StreamSelectKeyBuilder {
             StructKeyUtil.asStructKey(
                 extractColumn(sourceSchema, keyIndexInValue, value).toString()
             )
-        ).mapValues((key, row) -> {
-          if (updateRowKey) {
-            final Object rowKey = key.get(key.schema().fields().get(0));
-            row.getColumns().set(SchemaUtil.ROWKEY_INDEX, rowKey);
-          }
-          return row;
-        });
+        );
     return new KStreamHolder<>(
         rekeyed,
         stream.getSchema(),

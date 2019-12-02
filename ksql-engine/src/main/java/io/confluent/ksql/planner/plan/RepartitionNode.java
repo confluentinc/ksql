@@ -71,6 +71,6 @@ public class RepartitionNode extends PlanNode {
   @Override
   public SchemaKStream<?> buildStream(KsqlQueryBuilder builder) {
     return source.buildStream(builder)
-        .selectKey(partitionBy, true, builder.buildNodeContext(getId().toString()));
+        .selectKey(partitionBy, builder.buildNodeContext(getId().toString()));
   }
 }

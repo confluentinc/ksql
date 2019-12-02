@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -311,15 +312,19 @@ public final class SourceBuilder {
   private static TimestampExtractor timestampExtractor(
       final KsqlConfig ksqlConfig,
       final LogicalSchema sourceSchema,
-      final Optional<TimestampColumn> timestampColumn) {
+      final Optional<TimestampColumn> timestampColumn
+  ) {
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
         ksqlConfig,
         sourceSchema,
         timestampColumn
     );
+
     final int timestampIndex = timestampColumn.map(TimestampColumn::getColumn)
-        .map(c -> sourceSchema.valueColumnIndex(c).orElseThrow(IllegalStateException::new))
+        .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
+        .map(Column::index)
         .orElse(-1);
+
     return timestampPolicy.create(timestampIndex);
   }
 

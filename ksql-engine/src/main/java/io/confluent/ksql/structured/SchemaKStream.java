@@ -205,26 +205,25 @@ public class SchemaKStream<K> {
     );
   }
 
+  @SuppressWarnings("deprecation")
   KeyField findKeyField(final List<SelectExpression> selectExpressions) {
     if (!getKeyField().ref().isPresent()) {
       return KeyField.none();
     }
 
-    final ColumnRef reference = getKeyField().ref().get();
-    final Column keyColumn = Column.of(reference, SqlTypes.STRING);
+    final ColumnRef keyColumnRef = getKeyField().ref().get();
 
     Optional<Column> found = Optional.empty();
 
-    for (int i = 0; i < selectExpressions.size(); i++) {
-      final ColumnName toName = selectExpressions.get(i).getAlias();
-      final Expression toExpression = selectExpressions.get(i).getExpression();
+    for (SelectExpression selectExpression : selectExpressions) {
+      final ColumnName toName = selectExpression.getAlias();
+      final Expression toExpression = selectExpression.getExpression();
 
       if (toExpression instanceof ColumnReferenceExp) {
-        final ColumnReferenceExp nameRef
-            = (ColumnReferenceExp) toExpression;
+        final ColumnReferenceExp nameRef = (ColumnReferenceExp) toExpression;
 
-        if (keyColumn.ref().equals(nameRef.getReference())) {
-          found = Optional.of(Column.of(toName, keyColumn.type()));
+        if (keyColumnRef.equals(nameRef.getReference())) {
+          found = Optional.of(Column.legacyKeyFieldColumn(toName, SqlTypes.STRING));
           break;
         }
       }

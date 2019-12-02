@@ -24,12 +24,13 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.OptionalInt;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class UdafUtil {
@@ -49,19 +50,17 @@ public final class UdafUtil {
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
       Expression arg = functionCall.getArguments().get(0);
-      OptionalInt udafIndex;
-      if (arg instanceof ColumnReferenceExp) {
-        udafIndex = schema.valueColumnIndex(((ColumnReferenceExp) arg).getReference());
-      } else {
-        // assume that it is a column reference with no alias
-        udafIndex = schema.valueColumnIndex(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
-      }
-      if (!udafIndex.isPresent()) {
-        throw new KsqlException("Could not find column for expression: " + arg);
-      }
+
+      final Optional<Column> possibleValueColumn = arg instanceof ColumnReferenceExp
+          ? schema.findValueColumn(((ColumnReferenceExp) arg).getReference())
+          // assume that it is a column reference with no alias
+          : schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
+
+      final Column valueColumn = possibleValueColumn
+          .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));
 
       AggregateFunctionInitArguments aggregateFunctionInitArguments =
-          createAggregateFunctionInitArgs(udafIndex.getAsInt(), functionCall);
+          createAggregateFunctionInitArgs(valueColumn.index(), functionCall);
 
       return functionRegistry.getAggregateFunction(
           functionCall.getName().name(),

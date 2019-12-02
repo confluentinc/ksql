@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -170,9 +171,9 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
-        Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
+        valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
     ));
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
   }
@@ -335,9 +336,9 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER),
-        Column.of(ColumnName.of("KSQL_COL_2"), SqlTypes.DOUBLE)
+        valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER),
+        valueColumn(ColumnName.of("KSQL_COL_2"), SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -358,14 +359,14 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
-        Column.of(TEST1, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        Column.of(TEST1, ColumnName.of("ROWKEY"), SqlTypes.STRING),
-        Column.of(TEST1, ColumnName.of("COL0"), SqlTypes.BIGINT),
-        Column.of(TEST1, ColumnName.of("COL1"), SqlTypes.STRING),
-        Column.of(TEST1, ColumnName.of("COL2"), SqlTypes.STRING),
-        Column.of(TEST1, ColumnName.of("COL3"), SqlTypes.DOUBLE),
-        Column.of(TEST1, ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE)),
-        Column.of(TEST1, ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+        valueColumn(TEST1, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
+        valueColumn(TEST1, ColumnName.of("ROWKEY"), SqlTypes.STRING),
+        valueColumn(TEST1, ColumnName.of("COL0"), SqlTypes.BIGINT),
+        valueColumn(TEST1, ColumnName.of("COL1"), SqlTypes.STRING),
+        valueColumn(TEST1, ColumnName.of("COL2"), SqlTypes.STRING),
+        valueColumn(TEST1, ColumnName.of("COL3"), SqlTypes.DOUBLE),
+        valueColumn(TEST1, ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE)),
+        valueColumn(TEST1, ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
     ));
 
     assertThat(filteredSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -843,11 +844,11 @@ public class SchemaKStreamTest {
     final String leftAlias = "left";
     final String rightAlias = "right";
     for (final Column field : leftSchema.value()) {
-      schemaBuilder.valueColumn(Column.of(SourceName.of(leftAlias), field.name(), field.type()));
+      schemaBuilder.valueColumn(SourceName.of(leftAlias), field.name(), field.type());
     }
 
     for (final Column field : rightSchema.value()) {
-      schemaBuilder.valueColumn(Column.of(SourceName.of(rightAlias), field.name(), field.type()));
+      schemaBuilder.valueColumn(SourceName.of(rightAlias), field.name(), field.type());
     }
     return schemaBuilder.build();
   }

@@ -145,9 +145,7 @@ public class CodeGenRunner {
       spec.addParameter(
           schemaColumn.ref(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaColumn.type()),
-          schema.valueColumnIndex(schemaColumn.ref())
-              .orElseThrow(() -> new KsqlException(
-                  "Expected to find column in schema, but was missing: " + schemaColumn))
+          schemaColumn.index()
       );
     }
 
@@ -156,7 +154,6 @@ public class CodeGenRunner {
       return null;
     }
 
-    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     public Void visitFunctionCall(FunctionCall node, Void context) {
       List<SqlType> argumentTypes = new ArrayList<>();
       FunctionName functionName = node.getName();

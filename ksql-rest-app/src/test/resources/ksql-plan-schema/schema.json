@@ -332,7 +332,7 @@
         }
       },
       "title" : "streamFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression" ]
+      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
     },
     "StreamFlatMap" : {
       "type" : "object",
@@ -818,7 +818,7 @@
         }
       },
       "title" : "tableFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression" ]
+      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
     },
     "TableGroupBy" : {
       "type" : "object",

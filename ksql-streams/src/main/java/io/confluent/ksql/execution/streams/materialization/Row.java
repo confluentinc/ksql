@@ -30,14 +30,16 @@ public final class Row implements TableRow {
   private final LogicalSchema schema;
   private final Struct key;
   private final GenericRow value;
+  private final long rowTime;
   private final Validator validator;
 
   public static Row of(
       final LogicalSchema schema,
       final Struct key,
-      final GenericRow value
+      final GenericRow value,
+      final long rowTime
   ) {
-    return new Row(schema, key, value, TableRowValidation::validate);
+    return new Row(schema, key, value, rowTime, TableRowValidation::validate);
   }
 
   @VisibleForTesting
@@ -45,11 +47,13 @@ public final class Row implements TableRow {
       final LogicalSchema schema,
       final Struct key,
       final GenericRow value,
+      final long rowTime,
       final Validator validator
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.key = requireNonNull(key, "key");
     this.value = requireNonNull(value, "value");
+    this.rowTime = rowTime;
     this.validator = requireNonNull(validator, "validator");
 
     validator.validate(schema, key, value);
@@ -58,6 +62,11 @@ public final class Row implements TableRow {
   @Override
   public LogicalSchema schema() {
     return schema;
+  }
+
+  @Override
+  public long rowTime() {
+    return rowTime;
   }
 
   @Override
@@ -84,6 +93,7 @@ public final class Row implements TableRow {
         newSchema,
         key,
         newValue,
+        rowTime,
         validator
     );
   }
@@ -99,12 +109,13 @@ public final class Row implements TableRow {
     final Row that = (Row) o;
     return Objects.equals(schema, that.schema)
         && Objects.equals(key, that.key)
-        && Objects.equals(value, that.value);
+        && Objects.equals(value, that.value)
+        && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(schema, key, value);
+    return Objects.hash(schema, key, value, rowTime);
   }
 
   @Override
@@ -112,6 +123,7 @@ public final class Row implements TableRow {
     return "Row{"
         + "key=" + key
         + ", value=" + value
+        + ", rowTime=" + rowTime
         + ", schema=" + schema
         + '}';
   }

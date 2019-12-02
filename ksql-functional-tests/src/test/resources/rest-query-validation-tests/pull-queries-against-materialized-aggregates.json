@@ -372,30 +372,64 @@
       ]
     },
     {
-      "name": "non-windowed projection WITH ROWTIME",
+      "name": "non-windowed projection with ROWTIME",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT ROWTIME + 10, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+        "SELECT ROWTIME + 10 AS ROWTIME_ADJ, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support ROWTIME in select columns.",
-        "status": 400
-      }
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 99, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 100, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME_ADJ` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[110, 1]}}
+        ]}
+      ]
     },
     {
       "name": "windowed with projection with ROWTIME",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
-        "SELECT COUNT, ROWTIME + 10 FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+        "SELECT COUNT, ROWTIME FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support ROWTIME in select columns.",
-        "status": 400
-      }
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":[1, 12345]}}
+        ]}
+      ]
+    },
+    {
+      "name": "projection with ROWTIME and star",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT *, ROWTIME FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 99, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 100, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":["10", 1, 100]}}
+        ]}
+      ]
     },
     {
       "name": "non-windowed projection with ROWMEY and more columns in aggregate",
@@ -422,7 +456,7 @@
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT COUNT, ROWKEY, COUNT AS COUNT2 FROM AGGREGATE WHERE ROWKEY='10';"
+        "SELECT COUNT, ROWKEY + '-adj' AS ROWKEY_ADJ, COUNT AS COUNT2 FROM AGGREGATE WHERE ROWKEY='10';"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
@@ -433,8 +467,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` STRING KEY, `COUNT2` BIGINT"}},
-          {"row":{"columns":[2,"10",2]}}
+          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY_ADJ` STRING, `COUNT2` BIGINT"}},
+          {"row":{"columns":[2,"10-adj",2]}}
         ]}
       ]
     },

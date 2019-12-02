@@ -24,6 +24,8 @@ public interface TableRow {
 
   LogicalSchema schema();
 
+  long rowTime();
+
   Struct key();
 
   Optional<Window> window();

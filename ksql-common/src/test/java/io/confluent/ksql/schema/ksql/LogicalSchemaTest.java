@@ -42,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("UnstableApiUsage")
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -884,40 +885,6 @@ public class LogicalSchemaTest {
     assertThat(schema.metadata(), is(empty()));
     assertThat(schema.key(), is(empty()));
     assertThat(schema.value(), contains(Column.of(F0, SqlTypes.BIGINT)));
-  }
-
-  @Test
-  public void shouldRemoveMetaColumns() {
-    // Given
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(F0, SqlTypes.BIGINT)
-        .keyColumn(K0, SqlTypes.BOOLEAN)
-        .build();
-
-    // When:
-    final LogicalSchema result = schema.withoutMetaColumns();
-
-    // Then:
-    assertThat(result.metadata(), is(empty()));
-    assertThat(result.key(), is(schema.key()));
-    assertThat(result.value(), is(schema.value()));
-  }
-
-  @Test
-  public void shouldMaintainColumnOrderWhenRemovingMetaColumns() {
-    // Given
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(F0, SqlTypes.BIGINT)
-        .keyColumn(K0, SqlTypes.BOOLEAN)
-        .build();
-
-    // When:
-    final LogicalSchema result = schema.withoutMetaColumns();
-
-    // Then:
-    assertThat(result.columns(), hasSize(2));
-    assertThat(result.columns().get(0).name(), is(F0));
-    assertThat(result.columns().get(1).name(), is(K0));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

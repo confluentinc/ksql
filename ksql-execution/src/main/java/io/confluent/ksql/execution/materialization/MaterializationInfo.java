@@ -87,9 +87,9 @@ public final class MaterializationInfo {
 
     private Builder(String stateStoreName, LogicalSchema stateStoreSchema) {
       this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
-      this.stateStoreSchema = dropMetaColumns(requireNonNull(stateStoreSchema, "stateStoreSchema"));
+      this.stateStoreSchema = requireNonNull(stateStoreSchema, "stateStoreSchema");
       this.transforms = new LinkedList<>();
-      this.schema = dropMetaColumns(stateStoreSchema);
+      this.schema = stateStoreSchema;
     }
 
     /**
@@ -106,7 +106,7 @@ public final class MaterializationInfo {
         final String stepName
     ) {
       transforms.add(new MapperInfo(mapperFactory, stepName));
-      this.schema = dropMetaColumns(resultSchema);
+      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
 
@@ -133,15 +133,6 @@ public final class MaterializationInfo {
      */
     public MaterializationInfo build() {
       return new MaterializationInfo(stateStoreName, stateStoreSchema, transforms, schema);
-    }
-
-    /*
-     * Materialized tables do not have meta columns, such as ROWTIME, as this would be obtained
-     * from the source event triggering the output in push / persistent query. Materialized tables
-     * are accessed by pull queries, which have no source events triggering output.
-     */
-    private static LogicalSchema dropMetaColumns(final LogicalSchema schema) {
-      return schema.withoutMetaColumns();
     }
   }
 

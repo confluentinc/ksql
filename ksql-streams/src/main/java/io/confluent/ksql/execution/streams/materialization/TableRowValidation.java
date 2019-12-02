@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Struct;
 
 final class TableRowValidation {
@@ -38,6 +39,16 @@ final class TableRowValidation {
       final Struct key,
       final GenericRow value
   ) {
+    if (schema.metadata().size() != 1) {
+      throw new IllegalArgumentException(
+          "expected only " + SchemaUtil.ROWTIME_NAME + " meta columns, got: " + schema.metadata());
+    }
+
+    if (!schema.metadata().get(0).name().equals(SchemaUtil.ROWTIME_NAME)) {
+      throw new IllegalArgumentException(
+          "expected " + SchemaUtil.ROWTIME_NAME + ", got: " + schema.metadata().get(0));
+    }
+
     final int expectedKeyCount = schema.key().size();
     final int actualKeyCount = key.schema().fields().size();
     if (actualKeyCount != expectedKeyCount) {

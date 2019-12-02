@@ -61,10 +61,6 @@ class KsStateStore {
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.clock = requireNonNull(clock, "clock");
-
-    if (!schema.metadata().isEmpty()) {
-      throw new IllegalArgumentException("Kafka Streams state stores do no expose meta columns");
-    }
   }
 
   LogicalSchema schema() {

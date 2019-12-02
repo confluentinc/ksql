@@ -62,6 +62,7 @@ public class WindowedRowTest {
   private static final Window A_WINDOW = Window.of(Instant.MIN, Optional.empty());
 
   private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final long A_ROWTIME = 12335L;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -69,6 +70,7 @@ public class WindowedRowTest {
   @Mock
   private Validator validator;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPE() {
     new NullPointerTester()
@@ -79,6 +81,7 @@ public class WindowedRowTest {
         .testStaticMethods(WindowedRow.class, Visibility.PROTECTED);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     final LogicalSchema differentSchema = LogicalSchema.builder()
@@ -90,20 +93,23 @@ public class WindowedRowTest {
 
     new EqualsTester()
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE),
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE)
+            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME),
+            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(differentSchema, A_KEY, A_WINDOW, A_VALUE)
+            WindowedRow.of(differentSchema, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_WINDOW, A_VALUE)
+            WindowedRow.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_WINDOW, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, mock(Window.class, "diff"), A_VALUE)
+            WindowedRow.of(SCHEMA, A_KEY, mock(Window.class, "diff"), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, new GenericRow(null, null))
+            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, new GenericRow(null, null), A_ROWTIME)
+        )
+        .addEqualityGroup(
+            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, -1L)
         )
         .testEquals();
   }
@@ -111,7 +117,7 @@ public class WindowedRowTest {
   @Test
   public void shouldValidateOnConstruction() {
     // When:
-    new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, validator);
+    new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME, validator);
 
     // Then:
     verify(validator).validate(SCHEMA, A_KEY, A_VALUE);
@@ -121,7 +127,7 @@ public class WindowedRowTest {
   @Test
   public void shouldValidateOnCopy() {
     // Given:
-    final WindowedRow row = new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, validator);
+    final WindowedRow row = new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME, validator);
     clearInvocations(validator);
 
     // When:

@@ -60,6 +60,8 @@ public class TableRowsEntityFactoryTest {
       .valueColumn(ColumnName.of("v3"), SqlTypes.BOOLEAN)
       .build();
 
+  private static final long ROWTIME = 285775L;
+
   @Test
   public void shouldAddNonWindowedRowToValues() {
     // Given:
@@ -67,7 +69,8 @@ public class TableRowsEntityFactoryTest {
         Row.of(
             SIMPLE_SCHEMA,
             StructKeyUtil.asStructKey("x"),
-            new GenericRow(false)
+            new GenericRow(false),
+            ROWTIME
         )
     );
 
@@ -91,13 +94,15 @@ public class TableRowsEntityFactoryTest {
             SIMPLE_SCHEMA,
             StructKeyUtil.asStructKey("x"),
             window0,
-            new GenericRow(true)
+            new GenericRow(true),
+            ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
             StructKeyUtil.asStructKey("y"),
             window1,
-            new GenericRow(false)
+            new GenericRow(false),
+            ROWTIME
         )
     );
 
@@ -121,7 +126,7 @@ public class TableRowsEntityFactoryTest {
     GenericRow row = new GenericRow(newColumns);
 
     final Builder<Row> builder = ImmutableList.builder();
-    builder.add(Row.of(SCHEMA_NULL, StructKeyUtil.asStructKey("k"), row));
+    builder.add(Row.of(SCHEMA_NULL, StructKeyUtil.asStructKey("k"), row, ROWTIME));
 
     // When:
     final List<List<?>> output = TableRowsEntityFactory.createRows(builder.build());

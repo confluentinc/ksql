@@ -24,6 +24,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 
 /**
  * Kafka Streams impl of {@link MaterializedTable}.
@@ -41,11 +42,11 @@ class KsMaterializedTable implements MaterializedTable {
       final Struct key
   ) {
     try {
-      final ReadOnlyKeyValueStore<Struct, GenericRow> store = stateStore
-          .store(QueryableStoreTypes.keyValueStore());
+      final ReadOnlyKeyValueStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedKeyValueStore());
 
       return Optional.ofNullable(store.get(key))
-          .map(v -> Row.of(stateStore.schema(), key, v));
+          .map(v -> Row.of(stateStore.schema(), key, v.value(), v.timestamp()));
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }

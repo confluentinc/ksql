@@ -211,7 +211,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY);
 
     // Then:
-    verify(filter).apply(A_KEY, A_VALUE, PullProcessingContext.INSTANCE);
+    verify(filter).apply(A_KEY, A_VALUE, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -224,7 +224,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(filter).apply(A_KEY, A_VALUE, PullProcessingContext.INSTANCE);
+    verify(filter).apply(A_KEY, A_VALUE, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -324,7 +324,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY);
 
     // Then:
-    verify(filter).apply(A_KEY, TRANSFORMED, PullProcessingContext.INSTANCE);
+    verify(filter).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -338,7 +338,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(filter).apply(A_KEY, TRANSFORMED, PullProcessingContext.INSTANCE);
+    verify(filter).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")

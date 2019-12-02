@@ -15,19 +15,38 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
-import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
+@Immutable
 public final class PullProcessingContext implements KsqlProcessingContext {
 
-  public static final PullProcessingContext INSTANCE = new PullProcessingContext();
+  private final long rowTime;
 
-  private PullProcessingContext() {
+  public PullProcessingContext(final long rowTime) {
+    this.rowTime = rowTime;
   }
 
   @Override
   public long getRowTime() {
-    throw new KsqlException("ROWTIME is not currently exposed by pull queries. "
-        + "See https://github.com/confluentinc/ksql/issues/3623.");
+    return rowTime;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PullProcessingContext that = (PullProcessingContext) o;
+    return rowTime == that.rowTime;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(rowTime);
   }
 }

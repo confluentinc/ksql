@@ -601,7 +601,7 @@ public final class PullQueryExecutor {
       final GenericRow mapped = transformer.transform(
           r.key(),
           intermediate,
-          PullProcessingContext.INSTANCE
+          new PullProcessingContext(r.rowTime())
       );
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());

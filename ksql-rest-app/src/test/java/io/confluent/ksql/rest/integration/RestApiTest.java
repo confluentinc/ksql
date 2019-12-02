@@ -61,6 +61,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.jetty.websocket.api.Session;
@@ -245,10 +247,13 @@ public class RestApiTest {
     assertThat(messages.get(0),
         is("["
             + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
             + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
-    assertThat(messages.get(1),
-        is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
+
+    final Pattern rowPattern = Pattern.compile("\\{\"row\":\\{\"columns\":\\[\"USER_1\",\\d+,1]}}");
+    final Matcher matcher = rowPattern.matcher(messages.get(1));
+    assertThat(messages.get(1) + " should match pattern " + rowPattern, matcher.matches());
   }
 
   @Test

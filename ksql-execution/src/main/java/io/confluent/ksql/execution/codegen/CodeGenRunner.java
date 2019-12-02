@@ -141,19 +141,13 @@ public class CodeGenRunner {
       this.spec = new CodeGenSpec.Builder();
     }
 
-    private void addParameter(Column schemaColumn) {
-      spec.addParameter(
-          schemaColumn.ref(),
-          SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaColumn.type()),
-          schemaColumn.index()
-      );
-    }
-
+    @Override
     public Void visitLikePredicate(LikePredicate node, Void context) {
       process(node.getValue(), null);
       return null;
     }
 
+    @Override
     public Void visitFunctionCall(FunctionCall node, Void context) {
       List<SqlType> argumentTypes = new ArrayList<>();
       FunctionName functionName = node.getName();
@@ -176,7 +170,7 @@ public class CodeGenRunner {
     public Void visitSubscriptExpression(SubscriptExpression node, Void context) {
       if (node.getBase() instanceof ColumnReferenceExp) {
         ColumnReferenceExp arrayBaseName = (ColumnReferenceExp) node.getBase();
-        addParameter(getRequiredColumn(arrayBaseName.getReference()));
+        addRequiredColumn(arrayBaseName.getReference());
       } else {
         process(node.getBase(), context);
       }
@@ -186,7 +180,7 @@ public class CodeGenRunner {
 
     @Override
     public Void visitColumnReference(ColumnReferenceExp node, Void context) {
-      addParameter(getRequiredColumn(node.getReference()));
+      addRequiredColumn(node.getReference());
       return null;
     }
 
@@ -211,12 +205,18 @@ public class CodeGenRunner {
       return null;
     }
 
-    private Column getRequiredColumn(ColumnRef target) {
-      return schema.findValueColumn(target)
-          .orElseThrow(() -> new RuntimeException(
+    private void addRequiredColumn(final ColumnRef columnRef) {
+      final Column column = schema.findValueColumn(columnRef)
+          .orElseThrow(() -> new KsqlException(
               "Cannot find the select field in the available fields."
-                  + " field: " + target
+                  + " field: " + columnRef
                   + ", schema: " + schema.value()));
+
+      spec.addParameter(
+          column.ref(),
+          SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
+          column.index()
+      );
     }
   }
 }

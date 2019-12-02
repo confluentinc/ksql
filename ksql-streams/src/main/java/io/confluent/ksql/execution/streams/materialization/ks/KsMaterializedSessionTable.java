@@ -79,7 +79,14 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
               Optional.of(next.key.window().endTime())
           );
 
-          builder.add(WindowedRow.of(stateStore.schema(), key, window, next.value));
+          final WindowedRow row = WindowedRow.of(
+              stateStore.schema(),
+              key, window,
+              next.value,
+              next.key.window().end()
+          );
+
+          builder.add(row);
         }
       }
 

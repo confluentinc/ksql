@@ -57,6 +57,7 @@ public class RowTest {
       .put("k1", 11);
 
   private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final long A_ROWTIME = 1283535L;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -64,6 +65,7 @@ public class RowTest {
   @Mock
   private Validator validator;
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPE() {
     new NullPointerTester()
@@ -73,6 +75,7 @@ public class RowTest {
         .testStaticMethods(Row.class, Visibility.PROTECTED);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     final LogicalSchema differentSchema = LogicalSchema.builder()
@@ -84,17 +87,20 @@ public class RowTest {
 
     new EqualsTester()
         .addEqualityGroup(
-            Row.of(SCHEMA, A_KEY, A_VALUE),
-            Row.of(SCHEMA, A_KEY, A_VALUE)
+            Row.of(SCHEMA, A_KEY, A_VALUE, A_ROWTIME),
+            Row.of(SCHEMA, A_KEY, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            Row.of(differentSchema, A_KEY, A_VALUE)
+            Row.of(differentSchema, A_KEY, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            Row.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_VALUE)
+            Row.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            Row.of(SCHEMA, A_KEY, new GenericRow(null, null))
+            Row.of(SCHEMA, A_KEY, new GenericRow(null, null), A_ROWTIME)
+        )
+        .addEqualityGroup(
+            Row.of(SCHEMA, A_KEY, A_VALUE, -1L)
         )
         .testEquals();
   }
@@ -102,7 +108,7 @@ public class RowTest {
   @Test
   public void shouldValidateOnConstruction() {
     // When:
-    new Row(SCHEMA, A_KEY, A_VALUE, validator);
+    new Row(SCHEMA, A_KEY, A_VALUE, A_ROWTIME, validator);
 
     // Then:
     verify(validator).validate(SCHEMA, A_KEY, A_VALUE);
@@ -112,7 +118,7 @@ public class RowTest {
   @Test
   public void shouldValidateOnCopy() {
     // Given:
-    final Row row = new Row(SCHEMA, A_KEY, A_VALUE, validator);
+    final Row row = new Row(SCHEMA, A_KEY, A_VALUE, A_ROWTIME, validator);
     clearInvocations(validator);
 
     // When:

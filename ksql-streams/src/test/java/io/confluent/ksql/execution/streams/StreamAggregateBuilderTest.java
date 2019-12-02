@@ -652,8 +652,8 @@ public class StreamAggregateBuilderTest {
 
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
     assertThat(info.stateStoreName(), equalTo("agg-regate"));
-    assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA.withoutMetaColumns()));
-    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA.withoutMetaColumns()));
+    assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA));
+    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));
 
     final MapperInfo aggMapInfo = (MapperInfo) info.getTransforms().get(0);

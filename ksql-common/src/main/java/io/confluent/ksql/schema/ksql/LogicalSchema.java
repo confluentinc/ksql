@@ -161,24 +161,6 @@ public final class LogicalSchema {
   }
 
   /**
-   * Returns a copy of this schema with not meta columns.
-   *
-   * <p>The order of columns is maintained
-   *
-   * @return the new schema.
-   */
-  public LogicalSchema withoutMetaColumns() {
-    final Builder builder = builder()
-        .noImplicitColumns();
-
-    columns.stream()
-        .filter(col -> col.namespace() != Namespace.META)
-        .forEachOrdered(builder::addColumn);
-
-    return builder.build();
-  }
-
-  /**
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {

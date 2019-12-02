@@ -17,7 +17,6 @@ package io.confluent.ksql.materialization.ks;
 
 import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -218,11 +217,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(
-          "expected key",
-          table.get(key),
-          is(Optional.of(Row.of(schema.withoutMetaColumns(), key, value)))
-      );
+
+      final Optional<Row> row = table.get(key);
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
@@ -252,11 +251,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(
-          "expected key",
-          table.get(key),
-          is(Optional.of(Row.of(schema.withoutMetaColumns(), key, value)))
-      );
+
+      final Optional<Row> row = table.get(key);
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
@@ -290,22 +289,20 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), Optional.empty());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      assertThat(
-          "at exact window start",
-          table.get(key, Range.singleton(w.start())),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      assertThat("at exact window start", resultAtWindowStart, hasSize(1));
+      assertThat(resultAtWindowStart.get(0).schema(), is(schema));
+      assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
+      assertThat(resultAtWindowStart.get(0).key(), is(key));
+      assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      assertThat(
-          "range including window start",
-          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultFromRange = table
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      assertThat(
-          "past start",
-          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
-          is(empty())
+      final List<WindowedRow> resultPast = table
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      assertThat("past start", resultPast, is(empty())
       );
     });
   }
@@ -338,23 +335,20 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), Optional.empty());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      assertThat(
-          "at exact window start",
-          table.get(key, Range.singleton(w.start())),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      assertThat("at exact window start", resultAtWindowStart, hasSize(1));
+      assertThat(resultAtWindowStart.get(0).schema(), is(schema));
+      assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
+      assertThat(resultAtWindowStart.get(0).key(), is(key));
+      assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      assertThat(
-          "range including window start",
-          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultFromRange = table
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      assertThat(
-          "past start",
-          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
-          is(empty())
-      );
+      final List<WindowedRow> resultPast = table
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      assertThat("past start", resultPast, is(empty()));
     });
   }
 
@@ -385,23 +379,20 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), Optional.of(k.window().endTime()));
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      assertThat(
-          "at exact window start",
-          table.get(key, Range.singleton(w.start())),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      assertThat("at exact window start", resultAtWindowStart, hasSize(1));
+      assertThat(resultAtWindowStart.get(0).schema(), is(schema));
+      assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
+      assertThat(resultAtWindowStart.get(0).key(), is(key));
+      assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      assertThat(
-          "range including window start",
-          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
-          contains(WindowedRow.of(schema.withoutMetaColumns(), key, w, v))
-      );
+      final List<WindowedRow> resultFromRange = table
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      assertThat(
-          "past start",
-          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
-          is(empty())
-      );
+      final List<WindowedRow> resultPast = table
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      assertThat("past start", resultPast, is(empty()));
     });
   }
 
@@ -413,6 +404,7 @@ public class KsMaterializationFunctionalTest {
             + " SELECT USERID, COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
     );
+
 
     final LogicalSchema schema = schema(
         "USERID", SqlTypes.STRING,
@@ -433,7 +425,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(table.get(key), is(Optional.of(Row.of(schema.withoutMetaColumns(), key, value))));
+
+      final Optional<Row> row = table.get(key);
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
   }
 
@@ -463,7 +459,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(table.get(key), is(Optional.of(Row.of(schema.withoutMetaColumns(), key, value))));
+
+      final Optional<Row> row = table.get(key);
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
   }
 
@@ -492,10 +492,13 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> row = Optional.ofNullable(value)
-          .map(v -> Row.of(schema.withoutMetaColumns(), key, v));
+      final Optional<Row> expected = Optional.ofNullable(value)
+          .map(v -> Row.of(schema, key, v, -1L));
 
-      assertThat(table.get(key), is(row));
+      final Optional<Row> row = table.get(key);
+      assertThat(row.map(Row::schema), is(expected.map(Row::schema)));
+      assertThat(row.map(Row::key), is(expected.map(Row::key)));
+      assertThat(row.map(Row::value), is(expected.map(Row::value)));
     });
   }
 

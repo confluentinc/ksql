@@ -60,9 +60,16 @@ public final class TableRowsEntityFactory {
       final LogicalSchema schema,
       final Optional<WindowType> windowType
   ) {
+    final LogicalSchema adjusted = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumns(schema.key())
+        .valueColumns(schema.metadata())
+        .valueColumns(schema.value())
+        .build();
+
     return windowType
-        .map(wt -> addWindowFieldsIntoSchema(wt, schema))
-        .orElse(schema);
+        .map(wt -> addWindowFieldsIntoSchema(wt, adjusted))
+        .orElse(adjusted);
   }
 
   private static LogicalSchema addWindowFieldsIntoSchema(
@@ -74,6 +81,7 @@ public final class TableRowsEntityFactory {
         : TIME_WINDOW_COLUMNS;
 
     return LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumns(schema.key())
         .keyColumns(additionalKeyCols)
         .valueColumns(schema.value())
@@ -89,6 +97,8 @@ public final class TableRowsEntityFactory {
       rowList.add(window.start().toEpochMilli());
       window.end().map(Instant::toEpochMilli).ifPresent(rowList::add);
     });
+
+    rowList.add(row.rowTime());
 
     rowList.addAll(row.value().getColumns());
 

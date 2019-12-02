@@ -90,6 +90,7 @@ public class KsStateStoreTest {
         .thenReturn(TIMEOUT_MS);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -218,17 +219,5 @@ public class KsStateStoreTest {
 
     // Then:
     assertThat(result, is(windowStore));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsMetaColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("v0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new KsStateStore(STORE_NAME, kafkaStreams, schema, ksqlConfig, clock);
   }
 }

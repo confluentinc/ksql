@@ -91,7 +91,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -197,10 +196,7 @@ public final class PullQueryExecutor {
         outputSchema = TableRowsEntityFactory.buildSchema(result.schema, mat.windowType());
         rows = TableRowsEntityFactory.createRows(result.rows);
       } else {
-        final LogicalSchema.Builder schemaBuilder =
-            selectSchemaBuilder(result, executionContext, analysis);
-
-        outputSchema = schemaBuilder.build();
+        outputSchema = selectOutputSchema(result, executionContext, analysis);
 
         rows = handleSelects(
             result,
@@ -544,20 +540,29 @@ public final class PullQueryExecutor {
       final QueryId queryId,
       final Stacker contextStacker
   ) {
+    final boolean referencesRowTime = analysis.getSelectColumnRefs().stream()
+        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWTIME_NAME));
+
+    final boolean referencesRowKey = analysis.getSelectColumnRefs().stream()
+        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWKEY_NAME));
+
     final LogicalSchema intermediateSchema;
-    final BiFunction<Struct, GenericRow, GenericRow> preSelectTransform;
-    if (outputSchema.key().isEmpty()) {
+    final PreSelectTransformer preSelectTransform;
+    if (!referencesRowTime && !referencesRowKey) {
       intermediateSchema = input.schema;
-      preSelectTransform = (key, value) -> value;
+      preSelectTransform = (rowTime, key, value) -> value;
     } else {
-      // SelectValueMapper requires the key fields in the value schema :(
+      // SelectValueMapper requires the rowTime & key fields in the value schema :(
       intermediateSchema = LogicalSchema.builder()
           .keyColumns(input.schema.key())
           .valueColumns(input.schema.value())
+          .valueColumns(input.schema.metadata())
           .valueColumns(input.schema.key())
           .build();
 
-      preSelectTransform = (key, value) -> {
+      preSelectTransform = (rowTime, key, value) -> {
+        value.getColumns().add(rowTime);
+
         key.schema().fields().forEach(f -> {
           final Object keyField = key.get(f);
           value.getColumns().add(keyField);
@@ -591,14 +596,13 @@ public final class PullQueryExecutor {
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
-      final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
+      final GenericRow intermediate = preSelectTransform.transform(r.rowTime(), r.key(), r.value());
 
       final GenericRow mapped = transformer.transform(
           r.key(),
           intermediate,
           PullProcessingContext.INSTANCE
       );
-
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());
     });
@@ -620,7 +624,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static LogicalSchema.Builder selectSchemaBuilder(
+  private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
       final Analysis analysis
@@ -643,7 +647,7 @@ public final class PullQueryExecutor {
         schemaBuilder.valueColumn(select.getAlias(), type);
       }
     }
-    return schemaBuilder;
+    return schemaBuilder.build();
   }
 
   private static PersistentQueryMetadata findMaterializingQuery(
@@ -792,5 +796,14 @@ public final class PullQueryExecutor {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
     key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
     return key;
+  }
+
+  private interface PreSelectTransformer {
+
+    GenericRow transform(
+        long rowTime,
+        Struct readOnlyKey,
+        GenericRow value
+    );
   }
 }

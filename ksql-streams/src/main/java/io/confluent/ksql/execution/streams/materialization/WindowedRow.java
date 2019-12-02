@@ -31,15 +31,17 @@ public final class WindowedRow implements TableRow {
   private final Window window;
   private final Struct key;
   private final GenericRow value;
+  private final long rowTime;
   private final Validator validator;
 
   public static WindowedRow of(
       final LogicalSchema schema,
       final Struct key,
       final Window window,
-      final GenericRow value
+      final GenericRow value,
+      final long rowTime
   ) {
-    return new WindowedRow(schema, key, window, value, TableRowValidation::validate);
+    return new WindowedRow(schema, key, window, value, rowTime, TableRowValidation::validate);
   }
 
   @VisibleForTesting
@@ -48,12 +50,14 @@ public final class WindowedRow implements TableRow {
       final Struct key,
       final Window window,
       final GenericRow value,
+      final long rowTime,
       final Validator validator
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.key = requireNonNull(key, "key");
     this.window = requireNonNull(window, "window");
     this.value = requireNonNull(value, "value");
+    this.rowTime = rowTime;
     this.validator = requireNonNull(validator, "validator");
 
     validator.validate(schema, key, value);
@@ -62,6 +66,11 @@ public final class WindowedRow implements TableRow {
   @Override
   public LogicalSchema schema() {
     return schema;
+  }
+
+  @Override
+  public long rowTime() {
+    return rowTime;
   }
 
   @Override
@@ -89,6 +98,7 @@ public final class WindowedRow implements TableRow {
         key,
         window,
         newValue,
+        rowTime,
         validator
     );
   }
@@ -105,12 +115,13 @@ public final class WindowedRow implements TableRow {
     return Objects.equals(schema, that.schema)
         && Objects.equals(key, that.key)
         && Objects.equals(window, that.window)
-        && Objects.equals(value, that.value);
+        && Objects.equals(value, that.value)
+        && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, window, value, schema);
+    return Objects.hash(key, window, value, schema, rowTime);
   }
 
   @Override
@@ -119,6 +130,7 @@ public final class WindowedRow implements TableRow {
         + "key=" + key
         + ", window=" + window
         + ", value=" + value
+        + ", rowTime=" + rowTime
         + ", schema=" + schema
         + '}';
   }

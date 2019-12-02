@@ -41,14 +41,17 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.state.QueryableStoreTypes.WindowStoreType;
+import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,15 +70,24 @@ public class KsMaterializedWindowTableTest {
       Instant.now().plusSeconds(10)
   );
 
+  private static final ValueAndTimestamp<GenericRow> VALUE_1 = ValueAndTimestamp
+      .make(new GenericRow("col0"), 12345L);
+  private static final ValueAndTimestamp<GenericRow> VALUE_2 = ValueAndTimestamp
+      .make(new GenericRow("col1"), 45678L);
+  private static final ValueAndTimestamp<GenericRow> VALUE_3 = ValueAndTimestamp
+      .make(new GenericRow("col2"), 987865L);
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlyWindowStore<Struct, GenericRow> tableStore;
+  private ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> tableStore;
   @Mock
-  private WindowStoreIterator<GenericRow> fetchIterator;
+  private WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchIterator;
+  @Captor
+  private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 
   private KsMaterializedWindowTable table;
 
@@ -88,6 +100,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -124,14 +137,14 @@ public class KsMaterializedWindowTableTest {
     table.get(A_KEY, WINDOW_START_BOUNDS);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(stateStore).store(any(WindowStoreType.class));
+    verify(stateStore).store(storeTypeCaptor.capture());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedWindowStoreType"));
   }
 
   @Test
@@ -173,17 +186,14 @@ public class KsMaterializedWindowTableTest {
         Instant.now().plusSeconds(10)
     );
 
-    final GenericRow value1 = new GenericRow("col0");
-    final GenericRow value2 = new GenericRow("col1");
-
     when(fetchIterator.hasNext())
         .thenReturn(true)
         .thenReturn(true)
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), value1))
-        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), value2))
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), VALUE_2))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
@@ -193,8 +203,20 @@ public class KsMaterializedWindowTableTest {
 
     // Then:
     assertThat(result, contains(
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(bounds.lowerEndpoint(), Optional.empty()), value1),
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(bounds.upperEndpoint(), Optional.empty()), value2)
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(bounds.lowerEndpoint(), Optional.empty()),
+            VALUE_1.value(),
+            VALUE_1.timestamp()
+        ),
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(bounds.upperEndpoint(), Optional.empty()),
+            VALUE_2.value(),
+            VALUE_2.timestamp()
+        )
     ));
   }
 
@@ -206,10 +228,6 @@ public class KsMaterializedWindowTableTest {
         Instant.now().plusSeconds(10)
     );
 
-    final GenericRow value1 = new GenericRow("col0");
-    final GenericRow value2 = new GenericRow("col1");
-    final GenericRow value3 = new GenericRow("col2");
-
     when(fetchIterator.hasNext())
         .thenReturn(true)
         .thenReturn(true)
@@ -217,9 +235,9 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), value1))
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().plusMillis(1).toEpochMilli(), value2))
-        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), value3))
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().plusMillis(1).toEpochMilli(), VALUE_2))
+        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), VALUE_3))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
@@ -233,7 +251,8 @@ public class KsMaterializedWindowTableTest {
             SCHEMA,
             A_KEY,
             Window.of(bounds.lowerEndpoint().plusMillis(1), Optional.empty()),
-            value2
+            VALUE_2.value(),
+            VALUE_2.timestamp()
         )
     ));
   }
@@ -250,9 +269,9 @@ public class KsMaterializedWindowTableTest {
     final Instant start = WINDOW_START_BOUNDS.lowerEndpoint();
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(start.toEpochMilli(), new GenericRow("a")))
-        .thenReturn(new KeyValue<>(start.plusMillis(1).toEpochMilli(), new GenericRow("b")))
-        .thenReturn(new KeyValue<>(start.plusMillis(2).toEpochMilli(), new GenericRow("c")))
+        .thenReturn(new KeyValue<>(start.toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(start.plusMillis(1).toEpochMilli(), VALUE_2))
+        .thenReturn(new KeyValue<>(start.plusMillis(2).toEpochMilli(), VALUE_3))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
@@ -266,19 +285,22 @@ public class KsMaterializedWindowTableTest {
             SCHEMA,
             A_KEY,
             Window.of(start, Optional.empty()),
-            new GenericRow("a")
+            VALUE_1.value(),
+            VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
             Window.of(start.plusMillis(1), Optional.empty()),
-            new GenericRow("b")
+            VALUE_2.value(),
+            VALUE_2.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
             Window.of(start.plusMillis(2), Optional.empty()),
-            new GenericRow("c")
+            VALUE_3.value(),
+            VALUE_3.timestamp()
         )
     ));
   }

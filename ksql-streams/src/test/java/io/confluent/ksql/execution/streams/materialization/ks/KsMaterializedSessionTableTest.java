@@ -103,6 +103,7 @@ public class KsMaterializedSessionTableTest {
     when(fetchIterator.next()).thenAnswer(inv -> sessions.get(sessionIdx++));
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -207,7 +208,8 @@ public class KsMaterializedSessionTableTest {
         UPPER_INSTANT
     );
 
-    givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
+    final Instant wend = LOWER_INSTANT.plusMillis(1);
+    givenSingleSession(LOWER_INSTANT, wend);
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, startBounds);
@@ -216,8 +218,9 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT.plusMillis(1))),
-        A_VALUE
+        Window.of(LOWER_INSTANT, Optional.of(wend)),
+        A_VALUE,
+        wend.toEpochMilli()
     )));
   }
 
@@ -246,7 +249,8 @@ public class KsMaterializedSessionTableTest {
         UPPER_INSTANT
     );
 
-    givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
+    final Instant wend = UPPER_INSTANT.plusMillis(1);
+    givenSingleSession(UPPER_INSTANT, wend);
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, startBounds);
@@ -255,8 +259,9 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT.plusMillis(1))),
-        A_VALUE
+        Window.of(UPPER_INSTANT, Optional.of(wend)),
+        A_VALUE,
+        wend.toEpochMilli()
     )));
   }
 
@@ -280,7 +285,8 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnValueIfSessionStartsBetweenBounds() {
     // Given:
-    givenSingleSession(LOWER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(5));
+    final Instant wend = UPPER_INSTANT.plusMillis(5);
+    givenSingleSession(LOWER_INSTANT.plusMillis(1), wend);
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
@@ -289,8 +295,9 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(LOWER_INSTANT.plusMillis(1), Optional.of(UPPER_INSTANT.plusMillis(5))),
-        A_VALUE
+        Window.of(LOWER_INSTANT.plusMillis(1), Optional.of(wend)),
+        A_VALUE,
+        wend.toEpochMilli()
     )));
   }
 
@@ -298,8 +305,10 @@ public class KsMaterializedSessionTableTest {
   public void shouldReturnMultipleSessions() {
     // Given:
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.plusSeconds(1));
-    givenSingleSession(LOWER_INSTANT, LOWER_INSTANT);
-    givenSingleSession(UPPER_INSTANT, UPPER_INSTANT);
+    final Instant wend0 = LOWER_INSTANT;
+    givenSingleSession(LOWER_INSTANT, wend0);
+    final Instant wend1 = UPPER_INSTANT;
+    givenSingleSession(UPPER_INSTANT, wend1);
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
@@ -307,8 +316,20 @@ public class KsMaterializedSessionTableTest {
 
     // Then:
     assertThat(result, contains(
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT)), A_VALUE),
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT)), A_VALUE)
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(LOWER_INSTANT, Optional.of(wend0)),
+            A_VALUE,
+            wend0.toEpochMilli()
+        ),
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(UPPER_INSTANT, Optional.of(wend1)),
+            A_VALUE,
+            wend1.toEpochMilli()
+        )
     ));
   }
 

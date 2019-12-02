@@ -5,20 +5,25 @@
 **Status**: _In Discussion_
 **Discussion**: _link to the design discussion PR_
 
-**tl;dr:** Enables high-availability for Ksql servers in case of failures. Sacrifices consistency, by serving stale data from laggy standbys in the name of availability. Improves upon the current architecture where in case of failure of the active ksql server, there is a window of several seconds (10+) to minutes of unavailability due to the rebalancing procedure.
+**tl;dr:** Enables high-availability for Ksql pull queries, in case of server failures. Current design for handling failure of an active ksql server, incurs an unavailability period of several seconds (10+) to few minutes due to the Streams rebalancing procedure. This work is based on new Kafka Streams APIs, 
+introduced as a part of [KIP-535](https://cwiki.apache.org/confluence/display/KAFKA/KIP-535%3A+Allow+state+stores+to+serve+stale+reads+during+rebalance), which allow serving stale data from standby replicas to achieve high availability, while providing eventual consistency. 
 
 ## Motivation and background
 
-Assume we have a load balancer (LB) and a cluster of three KSQL servers (A, B, C) where `A` is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic partition and writes these updates to its state store and changelog topic. The changelog topic is replicated into the state store of servers `B` and `C`. Note, every Ksql server is the active for some partitions and standby for others. Without loss of generality, we will focus on one partition for now.
+Assume we have a load balancer (LB) and a cluster of three KSQL servers (A, B, C) where `A` is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic partition and writes these updates to its state store and changelog topic. The changelog topic is replicated into the state store of servers `B` and `C`.
+Note, every Ksql server is the active for some partitions and standby for others. Without loss of generality, we will focus on one partition for now.
 
 Now assume  LB receives a pull query (1) and sends the query to `B` (2). `B` determines that `A` is the active server and forwards the request to `A` (3). A executes the query successfully and returns the response.
 
-Failure scenario: Assume that `A` goes down. `B` receives the request, tries to forward it to `A` and fails. What to do now? The current implementation tries to forward the request to `A` (in a busy loop) for a configurable timeout `KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS` . If it has not succeeded in this timeout, the request fails. The next request `B` receives, it will again try to forward it to `A`, since `A` is still the active, and it will fail again. This will happen until rebalancing completes. 
+Failure scenario: Assume that `A` goes down. `B` receives the request, tries to forward it to `A` and fails. What to do now? The current implementation tries to forward the request to `A` (in a busy loop) for a configurable timeout `KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS` . If it has not succeeded in this timeout, the request fails. 
+The next request `B` receives, it will again try to forward it to `A`, since `A` is still the active, and it will fail again. This will happen until rebalancing completes and a new active is elected for the partition. 
 
-There are two steps in the rebalancing procedure that are expensive: 1) One of `B` or `C` is picked as the new active, this takes ~10 seconds based on default configs. 2) Once a new active is chosen, depending on how far behind (lag) it is with respect to the changelog, it may take up  few seconds or even minutes before the standby has fully caught up to the last committed offset. In total, it takes >>10 seconds before a query can start succeeding again.
- 
-What can we do until a new active is ready to serve requests? 
-[KIP-535](https://cwiki.apache.org/confluence/display/KAFKA/KIP-535%3A+Allow+state+stores+to+serve+stale+reads+during+rebalance) has laid the groundwork to allow us to serve requests from standbys, even if they have not caught up to the last committed offset of the active. 
+There are two steps in the rebalancing procedure that are expensive: 
+  1) One of `B` or `C` is picked as the new active, this takes ~10 seconds based on default configs. 
+  2) Once a new active is chosen, depending on how far behind (lag) it is with respect to the changelog, it may take up  few seconds or even minutes before the standby has fully caught up to the last committed offset. 
+
+In total, it takes >>10 seconds before a query can start succeeding again. What can we do until a new active is ready to serve requests? 
+[KIP-535](https://cwiki.apache.org/confluence/display/KAFKA/KIP-535%3A+Allow+state+stores+to+serve+stale+reads+during+rebalance) has laid the groundwork to allow us to serve requests from standbys, even if they are still in rebalancing state or have not caught up to the last committed offset of the active. 
 
 Every ksql server now has the information of:
 
@@ -29,30 +34,28 @@ This information allows each server (with some communication, discussed below) t
 
 
 ## What is in scope
-
-Ensure availability for pull queries when the active KSQL server fails.
+Ensure availability for pull queries when KSQL servers fail (with `ksql.streams.num.standby.replicas=N`, we can tolerate upto N such failures) 
 
 ## What is not in scope
 
-_What we explicitly do not want to cover in this proposal, and why._
-
-> We will not ______ because ______.  Example: "We will not tackle Protobuf support in this proposal 
-> because we must use schema registry, and the registry does not support Protobuf yet."
+- Address unavailability caused by cold starts of KSQL server i.e when a new server is added to a KSQL cluster, it must first rebuild its state off the changelog topics and that process still could take a long time. 
+- Try to improve consistency guarantees provided by KSQL i.e reduce the amount of time it takes to rebalance or standby replication to catch up. 
 
 ## Value/Return
 
-The cluster of KSQl server will be able to serve requests even when the active is down. Hence, pull queries will not fail during the time window required by rebalancing. 
+The cluster of KSQl server will be able to serve requests even when the active is down. This mitigates a large current gap in deploying KSQL pull queries for mission critical use-cases, by significantly reducing failure rate of pull queries during server failures.
 
 ## Public APIS
 No change to public APIs
 
 ## Design
 
-The problem at hand is how to determine if a server is down and where to route a request when the active is down. Every KSQL server must have available the information of what other KSQL servers exist in the cluster, their status and their lag per topic partition. There are three components to this: Healthchecking, Lag reporting and Lag-aware routing.  
+The problem at hand is how to determine if a server is down and where to route a request when it is down. Every KSQL server must have available the information of what other KSQL servers exist in the cluster, their status and their lag per topic partition. There are three components to this: Healthchecking, Lag reporting and Lag-aware routing.  
 
-***Failure detection/Healthcheck***
+### Failure detection/Healthcheck
 
-Failure detection/ healthcheck is implemented via a periodic hearbeat. KSQL servers either broadcast their heartbeat (N^2 interconnections with N KSQL servers) or we implement a gossip protocol. In the initial implementation, we will use the REST API to send heartbeats leveraging the N^2 mesh that already exists between KSQL servers. Hence, we will implement a new REST endpoint, `/heartbeat` that will register the requests(hearbeats) a server receives from other servers. 
+Failure detection/ healthcheck is implemented via a periodic hearbeat. KSQL servers either broadcast their heartbeat (N^2 interconnections with N KSQL servers) or we implement a gossip protocol. In the initial implementation, we will use the REST API to send heartbeats leveraging the N^2 mesh that already exists between KSQL servers. 
+Hence, we will implement a new REST endpoint, `/heartbeat` that will register the heartbeats a server receives from other servers. 
 
 We want to guarantee 99% uptime. This means that in a 5 minute window, it must take no longer than 2 seconds to determine the active server is down and to forward the request to one of the standbys. The heartbeats must be light-weight so that we can send multiple heartbeats per second which will provide us with more datapoints required to implement a well-informed policy for determining when a server is up and when down.
 
@@ -60,7 +63,9 @@ Configuration parameters:
 1) Heartbeat INTERVAL (e.g send heartbeat every 200 ms)
 2) Heartbeat WINDOW (e.g every 2 seconds, count the missed/received heartbeats and determine if server is down/up)
 3) MISSED_THRESHOLD: How many heartbeats in a row constitute a node as down (e.g. 3 missed heartbeats = server is down)
-4) RECEIVED_THRESHOLD: How many heartbeats in a row constitute a node as up (e.g. 5 received heartbeats = server is up)
+4) RECEIVED_THRESHOLD: How many heartbeats in a row constitute a node as up (e.g. 2 received heartbeats = server is up)
+
+We will provide sane defaults out-of-box, to achieve a 99% uptime.
 
 Pseudocode for REST endpoint for `/heartbeat`:
 ```java
@@ -96,11 +101,11 @@ while (true) {
 }
 ```
 
-***Lag reporting***
+### Lag reporting
 
-Every server neeeds to periodically broadcast their local lag information. We will implement a new REST endpoint `/reportLag`. The lag information at a server is obtained via `Map<String, Map<Integer, Long>> localLagMap = kafkaStreams.allLocalOffsetLags();`.
+Every server neeeds to periodically broadcast their local lag information. We will implement a new REST endpoint `/reportlag`. The lag information at a server is obtained via `Map<String, Map<Integer, Long>> localLagMap = kafkaStreams.allLocalOffsetLags();`.
 
-Pseudocode for REST endpoint for `/reportLag`:
+Pseudocode for REST endpoint for `/reportlag`:
 ```java
 Map<KsqlServer, Map<String, Map<Integer, Long>> globalLagMap;
 
@@ -116,7 +121,7 @@ private LagReportResponse processRequest() {
 }
 ``` 
 
-***Lag-aware routing***
+### Lag-aware routing
 
 Given the above information (alive + lag), how does a KSQL server decide to which standby to route the request? Every server knows the lag of all partitions hosted by all servers in the cluster. This allows us to implement lag-aware routing where server `B` can a) determine that server `A` is down and b) decide whether it will serve the request itself or forward it to `C` depending on who has the smallest lag for the given key in the pull query. 
 
@@ -155,19 +160,18 @@ if (serverStatus.get(queryMetadata.getActiveHost())) {
   }
 ```
 
-***Discussion***
+We will also introduce a configuration `ksql.query.pull.acceptable.offset.lag`, that will provide applications the ability to control how much stale data it is willing to tolerate, for sake of availability. If a standby lags behind by more than the tolerable limit, pull queries will fail. This is a very useful knob to handle 
+the scenario of cold start explained above. In such a case, a newly added KSQL server could be lagging by a lot as it rebuilds the entire state and thus the usefulness of the data returned by pull queries may diminish significantly.
 
-Advantages:
+### Tradeoffs
+1. We decouple the failure detection mechanism from the lag reporting to make the heartbeats light-weight and achieve smaller heartbeat interval. This way, heartbeats can be sent at a higher interval than lag information (which is much larger in size). As our goal is to achieve high-availability, 
+receiving less frequent lag updates is ok as this affects consistency and not availability.
+2. We decouple routing decision from healthchecking. The decision of where to route a query is local (i.e. does not require remote calls) as the information about the status of other servers is already there. This provides flexibility in changing the lag reporting mechanism down the line more easily.
+3. We choose to keep the initial design simple (no request based failure detection, gossip protocols) and closer to choices made in Kafka/Kafka Streams (no Zookeeper based failure detection), for ease of deployment and troubleshooting. 
 
-1. We decouple the failure detection mechanism from the lag reporting to make the heartbeats light-weight and achieve smaller heartbeat interval. This way, hearbeats can be sent at a higher interval than lag information (which is much larger in size). As our goal is to achieve high-availability, receiving less frequent lag updates is ok as this affects consistency and not availability.
-2. We decouple routing decision from healthchecking. The decision of where to route a query is local (i.e. does not require remote calls) as the information about the status of other servers is already there. 
+### Rejected/Alternate approaches
 
-Drawbacks:
-
-1. Lag information is trasmitted even when the active is up resulting in a lot of network communication. To address this, we can send only the delta of lag information (only what has changed from the previous time).
-
-***Rejected approach***
-
+#### Retrieve lag information on-demand
 We employ a pull model where servers don't explicitly send a hearbeat or their lag information. Rather, communication happens only when needed, i.e. when a server tries to forward a request to another server. When server `B` issues the first request to `A`, it needs to determine whether `A` is down. 
 
 Configuration parameters:
@@ -181,14 +185,23 @@ Once `B` has determined that server `A` is down, it needs to determine what othe
 **Discussion**
 
 Advantages:
-
 1. Less communication overhead: Lag information is exchanged only when the active is down. Moreover, it is piggy-backed on the request. 
 
 Drawbacks:
-
-1. All standbys evaluate the query.
+1. All standbys need to evaluate the query.
 2. The communication between `B` and `C` involves large messages as they contain the query result (can be many rows).
 3. Latency for a request increases dramatically as routing decision is not local and blocks on healthchecking. `B` needs to wait until `A`'s response times out, then wait to receive a response from `C` with query result and lag information. Then only can `B` send a response back to the client. 
+
+#### More efficient lag propagation
+Instead of broadcasting lag information, we could also build a gossip protocol to disseminate this information, with more round trips but lower network bandwidth consumption. While we concede that this is an effective and proven technique, debugging such protocols is hard in practice. So, we decided to 
+keep things simple, learn and iterate. Similarly, we could also encode lag information in the regular pull query responses themselves, providing very upto-date lag estimates. However, sending lag information for all local stores in every response will be prohibitively expensive and we would need a more 
+intelligent, selective propagation that only piggybacks a few stores's lag in each response. We may pursue both of these approaches in the future, based on initial experience.
+
+#### Failure detection based on actual request failures
+In this proposal, we have argued for a separate health checking mechanism (i.e separate control plane), while we could have used the pull query requests between servers themselves to gauge whether another server is up or down. But, any scheme like that would require a fallback mechanism that periodically 
+probes other servers anyway to keep the availability information upto date. While we recognize that such an approach could provide much quicker failure detection (and potentially higher number of samples to base failure detection on), it also requires significant tuning to handle transient application pauses or other corner cases.
+
+We intend to use the simple heartbeat mechanism proposed here as a baseline implementation, that can be extended to more advanced schemes like these down the line.
 
 ## Test plan
 

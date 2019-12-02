@@ -266,8 +266,8 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
@@ -277,7 +277,7 @@ public class RestApiTest {
   public void shouldReturnCorrectSchemaForPullQueryWithOnlyKeyInSelect() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
@@ -287,12 +287,10 @@ public class RestApiTest {
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
-            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
-            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
             + "]"));
     assertThat(messages.get(1),
-        is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
+        is("{\"row\":{\"columns\":[\"USER_1\"]}}"));
   }
 
   @Test

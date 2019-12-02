@@ -88,8 +88,7 @@ public final class AstSanitizer {
               node.getName(),
               (Query) ctx.process(node.getQuery()),
               node.isNotExists(),
-              node.getProperties(),
-              node.getPartitionByColumn()
+              node.getProperties()
           )
       );
     }
@@ -117,8 +116,7 @@ public final class AstSanitizer {
           new InsertInto(
               node.getLocation(),
               node.getTarget(),
-              (Query) ctx.process(node.getQuery()),
-              node.getPartitionByColumn()
+              (Query) ctx.process(node.getQuery())
           )
       );
     }

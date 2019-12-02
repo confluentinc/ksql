@@ -57,7 +57,7 @@ public class CreateTableAsSelectTest {
             new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none())
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none(), Optional.empty())
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none())
         )
         .testEquals();
   }

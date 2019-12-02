@@ -40,9 +40,9 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -81,6 +81,10 @@ public class LogicalPlanner {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
     }
 
+    if (analysis.getPartitionBy().isPresent()) {
+      currentNode = buildRepartitionNode(currentNode, analysis.getPartitionBy().get());
+    }
+
     if (!analysis.getTableFunctions().isEmpty()) {
       currentNode = buildFlatMapNode(currentNode);
     }
@@ -110,54 +114,18 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<ColumnRef> partitionByField = analysis.getPartitionBy();
-
-    partitionByField.ifPresent(keyName ->
-        inputSchema.findValueColumn(keyName)
-            .orElseThrow(() -> new KsqlException(
-                "Column " + keyName.name().toString(FormatOptions.noEscape())
-                    + " does not exist in the result schema. Error in Partition By clause.")
-            ));
-
-    final KeyField keyField = buildOutputKeyField(sourcePlanNode);
-
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName().name()),
         sourcePlanNode,
         inputSchema,
         timestampColumn,
-        keyField,
+        sourcePlanNode.getKeyField(),
         intoDataSource.getKsqlTopic(),
-        partitionByField,
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
         analysis.getSerdeOptions(),
         intoDataSource.getName()
     );
-  }
-
-  private KeyField buildOutputKeyField(
-      final PlanNode sourcePlanNode
-  ) {
-    final KeyField sourceKeyField = sourcePlanNode.getKeyField();
-
-    final Optional<ColumnRef> partitionByField = analysis.getPartitionBy();
-    if (!partitionByField.isPresent()) {
-      return sourceKeyField;
-    }
-
-    final ColumnRef partitionBy = partitionByField.get();
-    final LogicalSchema schema = sourcePlanNode.getSchema();
-
-    if (schema.isMetaColumn(partitionBy.name())) {
-      return KeyField.none();
-    }
-
-    if (schema.isKeyColumn(partitionBy.name())) {
-      return sourceKeyField;
-    }
-
-    return KeyField.of(partitionBy);
   }
 
   private Optional<TimestampColumn> getTimestampColumn(
@@ -232,6 +200,32 @@ public class LogicalPlanner {
       final Expression filterExpression
   ) {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+  }
+
+  private static RepartitionNode buildRepartitionNode(
+      final PlanNode sourceNode,
+      final ColumnRef partitionBy
+  ) {
+    if (!sourceNode.getSchema().withoutAlias().findValueColumn(partitionBy).isPresent()) {
+      throw new KsqlException("Invalid identifier for PARTITION BY clause: '" + partitionBy
+          + "'. Only columns from the source schema can be referenced in the PARTITION BY clause.");
+    }
+
+    final KeyField keyField;
+    final LogicalSchema schema = sourceNode.getSchema();
+    if (schema.isMetaColumn(partitionBy.name())) {
+      keyField = KeyField.none();
+    } else if (schema.isKeyColumn(partitionBy.name())) {
+      keyField = sourceNode.getKeyField();
+    } else {
+      keyField = KeyField.of(partitionBy);
+    }
+
+    return new RepartitionNode(
+        new PlanNodeId("PartitionBy"),
+        sourceNode,
+        partitionBy,
+        keyField);
   }
 
   private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {

@@ -146,13 +146,13 @@ public class StandaloneExecutorTest {
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
+          Optional.empty(),
           ResultMaterialization.CHANGES,
           false,
           OptionalInt.empty()
       ),
       false,
-      CreateSourceAsProperties.none(),
-      Optional.empty()
+      CreateSourceAsProperties.none()
   );
 
 
@@ -540,7 +540,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsasStatements() {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
-        new CreateStreamAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none(), Optional.empty()));
+        new CreateStreamAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none()));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
@@ -577,7 +577,7 @@ public class StandaloneExecutorTest {
   public void shouldRunInsertIntoStatements() {
     // Given:
     final PreparedStatement<?> insertInto = PreparedStatement.of("InsertInto",
-        new InsertInto(SOME_NAME, query, Optional.empty()));
+        new InsertInto(SOME_NAME, query));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(insertInto, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(insertInto);
@@ -772,7 +772,7 @@ public class StandaloneExecutorTest {
 
   private void givenFileContainsAPersistentQuery() {
     givenQueryFileParsesTo(
-        PreparedStatement.of("InsertInto", new InsertInto(SOME_NAME, query, Optional.empty()))
+        PreparedStatement.of("InsertInto", new InsertInto(SOME_NAME, query))
     );
   }
 

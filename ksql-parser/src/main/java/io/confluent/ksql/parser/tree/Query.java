@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -33,18 +34,22 @@ public class Query extends Statement {
   private final Optional<WindowExpression> window;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
+  private final Optional<Expression> partitionBy;
   private final Optional<Expression> having;
   private final ResultMaterialization resultMaterialization;
   private final boolean pullQuery;
   private final OptionalInt limit;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public Query(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final Optional<NodeLocation> location,
       final Select select,
       final Relation from,
       final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
+      final Optional<Expression> partitionBy,
       final Optional<Expression> having,
       final ResultMaterialization resultMaterialization,
       final boolean pullQuery,
@@ -56,10 +61,15 @@ public class Query extends Statement {
     this.window = requireNonNull(window, "window");
     this.where = requireNonNull(where, "where");
     this.groupBy = requireNonNull(groupBy, "groupBy");
+    this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.having = requireNonNull(having, "having");
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
     this.pullQuery = pullQuery;
     this.limit = requireNonNull(limit, "limit");
+
+    KsqlPreconditions.checkArgument(
+        !(partitionBy.isPresent() && groupBy.isPresent()),
+        "Queries only support one of PARTITION BY and GROUP BY");
   }
 
   public Select getSelect() {
@@ -80,6 +90,10 @@ public class Query extends Statement {
 
   public Optional<GroupBy> getGroupBy() {
     return groupBy;
+  }
+
+  public Optional<Expression> getPartitionBy() {
+    return partitionBy;
   }
 
   public Optional<Expression> getHaving() {
@@ -111,6 +125,7 @@ public class Query extends Statement {
         .add("window", window.orElse(null))
         .add("where", where.orElse(null))
         .add("groupBy", groupBy.orElse(null))
+        .add("partitionBy", partitionBy.orElse(null))
         .add("having", having.orElse(null))
         .add("resultMaterialization", resultMaterialization)
         .add("pullQuery", pullQuery)
@@ -137,6 +152,7 @@ public class Query extends Statement {
         && Objects.equals(where, o.where)
         && Objects.equals(window, o.window)
         && Objects.equals(groupBy, o.groupBy)
+        && Objects.equals(partitionBy, o.partitionBy)
         && Objects.equals(having, o.having)
         && Objects.equals(resultMaterialization, o.resultMaterialization)
         && Objects.equals(limit, o.limit);

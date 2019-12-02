@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.transform;
 
 /**
  * Context passed to transformers
+ *
+ * <p>The context provides access to data that is not part of the key or value, e.g. ROWTIME.
  */
 public interface KsqlProcessingContext {
 

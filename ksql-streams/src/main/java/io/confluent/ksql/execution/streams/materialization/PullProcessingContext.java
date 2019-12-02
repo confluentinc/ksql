@@ -22,6 +22,9 @@ public final class PullProcessingContext implements KsqlProcessingContext {
 
   public static final PullProcessingContext INSTANCE = new PullProcessingContext();
 
+  private PullProcessingContext() {
+  }
+
   @Override
   public long getRowTime() {
     throw new KsqlException("ROWTIME is not currently exposed by pull queries. "

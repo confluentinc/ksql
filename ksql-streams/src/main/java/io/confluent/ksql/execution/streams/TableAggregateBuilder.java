@@ -81,7 +81,7 @@ public final class TableAggregateBuilder {
         materialized
     ).transformValues(
         () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
-        Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
+        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
     );
 
     final MaterializationInfo.Builder materializationBuilder =

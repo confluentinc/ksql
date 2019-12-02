@@ -34,7 +34,7 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "filterExpression", required = true) Expression filterExpression,
-      @JsonProperty(value = "filterExpression", required = true) final String stepName
+      @JsonProperty(value = "stepName", required = true) final String stepName
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");

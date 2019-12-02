@@ -31,6 +31,9 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 final class AggregateBuilderUtils {
+
+  static final String STEP_NAME = "AGGREGATE-TO-OUTPUT-SCHEMA";
+
   private AggregateBuilderUtils() {
   }
 
@@ -63,9 +66,8 @@ final class AggregateBuilderUtils {
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    final String stepName = "AGGREGATE-TO-OUTPUT-SCHEMA";
 
     return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
-        .map(pl -> aggregator.getResultMapper(), outputSchema, stepName);
+        .map(pl -> aggregator.getResultMapper(), outputSchema, STEP_NAME);
   }
 }

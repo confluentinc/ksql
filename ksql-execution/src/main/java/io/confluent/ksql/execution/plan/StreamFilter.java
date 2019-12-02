@@ -34,7 +34,7 @@ public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
       @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "filterExpression", required = true) Expression filterExpression,
-      @JsonProperty(value = "filterExpression", required = true) final String stepName
+      @JsonProperty(value = "stepName", required = true) final String stepName
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");

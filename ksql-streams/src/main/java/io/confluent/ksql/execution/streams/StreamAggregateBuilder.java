@@ -112,7 +112,7 @@ public final class StreamAggregateBuilder {
     final KTable<Struct, GenericRow> result = aggregated
         .transformValues(
             () -> new KsTransformer<>(aggregator.getResultMapper()),
-            Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
+            Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
         );
 
     return KTableHolder.materialized(
@@ -172,7 +172,7 @@ public final class StreamAggregateBuilder {
 
     KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
         () -> new KsTransformer<>(aggregator.getResultMapper()),
-        Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-TO-OUTPUT-SCHEMA"))
+        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
     );
 
     final MaterializationInfo.Builder materializationBuilder =

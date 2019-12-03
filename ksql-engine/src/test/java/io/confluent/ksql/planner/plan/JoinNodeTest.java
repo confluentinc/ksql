@@ -888,7 +888,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).selectKey(
         eq(LEFT_JOIN_FIELD_REF),
-        anyBoolean(),
         any()
     );
   }
@@ -945,7 +944,7 @@ public class JoinNodeTest {
       final SchemaKStream stream
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
-    when(stream.selectKey(any(), eq(true), any())).thenReturn(stream);
+    when(stream.selectKey(any(), any())).thenReturn(stream);
     when(node.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
   }
 

@@ -285,7 +285,7 @@ public class JoinNode extends PlanNode {
         final ColumnRef joinFieldName,
         final Stacker contextStacker
     ) {
-      return stream.selectKey(joinFieldName, true, contextStacker);
+      return stream.selectKey(joinFieldName, contextStacker);
     }
 
     static ValueFormat getFormatForSource(final DataSourceNode sourceNode) {

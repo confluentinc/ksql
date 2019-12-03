@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.util.StructKeyUtil.asStructKey;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,7 +46,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,8 +74,6 @@ public class StreamSelectKeyBuilderTest {
   @Mock
   private KStream<Struct, GenericRow> filteredKStream;
   @Mock
-  private KStream<Struct, GenericRow> updatedKeyKStream;
-  @Mock
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -85,8 +81,6 @@ public class StreamSelectKeyBuilderTest {
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
   @Captor
   private ArgumentCaptor<KeyValueMapper<Struct, GenericRow, Struct>> keyValueMapperCaptor;
-  @Captor
-  private ArgumentCaptor<ValueMapperWithKey<Struct, GenericRow, GenericRow>> mapperCaptor;
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
@@ -108,7 +102,6 @@ public class StreamSelectKeyBuilderTest {
     when(sourceStep.getProperties()).thenReturn(properties);
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
-    when(rekeyedKstream.mapValues(any(ValueMapperWithKey.class))).thenReturn(updatedKeyKStream);
     when(sourceStep.build(any())).thenReturn(
         new KStreamHolder<>(kstream, SCHEMA, mock(KeySerdeFactory.class)));
     planBuilder = new KSPlanBuilder(
@@ -117,24 +110,10 @@ public class StreamSelectKeyBuilderTest {
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
-    givenUpdateRowkey();
-  }
-
-  private void givenUpdateRowkey() {
     selectKey = new StreamSelectKey(
         properties,
         sourceStep,
-        KEY,
-        true
-    );
-  }
-
-  private void givenUpdateRowkeyFalse() {
-    selectKey = new StreamSelectKey(
-        properties,
-        sourceStep,
-        KEY,
-        false
+        KEY
     );
   }
 
@@ -148,9 +127,8 @@ public class StreamSelectKeyBuilderTest {
     final InOrder inOrder = Mockito.inOrder(kstream, filteredKStream, rekeyedKstream);
     inOrder.verify(kstream).filter(any());
     inOrder.verify(filteredKStream).selectKey(any());
-    inOrder.verify(rekeyedKstream).mapValues(any(ValueMapperWithKey.class));
     inOrder.verifyNoMoreInteractions();
-    assertThat(result.getStream(), is(updatedKeyKStream));
+    assertThat(result.getStream(), is(rekeyedKstream));
   }
 
   @Test
@@ -235,36 +213,6 @@ public class StreamSelectKeyBuilderTest {
   }
 
   @Test
-  public void shouldUpdateRowkeyIfUpdateRowkeyTrue() {
-    // When:
-    selectKey.build(planBuilder);
-
-    // Then:
-    verify(rekeyedKstream).mapValues(mapperCaptor.capture());
-    final ValueMapperWithKey<Struct, GenericRow, GenericRow> mapper = getMapper();
-    assertThat(
-        mapper.apply(asStructKey("bob"), new GenericRow(0, "dre", 3000, "bob")),
-        equalTo(new GenericRow(0, "bob", 3000, "bob"))
-    );
-  }
-
-  @Test
-  public void shouldNotUpdateRowkeyIfUpdateRowkeyTrue() {
-    // Given:
-    givenUpdateRowkeyFalse();
-
-    // When:
-    selectKey.build(planBuilder);
-
-    // Then:
-    final ValueMapperWithKey<Struct, GenericRow, GenericRow> mapper = getMapper();
-    assertThat(
-        mapper.apply(asStructKey("bob"), new GenericRow(0, "dre", 3000, "bob")),
-        equalTo(new GenericRow(0, "dre", 3000, "bob"))
-    );
-  }
-
-  @Test
   public void shouldReturnCorrectSchema() {
     // When:
     final KStreamHolder<Struct> result = selectKey.build(planBuilder);
@@ -276,11 +224,6 @@ public class StreamSelectKeyBuilderTest {
   private KeyValueMapper<Struct, GenericRow, Struct> getKeyMapper() {
     verify(filteredKStream).selectKey(keyValueMapperCaptor.capture());
     return keyValueMapperCaptor.getValue();
-  }
-
-  private ValueMapperWithKey<Struct, GenericRow, GenericRow> getMapper() {
-    verify(rekeyedKstream).mapValues(mapperCaptor.capture());
-    return mapperCaptor.getValue();
   }
 
   private Predicate<Struct, GenericRow> getPredicate() {

@@ -385,7 +385,6 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
       final ColumnRef columnRef,
-      final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
     if (keyFormat.isWindowed()) {
@@ -424,8 +423,7 @@ public class SchemaKStream<K> {
     final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
         contextStacker,
         sourceStep,
-        columnRef,
-        updateRowKey
+        columnRef
     );
     return new SchemaKStream<>(
         step,

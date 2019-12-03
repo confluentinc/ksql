@@ -31,18 +31,15 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   private final ColumnRef fieldName;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<?>> source;
-  private final boolean updateRowKey;
 
   public StreamSelectKey(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<? extends KStreamHolder<?>> source,
-      @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName,
-      @JsonProperty(value = "updateRowKey", required = true) boolean updateRowKey) {
+      @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-    this.updateRowKey = updateRowKey;
   }
 
   @Override
@@ -54,10 +51,6 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
-  }
-
-  public boolean isUpdateRowKey() {
-    return updateRowKey;
   }
 
   public ColumnRef getFieldName() {
@@ -82,14 +75,13 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
       return false;
     }
     StreamSelectKey that = (StreamSelectKey) o;
-    return updateRowKey == that.updateRowKey
-        && Objects.equals(properties, that.properties)
+    return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, updateRowKey);
+    return Objects.hash(properties, source);
   }
 }

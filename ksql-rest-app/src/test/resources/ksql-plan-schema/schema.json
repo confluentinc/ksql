@@ -444,13 +444,10 @@
         },
         "fieldName" : {
           "type" : "string"
-        },
-        "updateRowKey" : {
-          "type" : "boolean"
         }
       },
       "title" : "streamSelectKeyV1",
-      "required" : [ "@type", "properties", "source", "fieldName", "updateRowKey" ]
+      "required" : [ "@type", "properties", "source", "fieldName" ]
     },
     "StreamSink" : {
       "type" : "object",

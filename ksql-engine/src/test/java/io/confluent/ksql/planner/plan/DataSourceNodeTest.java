@@ -81,7 +81,7 @@ public class DataSourceNodeTest {
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
-  private SchemaKStream realStream;
+  private SchemaKStream<?> realStream;
   private StreamsBuilder realBuilder;
 
   private static final ColumnName FIELD1 = ColumnName.of("field1");
@@ -295,7 +295,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
-    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
     assertThat(returned, is(stream));
@@ -344,7 +344,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
-    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
     assertThat(returned, is(table));
@@ -362,10 +362,10 @@ public class DataSourceNodeTest {
     );
   }
 
-  private SchemaKStream buildStream(final DataSourceNode node) {
-    final SchemaKStream stream = node.buildStream(ksqlStreamBuilder);
+  private SchemaKStream<?> buildStream(final DataSourceNode node) {
+    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
     if (stream instanceof SchemaKTable) {
-      final SchemaKTable table = (SchemaKTable) stream;
+      final SchemaKTable<?> table = (SchemaKTable<?>) stream;
       table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
     } else {
       stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));

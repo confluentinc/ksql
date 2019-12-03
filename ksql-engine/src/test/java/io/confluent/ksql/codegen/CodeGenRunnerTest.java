@@ -923,7 +923,7 @@ public class CodeGenRunnerTest {
 
         return analysis.getSelectExpressions().stream()
             .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp.getExpression(), "Select"))
-            .map(md -> md.evaluate(StructKeyUtil.asStructKey("rowKey"), input))
+            .map(md -> md.evaluate(key(), input))
             .collect(Collectors.toList());
     }
 

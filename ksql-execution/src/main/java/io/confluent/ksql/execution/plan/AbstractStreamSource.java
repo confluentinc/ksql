@@ -28,7 +28,7 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final String topicName;
   private final Formats formats;
   private final Optional<TimestampColumn> timestampColumn;
@@ -44,7 +44,7 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
 
   @VisibleForTesting
   public AbstractStreamSource(
-      ExecutionStepProperties properties,
+      ExecutionStepPropertiesV1 properties,
       String topicName,
       Formats formats,
       Optional<TimestampColumn> timestampColumn,
@@ -61,7 +61,7 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

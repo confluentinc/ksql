@@ -37,7 +37,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -356,7 +356,7 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final StreamSource streamSource = new StreamSource(
-        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         Optional.empty(),
@@ -599,7 +599,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
-        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
@@ -614,7 +614,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
-        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
@@ -629,7 +629,7 @@ public class SourceBuilderTest {
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
-        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
@@ -644,7 +644,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
-        new DefaultExecutionStepProperties(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,

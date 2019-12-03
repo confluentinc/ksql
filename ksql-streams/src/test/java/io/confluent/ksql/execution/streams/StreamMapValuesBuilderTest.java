@@ -30,7 +30,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -84,9 +84,9 @@ public class StreamMapValuesBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
-  private ExecutionStepProperties sourceProperties;
+  private ExecutionStepPropertiesV1 sourceProperties;
   @Mock
-  private ExecutionStepProperties properties;
+  private ExecutionStepPropertiesV1 properties;
   @Mock
   private KStream<Struct, GenericRow> sourceKStream;
   @Mock

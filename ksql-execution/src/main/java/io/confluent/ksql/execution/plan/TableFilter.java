@@ -24,12 +24,12 @@ import java.util.Objects;
 
 @Immutable
 public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final Expression filterExpression;
 
   public TableFilter(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "filterExpression", required = true) Expression filterExpression
   ) {
@@ -39,7 +39,7 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

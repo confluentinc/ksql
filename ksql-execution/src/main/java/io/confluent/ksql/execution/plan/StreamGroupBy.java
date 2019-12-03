@@ -28,13 +28,13 @@ import java.util.Objects;
 @Immutable
 public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
 
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats formats;
   private final ImmutableList<Expression> groupByExpressions;
 
   public StreamGroupBy(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "groupByExpressions", required = true)
@@ -51,7 +51,7 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

@@ -21,7 +21,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -354,7 +354,7 @@ public final class SourceBuilder {
     return schema.keyConnectSchema().fields().get(0);
   }
 
-  private static String tableChangeLogOpName(final ExecutionStepProperties props) {
+  private static String tableChangeLogOpName(final ExecutionStepPropertiesV1 props) {
     final List<String> parts = props.getQueryContext().getContext();
     Stacker stacker = new Stacker();
     for (final String part : parts.subList(0, parts.size() - 1)) {

@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
@@ -23,37 +22,28 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
 @Immutable
-public class DefaultExecutionStepProperties implements ExecutionStepProperties {
+public final class ExecutionStepPropertiesV1 implements ExecutionStepProperties {
   private final QueryContext queryContext;
   private final LogicalSchema schema;
 
-  @JsonCreator
-  public DefaultExecutionStepProperties(
+  public ExecutionStepPropertiesV1(
       @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
       @JsonProperty(value = "queryContext", required = true) final QueryContext queryContext) {
     this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
-  @Override
   public LogicalSchema getSchema() {
     return schema;
   }
 
-  @Override
   @JsonIgnore
   public String getId() {
     return queryContext.toString();
   }
 
-  @Override
   public QueryContext getQueryContext() {
     return queryContext;
-  }
-
-  @Override
-  public ExecutionStepProperties withQueryContext(final QueryContext queryContext) {
-    return new DefaultExecutionStepProperties(schema, queryContext);
   }
 
   @Override
@@ -64,7 +54,7 @@ public class DefaultExecutionStepProperties implements ExecutionStepProperties {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final DefaultExecutionStepProperties that = (DefaultExecutionStepProperties) o;
+    final ExecutionStepPropertiesV1 that = (ExecutionStepPropertiesV1) o;
     return Objects.equals(queryContext, that.queryContext)
         && Objects.equals(schema, that.schema);
   }

@@ -23,13 +23,13 @@ import java.util.Objects;
 
 @Immutable
 public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
   private final ExecutionStep<KTableHolder<K>> left;
   private final ExecutionStep<KTableHolder<K>> right;
 
   public TableTableJoin(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "joinType", required = true) JoinType joinType,
       @JsonProperty(value = "left", required = true) ExecutionStep<KTableHolder<K>> left,
       @JsonProperty(value = "right", required = true) ExecutionStep<KTableHolder<K>> right) {
@@ -40,7 +40,7 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

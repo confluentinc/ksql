@@ -17,9 +17,8 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -75,9 +74,9 @@ public class TableGroupByBuilderTest {
       new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CONTEXT =
       new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
-  private static final ExecutionStepProperties SOURCE_PROPERTIES =
-      new DefaultExecutionStepProperties(SCHEMA, SOURCE_CONTEXT);
-  private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
+  private static final ExecutionStepPropertiesV1 SOURCE_PROPERTIES =
+      new ExecutionStepPropertiesV1(SCHEMA, SOURCE_CONTEXT);
+  private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       SCHEMA,
       STEP_CONTEXT
   );

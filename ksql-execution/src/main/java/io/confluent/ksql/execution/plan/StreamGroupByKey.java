@@ -24,12 +24,12 @@ import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<Struct>> source;
   private final Formats formats;
 
   public StreamGroupByKey(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KStreamHolder<Struct>> source,
       @JsonProperty(value = "formats", required = true) Formats formats) {
@@ -39,7 +39,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

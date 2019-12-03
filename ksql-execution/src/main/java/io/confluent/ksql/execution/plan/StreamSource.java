@@ -26,7 +26,7 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 @Immutable
 public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
   public StreamSource(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,

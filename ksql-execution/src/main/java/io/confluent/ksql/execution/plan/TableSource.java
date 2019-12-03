@@ -28,7 +28,8 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>> {
 
   public TableSource(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true)
+      final ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,

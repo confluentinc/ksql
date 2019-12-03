@@ -27,13 +27,13 @@ import java.util.Objects;
 @Immutable
 public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
 
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final ImmutableList<SelectExpression> selectExpressions;
   private final String selectNodeName;
 
   public TableMapValues(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
       List<SelectExpression> selectExpressions,
@@ -46,7 +46,7 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

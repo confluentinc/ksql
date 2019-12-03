@@ -28,14 +28,14 @@ import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedTableHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
   private final ImmutableList<FunctionCall> aggregations;
 
   public TableAggregate(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KGroupedTableHolder> source,
       @JsonProperty(value = "formats", required = true) Formats formats,
@@ -51,7 +51,7 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

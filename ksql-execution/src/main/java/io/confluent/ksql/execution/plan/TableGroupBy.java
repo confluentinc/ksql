@@ -27,13 +27,13 @@ import java.util.Objects;
 
 @Immutable
 public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
   private final ImmutableList<Expression> groupByExpressions;
 
   public TableGroupBy(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "groupByExpressions", required = true)
@@ -47,7 +47,7 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

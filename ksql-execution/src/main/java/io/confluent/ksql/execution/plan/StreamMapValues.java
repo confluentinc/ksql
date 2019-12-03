@@ -27,13 +27,13 @@ import java.util.Objects;
 @Immutable
 public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
 
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final ImmutableList<SelectExpression> selectExpressions;
   private final String selectNodeName;
 
   public StreamMapValues(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
       List<SelectExpression> selectExpressions,
@@ -45,7 +45,7 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

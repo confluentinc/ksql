@@ -39,8 +39,8 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -239,7 +239,7 @@ public class StreamAggregateBuilderTest {
     when(aggregated.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) aggregatedWithResults);
     aggregate = new StreamAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -261,7 +261,7 @@ public class StreamAggregateBuilderTest {
   private void givenTumblingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -273,7 +273,7 @@ public class StreamAggregateBuilderTest {
   private void givenHoppingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -297,7 +297,7 @@ public class StreamAggregateBuilderTest {
     when(windowed.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) windowedWithResults);
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,

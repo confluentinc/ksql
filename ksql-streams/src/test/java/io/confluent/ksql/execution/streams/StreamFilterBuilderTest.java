@@ -11,9 +11,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -63,7 +62,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private ExecutionStep sourceStep;
   @Mock
-  private ExecutionStepProperties sourceProperties;
+  private ExecutionStepPropertiesV1 sourceProperties;
   @Mock
   private KStream<Struct, GenericRow> sourceKStream;
   @Mock
@@ -105,7 +104,7 @@ public class StreamFilterBuilderTest {
         schema,
         keySerdeFactory
     ));
-    final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         schema,
         queryContext
     );

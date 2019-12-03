@@ -28,7 +28,7 @@ import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
@@ -36,7 +36,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
 
   public StreamAggregate(
       @JsonProperty(value = "properties", required = true)
-      ExecutionStepProperties properties,
+          ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KGroupedStreamHolder> source,
       @JsonProperty(value = "formats", required = true) Formats formats,
@@ -51,7 +51,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

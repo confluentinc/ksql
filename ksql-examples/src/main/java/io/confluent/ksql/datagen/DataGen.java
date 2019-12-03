@@ -111,7 +111,6 @@ public final class DataGen {
           arguments.topicName,
           arguments.keyName,
           arguments.iterations,
-          arguments.maxInterval,
           arguments.printRows,
           rateLimiter
       );
@@ -151,7 +150,6 @@ public final class DataGen {
         + "key=<name of key column> " + newLine
         + "[iterations=<number of rows> (if no value is specified, datagen will produce "
             + "indefinitely)] " + newLine
-        + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
         + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
         + "[nThreads=<number of producer threads to start>] " + newLine
         + "[msgRate=<rate to produce in msgs/second>] " + newLine
@@ -170,7 +168,6 @@ public final class DataGen {
     private final String topicName;
     private final String keyName;
     private final int iterations;
-    private final long maxInterval;
     private final String schemaRegistryUrl;
     private final InputStream propertiesFile;
     private final int numThreads;
@@ -188,7 +185,6 @@ public final class DataGen {
         final String topicName,
         final String keyName,
         final int iterations,
-        final long maxInterval,
         final String schemaRegistryUrl,
         final InputStream propertiesFile,
         final int numThreads,
@@ -205,7 +201,6 @@ public final class DataGen {
       this.topicName = topicName;
       this.keyName = keyName;
       this.iterations = iterations;
-      this.maxInterval = maxInterval;
       this.schemaRegistryUrl = schemaRegistryUrl;
       this.propertiesFile = propertiesFile;
       this.numThreads = numThreads;
@@ -236,8 +231,7 @@ public final class DataGen {
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
-              .put("maxInterval",
-                  (builder, argVal) -> builder.maxInterval = parseInt(argVal, 0))
+              .put("maxInterval", (builder, argVal) -> printMaxIntervalIsDeprecatedMessage())
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
               .put("propertiesFile",
                   (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal).get())
@@ -245,6 +239,14 @@ public final class DataGen {
               .put("nThreads", (builder, argVal) -> builder.numThreads = parseNumThreads(argVal))
               .put("printRows", (builder, argVal) -> builder.printRows = parsePrintRows(argVal))
               .build();
+
+      private static void printMaxIntervalIsDeprecatedMessage() {
+        System.err.println("*maxInterval* parameter is *DEPRECATED*");
+        System.err.println("the value will be ignored "
+                               + "and parameter will be removed in future releases");
+        System.err.println("Please use *msgRate* parameter to adjust sending message frequency");
+        System.err.flush();
+      }
 
       private Quickstart quickstart;
 
@@ -257,7 +259,6 @@ public final class DataGen {
       private String topicName;
       private String keyName;
       private int iterations;
-      private long maxInterval;
       private String schemaRegistryUrl;
       private InputStream propertiesFile;
       private int msgRate;
@@ -275,7 +276,6 @@ public final class DataGen {
         topicName = null;
         keyName = null;
         iterations = -1;
-        maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
         propertiesFile = null;
         msgRate = -1;
@@ -336,7 +336,6 @@ public final class DataGen {
               null,
               null,
               0,
-              -1,
               null,
               null,
               1,
@@ -372,7 +371,6 @@ public final class DataGen {
             topicName,
             keyName,
             iterations,
-            maxInterval,
             schemaRegistryUrl,
             propertiesFile,
             numThreads,

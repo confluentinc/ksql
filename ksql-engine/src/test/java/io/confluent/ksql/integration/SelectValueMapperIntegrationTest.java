@@ -99,11 +99,16 @@ public class SelectValueMapperIntegrationTest {
   }
 
   private KsqlTransformer<Struct, GenericRow> givenSelectMapperFor(
-      final String query) {
+      final String query
+  ) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
-    final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
+
+    final LogicalSchema schema = planNode
+        .getTheSourceNode()
+        .getSchema()
+        .withMetaAndKeyColsInValue();
 
     return SelectValueMapperFactory.<Struct>create(
         selectExpressions,

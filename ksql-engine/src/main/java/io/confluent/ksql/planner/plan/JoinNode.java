@@ -165,7 +165,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static Column validateSchemaColumn(final ColumnRef column, final LogicalSchema schema) {
-    return schema.findValueColumn(column)
+    return schema.findColumn(column)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + column));
   }

@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.KTable;
 
 public final class TableTableJoinBuilder {
@@ -28,24 +27,25 @@ public final class TableTableJoinBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> left,
       final KTableHolder<K> right,
-      final TableTableJoin join) {
-    final LogicalSchema leftSchema = left.getSchema();
-    final LogicalSchema rightSchema = right.getSchema();
-    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
+      final TableTableJoin<K> join
+  ) {
+    final KsqlValueJoiner joiner = new KsqlValueJoiner(left.getSchema(), right.getSchema());
+
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().leftJoin(right.getTable(), joiner);
         break;
       case INNER:
-        result = left.getTable().join(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().join(right.getTable(), joiner);
         break;
       case OUTER:
-        result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().outerJoin(right.getTable(), joiner);
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
-    return left.withTable(result, joinParams.getSchema());
+
+    return left.withTable(result, join.getSchema());
   }
 }

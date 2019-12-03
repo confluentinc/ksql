@@ -216,7 +216,7 @@ public class StreamAggregateBuilderTest {
     when(aggregateParams.getInitializer()).thenReturn(initializer);
     when(aggregateParams.getWindowSelectMapper()).thenReturn(windowSelectMapper);
     when(windowSelectMapper.hasSelects()).thenReturn(false);
-    when(windowSelectMapper.getTransformer()).thenReturn(windowSelectTransformer);
+
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),

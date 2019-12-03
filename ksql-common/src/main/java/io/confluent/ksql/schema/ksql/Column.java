@@ -28,6 +28,7 @@ import java.util.Optional;
 @Immutable
 public final class Column implements SimpleColumn {
 
+  // Order of namespaces defines order of precedence in {@code findColumn}
   public enum Namespace {
     KEY,
     VALUE,

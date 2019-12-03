@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -104,14 +103,20 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
       .withAlias(LEFT_ALIAS);
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
       .withAlias(RIGHT_ALIAS);
 
-  private static final LogicalSchema JOIN_SCHEMA = joinSchema();
+  private static final LogicalSchema JOIN_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumns(LEFT_NODE_SCHEMA.metadata())
+      .valueColumns(LEFT_NODE_SCHEMA.key())
+      .valueColumns(LEFT_NODE_SCHEMA.value())
+      .valueColumns(RIGHT_NODE_SCHEMA.metadata())
+      .valueColumns(RIGHT_NODE_SCHEMA.key())
+      .valueColumns(RIGHT_NODE_SCHEMA.value())
+      .build();
 
   private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
@@ -946,15 +951,6 @@ public class JoinNodeTest {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
     when(stream.selectKey(any(), any())).thenReturn(stream);
     when(node.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-  }
-
-  @SuppressWarnings("Duplicates")
-  private static LogicalSchema joinSchema() {
-    return LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumns(LEFT_NODE_SCHEMA.value())
-        .valueColumns(RIGHT_NODE_SCHEMA.value())
-        .build();
   }
 
   private void buildJoin() {

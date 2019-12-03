@@ -58,8 +58,8 @@ public class StreamStreamJoinBuilderTest {
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
+      .withAlias(RIGHT);
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
@@ -68,6 +68,7 @@ public class StreamStreamJoinBuilderTest {
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
+
   private static final PhysicalSchema LEFT_PHYSICAL =
       PhysicalSchema.from(LEFT_SCHEMA.withoutAlias(), SerdeOption.none());
   private static final PhysicalSchema RIGHT_PHYSICAL =
@@ -257,10 +258,7 @@ public class StreamStreamJoinBuilderTest {
     final KStreamHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    assertThat(
-        result.getSchema(),
-        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
-    );
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 
   @Test

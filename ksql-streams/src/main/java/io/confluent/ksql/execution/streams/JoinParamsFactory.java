@@ -20,16 +20,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 
 public final class JoinParamsFactory {
-  private JoinParamsFactory() {
-  }
 
-  public static JoinParams create(
-      final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema) {
-    return new JoinParams(
-        new KsqlValueJoiner(leftSchema, rightSchema),
-        createSchema(leftSchema, rightSchema)
-    );
+  private JoinParamsFactory() {
   }
 
   public static LogicalSchema createSchema(
@@ -41,8 +33,16 @@ public final class JoinParamsFactory {
     // Hard-wire for now, until we support custom type/name of key fields:
     joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
+    // Join schema currently also includes value columns for both sides key and meta columns:
+    // See https://github.com/confluentinc/ksql/issues/3731
+    // and https://github.com/confluentinc/ksql/pull/4026
+
+    joinSchema.valueColumns(leftSchema.metadata());
+    joinSchema.valueColumns(leftSchema.key());
     joinSchema.valueColumns(leftSchema.value());
 
+    joinSchema.valueColumns(rightSchema.metadata());
+    joinSchema.valueColumns(rightSchema.key());
     joinSchema.valueColumns(rightSchema.value());
 
     return joinSchema.build();

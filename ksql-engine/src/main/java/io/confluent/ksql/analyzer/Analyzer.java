@@ -138,7 +138,8 @@ class Analyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    final Visitor visitor = new Visitor(query);
+    final Visitor visitor = new Visitor(query, sink.isPresent());
+
     visitor.process(query, null);
 
     sink.ifPresent(visitor::analyzeNonStdOutSink);
@@ -153,18 +154,19 @@ class Analyzer {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis;
+    private final boolean persistent;
     private final boolean pullQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
-    Visitor(final Query query) {
+    Visitor(final Query query, final boolean persistent) {
       this.pullQuery = query.isPullQuery();
       this.analysis = new Analysis(query.getResultMaterialization());
+      this.persistent = persistent;
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
-
 
       setSerdeOptions(sink);
 
@@ -222,7 +224,7 @@ class Analyzer {
     }
 
     private void setSerdeOptions(final Sink sink) {
-      final List<ColumnName> columnNames = getNoneMetaOrKeySelectAliases();
+      final List<ColumnName> columnNames = getColumnNames();
 
       final Format valueFormat = getValueFormat(sink);
 
@@ -236,46 +238,10 @@ class Analyzer {
       analysis.setSerdeOptions(serdeOptions);
     }
 
-    /**
-     * Get the list of select expressions that are <i>not</i> for meta and key columns in the source
-     * schema.
-     *
-     * <p>Currently, the select expressions can include metadata and key columns, which are later
-     * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
-     * the {@link SerdeOptions} its important the final schema is used, i.e. the one with these
-     * meta and key columns removed.
-     *
-     * <p>This is weird functionality, but maintained for backwards compatibility for now.
-     *
-     * @return the list of column names in the sink that are not meta or key columns.
-     */
-    private List<ColumnName> getNoneMetaOrKeySelectAliases() {
-      final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
-      final List<SelectExpression> selects = analysis.getSelectExpressions();
-
-      final List<ColumnName> columnNames = analysis.getSelectExpressions().stream()
+    private List<ColumnName> getColumnNames() {
+      return analysis.getSelectExpressions().stream()
           .map(SelectExpression::getAlias)
           .collect(Collectors.toList());
-
-      for (int idx = selects.size() - 1; idx >= 0; --idx) {
-        final SelectExpression select = selects.get(idx);
-        final Expression expression = select.getExpression();
-
-        if (!(expression instanceof ColumnReferenceExp)) {
-          continue;
-        }
-
-        if (!sourceSchemas.matchesNonValueField(((ColumnReferenceExp) expression).getReference())) {
-          continue;
-        }
-
-        final ColumnName columnName = select.getAlias();
-        if (columnName.equals(SchemaUtil.ROWTIME_NAME)
-            || columnName.equals(SchemaUtil.ROWKEY_NAME)) {
-          columnNames.remove(idx);
-        }
-      }
-      return columnNames;
     }
 
     private Format getValueFormat(final Sink sink) {
@@ -577,7 +543,14 @@ class Analyzer {
             : "";
 
         final LogicalSchema schema = source.getDataSource().getSchema();
-        for (final Column column : schema.columns()) {
+
+        // Non-join persistent queries only require value columns on SELECT *
+        // where as joins and transient queries require all columns in the select:
+        final List<Column> valueColumns = persistent && !analysis.isJoin()
+            ? schema.value()
+            : schema.columns();
+
+        for (final Column column : valueColumns) {
 
           if (pullQuery && schema.isMetaColumn(column.name())) {
             continue;
@@ -619,6 +592,14 @@ class Analyzer {
     }
 
     private void addSelectItem(final Expression exp, final ColumnName columnName) {
+      if (persistent) {
+        if (SchemaUtil.ROWTIME_NAME.equals(columnName)
+            || SchemaUtil.ROWKEY_NAME.equals(columnName)) {
+          throw new KsqlException("Reserved column name in select: " + columnName + ". "
+              + "Please remove or alias the column.");
+        }
+      }
+
       final Set<ColumnRef> columnRefs = new HashSet<>();
       final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
         @Override

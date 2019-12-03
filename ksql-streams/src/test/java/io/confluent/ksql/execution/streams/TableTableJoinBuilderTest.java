@@ -187,9 +187,6 @@ public class TableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    assertThat(
-        result.getSchema(),
-        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
-    );
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 }

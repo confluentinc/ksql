@@ -22,9 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -48,7 +46,7 @@ public class DataSourceNode extends PlanNode {
 
   private final DataSource<?> dataSource;
   private final SourceName alias;
-  private final LogicalSchemaWithMetaAndKeyFields schema;
+  private final LogicalSchema schema;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
   private final ImmutableList<SelectExpression> selectExpressions;
@@ -74,22 +72,18 @@ public class DataSourceNode extends PlanNode {
     this.alias = requireNonNull(alias, "alias");
     this.selectExpressions =
         ImmutableList.copyOf(requireNonNull(selectExpressions, "selectExpressions"));
-
-    // DataSourceNode copies implicit and key fields into the value schema
-    // It users a KS valueMapper to add the key fields
-    // and a KS transformValues to add the implicit fields
-    this.schema = StreamSource.getSchemaWithMetaAndKeyFields(alias, dataSource.getSchema());
+    this.schema = dataSource.getSchema().withAlias(alias);
 
     this.keyField = dataSource.getKeyField()
         .withAlias(alias)
-        .validateKeyExistsIn(schema.getSchema());
+        .validateKeyExistsIn(schema);
 
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
   }
 
   @Override
   public LogicalSchema getSchema() {
-    return schema.getSchema();
+    return schema;
   }
 
   @Override
@@ -139,7 +133,6 @@ public class DataSourceNode extends PlanNode {
     return schemaKStreamFactory.create(
         builder,
         dataSource,
-        schema,
         contextStacker.push(SOURCE_OP_NAME),
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField,
@@ -152,7 +145,6 @@ public class DataSourceNode extends PlanNode {
     SchemaKStream<?> create(
         KsqlQueryBuilder builder,
         DataSource<?> dataSource,
-        LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
         QueryContext.Stacker contextStacker,
         Optional<AutoOffsetReset> offsetReset,
         KeyField keyField,

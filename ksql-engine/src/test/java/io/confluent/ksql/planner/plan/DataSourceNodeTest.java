@@ -34,7 +34,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -55,7 +54,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +79,7 @@ public class DataSourceNodeTest {
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
-  private SchemaKStream realStream;
+  private SchemaKStream<?> realStream;
   private StreamsBuilder realBuilder;
 
   private static final ColumnName FIELD1 = ColumnName.of("field1");
@@ -166,7 +164,7 @@ public class DataSourceNodeTest {
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
@@ -252,8 +250,6 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.builder()
-            .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-            .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
@@ -271,7 +267,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -285,7 +281,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -295,14 +291,13 @@ public class DataSourceNodeTest {
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
-    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
     assertThat(returned, is(stream));
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(OFFSET_RESET),
         same(node.getKeyField()),
@@ -326,7 +321,6 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(OFFSET_RESET),
         same(node.getKeyField()),
@@ -344,7 +338,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
-    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
     assertThat(returned, is(table));
@@ -362,10 +356,10 @@ public class DataSourceNodeTest {
     );
   }
 
-  private SchemaKStream buildStream(final DataSourceNode node) {
-    final SchemaKStream stream = node.buildStream(ksqlStreamBuilder);
+  private SchemaKStream<?> buildStream(final DataSourceNode node) {
+    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
     if (stream instanceof SchemaKTable) {
-      final SchemaKTable table = (SchemaKTable) stream;
+      final SchemaKTable<?> table = (SchemaKTable<?>) stream;
       table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
     } else {
       stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));

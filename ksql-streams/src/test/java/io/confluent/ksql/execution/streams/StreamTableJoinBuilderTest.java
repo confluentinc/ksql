@@ -45,6 +45,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinBuilderTest {
+
   private static final SourceName LEFT = SourceName.of("LEFT");
   private static final SourceName RIGHT = SourceName.of("RIGHT");
   private static final SourceName ALIAS = SourceName.of("ALIAS");
@@ -52,22 +53,22 @@ public class StreamTableJoinBuilderTest {
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .withAlias(LEFT);
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
+      .withAlias(RIGHT);
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
-      .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .withAlias(ALIAS);
+
   private static final PhysicalSchema LEFT_PHYSICAL =
       PhysicalSchema.from(LEFT_SCHEMA.withoutAlias(), SerdeOption.none());
   private static final Formats LEFT_FMT = Formats.of(
@@ -225,10 +226,7 @@ public class StreamTableJoinBuilderTest {
     // When:
     final KStreamHolder<Struct> result = join.build(planBuilder);
 
-    assertThat(
-        result.getSchema(),
-        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
-    );
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 
   @Test

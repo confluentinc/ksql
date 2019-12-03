@@ -36,12 +36,6 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final LogicalSchema sourceSchema;
   private final SourceName alias;
 
-  public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
-      SourceName alias,
-      LogicalSchema schema) {
-    return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
-  }
-
   @VisibleForTesting
   public AbstractStreamSource(
       ExecutionStepPropertiesV1 properties,

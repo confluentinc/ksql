@@ -27,7 +27,7 @@ public final class LogicalSchemaWithMetaAndKeyFields {
     this.schema = schema;
   }
 
-  static LogicalSchemaWithMetaAndKeyFields fromOriginal(
+  public static LogicalSchemaWithMetaAndKeyFields fromOriginal(
       SourceName alias,
       LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(

@@ -77,25 +77,26 @@ public final class StreamStreamJoinBuilder {
         StreamsUtil.buildOpName(queryContext),
         StreamsUtil.buildOpName(queryContext)
     );
-    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
+
+    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
     final JoinWindows joinWindows = JoinWindows.of(join.getBefore()).after(join.getAfter());
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
         result = left.getStream().leftJoin(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+            right.getStream(), joiner, joinWindows, joined);
         break;
       case OUTER:
         result = left.getStream().outerJoin(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+            right.getStream(), joiner, joinWindows, joined);
         break;
       case INNER:
         result = left.getStream().join(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+            right.getStream(), joiner, joinWindows, joined);
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
-    return left.withStream(result, joinParams.getSchema());
+    return left.withStream(result, join.getSchema());
   }
 }

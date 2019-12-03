@@ -28,7 +28,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -37,8 +36,10 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -66,16 +67,23 @@ public class SchemaKSourceFactoryTest {
   private static final String TOPIC_NAME = "fred";
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
+  private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
+      .build();
+
+  private static final LogicalSchema IMPL_SCHEMA = LogicalSchema.builder()
+      .keyColumns(SOURCE_SCHEMA.key())
+      .valueColumns(SOURCE_SCHEMA.metadata())
+      .valueColumns(SOURCE_SCHEMA.key())
+      .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
+      .build()
+      .withAlias(ALIAS);
+
   @Mock
   private KsqlQueryBuilder builder;
   @Mock
   private DataSource<?> dataSource;
-  @Mock
-  private LogicalSchemaWithMetaAndKeyFields schemaWithStuff;
-  @Mock
-  private LogicalSchema schema;
-  @Mock
-  private LogicalSchema originalSchema;
   @Mock
   private Stacker contextStacker;
   @Mock
@@ -100,12 +108,10 @@ public class SchemaKSourceFactoryTest {
     when(dataSource.getSerdeOptions()).thenReturn(SERDE_OPTIONS);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);
     when(topic.getValueFormat()).thenReturn(valueFormat);
-
-    when(schemaWithStuff.getSchema()).thenReturn(schema);
-    when(schemaWithStuff.getOriginalSchema()).thenReturn(originalSchema);
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
@@ -127,7 +133,6 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
         OFFSET_RESET,
         KEY_FIELD,
@@ -138,7 +143,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, not(instanceOf(SchemaKTable.class)));
     assertThat(result.getSourceStep(), instanceOf(WindowedStreamSource.class));
 
-    assertThat(result.getSchema(), is(schema));
+    assertThat(result.getSchema(), is(IMPL_SCHEMA));
     assertThat(result.getSourceSchemaKStreams(), is(empty()));
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
@@ -154,7 +159,6 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
         OFFSET_RESET,
         KEY_FIELD,
@@ -165,7 +169,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, not(instanceOf(SchemaKTable.class)));
     assertThat(result.getSourceStep(), instanceOf(StreamSource.class));
 
-    assertThat(result.getSchema(), is(schema));
+    assertThat(result.getSchema(), is(IMPL_SCHEMA));
     assertThat(result.getSourceSchemaKStreams(), is(empty()));
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
@@ -181,7 +185,6 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
         OFFSET_RESET,
         KEY_FIELD,
@@ -192,7 +195,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, instanceOf(SchemaKTable.class));
     assertThat(result.getSourceStep(), instanceOf(WindowedTableSource.class));
 
-    assertThat(result.getSchema(), is(schema));
+    assertThat(result.getSchema(), is(IMPL_SCHEMA));
     assertThat(result.getSourceSchemaKStreams(), is(empty()));
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
@@ -208,7 +211,6 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
         OFFSET_RESET,
         KEY_FIELD,
@@ -219,7 +221,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, instanceOf(SchemaKTable.class));
     assertThat(result.getSourceStep(), instanceOf(TableSource.class));
 
-    assertThat(result.getSchema(), is(schema));
+    assertThat(result.getSchema(), is(IMPL_SCHEMA));
     assertThat(result.getSourceSchemaKStreams(), is(empty()));
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }

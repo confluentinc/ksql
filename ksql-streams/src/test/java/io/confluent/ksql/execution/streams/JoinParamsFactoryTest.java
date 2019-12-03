@@ -8,31 +8,24 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
-import org.junit.Before;
 import org.junit.Test;
 
 public class JoinParamsFactoryTest {
+
   private static final SourceName LEFT = SourceName.of("LEFT");
   private static final SourceName RIGHT = SourceName.of("RIGHT");
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .withAlias(LEFT);
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
-
-  private JoinParams joinParams;
-
-  @Before
-  public void init() {
-    joinParams = JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA);
-  }
+      .withAlias(RIGHT);
 
   @Test
   public void shouldBuildCorrectSchema() {
@@ -47,6 +40,7 @@ public class JoinParamsFactoryTest {
         .valueColumn(RIGHT, ColumnName.of("RED"), SqlTypes.BIGINT)
         .valueColumn(RIGHT, ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
         .build();
-    assertThat(joinParams.getSchema(), is(expected));
+
+    assertThat(JoinParamsFactory.createSchema(LEFT_SCHEMA, RIGHT_SCHEMA), is(expected));
   }
 }

@@ -48,12 +48,14 @@ public final class SchemaKSourceFactory {
   public static SchemaKStream<?> buildSource(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final QueryContext.Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
+    final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields =
+        LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, dataSource.getSchema());
+
     final boolean windowed = dataSource.getKsqlTopic().getKeyFormat().isWindowed();
     switch (dataSource.getDataSourceType()) {
       case KSTREAM:

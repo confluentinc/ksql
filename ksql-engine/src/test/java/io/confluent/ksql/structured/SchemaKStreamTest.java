@@ -855,7 +855,12 @@ public class SchemaKStreamTest {
         selectQuery,
         metaStore
     );
-    givenSourcePropertiesWithSchema(logicalPlan.getTheSourceNode().getSchema());
+    givenSourcePropertiesWithSchema(
+        logicalPlan
+            .getTheSourceNode()
+            .getSchema()
+            .withMetaAndKeyColsInValue()
+    );
     initialSchemaKStream = new SchemaKStream(
         sourceStep,
         keyFormat,

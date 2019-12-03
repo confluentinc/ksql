@@ -19,8 +19,10 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -53,6 +55,11 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.kafkaTopicName = Objects.requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
+
+    if (schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)).isPresent()
+        || schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)).isPresent()) {
+      throw new IllegalArgumentException("Schema contains implicit columns in value schema");
+    }
   }
 
   public SourceName getSourceName() {

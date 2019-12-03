@@ -226,8 +226,13 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTableFromPlan(final PlanNode logicalPlan) {
+    final LogicalSchema schema = logicalPlan
+        .getTheSourceNode()
+        .getSchema()
+        .withMetaAndKeyColsInValue();
+
     return new SchemaKTable(
-        buildSourceStep(logicalPlan.getTheSourceNode().getSchema(), kTable),
+        buildSourceStep(schema, kTable),
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
@@ -537,8 +542,13 @@ public class SchemaKTableTest {
     // Build our test object from the mocks
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    final LogicalSchema schema = logicalPlan
+        .getTheSourceNode()
+        .getSchema()
+        .withMetaAndKeyColsInValue();
+
     initialSchemaKTable = new SchemaKTable(
-        buildSourceStep(logicalPlan.getTheSourceNode().getSchema(), mockKTable),
+        buildSourceStep(schema, mockKTable),
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
@@ -832,8 +842,13 @@ public class SchemaKTableTest {
         metaStore
     );
 
+    final LogicalSchema schema = logicalPlan
+        .getTheSourceNode()
+        .getSchema()
+        .withMetaAndKeyColsInValue();
+
     initialSchemaKTable = new SchemaKTable(
-        buildSourceStep(logicalPlan.getTheSourceNode().getSchema(), kTable),
+        buildSourceStep(schema, kTable),
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),

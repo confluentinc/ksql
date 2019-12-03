@@ -52,7 +52,7 @@ import org.junit.runners.Parameterized;
  *
  * <ul>
  * <li>INSERT VALUES statements</li>
- * <li>Static queries against materialized stores</li>
+ * <li>Pull queries against materialized stores</li>
  * </ul>
  *
  * Runs the json functional tests defined under `ksql-functional-tests/src/test/resources/rest-query-validation-tests`.

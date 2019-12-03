@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -238,9 +239,13 @@ public final class LogicalSchema {
   }
 
   private Optional<Column> findColumnMatching(final Predicate<Column> predicate) {
+    // At the moment, it's possible for some column names to have multiple matches, e.g.
+    // ROWKEY and ROWTIME. Order of preference on namespace is KEY, VALUE then META,
+    // as per Namespace enum ordinal.
+
     return columns.stream()
         .filter(predicate)
-        .findFirst();
+        .min(Comparator.comparingInt(c -> c.namespace().ordinal()));
   }
 
   private Map<Namespace, List<Column>> byNamespace() {

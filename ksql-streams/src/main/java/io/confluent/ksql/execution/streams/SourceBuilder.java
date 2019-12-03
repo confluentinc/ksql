@@ -274,7 +274,7 @@ public final class SourceBuilder {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchema(final AbstractStreamSource streamSource) {
+  private static PhysicalSchema getPhysicalSchema(final AbstractStreamSource<?> streamSource) {
     return PhysicalSchema.from(
         streamSource.getSourceSchema(),
         streamSource.getFormats().getOptions()
@@ -282,7 +282,7 @@ public final class SourceBuilder {
   }
 
   private static <K> KStream<K, GenericRow> buildKStream(
-      final AbstractStreamSource streamSource,
+      final AbstractStreamSource<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, String> rowKeyGenerator
@@ -295,7 +295,7 @@ public final class SourceBuilder {
   }
 
   private static <K> KTable<K, GenericRow> buildKTable(
-      final AbstractStreamSource streamSource,
+      final AbstractStreamSource<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, String> rowKeyGenerator,

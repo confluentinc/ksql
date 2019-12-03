@@ -53,7 +53,7 @@ public class SelectValueMapperTest {
   private static final ColumnName NAME1 = ColumnName.of("cherry");
   private static final ColumnName NAME2 = ColumnName.of("banana");
   private static final Object KEY = null; // Not used yet.
-  private static final GenericRow VALLUE = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
+  private static final GenericRow VALUE = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
 
   @Mock
   private ExpressionMetadata col0;
@@ -82,12 +82,23 @@ public class SelectValueMapperTest {
   }
 
   @Test
+  public void shouldInvokeEvaluatorsWithCorrectParams() {
+    // When:
+    transformer.transform(KEY, VALUE, ctx);
+
+    // Then:
+    verify(col0).evaluate(KEY, VALUE);
+    verify(col1).evaluate(KEY, VALUE);
+    verify(col2).evaluate(KEY, VALUE);
+  }
+
+  @Test
   public void shouldEvaluateExpressions() {
     // Given:
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = transformer.transform(KEY, VALLUE, ctx);
+    final GenericRow result = transformer.transform(KEY, VALUE, ctx);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -109,7 +120,7 @@ public class SelectValueMapperTest {
     when(col0.getExpression()).thenReturn(
         new FunctionCall(FunctionName.of("kumquat"), ImmutableList.of())
     );
-    when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
+    when(col0.evaluate(any(), any())).thenThrow(new RuntimeException("oops"));
 
     // When:
     transformer.transform(
@@ -140,8 +151,8 @@ public class SelectValueMapperTest {
   }
 
   private void givenEvaluations(final Object result0, final Object result1, final Object result2) {
-    when(col0.evaluate(any())).thenReturn(result0);
-    when(col1.evaluate(any())).thenReturn(result1);
-    when(col2.evaluate(any())).thenReturn(result2);
+    when(col0.evaluate(any(), any())).thenReturn(result0);
+    when(col1.evaluate(any(), any())).thenReturn(result1);
+    when(col2.evaluate(any(), any())).thenReturn(result2);
   }
 }

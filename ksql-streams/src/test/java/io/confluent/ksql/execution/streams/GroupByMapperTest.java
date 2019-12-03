@@ -17,6 +17,9 @@ package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
@@ -24,31 +27,34 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class GroupByMapperTest {
 
-  @Mock(MockType.NICE)
+  @Mock
   private ExpressionMetadata groupBy0;
 
-  @Mock(MockType.NICE)
+  @Mock
   private ExpressionMetadata groupBy1;
 
-  @Mock(MockType.NICE)
-  private GenericRow row;
+  @Mock
+  private Struct key;
+  @Mock
+  private GenericRow value;
 
   private GroupByMapper<Struct> mapper;
 
   @Before
   public void setUp() {
     mapper = new GroupByMapper<>(ImmutableList.of(groupBy0, groupBy1));
+
+    when(groupBy0.evaluate(any(), any())).thenReturn("result0");
+    when(groupBy1.evaluate(any(), any())).thenReturn("result1");
   }
 
   @Test(expected = NullPointerException.class)
@@ -62,14 +68,19 @@ public class GroupByMapperTest {
   }
 
   @Test
-  public void shouldGenerateGroupByKey() {
-    // Given:
-    EasyMock.expect(groupBy0.evaluate(row)).andReturn("result0");
-    EasyMock.expect(groupBy1.evaluate(row)).andReturn("result1");
-    EasyMock.replay(groupBy0, groupBy1);
-
+  public void shouldInvokeEvaluatorsWithCorrectParams() {
     // When:
-    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
+    mapper.apply(key, value);
+
+    // Then:
+    verify(groupBy0).evaluate(key, value);
+    verify(groupBy1).evaluate(key, value);
+  }
+
+  @Test
+  public void shouldGenerateGroupByKey() {
+    // When:
+    final Struct result = mapper.apply(key, value);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("result0|+|result1")));
@@ -78,12 +89,10 @@ public class GroupByMapperTest {
   @Test
   public void shouldSupportNullValues() {
     // Given:
-    EasyMock.expect(groupBy0.evaluate(row)).andReturn(null);
-    EasyMock.expect(groupBy1.evaluate(row)).andReturn("result1");
-    EasyMock.replay(groupBy0, groupBy1);
+    when(groupBy0.evaluate(any(), any())).thenReturn(null);
 
     // When:
-    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
+    final Struct result = mapper.apply(key, value);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));
@@ -92,12 +101,10 @@ public class GroupByMapperTest {
   @Test
   public void shouldUseNullIfExpressionThrows() {
     // Given:
-    EasyMock.expect(groupBy0.evaluate(row)).andThrow(new RuntimeException("Boom"));
-    EasyMock.expect(groupBy1.evaluate(row)).andReturn("result1");
-    EasyMock.replay(groupBy0, groupBy1);
+    when(groupBy0.evaluate(any(), any())).thenThrow(new RuntimeException("Boom"));
 
     // When:
-    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
+    final Struct result = mapper.apply(key, value);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));

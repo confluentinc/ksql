@@ -34,10 +34,6 @@ public final class LogicalSchemaWithMetaAndKeyFields {
         schema.withAlias(alias).withMetaAndKeyColsInValue());
   }
 
-  public static LogicalSchemaWithMetaAndKeyFields fromTransformed(LogicalSchema schema) {
-    return new LogicalSchemaWithMetaAndKeyFields(schema);
-  }
-
   public LogicalSchema getSchema() {
     return schema;
   }

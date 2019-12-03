@@ -441,7 +441,6 @@ public class InsertValuesExecutor {
     }
   }
 
-  @SuppressWarnings("TryFinallyCanBeTryWithResources")
   private static void sendRecord(
       final ProducerRecord<byte[], byte[]> record,
       final ServiceContext serviceContext,
@@ -528,7 +527,7 @@ public class InsertValuesExecutor {
           );
 
       // we expect no column references, so we can pass in an empty generic row
-      final Object value = metadata.evaluate(new GenericRow());
+      final Object value = metadata.evaluate(new Object(), new GenericRow());
 
       return defaultSqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {

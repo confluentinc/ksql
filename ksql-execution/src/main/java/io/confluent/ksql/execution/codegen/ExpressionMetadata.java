@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
@@ -26,7 +25,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 @Immutable
@@ -52,15 +50,6 @@ public class ExpressionMetadata {
     this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[spec.arguments().size()]);
   }
 
-  @VisibleForTesting
-  public List<Integer> getIndexes() {
-    return spec.arguments()
-        .stream()
-        .map(ArgumentSpec::colIndex)
-        .map(idx -> idx.orElse(-1))
-        .collect(Collectors.toList());
-  }
-
   public List<ArgumentSpec> arguments() {
     return spec.arguments();
   }
@@ -73,17 +62,17 @@ public class ExpressionMetadata {
     return expression;
   }
 
-  public Object evaluate(GenericRow row) {
+  public Object evaluate(final Object key, final GenericRow value) {
     try {
-      return expressionEvaluator.evaluate(getParameters(row));
+      return expressionEvaluator.evaluate(getParameters(key, value));
     } catch (InvocationTargetException e) {
       throw new KsqlException(e.getCause().getMessage(), e.getCause());
     }
   }
 
-  private Object[] getParameters(GenericRow row) {
+  private Object[] getParameters(final Object key, final GenericRow value) {
     Object[] parameters = this.threadLocalParameters.get();
-    spec.resolve(row, parameters);
+    spec.resolve(key, value, parameters);
     return parameters;
   }
 }

@@ -29,9 +29,9 @@ import java.util.Optional;
 public final class Column implements SimpleColumn {
 
   public enum Namespace {
-    META,
     KEY,
-    VALUE
+    VALUE,
+    META
   }
 
   private final ColumnRef ref;

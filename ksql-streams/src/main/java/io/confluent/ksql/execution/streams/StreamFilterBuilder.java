@@ -15,13 +15,22 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import java.util.Collections;
+import java.util.Optional;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
+import org.apache.kafka.streams.processor.ProcessorContext;
 
 public final class StreamFilterBuilder {
   private StreamFilterBuilder() {
@@ -38,7 +47,8 @@ public final class StreamFilterBuilder {
       final KStreamHolder<K> stream,
       final StreamFilter<K> step,
       final KsqlQueryBuilder queryBuilder,
-      final SqlPredicateFactory predicateFactory) {
+      final SqlPredicateFactory predicateFactory
+  ) {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
         step.getProperties().getQueryContext()
     );
@@ -56,13 +66,50 @@ public final class StreamFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push("FILTER").getQueryContext()
+                contextStacker.push(step.getStepName()).getQueryContext()
             )
         );
 
+    final KStream<K, GenericRow> filtered = stream.getStream()
+        .flatTransformValues(
+            () -> toFlatMapTransformer(predicate.getTransformer(processingLogger)),
+            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName()))
+        );
+
     return stream.withStream(
-        stream.getStream().filter(predicate.getPredicate(processingLogger)),
+        filtered,
         stream.getSchema()
     );
+  }
+
+  private static <K> ValueTransformerWithKey<
+      K,
+      GenericRow,
+      Iterable<GenericRow>
+      > toFlatMapTransformer(
+          final KsqlTransformer<K, Optional<GenericRow>> transformer
+  ) {
+    final ValueTransformerWithKey<K, GenericRow, Optional<GenericRow>> delegate =
+        new KsTransformer<>(transformer);
+
+    return new ValueTransformerWithKey<K, GenericRow, Iterable<GenericRow>>() {
+      @Override
+      public void init(final ProcessorContext context) {
+        delegate.init(context);
+      }
+
+      @Override
+      public Iterable<GenericRow> transform(final K readOnlyKey, final GenericRow value) {
+        final Optional<GenericRow> result = delegate.transform(readOnlyKey, value);
+        return result
+            .map(Collections::singletonList)
+            .orElse(Collections.emptyList());
+      }
+
+      @Override
+      public void close() {
+        delegate.close();
+      }
+    };
   }
 }

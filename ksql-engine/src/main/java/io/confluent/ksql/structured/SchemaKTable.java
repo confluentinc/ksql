@@ -18,6 +18,7 @@ package io.confluent.ksql.structured;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -101,13 +102,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker
+      final String stepName,
+      final Stacker contextStacker
   ) {
     final TableFilter<K> step = ExecutionStepFactory.tableFilter(
         contextStacker,
         sourceTableStep,
-        rewriteTimeComparisonForFilter(filterExpression)
+        rewriteTimeComparisonForFilter(filterExpression),
+        stepName
     );
+
     return new SchemaKTable<>(
         step,
         keyFormat,

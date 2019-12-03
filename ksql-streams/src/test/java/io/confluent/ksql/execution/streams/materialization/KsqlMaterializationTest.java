@@ -211,7 +211,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY);
 
     // Then:
-    verify(filter).apply(A_KEY, A_VALUE);
+    verify(filter).apply(A_KEY, A_VALUE, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -224,7 +224,7 @@ public class KsqlMaterializationTest {
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(filter).apply(A_KEY, A_VALUE);
+    verify(filter).apply(A_KEY, A_VALUE, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -260,7 +260,7 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopProject();
-    when(filter.apply(any(), any())).thenReturn(Optional.empty());
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
     final Optional<?> result = table.get(A_KEY);
@@ -274,7 +274,7 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopProject();
-    when(filter.apply(any(), any())).thenReturn(Optional.empty());
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
     final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
@@ -294,8 +294,8 @@ public class KsqlMaterializationTest {
 
     // Then:
     final InOrder inOrder = inOrder(filter, project);
-    inOrder.verify(project).apply(any(), any());
-    inOrder.verify(filter).apply(any(), any());
+    inOrder.verify(project).apply(any(), any(), any());
+    inOrder.verify(filter).apply(any(), any(), any());
   }
 
   @Test
@@ -309,8 +309,8 @@ public class KsqlMaterializationTest {
 
     // Then:
     final InOrder inOrder = inOrder(filter, project);
-    inOrder.verify(project).apply(any(), any());
-    inOrder.verify(filter).apply(any(), any());
+    inOrder.verify(project).apply(any(), any(), any());
+    inOrder.verify(filter).apply(any(), any(), any());
   }
 
   @Test
@@ -318,13 +318,13 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
 
     // When:
     table.get(A_KEY);
 
     // Then:
-    verify(filter).apply(A_KEY, TRANSFORMED);
+    verify(filter).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
   }
 
   @Test
@@ -332,13 +332,13 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
 
     // When:
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(filter).apply(A_KEY, TRANSFORMED);
+    verify(filter).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -347,7 +347,7 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
 
     // When:
     final Optional<Row> result = table.get(A_KEY);
@@ -364,7 +364,7 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
@@ -405,11 +405,13 @@ public class KsqlMaterializationTest {
   }
 
   private void givenNoopFilter() {
-    when(filter.apply(any(), any())).thenAnswer(inv -> Optional.of(inv.getArgument(1)));
+    when(filter.apply(any(), any(), any()))
+        .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
   }
 
   private void givenNoopProject() {
-    when(project.apply(any(), any())).thenAnswer(inv -> Optional.of(inv.getArgument(1)));
+    when(project.apply(any(), any(), any()))
+        .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
   }
 
   private void givenNoopTransforms() {

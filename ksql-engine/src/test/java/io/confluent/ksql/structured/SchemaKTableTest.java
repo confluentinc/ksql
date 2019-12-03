@@ -43,8 +43,8 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -364,6 +364,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -394,6 +395,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKTable = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -423,6 +425,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
+        "step",
         childContextStacker
     );
 
@@ -433,7 +436,8 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableFilter(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                filterNode.getPredicate()
+                filterNode.getPredicate(),
+                "step"
             )
         )
     );

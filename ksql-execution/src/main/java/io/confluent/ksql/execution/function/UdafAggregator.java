@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,16 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.execution.function;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Merger;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
-public interface UdafAggregator extends Aggregator<Struct, GenericRow, GenericRow> {
+public interface UdafAggregator<K> extends Aggregator<K, GenericRow, GenericRow> {
   Merger<Struct, GenericRow> getMerger();
 
-  ValueMapper<GenericRow, GenericRow> getResultMapper();
+  /**
+   * @return a transformer to map the intermediate schema the output schema
+   */
+  KsqlTransformer<K, GenericRow> getResultMapper();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,14 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.function.udaf.window;
+package io.confluent.ksql.execution.transform.window;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.FunctionName;
 import java.util.ArrayList;
@@ -28,31 +31,29 @@ import java.util.Arrays;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class WindowSelectMapperTest {
 
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction<?, ?, ?> windowStartFunc;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction<?, ?, ?> windowEndFunc;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction<?, ?, ?> otherFunc;
+  @Mock
+  private KsqlProcessingContext ctx;
 
   @Before
   public void setUp() {
-    EasyMock.expect(windowStartFunc.name()).andReturn(FunctionName.of("WinDowStarT")).anyTimes();
-    EasyMock.expect(windowEndFunc.name()).andReturn(FunctionName.of("WinDowEnD")).anyTimes();
-    EasyMock.expect(otherFunc.name()).andReturn(
-        FunctionName.of("NotWindowStartOrWindowEnd")).anyTimes();
-    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc);
+    when(windowStartFunc.name()).thenReturn(FunctionName.of("WinDowStarT"));
+    when(windowEndFunc.name()).thenReturn(FunctionName.of("WinDowEnD"));
+    when(otherFunc.name()).thenReturn(FunctionName.of("NotWindowStartOrWindowEnd"));
   }
 
   @Test
@@ -76,16 +77,16 @@ public class WindowSelectMapperTest {
   @Test
   public void shouldUpdateRowWithWindowBounds() {
     // Given:
-    WindowSelectMapper mapper = new WindowSelectMapper(
+    final KsqlTransformer<Windowed<Object>, GenericRow> mapper = new WindowSelectMapper(
         1,
         ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
-    );
+    ).getTransformer();
 
     Window window = new SessionWindow(12345L, 54321L);
     GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
 
     // When:
-    GenericRow result = mapper.apply(new Windowed<>("k", window), row);
+    GenericRow result = mapper.transform(new Windowed<>("k", window), row, ctx);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
@@ -95,12 +96,15 @@ public class WindowSelectMapperTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void shouldThrowIfRowNotBigEnough() {
     // Given:
-    WindowSelectMapper mapper = new WindowSelectMapper(0, ImmutableList.of(windowStartFunc));
+    final KsqlTransformer<Windowed<Object>, GenericRow> mapper = new WindowSelectMapper(
+        0,
+        ImmutableList.of(windowStartFunc)
+    ).getTransformer();
 
     Window window = new SessionWindow(12345L, 54321L);
     GenericRow row = new GenericRow(new ArrayList<>());
 
     // When:
-    mapper.apply(new Windowed<>("k", window), row);
+    mapper.transform(new Windowed<>("k", window), row, ctx);
   }
 }

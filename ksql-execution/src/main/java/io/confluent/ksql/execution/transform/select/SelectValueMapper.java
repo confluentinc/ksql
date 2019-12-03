@@ -13,13 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform.select;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -40,7 +42,9 @@ public class SelectValueMapper<K> {
     return selects;
   }
 
-  public KsqlValueTransformerWithKey<K> getTransformer(final ProcessingLogger processingLogger) {
+  public KsqlTransformer<K, GenericRow> getTransformer(
+      final ProcessingLogger processingLogger
+  ) {
     return new SelectMapper<>(selects, processingLogger);
   }
 
@@ -85,7 +89,7 @@ public class SelectValueMapper<K> {
     }
   }
 
-  private static final class SelectMapper<K> extends KsqlValueTransformerWithKey<K> {
+  private static final class SelectMapper<K> implements KsqlTransformer<K, GenericRow> {
 
     private final ImmutableList<SelectInfo> selects;
     private final ProcessingLogger processingLogger;
@@ -99,7 +103,11 @@ public class SelectValueMapper<K> {
     }
 
     @Override
-    protected GenericRow transform(final GenericRow value) {
+    public GenericRow transform(
+        final K readOnlyKey,
+        final GenericRow value,
+        final KsqlProcessingContext ctx
+    ) {
       if (value == null) {
         return null;
       }

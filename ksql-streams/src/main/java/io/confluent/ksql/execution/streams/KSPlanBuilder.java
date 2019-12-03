@@ -42,7 +42,7 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;

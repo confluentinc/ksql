@@ -55,17 +55,17 @@ Topologies:
       --> KSTREAM-AGGREGATE-0000000003
       <-- KSTREAM-TRANSFORMVALUES-0000000001
     Processor: KSTREAM-AGGREGATE-0000000003 (stores: [Aggregate-aggregate])
-      --> KTABLE-MAPVALUES-0000000004
+      --> AGGREGATE-TO-OUTPUT-SCHEMA-1
       <-- PRE-AGGREGATE-SELECT-0
-    Processor: KTABLE-MAPVALUES-0000000004 (stores: [])
-      --> SELECT-1
+    Processor: AGGREGATE-TO-OUTPUT-SCHEMA-1 (stores: [])
+      --> SELECT-2
       <-- KSTREAM-AGGREGATE-0000000003
-    Processor: SELECT-1 (stores: [])
+    Processor: SELECT-2 (stores: [])
       --> KTABLE-TOSTREAM-0000000006
-      <-- KTABLE-MAPVALUES-0000000004
+      <-- AGGREGATE-TO-OUTPUT-SCHEMA-1
     Processor: KTABLE-TOSTREAM-0000000006 (stores: [])
       --> KSTREAM-MAPVALUES-0000000007
-      <-- SELECT-1
+      <-- SELECT-2
     Processor: KSTREAM-MAPVALUES-0000000007 (stores: [])
       --> KSTREAM-SINK-0000000008
       <-- KTABLE-TOSTREAM-0000000006

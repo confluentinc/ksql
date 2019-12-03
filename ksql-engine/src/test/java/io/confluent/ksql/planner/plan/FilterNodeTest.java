@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -44,6 +45,8 @@ public class FilterNodeTest {
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private Stacker stacker;
+  @Mock
+  private Stacker updatedStacker;
 
   private FilterNode node;
 
@@ -56,10 +59,11 @@ public class FilterNodeTest {
     when(sourceNode.buildStream(any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any(), any()))
+    when(schemaKStream.filter(any(), any(), any()))
         .thenReturn(schemaKStream);
 
     when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
+    when(stacker.push(any())).thenReturn(updatedStacker);
 
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -71,6 +75,16 @@ public class FilterNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-    verify(schemaKStream).filter(predicate, stacker);
+    verify(schemaKStream).filter(predicate, "WHERE-FILTER", updatedStacker);
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  @Test
+  public void shouldUseRightOpName() {
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(stacker).push("where-filter");
   }
 }

@@ -31,9 +31,10 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
-import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory.MaterializationFactory;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -43,8 +44,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -55,6 +54,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationFactoryTest {
 
@@ -76,11 +76,9 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
-  private BiFunction<Object, GenericRow, GenericRow> mapper;
+  private KsqlTransformer<Object, GenericRow> mapper;
   @Mock
-  private BiPredicate<Object, GenericRow> predicate;
-  @Mock
-  private KsqlValueTransformerWithKey<Object> selectTransformer;
+  private KsqlTransformer<Object, Optional<GenericRow>> predicate;
   @Mock
   private MaterializationFactory materializationFactory;
   @Mock
@@ -95,6 +93,8 @@ public class KsqlMaterializationFactoryTest {
   private GenericRow rowIn;
   @Mock
   private GenericRow rowOut;
+  @Mock
+  private KsqlProcessingContext ctx;
   @Captor
   private ArgumentCaptor<Function<String, ProcessingLogger>> loggerCaptor;
 
@@ -170,12 +170,12 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithMapTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(mapper.apply(any(), any())).thenReturn(rowOut);
+    when(mapper.transform(any(), any(), any())).thenReturn(rowOut);
 
     final Transform transform = getTransform(0);
 
     // When:
-    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn, ctx);
 
     // Then:
     assertThat(result, is(Optional.of(rowOut)));
@@ -185,12 +185,12 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithNegativePredicateTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(predicate.test(any(), any())).thenReturn(false);
+    when(predicate.transform(any(), any(), any())).thenReturn(Optional.empty());
 
     final Transform transform = getTransform(1);
 
     // Then:
-    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn, ctx);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -200,12 +200,13 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithPositivePredicateTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(predicate.test(any(), any())).thenReturn(true);
+    when(predicate.transform(any(), any(), any()))
+        .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
 
     final Transform transform = getTransform(1);
 
     // Then:
-    final Optional<GenericRow> result = transform.apply(keyIn, rowIn);
+    final Optional<GenericRow> result = transform.apply(keyIn, rowIn, ctx);
 
     // Then:
     assertThat(result, is(Optional.of(rowIn)));

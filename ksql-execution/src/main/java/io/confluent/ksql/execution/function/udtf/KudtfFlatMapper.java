@@ -20,16 +20,17 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
  * Implements the actual flat-mapping logic - this is called by Kafka Streams
  */
 @Immutable
-public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<GenericRow>> {
+public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRow>> {
 
   private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
@@ -41,18 +42,28 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
   This function zips results from multiple table functions together as described in KLIP-9
   in the design-proposals directory.
    */
+
   @Override
-  public Iterable<GenericRow> apply(GenericRow row) {
-    List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
+  public Iterable<GenericRow> transform(
+      final K readOnlyKey,
+      final GenericRow value,
+      final KsqlProcessingContext ctx
+  ) {
+    if (value == null) {
+      return null;
+    }
+
+    final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
     for (TableFunctionApplier applier : tableFunctionAppliers) {
-      List<?> exploded = applier.apply(row);
+      List<?> exploded = applier.apply(value);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }
-    List<GenericRow> rows = new ArrayList<>(maxLength);
+
+    final List<GenericRow> rows = new ArrayList<>(maxLength);
     for (int i = 0; i < maxLength; i++) {
-      List<Object> newRow = new ArrayList<>(row.getColumns());
+      List<Object> newRow = new ArrayList<>(value.getColumns());
       for (Iterator<?> iter : iters) {
         if (iter.hasNext()) {
           newRow.add(iter.next());

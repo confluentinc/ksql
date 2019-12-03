@@ -18,30 +18,37 @@ package io.confluent.ksql.execution.function.udtf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KudtfFlatMapperTest {
 
+  private static final String KEY = "";
+  private static final GenericRow VALUE = new GenericRow(1, 2, 3);
+
+  @Mock
+  private KsqlProcessingContext ctx;
+
   @Test
   public void shouldFlatMapOneFunction() {
     // Given:
     TableFunctionApplier applier = createApplier(Arrays.asList(10, 10, 10));
-    List<TableFunctionApplier> appliers = Arrays.asList(applier);
-    KudtfFlatMapper flatMapper = new KudtfFlatMapper(appliers);
-    GenericRow row = new GenericRow(1, 2, 3);
+    KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier));
 
     // When:
-    Iterable<GenericRow> iterable = flatMapper.apply(row);
+    Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
 
     // Then:
     Iterator<GenericRow> iter = iterable.iterator();
@@ -56,12 +63,10 @@ public class KudtfFlatMapperTest {
     // Given:
     TableFunctionApplier applier1 = createApplier(Arrays.asList(10, 10, 10));
     TableFunctionApplier applier2 = createApplier(Arrays.asList(20, 20));
-    List<TableFunctionApplier> appliers = Arrays.asList(applier1, applier2);
-    KudtfFlatMapper flatMapper = new KudtfFlatMapper(appliers);
-    GenericRow row = new GenericRow(1, 2, 3);
+    KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2));
 
     // When:
-    Iterable<GenericRow> iterable = flatMapper.apply(row);
+    Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
 
     // Then:
     Iterator<GenericRow> iter = iterable.iterator();
@@ -71,10 +76,9 @@ public class KudtfFlatMapperTest {
     assertThat(iter.hasNext(), is(false));
   }
 
-  private <T> TableFunctionApplier createApplier(List<T> list) {
+  private static <T> TableFunctionApplier createApplier(List<?> list) {
     TableFunctionApplier applier = mock(TableFunctionApplier.class);
-    Mockito.doReturn(list).when(applier).apply(any());
+    doReturn(list).when(applier).apply(any());
     return applier;
   }
-
 }

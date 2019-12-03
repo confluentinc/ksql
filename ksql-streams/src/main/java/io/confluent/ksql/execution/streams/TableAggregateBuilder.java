@@ -22,11 +22,13 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class TableAggregateBuilder {
@@ -77,7 +79,10 @@ public final class TableAggregateBuilder {
         aggregateParams.getAggregator(),
         aggregateParams.getUndoAggregator().get(),
         materialized
-    ).mapValues(aggregateParams.getAggregator().getResultMapper());
+    ).transformValues(
+        () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
+        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+    );
 
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(

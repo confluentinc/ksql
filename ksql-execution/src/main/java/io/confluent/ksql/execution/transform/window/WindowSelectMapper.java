@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,24 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.function.udaf.window;
+package io.confluent.ksql.execution.transform.window;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * Used to handle the special cased {WindowStart} and {WindowEnd}.
  */
-public final class WindowSelectMapper
-    implements ValueMapperWithKey<Windowed<?>, GenericRow, GenericRow> {
+public final class WindowSelectMapper {
 
   public static final String WINDOW_START_NAME = "WindowStart";
   public static final String WINDOW_END_NAME = "WindowEnd";
@@ -57,14 +57,29 @@ public final class WindowSelectMapper
     return !windowSelects.isEmpty();
   }
 
-  @Override
-  public GenericRow apply(Windowed<?> readOnlyKey, GenericRow row) {
-    Window window = readOnlyKey.window();
+  public <K> KsqlTransformer<Windowed<K>, GenericRow> getTransformer() {
+    return new Transformer<>();
+  }
 
-    windowSelects.forEach((index, type) ->
-        row.getColumns().set(index, type.mapper.apply(window)));
+  private final class Transformer<K> implements KsqlTransformer<Windowed<K>, GenericRow> {
 
-    return row;
+    @Override
+    public GenericRow transform(
+        final Windowed<K> readOnlyKey,
+        final GenericRow value,
+        final KsqlProcessingContext ctx
+    ) {
+      if (value == null) {
+        return null;
+      }
+
+      final Window window = readOnlyKey.window();
+
+      windowSelects.forEach((index, type) ->
+          value.getColumns().set(index, type.mapper.apply(window)));
+
+      return value;
+    }
   }
 
   private enum Type {

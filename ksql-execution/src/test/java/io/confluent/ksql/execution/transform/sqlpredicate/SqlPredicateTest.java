@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.sqlpredicate;
+package io.confluent.ksql.execution.transform.sqlpredicate;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -28,9 +28,10 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -48,10 +49,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,12 +67,13 @@ public class SqlPredicateTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
+      .keyColumn(ColumnName.of("ID"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
       .build()
-      .withAlias(SourceName.of("TEST1"))
-      .withMetaAndKeyColsInValue();
+      .withAlias(SourceName.of("TEST1"));
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
 
@@ -88,6 +90,8 @@ public class SqlPredicateTest {
       LenDummy.class
   );
 
+  private static final GenericRow VALUE = new GenericRow(22L, 33.3, "a string");
+
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -96,6 +100,8 @@ public class SqlPredicateTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private UdfFactory lenFactory;
+  @Mock
+  private KsqlProcessingContext ctx;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -107,67 +113,46 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void testFilter() {
+  public void shouldPassFilter() {
     // Given:
-    SqlPredicate predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.LESS_THAN, COL0, new LongLiteral(100)));
 
     // When/Then:
-    assertThat(
-        predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("(TEST1.COL0 > 100)")
-    );
-    assertThat(predicate.getColumnIndexes().length, equalTo(1));
-
+    assertThat(predicate.transform("key", VALUE, ctx), is(Optional.of(VALUE)));
   }
 
   @Test
-  public void testFilterBiggerExpression() {
+  public void shouldNotPassFilter() {
     // Given:
-    SqlPredicate predicate = givenSqlPredicateFor(
-        new LogicalBinaryExpression(
-            LogicalBinaryExpression.Type.AND,
-            new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)),
-            new ComparisonExpression(
-                Type.EQUAL,
-                new FunctionCall(FunctionName.of("LEN"), ImmutableList.of(COL2)),
-                new IntegerLiteral(5)
-            )
-        )
-    );
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.GREATER_THAN, COL0, new LongLiteral(100)));
 
     // When/Then:
-    assertThat(
-        predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))")
-    );
-    assertThat(predicate.getColumnIndexes().length, equalTo(3));
+    assertThat(predicate.transform("key", VALUE, ctx), is(Optional.empty()));
   }
 
   @Test
   public void shouldIgnoreNullRows() {
     // Given:
-    SqlPredicate sqlPredicate = givenSqlPredicateFor(
+    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
-    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
-
     // When/Then:
-    assertThat(predicate.test("key", null), is(false));
+    assertThat(predicate.transform("key", null, ctx), is(Optional.empty()));
   }
 
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    SqlPredicate sqlPredicate = givenSqlPredicateFor(
+    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
-    final Predicate<Object, GenericRow> predicate = sqlPredicate.getPredicate(processingLogger);
-
     // When:
-    predicate.test(
+    predicate.transform(
         "key",
-        new GenericRow(0L, "key", Collections.emptyList())
+        new GenericRow("wrong", "types", "in", "here", "to", "force", "error"),
+        ctx
     );
 
     // Then:
@@ -191,13 +176,15 @@ public class SqlPredicateTest {
     );
   }
 
-  private SqlPredicate givenSqlPredicateFor(Expression sqlPredicate) {
+  private KsqlTransformer<Object, Optional<GenericRow>> givenSqlPredicateFor(
+      final Expression filterExpression
+  ) {
     return new SqlPredicate(
-        sqlPredicate,
+        filterExpression,
         SCHEMA,
         KSQL_CONFIG,
         functionRegistry
-    );
+    ).getTransformer(processingLogger);
   }
 
   public static class LenDummy implements Kudf {

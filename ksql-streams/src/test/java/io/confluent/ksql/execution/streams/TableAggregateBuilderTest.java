@@ -38,7 +38,7 @@ import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
@@ -162,7 +162,7 @@ public class TableAggregateBuilderTest {
         aggregated);
     when(aggregated.mapValues(any(ValueMapper.class))).thenReturn(aggregatedWithResults);
     aggregate = new TableAggregate(
-        new ExecutionStepProperties(AGGREGATE_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(AGGREGATE_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,

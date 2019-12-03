@@ -23,13 +23,13 @@ import java.util.Objects;
 
 @Immutable
 public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
   private final String topicName;
 
   public TableSink(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "topicName", required = true) String topicName
@@ -41,7 +41,7 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

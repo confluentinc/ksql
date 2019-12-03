@@ -43,7 +43,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -204,7 +204,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
     final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
     when(sourceStep.getProperties()).thenReturn(
-        new ExecutionStepProperties(schema, queryContext.getQueryContext()));
+        new ExecutionStepPropertiesV1(schema, queryContext.getQueryContext()));
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.unmaterialized(kTable, schema, keySerdeFactory));
     return sourceStep;

@@ -14,7 +14,7 @@
  import io.confluent.ksql.execution.expression.tree.Expression;
  import io.confluent.ksql.execution.materialization.MaterializationInfo;
  import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
- import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+ import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
  import io.confluent.ksql.execution.plan.ExecutionStep;
  import io.confluent.ksql.execution.plan.KTableHolder;
  import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -65,7 +65,7 @@ public class TableFilterBuilderTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> sourceStep;
   @Mock
-  private ExecutionStepProperties sourceProperties;
+  private ExecutionStepPropertiesV1 sourceProperties;
   @Mock
   private KTable<Struct, GenericRow> sourceKTable;
   @Mock
@@ -108,7 +108,7 @@ public class TableFilterBuilderTest {
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
-    final ExecutionStepProperties properties = new ExecutionStepProperties(
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         schema,
         queryContext
     );

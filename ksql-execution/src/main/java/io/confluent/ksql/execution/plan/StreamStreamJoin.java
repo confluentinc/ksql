@@ -25,7 +25,7 @@ import java.util.Objects;
 @Immutable
 public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
 
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
   private final Formats leftFormats;
   private final Formats rightFormats;
@@ -35,7 +35,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final Duration after;
 
   public StreamStreamJoin(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "joinType", required = true) JoinType joinType,
       @JsonProperty(value = "leftFormats", required = true) Formats leftFormats,
       @JsonProperty(value = "rightFormats", required = true) Formats rightFormats,
@@ -54,7 +54,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

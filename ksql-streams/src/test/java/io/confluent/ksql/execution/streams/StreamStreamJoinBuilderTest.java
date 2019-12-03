@@ -15,7 +15,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -147,7 +147,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(SCHEMA, CTX),
         JoinType.LEFT,
         LEFT_FMT,
         RIGHT_FMT,
@@ -162,7 +162,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenOuterJoin() {
     when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(SCHEMA, CTX),
         JoinType.OUTER,
         LEFT_FMT,
         RIGHT_FMT,
@@ -177,7 +177,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepProperties(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(SCHEMA, CTX),
         JoinType.INNER,
         LEFT_FMT,
         RIGHT_FMT,

@@ -27,14 +27,14 @@ import org.apache.kafka.connect.data.Struct;
 @Immutable
 public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
 
-  private final ExecutionStepProperties properties;
+  private final ExecutionStepPropertiesV1 properties;
   private final ColumnRef fieldName;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<?>> source;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
-      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<? extends KStreamHolder<?>> source,
       @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName,
@@ -46,7 +46,7 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   }
 
   @Override
-  public ExecutionStepProperties getProperties() {
+  public ExecutionStepPropertiesV1 getProperties() {
     return properties;
   }
 

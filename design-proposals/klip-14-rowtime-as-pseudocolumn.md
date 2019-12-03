@@ -3,7 +3,7 @@
 **Author**: @big-andy-coates | 
 **Release Target**: TBD | 
 **Status**: In Discussion | 
-**Discussion**: TBD
+**Discussion**: https://github.com/confluentinc/ksql/pull/4026
 
 **tl;dr:**
 _`ROWTIME` is currently part of a source's schema. `SELECT *` style queries against a source include `ROWTIME`

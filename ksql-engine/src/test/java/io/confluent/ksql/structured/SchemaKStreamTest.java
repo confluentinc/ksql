@@ -49,6 +49,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -59,6 +60,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.time.Duration;
@@ -196,6 +198,93 @@ public class SchemaKStreamTest {
         is(schemaResolver.resolve(
             projectedSchemaKStream.getSourceStep(), initialSchemaKStream.schema))
     );
+  }
+
+  @Test
+  public void shouldNotRepartitionIfSameKeyField() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream result = initialSchemaKStream
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+
+    // Then:
+    assertThat(result, is(initialSchemaKStream));
+  }
+
+  @Test
+  public void shouldNotRepartitionIfRowkey() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY ROWKEY EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream result = initialSchemaKStream
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+
+    // Then:
+    assertThat(result, is(initialSchemaKStream));
+  }
+
+  @Test
+  public void shouldUpdateKeyOnPartitionByColumn() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col2 EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream result = initialSchemaKStream
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+
+    // Then:
+    assertThat(result.getKeyField(),
+        is(KeyField.of(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL2")))));
+  }
+
+  @Test
+  public void shouldUpdateKeyToNoneOnPartitionByMetaColumn() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY ROWTIME EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream result = initialSchemaKStream
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+
+    // Then:
+    assertThat(result.getKeyField(), is(KeyField.none()));
+  }
+
+  @Test
+  public void shouldUpdateKeyToNoneOnPartitionByExpression() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col2 + 'foo' EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream result = initialSchemaKStream
+        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+
+    // Then:
+    assertThat(result.getKeyField(), is(KeyField.none()));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowOnRepartitionByMissingField() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY not_here EMIT CHANGES;");
+    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(), childContextStacker);
   }
 
   @Test
@@ -423,7 +512,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
+        new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -437,7 +526,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
+        new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -447,7 +536,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))
+                new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")))
             )
         )
     );
@@ -460,7 +549,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
+        new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -471,12 +560,12 @@ public class SchemaKStreamTest {
     );
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = KsqlException.class)
   public void shouldThrowOnSelectKeyIfKeyNotInSchema() {
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        ColumnRef.withoutSource(ColumnName.of("won't find me")),
+        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("won't find me"))),
         childContextStacker);
 
     assertThat(rekeyedSchemaKStream.getKeyField(), is(validJoinKeyField));

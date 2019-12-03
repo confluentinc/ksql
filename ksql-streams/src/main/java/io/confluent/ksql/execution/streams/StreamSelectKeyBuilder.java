@@ -17,58 +17,46 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamSelectKeyBuilder {
+
+  private static final String EXP_TYPE = "SelectKey";
+
   private StreamSelectKeyBuilder() {
   }
 
   public static KStreamHolder<Struct> build(
       final KStreamHolder<?> stream,
       final StreamSelectKey selectKey,
-      final KsqlQueryBuilder queryBuilder) {
+      final KsqlQueryBuilder queryBuilder
+  ) {
     final LogicalSchema sourceSchema = stream.getSchema();
+    final CodeGenRunner codeGen = new CodeGenRunner(
+        sourceSchema,
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry());
 
-    final Column keyColumn = sourceSchema.findValueColumn(selectKey.getFieldName())
-        .orElseThrow(IllegalArgumentException::new);
-
-    final int keyIndexInValue = keyColumn.index();
+    final ExpressionMetadata expression =
+        codeGen.buildCodeGenFromParseTree(selectKey.getKeyExpression(), EXP_TYPE);
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream
-        .filter((key, value) ->
-            value != null && extractColumn(sourceSchema, keyIndexInValue, value) != null
-        ).selectKey((key, value) ->
-            StructKeyUtil.asStructKey(
-                extractColumn(sourceSchema, keyIndexInValue, value).toString()
-            )
-        );
+        .filter((key, val) -> val != null && expression.evaluate(val) != null)
+        .selectKey((key, val) -> StructKeyUtil.asStructKey(expression.evaluate(val).toString()));
+
     return new KStreamHolder<>(
         rekeyed,
         stream.getSchema(),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
-  }
-
-  private static Object extractColumn(
-      final LogicalSchema schema,
-      final int keyIndexInValue,
-      final GenericRow value
-  ) {
-    if (value.getColumns().size() != schema.value().size()) {
-      throw new IllegalStateException("Field count mismatch. "
-          + "Schema fields: " + schema
-          + ", row:" + value);
-    }
-    return value
-        .getColumns()
-        .get(keyIndexInValue);
   }
 }

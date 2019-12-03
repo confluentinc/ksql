@@ -264,7 +264,7 @@ public class StepSchemaResolverTest {
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
         streamSource,
-        mock(ColumnRef.class)
+        mock(ColumnReferenceExp.class)
     );
 
     // When:

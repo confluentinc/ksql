@@ -188,9 +188,8 @@ public final class StatementRewriter<C> {
       final Optional<GroupBy> groupBy = node.getGroupBy()
           .map(exp -> ((GroupBy) rewriter.apply(exp, context)));
 
-      // don't rewrite the partitionBy because we expect it to be
-      // exactly as it was (a single, un-aliased, column reference)
-      final Optional<Expression> partitionBy = node.getPartitionBy();
+      final Optional<Expression> partitionBy = node.getPartitionBy()
+          .map(exp -> processExpression(exp, context));
 
       final Optional<Expression> having = node.getHaving()
           .map(exp -> (processExpression(exp, context)));

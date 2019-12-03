@@ -277,10 +277,11 @@ public class StatementRewriterTest {
   }
 
   @Test
-  public void shouldNotRewriteQueryWithPartitionBy() {
+  public void shouldRewriteQueryWithPartitionBy() {
     // Given:
     final Query query =
         givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(expression), Optional.empty());
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(query, context);
@@ -293,7 +294,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(expression),
+        Optional.of(rewrittenExpression),
         Optional.empty(),
         resultMaterialization,
         false,

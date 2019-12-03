@@ -13,7 +13,7 @@ introduced as a part of [KIP-535](https://cwiki.apache.org/confluence/display/KA
 Assume we have a load balancer (LB) and a cluster of three KSQL servers (`A`, `B`, `C`) where `A` is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic partition and writes these updates to its state store and changelog topic. The changelog topic is replicated into the state store of servers `B` and `C`.
 Note, every Ksql server is the active for some partitions and standby for others. Without loss of generality, we will focus on one partition for now.
 
-Now assume  LB receives a pull query (1) and sends the query to `B` (2). `B` determines that `A` is the active server and forwards the request to `A` (3). A executes the query successfully and returns the response.
+Now assume  LB receives a pull query (1) and sends the query to `B` (2). `B` determines that `A` is the active server and forwards the request to `A` (3). `A` executes the query successfully and returns the response.
 
 Failure scenario: Assume that `A` goes down. `B` receives the request, tries to forward it to `A` and fails. What to do now? The current implementation tries to forward the request to `A` (in a busy loop) for a configurable timeout `KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS` . If it has not succeeded in this timeout, the request fails. 
 The next request `B` receives, it will again try to forward it to `A`, since `A` is still the active, and it will fail again. This will happen until rebalancing completes and a new active is elected for the partition. 
@@ -176,7 +176,7 @@ We intend to use the simple heartbeat mechanism proposed here as a baseline impl
 We will do unit tests and integration tests with failure scenarios where we cover the cases:
 1. Request is forwarded to a stanby.
 2. Request is forward to the most caught-up standby.
-3. Request fails if lags is more than acceptable lag configuration.
+3. Request fails if lag of stanbys is more than acceptable lag configuration.
 
 ## Documentation Updates
 
@@ -188,7 +188,7 @@ N/A
 
 ## Performance Implications
 
-_Will the proposed changes affect performance, (either positively or negatively)._
+Improve performance of pull queries in case of failure.
 
 ## Security Implications
 

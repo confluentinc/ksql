@@ -10,7 +10,7 @@ introduced as a part of [KIP-535](https://cwiki.apache.org/confluence/display/KA
 
 ## Motivation and background
 
-Assume we have a load balancer (LB) and a cluster of three KSQL servers (A, B, C) where `A` is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic partition and writes these updates to its state store and changelog topic. The changelog topic is replicated into the state store of servers `B` and `C`.
+Assume we have a load balancer (LB) and a cluster of three KSQL servers (`A`, `B`, `C`) where `A` is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic partition and writes these updates to its state store and changelog topic. The changelog topic is replicated into the state store of servers `B` and `C`.
 Note, every Ksql server is the active for some partitions and standby for others. Without loss of generality, we will focus on one partition for now.
 
 Now assume  LB receives a pull query (1) and sends the query to `B` (2). `B` determines that `A` is the active server and forwards the request to `A` (3). A executes the query successfully and returns the response.
@@ -82,24 +82,6 @@ private HeartbeatResponse processRequest() {
 }
 ```
 
-Pseudocode for decision-making policy:
-```java
-Map<KsqlNode, Boolean> serverStatus;
-long prev_time;
-
-while (true) {
-  if (current_time - prev_time > WINDOW) {
-    for (KsqlServer server: receivedHeartbeats) {
-      if(receivedHeartbeats.get(server).size() < RECEIVED_THRESHOLD) {
-        serverStatus.put(server, false); //server is down
-      } else {
-        serverStatus.put(server, countHeartbeats(server, receivedHeartbeats.get(server));
-        receivedHeartbeats.get(server).clear();
-      }  
-    }
-  }
-}
-```
 
 ### Lag reporting
 
@@ -128,7 +110,7 @@ Given the above information (alive + lag), how does a KSQL server decide to whic
 Pseudocode for routing:
 ```java
 // Map populated periodically through heartbeat information
-Map<KsqlNode, Map<String, Map<Integer, Long>> allNodesLagMap;
+Map<KsqlNode, Map<String, Map<Integer, Long>> globalLagMap;
  
 // Fetch the metadata related to the key
 KeyQueryMetadata queryMetadata = queryMetadataForKey(store, key, serializer);
@@ -143,7 +125,7 @@ if (serverStatus.get(queryMetadata.getActiveHost())) {
   // filter out all the standbys with unacceptable lag than acceptable lag & obtain a list of standbys that are in-sync
   List<HostInfo> inSyncStandbys = queryMetadata.getStandbyHosts().stream()
       // get the lag at each standby host for the key's store partition
-      .map(standbyHostInfo -> new Pair(standbyHostInfo, allNodesLagMap.get(standbyHostInfo).get(storeName).get(queryMetadata.partition())))
+      .map(standbyHostInfo -> new Pair(standbyHostInfo, globalLagMap.get(standbyHostInfo).get(storeName).get(queryMetadata.partition())))
       // Sort by offset lag, i.e smallest lag first
       .sorted(Comaparator.comparing(Pair::getRight())
       .filter(standbyHostLagPair -> standbyHostLagPair.getRight() < acceptableOffsetLag)
@@ -172,25 +154,10 @@ receiving less frequent lag updates is ok as this affects consistency and not av
 ### Rejected/Alternate approaches
 
 #### Retrieve lag information on-demand
-We employ a pull model where servers don't explicitly send a hearbeat or their lag information. Rather, communication happens only when needed, i.e. when a server tries to forward a request to another server. When server `B` issues the first request to `A`, it needs to determine whether `A` is down. 
-
-Configuration parameters:
-1) Request TIMEOUT (e.g. how long to wait before failing a request)
-2) Request WINDOW (e.g. how many requests to attempt before deciding a server is down)
-3) MISSED_THRESHOLD: How many timed-out requests in a row constitute a server as down.
-4) Request REMEMBER_STATUS: Once a server is marked down, when will we try again to forward requests to it (e.g. remember server `A` is down for 5 seconds. After 5 seconds, try again).
-
-Once `B` has determined that server `A` is down, it needs to determine what other server should evaluate the query. At this point, `B` doesn't have any knowledge of the lag information of the other standbys. So, in addition to evaluating the query locally, `B` also sends the request to `C`. `B` then has both its own result and `C`’s result of query evaluation and decides which one is the freshest to include in the response. `B` can make this decision because the lag information is piggybacked with the query evaluation result.
-
-**Discussion**
-
-Advantages:
-1. Less communication overhead: Lag information is exchanged only when the active is down. Moreover, it is piggy-backed on the request. 
-
-Drawbacks:
-1. All standbys need to evaluate the query.
-2. The communication between `B` and `C` involves large messages as they contain the query result (can be many rows).
-3. Latency for a request increases dramatically as routing decision is not local and blocks on healthchecking. `B` needs to wait until `A`'s response times out, then wait to receive a response from `C` with query result and lag information. Then only can `B` send a response back to the client. 
+We employ a pull model where servers don't explicitly send their lag information. Rather, communication happens only when needed, i.e. when a server tries to forward a request to another server. Once server `B` has determined that server `A` is down, it needs to determine what other server should evaluate the query. At this point,
+`B` doesn't have any knowledge of the lag information of the other standbys. So, in addition to evaluating the query locally, `B` also sends the request to `C`. `B` then has both its own result and `C`’s result of query evaluation and decides which one is the freshest to include in the response. `B` can make this decision because
+the lag information is piggybacked with the query evaluation result. The advantages of this approach is that it results in less communication overhead: Lag information is exchanged only when the active is down. Moreover, it is piggy-backed on the request. On the other side, all standbys need to evaluate the same query. Moreover, 
+the communication between `B` and `C` involves large messages as they contain the query result (can be many rows). Finally, latency for a request increases as `B` needs to wait to receive a response from `C` with query result and lag information. Then only can `B` send a response back to the client. 
 
 #### More efficient lag propagation
 Instead of broadcasting lag information, we could also build a gossip protocol to disseminate this information, with more round trips but lower network bandwidth consumption. While we concede that this is an effective and proven technique, debugging such protocols is hard in practice. So, we decided to 
@@ -199,39 +166,25 @@ intelligent, selective propagation that only piggybacks a few stores's lag in ea
 
 #### Failure detection based on actual request failures
 In this proposal, we have argued for a separate health checking mechanism (i.e separate control plane), while we could have used the pull query requests between servers themselves to gauge whether another server is up or down. But, any scheme like that would require a fallback mechanism that periodically 
-probes other servers anyway to keep the availability information upto date. While we recognize that such an approach could provide much quicker failure detection (and potentially higher number of samples to base failure detection on), it also requires significant tuning to handle transient application pauses or other corner cases.
+probes other servers anyway to keep the availability information upto date. While we recognize that such an approach could provide much quicker failure detection (and potentially higher number of samples to base failure detection on) and less communication overhead, it also requires significant tuning to handle 
+transient application pauses or other corner cases.
 
 We intend to use the simple heartbeat mechanism proposed here as a baseline implementation, that can be extended to more advanced schemes like these down the line.
 
 ## Test plan
 
-_What tests do you plan to write?  What are the failure scenarios that we do / do not cover? It goes 
-without saying that most classes should have unit tests. This section is more focussed on the 
-integration and system tests that you need to write to test the changes you are making._
+We will do unit tests and integration tests with failure scenarios where we cover the cases:
+1. Request is forwarded to a stanby.
+2. Request is forward to the most caught-up standby.
+3. Request fails if lags is more than acceptable lag configuration.
 
 ## Documentation Updates
 
-_What changes need to be made to the documentation? For example_
-
-* Do we need to change the KSQL quickstart(s) and/or the KSQL demo to showcase the new functionality? What are specific changes that should be made?
-* Do we need to update the syntax reference?
-* Do we need to add/update/remove examples?
-* Do we need to update the FAQs?
-* Do we need to add documentation so that users know how to configure KSQL to use the new feature? 
-* Etc.
-
-_This section should try to be as close as possible to the eventual documentation updates that 
-need to me made, since that will force us into thinking how the feature is actually going to be 
-used, and how users can be on-boarded onto the new feature. The upside is that the documentation 
-will be ready to go before any work even begins, so only the fun part is left._
+Need to add documentation about the configuration parameters regarding the failure detection policy, acceptable lag, new endpoints. 
 
 # Compatibility Implications
 
-_Will the proposed changes break existing queries or work flows?_
-
-_Are we deprecating existing APIs with these changes? If so, when do we plan to remove the underlying code?_
-
-_If we are removing old functionality, what is the migration plan?_
+N/A
 
 ## Performance Implications
 
@@ -239,5 +192,4 @@ _Will the proposed changes affect performance, (either positively or negatively)
 
 ## Security Implications
 
-_Are any external communications made? What new threats may be introduced?_ ___Are there authentication,
-authorization and audit mechanisms established?_
+N/A

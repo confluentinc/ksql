@@ -267,7 +267,7 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitColumnReference(ColumnReferenceExp node, Void context) {
       ColumnRef fieldName = node.getReference();
-      Column schemaColumn = schema.findValueColumn(node.getReference())
+      Column schemaColumn = schema.findColumn(node.getReference())
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getReference()));
 

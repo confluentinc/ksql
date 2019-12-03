@@ -115,17 +115,17 @@ public class SelectValueMapper<K> {
       final List<Object> newColumns = new ArrayList<>();
 
       for (int i = 0; i < selects.size(); i++) {
-        newColumns.add(processColumn(i, value));
+        newColumns.add(processColumn(i, readOnlyKey, value));
       }
 
       return new GenericRow(newColumns);
     }
 
-    private Object processColumn(final int column, final GenericRow row) {
+    private Object processColumn(final int column, final K readOnlyKey, final GenericRow value) {
       final SelectInfo select = selects.get(column);
 
       try {
-        return select.evaluator.evaluate(row);
+        return select.evaluator.evaluate(readOnlyKey, value);
       } catch (final Exception e) {
         final String errorMsg = String.format(
             "Error computing expression %s for column %s with index %d: %s",
@@ -136,11 +136,7 @@ public class SelectValueMapper<K> {
         );
 
         processingLogger.error(
-            EngineProcessingLogMessageFactory.recordProcessingError(
-                errorMsg,
-                e,
-                row
-            )
+            EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, e, value)
         );
         return null;
       }

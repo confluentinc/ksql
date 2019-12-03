@@ -356,6 +356,37 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldPreferKeyOverValueAndMetaColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        // Implicit meta ROWTIME
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .keyColumn(ROWTIME_NAME, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)).map(Column::namespace),
+        is(Optional.of(Namespace.KEY))
+    );
+  }
+
+  @Test
+  public void shouldPreferValueOverMetaColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        // Implicit meta ROWTIME
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)).map(Column::namespace),
+        is(Optional.of(Namespace.VALUE))
+    );
+  }
+
+  @Test
   public void shouldFindExactColumn() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()

@@ -705,12 +705,16 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo + bar FROM INPUT PARTITION BY foo + bar;"
       ],
-      "comment": [
-        "This test is present so that it fails if/when we support PARTITION BY on multiple fields.",
-        "If/when we do, this test will fail to remind us to add tests to cover keyFields for new functionality"],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "line 2:70: mismatched input '+' expecting ';'"
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "3", "value": {"KSQL_COL_0":  3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ]
       }
     },
     {

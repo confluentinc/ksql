@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform.select;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
@@ -50,7 +52,8 @@ public class SelectValueMapperTest {
   private static final ColumnName NAME0 = ColumnName.of("apple");
   private static final ColumnName NAME1 = ColumnName.of("cherry");
   private static final ColumnName NAME2 = ColumnName.of("banana");
-  private static final GenericRow ROW = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
+  private static final Object KEY = null; // Not used yet.
+  private static final GenericRow VALLUE = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
 
   @Mock
   private ExpressionMetadata col0;
@@ -60,12 +63,14 @@ public class SelectValueMapperTest {
   private ExpressionMetadata col2;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private KsqlProcessingContext ctx;
 
-  private KsqlValueTransformerWithKey<?> transformer;
+  private KsqlTransformer<Object, GenericRow> transformer;
 
   @Before
   public void setup() {
-    final SelectValueMapper<?> selectValueMapper = new SelectValueMapper<>(
+    final SelectValueMapper<Object> selectValueMapper = new SelectValueMapper<>(
         ImmutableList.of(
             SelectValueMapper.SelectInfo.of(NAME0, col0),
             SelectValueMapper.SelectInfo.of(NAME1, col1),
@@ -82,7 +87,7 @@ public class SelectValueMapperTest {
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = transformer.transform(ROW);
+    final GenericRow result = transformer.transform(KEY, VALLUE, ctx);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -91,7 +96,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = transformer.transform(null);
+    final GenericRow result = transformer.transform(KEY, null, ctx);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -108,7 +113,10 @@ public class SelectValueMapperTest {
 
     // When:
     transformer.transform(
-        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
+        KEY,
+        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"),
+        ctx
+    );
 
     // Then:
     final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor

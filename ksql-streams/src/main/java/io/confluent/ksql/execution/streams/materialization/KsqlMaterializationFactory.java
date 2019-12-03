@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.PredicateInfo;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
@@ -32,8 +33,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -105,18 +104,20 @@ public final class KsqlMaterializationFactory {
     public Transform visit(
         final MapperInfo info
     ) {
-      final BiFunction<Object, GenericRow, GenericRow> resultMapper = info
+      final KsqlTransformer<Object, GenericRow> resultMapper = info
           .getMapper(this::getLogger);
 
-      return (k, v) -> Optional.of(resultMapper.apply(k, v));
+      return (k, v, ctx) -> Optional.of(resultMapper.transform(k, v, ctx));
     }
 
     @Override
     public Transform visit(
         final PredicateInfo info
     ) {
-      final BiPredicate<Object, GenericRow> predicate = info.getPredicate(this::getLogger);
-      return (k, v) -> predicate.test(k, v) ? Optional.of(v) : Optional.empty();
+      final KsqlTransformer<Object, Optional<GenericRow>> predicate = info
+          .getPredicate(this::getLogger);
+
+      return predicate::transform;
     }
 
     private ProcessingLogger getLogger(final String stepName) {

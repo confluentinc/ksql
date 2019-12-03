@@ -17,8 +17,10 @@ import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
-import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -78,6 +80,8 @@ public class AggregateParamsFactoryTest {
   private KudafAggregatorFactory udafFactory;
   @Mock
   private KudafAggregator aggregator;
+  @Mock
+  private KsqlProcessingContext ctx;
 
   private AggregateParams aggregateParams;
 
@@ -193,12 +197,15 @@ public class AggregateParamsFactoryTest {
     );
 
     // When:
-    final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
+    final KsqlTransformer<Windowed<Object>, GenericRow> windowSelectMapper =
+        aggregateParams
+            .getWindowSelectMapper()
+            .getTransformer();
 
     // Then:
-    final Windowed<?> window = new Windowed<>(null, new TimeWindow(10, 20));
+    final Windowed<Object> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
-        windowSelectMapper.apply(window, new GenericRow("fiz", "baz", null)),
+        windowSelectMapper.transform(window, new GenericRow("fiz", "baz", null), ctx),
         equalTo(new GenericRow("fiz", "baz", 10))
     );
   }

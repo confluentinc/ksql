@@ -11,13 +11,14 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -25,9 +26,11 @@ import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,7 +44,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private Predicate predicate;
+  private KsqlTransformer<Struct, Optional<GenericRow>> predicate;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -68,7 +71,6 @@ public class StreamFilterBuilderTest {
   private Expression filterExpression;
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
-  private KStreamHolder<Struct> sourceWithSerdeFactory;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -87,16 +89,21 @@ public class StreamFilterBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
-    when(sourceKStream.filter(any())).thenReturn(filteredKStream);
+    when(sourceKStream
+        .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
+        .thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
-    sourceWithSerdeFactory =
-        new KStreamHolder<>(sourceKStream, schema, keySerdeFactory);
-    when(sourceStep.build(any())).thenReturn(sourceWithSerdeFactory);
+    when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) predicate);
+    when(sourceStep.build(any())).thenReturn(new KStreamHolder<>(
+        sourceKStream,
+        schema,
+        keySerdeFactory
+    ));
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         schema,
         queryContext
@@ -107,11 +114,10 @@ public class StreamFilterBuilderTest {
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
-    step = new StreamFilter<>(properties, sourceStep, filterExpression);
+    step = new StreamFilter<>(properties, sourceStep, filterExpression, "stepName");
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldFilterSourceStream() {
     // When:
     final KStreamHolder<Struct> result = step.build(planBuilder);
@@ -119,7 +125,6 @@ public class StreamFilterBuilderTest {
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
-    verify(sourceKStream).filter(predicate);
   }
 
   @Test
@@ -151,6 +156,6 @@ public class StreamFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar.FILTER");
+    verify(processingLoggerFactory).getLogger("foo.bar.stepName");
   }
 }

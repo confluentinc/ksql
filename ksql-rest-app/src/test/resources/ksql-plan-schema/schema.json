@@ -316,10 +316,13 @@
         },
         "filterExpression" : {
           "type" : "string"
+        },
+        "stepName" : {
+          "type" : "string"
         }
       },
       "title" : "streamFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression" ]
+      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
     },
     "StreamFlatMap" : {
       "type" : "object",
@@ -769,10 +772,13 @@
         },
         "filterExpression" : {
           "type" : "string"
+        },
+        "stepName" : {
+          "type" : "string"
         }
       },
       "title" : "tableFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression" ]
+      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
     },
     "TableGroupBy" : {
       "type" : "object",

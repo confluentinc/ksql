@@ -23,7 +23,7 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
-import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;

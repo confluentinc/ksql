@@ -28,15 +28,18 @@ public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final Expression filterExpression;
+  private final String stepName;
 
   public StreamFilter(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "filterExpression", required = true)
-      Expression filterExpression) {
+      @JsonProperty(value = "filterExpression", required = true) Expression filterExpression,
+      @JsonProperty(value = "stepName", required = true) final String stepName
+  ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.filterExpression = Objects.requireNonNull(filterExpression, "filterExpression");
+    this.stepName = Objects.requireNonNull(stepName, "stepName");
   }
 
   @Override
@@ -58,6 +61,10 @@ public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
     return source;
   }
 
+  public String getStepName() {
+    return stepName;
+  }
+
   @Override
   public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamFilter(this);
@@ -74,12 +81,13 @@ public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
     StreamFilter<?> that = (StreamFilter<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(filterExpression, that.filterExpression);
+        && Objects.equals(filterExpression, that.filterExpression)
+        && Objects.equals(stepName, that.stepName);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, filterExpression);
+    return Objects.hash(properties, source, filterExpression, stepName);
   }
 }

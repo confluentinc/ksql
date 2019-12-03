@@ -14,13 +14,15 @@
  import io.confluent.ksql.execution.expression.tree.Expression;
  import io.confluent.ksql.execution.materialization.MaterializationInfo;
  import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
- import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
  import io.confluent.ksql.execution.plan.ExecutionStep;
+ import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
  import io.confluent.ksql.execution.plan.KTableHolder;
  import io.confluent.ksql.execution.plan.KeySerdeFactory;
  import io.confluent.ksql.execution.plan.PlanBuilder;
  import io.confluent.ksql.execution.plan.TableFilter;
- import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+ import io.confluent.ksql.execution.transform.KsqlTransformer;
+ import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
  import io.confluent.ksql.function.FunctionRegistry;
  import io.confluent.ksql.logging.processing.ProcessingLogContext;
  import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -28,10 +30,11 @@
  import io.confluent.ksql.query.QueryId;
  import io.confluent.ksql.schema.ksql.LogicalSchema;
  import io.confluent.ksql.util.KsqlConfig;
- import java.util.function.BiPredicate;
+ import java.util.Optional;
  import org.apache.kafka.connect.data.Struct;
  import org.apache.kafka.streams.kstream.KTable;
- import org.apache.kafka.streams.kstream.Predicate;
+ import org.apache.kafka.streams.kstream.Named;
+ import org.apache.kafka.streams.kstream.ValueMapper;
  import org.junit.Before;
  import org.junit.Rule;
  import org.junit.Test;
@@ -42,12 +45,13 @@
  import org.mockito.junit.MockitoRule;
 
 public class TableFilterBuilderTest {
+
   @Mock
   private SqlPredicateFactory predicateFactory;
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private Predicate predicate;
+  private KsqlTransformer<Struct, Optional<GenericRow>> preTransformer;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -69,7 +73,11 @@ public class TableFilterBuilderTest {
   @Mock
   private KTable<Struct, GenericRow> sourceKTable;
   @Mock
-  private KTable<Struct, GenericRow> filteredKTable;
+  private KTable<Struct, Optional<GenericRow>> preKTable;
+  @Mock
+  private KTable<Struct, Optional<GenericRow>> filteredKTable;
+  @Mock
+  private KTable<Struct, GenericRow> postKTable;
   @Mock
   private Expression filterExpression;
   @Mock
@@ -80,8 +88,11 @@ public class TableFilterBuilderTest {
   private Struct key;
   @Mock
   private GenericRow value;
+  @Mock
+  private KsqlProcessingContext ctx;
   @Captor
-  private ArgumentCaptor<TransformFactory<BiPredicate<Object, GenericRow>>> predicateFactoryCaptor;
+  private ArgumentCaptor<TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>>>
+      predicateFactoryCaptor;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -100,22 +111,26 @@ public class TableFilterBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
-    when(sourceKTable.filter(any())).thenReturn(filteredKTable);
+    when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
+    when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
+    when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
+    when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) preTransformer);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         schema,
         queryContext
     );
-    step = new TableFilter<>(properties, sourceStep, filterExpression);
+    step = new TableFilter<>(properties, sourceStep, filterExpression, "stepName");
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
     ;
+    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
@@ -125,15 +140,13 @@ public class TableFilterBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldFilterSourceTable() {
     // When:
     final KTableHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(result.getTable(), is(filteredKTable));
+    assertThat(result.getTable(), is(postKTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
-    verify(sourceKTable).filter(predicate);
   }
 
   @Test
@@ -165,27 +178,39 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar.FILTER");
+    verify(processingLoggerFactory).getLogger("foo.bar.stepName");
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldFilterMaterialization() {
     // When:
     step.build(planBuilder);
 
     // Then:
-    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("FILTER"));
+    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("stepName"));
 
     // Given:
-    final BiPredicate<Object, GenericRow> biPredicate = predicateFactoryCaptor
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = predicateFactoryCaptor
         .getValue()
         .apply(processingLogger);
 
+    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
+
     // When:
-    biPredicate.test(key, value);
+    Optional<GenericRow> result = predicate.transform(key, value, ctx);
 
     // Then:
-    verify(predicate).test(key, value);
+    verify(preTransformer).transform(key, value, ctx);
+    assertThat(result, is(Optional.empty()));
+
+    // Given:
+    when(preTransformer.transform(any(), any(), any()))
+        .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
+
+    // When:
+    result = predicate.transform(key, value, ctx);
+
+    // Then:
+    assertThat(result, is(Optional.of(value)));
   }
 }

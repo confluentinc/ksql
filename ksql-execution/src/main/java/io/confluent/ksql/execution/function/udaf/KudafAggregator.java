@@ -19,15 +19,16 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.function.UdafAggregator;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.UdafAggregator;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
-public class KudafAggregator implements UdafAggregator {
+public class KudafAggregator<K> implements UdafAggregator<K> {
 
   private final int initialUdafIndex;
   private final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions;
@@ -43,9 +44,8 @@ public class KudafAggregator implements UdafAggregator {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(Struct k, GenericRow rowValue, GenericRow aggRowValue) {
+  public GenericRow apply(K k, GenericRow rowValue, GenericRow aggRowValue) {
     // copy over group-by and aggregate parameter columns into the output row
     for (int idx = 0; idx < initialUdafIndex; idx++) {
       aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
@@ -55,7 +55,7 @@ public class KudafAggregator implements UdafAggregator {
     // the columns written by this statement do not overlap with those written by
     // the above statement.
     for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-      KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+      KsqlAggregateFunction<Object, Object, Object> function = aggregateFunctionForColumn(idx);
       Object currentValue = rowValue.getColumns().get(function.getArgIndexInValue());
       Object currentAggregate = aggRowValue.getColumns().get(idx);
       Object newAggregate = function.aggregate(currentValue, currentAggregate);
@@ -65,28 +65,10 @@ public class KudafAggregator implements UdafAggregator {
     return aggRowValue;
   }
 
-  @SuppressWarnings("unchecked")
-  public ValueMapper<GenericRow, GenericRow> getResultMapper() {
-
-    return aggRow -> {
-      List<Object> columns = new ArrayList<>(columnCount);
-
-      for (int idx = 0; idx < initialUdafIndex; idx++) {
-        columns.add(idx, aggRow.getColumns().get(idx));
-      }
-
-      for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-        KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
-        Object agg = aggRow.getColumns().get(idx);
-        Object reduced = function.getResultMapper().apply(agg);
-        columns.add(idx, reduced);
-      }
-
-      return new GenericRow(columns);
-    };
+  public KsqlTransformer<K, GenericRow> getResultMapper() {
+    return new ResultTransformer();
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Merger<Struct, GenericRow> getMerger() {
 
@@ -102,7 +84,7 @@ public class KudafAggregator implements UdafAggregator {
       }
 
       for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-        KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+        KsqlAggregateFunction<Object, Object, Object> function = aggregateFunctionForColumn(idx);
         Object aggOne = aggRowOne.getColumns().get(idx);
         Object aggTwo = aggRowTwo.getColumns().get(idx);
         Object merged = function.getMerger().apply(key, aggOne, aggTwo);
@@ -113,7 +95,41 @@ public class KudafAggregator implements UdafAggregator {
     };
   }
 
-  private KsqlAggregateFunction aggregateFunctionForColumn(int columnIndex) {
-    return aggregateFunctions.get(columnIndex - initialUdafIndex);
+  @SuppressWarnings("unchecked") // Types have already been checked
+  private KsqlAggregateFunction<Object, Object, Object> aggregateFunctionForColumn(
+      final int columnIndex
+  ) {
+    return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - initialUdafIndex);
+  }
+
+  private final class ResultTransformer implements KsqlTransformer<K, GenericRow> {
+
+    @Override
+    public GenericRow transform(
+        final K readOnlyKey,
+        final GenericRow value,
+        final KsqlProcessingContext ctx
+    ) {
+      if (value == null) {
+        return null;
+      }
+
+      final List<Object> columns = new ArrayList<>(columnCount);
+
+      for (int idx = 0; idx < initialUdafIndex; idx++) {
+        columns.add(idx, value.getColumns().get(idx));
+      }
+
+      for (int idx = initialUdafIndex; idx < columnCount; idx++) {
+        final KsqlAggregateFunction<Object, Object, Object> function =
+            aggregateFunctionForColumn(idx);
+
+        final Object agg = value.getColumns().get(idx);
+        final Object reduced = function.getResultMapper().apply(agg);
+        columns.add(idx, reduced);
+      }
+
+      return new GenericRow(columns);
+    }
   }
 }

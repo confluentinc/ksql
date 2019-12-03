@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -51,6 +52,7 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.SourceName;
@@ -198,15 +200,17 @@ public final class ExecutionStepFactory {
   }
 
   public static <K> StreamFilter<K> streamFilter(
-      final QueryContext.Stacker stacker,
+      final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
-      final Expression filterExpression
+      final Expression filterExpression,
+      final String stepName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFilter<>(
         propertiesWithQueryContext(source.getProperties(), queryContext),
         source,
-        filterExpression
+        filterExpression,
+        stepName
     );
   }
 
@@ -313,15 +317,17 @@ public final class ExecutionStepFactory {
   }
 
   public static <K> TableFilter<K> tableFilter(
-      final QueryContext.Stacker stacker,
+      final Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
-      final Expression filterExpression
+      final Expression filterExpression,
+      final String stepName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableFilter<>(
         propertiesWithQueryContext(source.getProperties(), queryContext),
         source,
-        filterExpression
+        filterExpression,
+        stepName
     );
   }
 

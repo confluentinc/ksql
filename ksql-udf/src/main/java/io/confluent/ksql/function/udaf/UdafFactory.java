@@ -32,8 +32,8 @@ import java.lang.annotation.Target;
  *   public class MyUdaf {
  *
  *    @UdafFactory(description = "sums longs")
- *    public static Udaf<Long, Long> createSumLong() {
- *      return new TableUdaf<Long, Long>() {
+ *    public static Udaf<Long, Long, Long> createSumLong() {
+ *      return new TableUdaf<Long, Long, Long>() {
  *        @Override
  *        public Long undo(final Long valueToUndo, final Long aggregateValue) {
  *          return aggregateValue - valueToUndo;
@@ -57,8 +57,8 @@ import java.lang.annotation.Target;
  *    }
  *
  *    @UdafFactory(description = "sums double")
- *    public static Udaf<Double, Double> createSumDouble() {
- *      return new Udaf<Double, Double>() {
+ *    public static Udaf<Double, Double, Double> createSumDouble() {
+ *      return new Udaf<Double, Double, Double>() {
  *        @Override
  *        public Double initialize() {
  *          return 0.0;

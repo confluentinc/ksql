@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -31,6 +30,9 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 final class AggregateBuilderUtils {
+
+  static final String STEP_NAME = "AGGREGATE-TO-OUTPUT-SCHEMA";
+
   private AggregateBuilderUtils() {
   }
 
@@ -58,15 +60,13 @@ final class AggregateBuilderUtils {
   }
 
   static MaterializationInfo.Builder materializationInfoBuilder(
-      final KudafAggregator aggregator,
+      final KudafAggregator<Object> aggregator,
       final QueryContext queryContext,
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    final Function<GenericRow, GenericRow> resultMapper = aggregator
-        .getResultMapper()::apply;
 
     return MaterializationInfo.builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
-        .map(pl -> (k, v) -> resultMapper.apply(v), outputSchema, "AGG-PROJECT");
+        .map(pl -> aggregator.getResultMapper(), outputSchema, STEP_NAME);
   }
 }

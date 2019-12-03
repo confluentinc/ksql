@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -30,6 +31,7 @@ import java.util.Objects;
 @Immutable
 public class FilterNode extends PlanNode {
 
+  private static final String WHERE_FILTER_OP_NAME = "WHERE-FILTER";
   private final PlanNode source;
   private final Expression predicate;
   private final ImmutableList<SelectExpression> selectExpressions;
@@ -86,10 +88,13 @@ public class FilterNode extends PlanNode {
 
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    final Stacker contextStacker = builder.buildNodeContext(getId().toString());
+
     return getSource().buildStream(builder)
         .filter(
             getPredicate(),
-            builder.buildNodeContext(getId().toString())
+            WHERE_FILTER_OP_NAME,
+            contextStacker.push(WHERE_FILTER_OP_NAME.toLowerCase())
         );
   }
 }

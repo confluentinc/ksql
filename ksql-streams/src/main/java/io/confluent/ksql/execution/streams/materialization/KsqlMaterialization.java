@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Instant;
@@ -59,7 +60,7 @@ class KsqlMaterialization implements Materialization {
 
   interface Transform {
 
-    Optional<GenericRow> apply(Object key, GenericRow value);
+    Optional<GenericRow> apply(Object key, GenericRow value, KsqlProcessingContext ctx);
   }
 
   /**
@@ -105,11 +106,17 @@ class KsqlMaterialization implements Materialization {
 
   private Optional<GenericRow> filterAndTransform(
       final Struct key,
-      final GenericRow value
+      final GenericRow value,
+      final long rowTime
   ) {
     GenericRow intermediate = value;
     for (final Transform transform : transforms) {
-      final Optional<GenericRow> result = transform.apply(key, intermediate);
+      final Optional<GenericRow> result = transform.apply(
+          key,
+          intermediate,
+          new PullProcessingContext(rowTime)
+      );
+
       if (!result.isPresent()) {
         return Optional.empty();
       }
@@ -129,7 +136,7 @@ class KsqlMaterialization implements Materialization {
     @Override
     public Optional<Row> get(final Struct key) {
       return table.get(key)
-          .flatMap(row -> filterAndTransform(key, row.value())
+          .flatMap(row -> filterAndTransform(key, row.value(), row.rowTime())
               .map(v -> row.withValue(v, schema()))
           );
     }
@@ -150,7 +157,7 @@ class KsqlMaterialization implements Materialization {
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
       for (final WindowedRow row : result) {
-        filterAndTransform(key, row.value())
+        filterAndTransform(key, row.value(), row.rowTime())
             .ifPresent(v -> builder.add(row.withValue(v, schema())));
       }
 

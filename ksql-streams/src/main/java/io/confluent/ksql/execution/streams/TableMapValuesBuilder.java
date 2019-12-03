@@ -21,9 +21,12 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.select.SelectValueMapper;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.function.BiFunction;
 import org.apache.kafka.streams.kstream.Named;
 
 public final class TableMapValuesBuilder {
@@ -64,22 +67,19 @@ public final class TableMapValuesBuilder {
             )
         );
 
-    final KsqlValueTransformerWithKey<K> transformer = selectMapper.getTransformer(logger);
-
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
     return table
         .withTable(
-            table.getTable().transformValues(() -> transformer, selectName),
+            table.getTable().transformValues(
+                () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+                selectName
+            ),
             selection.getSchema()
         )
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.map(
-                pl -> {
-                  final BiFunction<K, GenericRow, GenericRow> mapper = selectMapper
-                      .getTransformer(pl)::transform;
-                  return (k, v) -> mapper.apply((K) k, v);
-                },
+                pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
                 selection.getSchema(),
                 PROJECT_OP_NAME
             ))

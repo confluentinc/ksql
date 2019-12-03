@@ -38,13 +38,15 @@ import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
-import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -57,14 +59,13 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -123,9 +124,9 @@ public class TableAggregateBuilderTest {
   @Mock
   private KudafInitializer initializer;
   @Mock
-  private KudafAggregator aggregator;
+  private KudafAggregator<Struct> aggregator;
   @Mock
-  private ValueMapper<GenericRow, GenericRow> resultMapper;
+  private KsqlTransformer<Struct, GenericRow> resultMapper;
   @Mock
   private KudafUndoAggregator undoAggregator;
   @Mock
@@ -138,6 +139,8 @@ public class TableAggregateBuilderTest {
   private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ExecutionStep<KGroupedTableHolder> sourceStep;
+  @Mock
+  private KsqlProcessingContext ctx;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;
@@ -148,9 +151,11 @@ public class TableAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(queryBuilder.buildUniqueNodeName(any()))
+        .thenAnswer(inv -> inv.<String>getArgument(0) + "-unique");
     when(aggregateParamsFactory.createUndoable(any(), anyInt(), any(), any()))
         .thenReturn(aggregateParams);
-    when(aggregateParams.getAggregator()).thenReturn(aggregator);
+    when(aggregateParams.getAggregator()).thenReturn((KudafAggregator)aggregator);
     when(aggregateParams.getUndoAggregator()).thenReturn(Optional.of(undoAggregator));
     when(aggregateParams.getInitializer()).thenReturn(initializer);
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
@@ -160,7 +165,8 @@ public class TableAggregateBuilderTest {
         .thenReturn(materialized);
     when(groupedTable.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(
         aggregated);
-    when(aggregated.mapValues(any(ValueMapper.class))).thenReturn(aggregatedWithResults);
+    when(aggregated.transformValues(any(), any(Named.class)))
+        .thenReturn((KTable)aggregatedWithResults);
     aggregate = new TableAggregate(
         new ExecutionStepPropertiesV1(AGGREGATE_SCHEMA, CTX),
         sourceStep,
@@ -192,7 +198,7 @@ public class TableAggregateBuilderTest {
     assertThat(result.getTable(), is(aggregatedWithResults));
     final InOrder inOrder = Mockito.inOrder(groupedTable, aggregated, aggregatedWithResults);
     inOrder.verify(groupedTable).aggregate(initializer, aggregator, undoAggregator, materialized);
-    inOrder.verify(aggregated).mapValues(resultMapper);
+    inOrder.verify(aggregated).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
   }
 
@@ -269,16 +275,16 @@ public class TableAggregateBuilderTest {
     assertThat(info.getTransforms(), hasSize(1));
 
     final MapperInfo aggMapInfo = (MapperInfo) info.getTransforms().get(0);
-    final BiFunction<Object, GenericRow, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
+    final KsqlTransformer<Object, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
 
     // Given:
     final Struct key = mock(Struct.class);
     final GenericRow value = mock(GenericRow.class);
 
     // When:
-    mapper.apply(key, value);
+    mapper.transform(key, value, ctx);
 
     // Then:
-    verify(resultMapper).apply(value);
+    verify(resultMapper).transform(key, value, ctx);
   }
 }

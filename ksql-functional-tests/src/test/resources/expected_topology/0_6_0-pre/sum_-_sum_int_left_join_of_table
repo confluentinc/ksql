@@ -88,17 +88,17 @@ Topologies:
     Source: KSTREAM-SOURCE-0000000013 (topics: [Aggregate-groupby-repartition])
       --> KTABLE-AGGREGATE-0000000014
     Processor: KTABLE-AGGREGATE-0000000014 (stores: [Aggregate-aggregate])
-      --> KTABLE-MAPVALUES-0000000015
+      --> AGGREGATE-TO-OUTPUT-SCHEMA-1
       <-- KSTREAM-SOURCE-0000000013
-    Processor: KTABLE-MAPVALUES-0000000015 (stores: [])
-      --> SELECT-1
+    Processor: AGGREGATE-TO-OUTPUT-SCHEMA-1 (stores: [])
+      --> SELECT-2
       <-- KTABLE-AGGREGATE-0000000014
-    Processor: SELECT-1 (stores: [])
+    Processor: SELECT-2 (stores: [])
       --> KTABLE-TOSTREAM-0000000017
-      <-- KTABLE-MAPVALUES-0000000015
+      <-- AGGREGATE-TO-OUTPUT-SCHEMA-1
     Processor: KTABLE-TOSTREAM-0000000017 (stores: [])
       --> KSTREAM-MAPVALUES-0000000018
-      <-- SELECT-1
+      <-- SELECT-2
     Processor: KSTREAM-MAPVALUES-0000000018 (stores: [])
       --> KSTREAM-SINK-0000000019
       <-- KTABLE-TOSTREAM-0000000017

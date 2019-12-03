@@ -41,14 +41,15 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.KsqlValueTransformerWithKey;
-import io.confluent.ksql.execution.streams.SelectValueMapper;
-import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
+import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.select.SelectValueMapper;
+import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -590,12 +591,18 @@ public final class PullQueryExecutor {
                 .queryLoggerName(queryId, contextStacker.push("PROJECT").getQueryContext())
         );
 
-    final KsqlValueTransformerWithKey<Object> transformer = select.getTransformer(logger);
+    final KsqlTransformer<Object, GenericRow> transformer = select
+        .getTransformer(logger);
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
       final GenericRow intermediate = preSelectTransform.transform(r.rowTime(), r.key(), r.value());
-      final GenericRow mapped = transformer.transform(r.key(), intermediate);
+
+      final GenericRow mapped = transformer.transform(
+          r.key(),
+          intermediate,
+          new PullProcessingContext(r.rowTime())
+      );
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());
     });

@@ -18,7 +18,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -26,6 +26,8 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -41,6 +43,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -88,6 +91,9 @@ public final class StreamAggregateBuilder {
             queryBuilder,
             materializedFactory
         );
+
+    final KudafAggregator<Struct> aggregator = aggregateParams.getAggregator();
+
     final KTable<Struct, GenericRow> aggregated = groupedStream.getGroupedStream().aggregate(
         aggregateParams.getInitializer(),
         aggregateParams.getAggregator(),
@@ -102,8 +108,14 @@ public final class StreamAggregateBuilder {
             resultSchema
         );
 
+    final KTable<Struct, GenericRow> result = aggregated
+        .transformValues(
+            () -> new KsTransformer<>(aggregator.getResultMapper()),
+            Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+        );
+
     return KTableHolder.materialized(
-        aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
+        result,
         resultSchema,
         KeySerdeFactory.unwindowed(queryBuilder),
         materializationBuilder
@@ -154,8 +166,12 @@ public final class StreamAggregateBuilder {
         ),
         null
     );
-    final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.mapValues(
-        aggregateParams.getAggregator().getResultMapper()
+
+    final KudafAggregator<Windowed<Struct>> aggregator = aggregateParams.getAggregator();
+
+    KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
+        () -> new KsTransformer<>(aggregator.getResultMapper()),
+        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
     );
 
     final MaterializationInfo.Builder materializationBuilder =
@@ -167,16 +183,15 @@ public final class StreamAggregateBuilder {
         );
 
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
-    if (!windowSelectMapper.hasSelects()) {
-      return KTableHolder.materialized(
-          reduced,
-          resultSchema,
-          KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
-          materializationBuilder
+    if (windowSelectMapper.hasSelects()) {
+      reduced = reduced.transformValues(
+          () -> new KsTransformer<>(windowSelectMapper.getTransformer()),
+          Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-WINDOW-SELECT"))
       );
     }
+
     return KTableHolder.materialized(
-        reduced.mapValues(windowSelectMapper),
+        reduced,
         resultSchema,
         KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
         materializationBuilder

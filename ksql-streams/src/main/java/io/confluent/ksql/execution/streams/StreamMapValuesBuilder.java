@@ -20,6 +20,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.select.SelectValueMapper;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;
@@ -58,12 +61,13 @@ public final class StreamMapValuesBuilder {
             )
         );
 
-    final KsqlValueTransformerWithKey<K> transformer = selectMapper.getTransformer(logger);
-
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
     return stream.withStream(
-        stream.getStream().transformValues(() -> transformer, selectName),
+        stream.getStream().transformValues(
+            () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+            selectName
+        ),
         selection.getSchema()
     );
   }

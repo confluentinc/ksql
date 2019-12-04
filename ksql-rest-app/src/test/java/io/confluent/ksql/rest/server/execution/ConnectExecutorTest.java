@@ -16,11 +16,15 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,6 +40,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
@@ -43,6 +48,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -72,6 +78,7 @@ public class ConnectExecutorTest {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldPassInCorrectArgsToConnectClient() {
     // Given:
@@ -81,7 +88,7 @@ public class ConnectExecutorTest {
     ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
-    verify(connectClient).create("foo", ImmutableMap.of("foo", "bar"));
+    verify(connectClient).create(eq("foo"), (Map<String, String>) argThat(hasEntry("foo", "bar")));
   }
 
   @Test

@@ -12,6 +12,9 @@ logs/
 *.ipr
 .idea/
 
+# VSCode data
+.vscode/
+
 # Other
 .DS_Store
 .dumbjump
@@ -20,6 +23,7 @@ logs/
 *#
 .#*
 .classpath
+.factorypath
 /.metadata
 .project
 .settings

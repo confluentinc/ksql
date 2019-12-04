@@ -313,7 +313,7 @@ View streams and tables
 You can see all of your persistent queries, streams, and tables in a single,
 unified view. 
 
-#. Click **KSQL Editor** and find the **All available streams and tables** pane
+#. Click **Editor** and find the **All available streams and tables** pane
    on the right side of the page,
 
 #. Click **KSQL_PROCESSING_LOG** to open the processing log stream. The schema
@@ -340,6 +340,27 @@ JSON file.
    .. figure:: ../img/c3-ksql-download-records.png
       :alt: Screenshot showing how to download query results to JSON in Confluent Control Center
       :align: center
+
+View data flow
+==============
+
+|c3-short| enables you to see how events flow through your KSQL application.
+
+#. In the KSQL page, click **Flow**.
+
+   .. figure:: ../img/c3-ksql-flow-1.png
+      :alt: Screenshot showing how to download query results to JSON in Confluent Control Center
+      :align: center
+
+#. Click the first **CREATE STREAM** node in the graph to see the KSQL
+   statement that created the ``PAGEVIEWS_ENRICHED`` stream.
+
+   .. figure:: ../img/c3-ksql-flow-2.png
+      :alt: Screenshot showing how to download query results to JSON in Confluent Control Center
+      :align: center
+
+#. Click the other nodes in the graph to see details about the topology of your
+   KSQL application.
 
 Next Steps
 **********

@@ -1,4 +1,3 @@
-.. _ksql_changelog:
 
 KSQL Changelog
 ==============
@@ -126,8 +125,8 @@ KSQL 5.1 includes new features, including:
 * ``WindowStart()`` and ``WindowEnd()`` UDFs
 * ``StringToDate()`` and ``DateToString()`` UDFs
 
-Detailed Changlog
-+++++++++++++++++
+Detailed Changelog
+++++++++++++++++++
 
 * `PR-2265 <https://github.com/confluentinc/ksql/pull/2265>`_ - MINOR: Fix bug encountered when restoring RUN SCRIPT
 * `PR-2240 <https://github.com/confluentinc/ksql/pull/2240>`_ - Bring version checker improvements to 5.1.x

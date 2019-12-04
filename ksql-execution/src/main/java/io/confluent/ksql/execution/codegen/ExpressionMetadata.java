@@ -62,17 +62,17 @@ public class ExpressionMetadata {
     return expression;
   }
 
-  public Object evaluate(final Object key, final GenericRow value) {
+  public Object evaluate(GenericRow row) {
     try {
-      return expressionEvaluator.evaluate(getParameters(key, value));
+      return expressionEvaluator.evaluate(getParameters(row));
     } catch (InvocationTargetException e) {
       throw new KsqlException(e.getCause().getMessage(), e.getCause());
     }
   }
 
-  private Object[] getParameters(final Object key, final GenericRow value) {
+  private Object[] getParameters(GenericRow row) {
     Object[] parameters = this.threadLocalParameters.get();
-    spec.resolve(key, value, parameters);
+    spec.resolve(row, parameters);
     return parameters;
   }
 }

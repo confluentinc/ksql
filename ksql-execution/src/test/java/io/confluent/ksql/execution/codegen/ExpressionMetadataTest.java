@@ -10,11 +10,9 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -57,13 +55,11 @@ public class ExpressionMetadataTest {
     spec.addParameter(
         ColumnRef.withoutSource(ColumnName.of("foo1")),
         Integer.class,
-        Namespace.VALUE,
         0
     );
     spec.addParameter(
         ColumnRef.withoutSource(ColumnName.of("foo2")),
         Integer.class,
-        Namespace.VALUE,
         1
     );
     expressionMetadata = new ExpressionMetadata(
@@ -74,36 +70,11 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    Object result = expressionMetadata.evaluate(key(), value(123, 456));
+    Object result = expressionMetadata.evaluate(new GenericRow(123, 456));
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
     verify(expressionEvaluator).evaluate(new Object[]{123, 456});
-  }
-
-  @Test
-  public void shouldEvaluateExpressionWithKeyColumnSpecs() throws Exception {
-    // Given:
-    spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo1")),
-        Integer.class,
-        Namespace.KEY,
-        0
-    );
-
-    expressionMetadata = new ExpressionMetadata(
-        expressionEvaluator,
-        spec.build(),
-        EXPRESSION_TYPE,
-        expression
-    );
-
-    // When:
-    final Object result = expressionMetadata.evaluate(key("rowKey"), value());
-
-    // Then:
-    assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{"rowKey"});
   }
 
   @Test
@@ -116,7 +87,6 @@ public class ExpressionMetadataTest {
     spec.addParameter(
         ColumnRef.withoutSource(ColumnName.of("foo1")),
         Integer.class,
-        Namespace.VALUE,
         0
     );
 
@@ -128,7 +98,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    Object result = expressionMetadata.evaluate(key(), value(123));
+    Object result = expressionMetadata.evaluate(new GenericRow(123));
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
@@ -141,13 +111,11 @@ public class ExpressionMetadataTest {
     spec.addParameter(
         ColumnRef.withoutSource(ColumnName.of("foo1")),
         Integer.class,
-        Namespace.VALUE,
         0
     );
     spec.addParameter(
         ColumnRef.withoutSource(ColumnName.of("foo2")),
         Integer.class,
-        Namespace.VALUE,
         1
     );
 
@@ -170,7 +138,7 @@ public class ExpressionMetadataTest {
     );
 
     Thread thread = new Thread(
-        () -> expressionMetadata.evaluate(key(), value(123, 456))
+        () -> expressionMetadata.evaluate(new GenericRow(123, 456))
     );
 
     // When:
@@ -180,7 +148,7 @@ public class ExpressionMetadataTest {
     assertThat(threadLatch.await(10, TimeUnit.SECONDS), is(true));
 
     // When:
-    expressionMetadata.evaluate(key(), value(100, 200));
+    expressionMetadata.evaluate(new GenericRow(100, 200));
     mainLatch.countDown();
 
     // Then:
@@ -189,17 +157,5 @@ public class ExpressionMetadataTest {
         .evaluate(new Object[]{123, 456});
     verify(expressionEvaluator, times(1))
         .evaluate(new Object[]{100, 200});
-  }
-
-  private static Object key() {
-    return key(null);
-  }
-
-  private static Object key(final String rowKey) {
-    return StructKeyUtil.asStructKey(rowKey);
-  }
-
-  private static GenericRow value(final Object... values) {
-    return new GenericRow(values);
   }
 }

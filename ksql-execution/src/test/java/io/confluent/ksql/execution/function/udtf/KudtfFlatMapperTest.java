@@ -78,7 +78,7 @@ public class KudtfFlatMapperTest {
 
   private static <T> TableFunctionApplier createApplier(List<?> list) {
     TableFunctionApplier applier = mock(TableFunctionApplier.class);
-    doReturn(list).when(applier).apply(any(), any());
+    doReturn(list).when(applier).apply(any());
     return applier;
   }
 }

@@ -53,8 +53,8 @@ public class GroupByMapperTest {
   public void setUp() {
     mapper = new GroupByMapper<>(ImmutableList.of(groupBy0, groupBy1));
 
-    when(groupBy0.evaluate(any(), any())).thenReturn("result0");
-    when(groupBy1.evaluate(any(), any())).thenReturn("result1");
+    when(groupBy0.evaluate(any())).thenReturn("result0");
+    when(groupBy1.evaluate(any())).thenReturn("result1");
   }
 
   @Test(expected = NullPointerException.class)
@@ -73,8 +73,8 @@ public class GroupByMapperTest {
     mapper.apply(key, value);
 
     // Then:
-    verify(groupBy0).evaluate(key, value);
-    verify(groupBy1).evaluate(key, value);
+    verify(groupBy0).evaluate(value);
+    verify(groupBy1).evaluate(value);
   }
 
   @Test
@@ -89,7 +89,7 @@ public class GroupByMapperTest {
   @Test
   public void shouldSupportNullValues() {
     // Given:
-    when(groupBy0.evaluate(any(), any())).thenReturn(null);
+    when(groupBy0.evaluate(any())).thenReturn(null);
 
     // When:
     final Struct result = mapper.apply(key, value);
@@ -101,7 +101,7 @@ public class GroupByMapperTest {
   @Test
   public void shouldUseNullIfExpressionThrows() {
     // Given:
-    when(groupBy0.evaluate(any(), any())).thenThrow(new RuntimeException("Boom"));
+    when(groupBy0.evaluate(any())).thenThrow(new RuntimeException("Boom"));
 
     // When:
     final Struct result = mapper.apply(key, value);

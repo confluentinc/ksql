@@ -36,7 +36,6 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -71,9 +70,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -222,10 +218,10 @@ public class CodeGenRunnerTest {
 
         assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(1));
 
-        Object result0 = expressionEvaluatorMetadata0.evaluate(key(), value(null, 1));
+        Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(null, 1));
         assertThat(result0, is(true));
 
-        result0 = expressionEvaluatorMetadata0.evaluate(key(), value(12345L));
+        result0 = expressionEvaluatorMetadata0.evaluate(genericRow(12345L));
         assertThat(result0, is(false));
     }
 
@@ -238,55 +234,10 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Select")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is("1"));
-    }
-
-    @Test
-    public void shouldHandleKeyColumnsInSelect() {
-        // Given:
-        final String simpleQuery = "SELECT ROWKEY FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-
-        // When:
-        final ExpressionMetadata evaluator = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0).getExpression(), "Select");
-
-        // Then:
-        Object result = evaluator.evaluate(key("rowKey"), value());
-        assertThat(result, is("rowKey"));
-    }
-
-    @Test
-    public void shouldHandleKeyColumnsInSelectOfSessionWindowed() {
-        // Given:
-        final String simpleQuery = "SELECT ROWKEY FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-
-        // When:
-        final ExpressionMetadata evaluator = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0).getExpression(), "Select");
-
-        // Then:
-        Object result = evaluator.evaluate(sessionKey("rowKey", 10, 1000), value());
-        assertThat(result, is("rowKey : Window{start=10 end=1000}"));
-    }
-
-    @Test
-    public void shouldHandleKeyColumnsInSelectOfTimeWindowed() {
-        // Given:
-        final String simpleQuery = "SELECT ROWKEY FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-
-        // When:
-        final ExpressionMetadata evaluator = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0).getExpression(), "Select");
-
-        // Then:
-        Object result = evaluator.evaluate(windowedKey("rowKey", 10), value());
-        assertThat(result, is("rowKey : Window{start=10 end=-}"));
     }
 
     @Test
@@ -299,10 +250,10 @@ public class CodeGenRunnerTest {
 
         assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(1));
 
-        Object result0 = expressionEvaluatorMetadata0.evaluate(key(), value(null, "1"));
+        Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(null, "1"));
         assertThat(result0, is(false));
 
-        result0 = expressionEvaluatorMetadata0.evaluate(key(), value(12345L));
+        result0 = expressionEvaluatorMetadata0.evaluate(genericRow(12345L));
         assertThat(result0, is(true));
     }
 
@@ -712,7 +663,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Group By")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is("value1"));
@@ -731,7 +682,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "math")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is((long) INVALID_JAVA_IDENTIFIER_INDEX));
@@ -754,7 +705,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Case")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is("small"));
@@ -777,7 +728,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Case")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is(100));
@@ -800,7 +751,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Case")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is(300));
@@ -822,7 +773,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Case")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is("large"));
@@ -843,7 +794,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Case")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is(nullValue()));
@@ -863,7 +814,7 @@ public class CodeGenRunnerTest {
         // When:
         final Object result = codeGenRunner
             .buildCodeGenFromParseTree(expression, "Select")
-            .evaluate(key(), value(ONE_ROW));
+            .evaluate(genericRow(ONE_ROW));
 
         // Then:
         assertThat(result, is("adelaide"));
@@ -923,7 +874,7 @@ public class CodeGenRunnerTest {
 
         return analysis.getSelectExpressions().stream()
             .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp.getExpression(), "Select"))
-            .map(md -> md.evaluate(key(), input))
+            .map(md -> md.evaluate(input))
             .collect(Collectors.toList());
     }
 
@@ -973,7 +924,7 @@ public class CodeGenRunnerTest {
         columns.set(cola, values[0]);
         columns.set(colb, values[1]);
 
-        final Object result0 = expressionEvaluatorMetadata0.evaluate(key(), value(columns));
+        final Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(columns));
         assertThat(result0, instanceOf(Boolean.class));
         return (Boolean)result0;
     }
@@ -1012,7 +963,7 @@ public class CodeGenRunnerTest {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         columns.set(col, val);
 
-        final Object result0 = expressionEvaluatorMetadata0.evaluate(key(), value(columns));
+        final Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(columns));
         assertThat(result0, instanceOf(Boolean.class));
         return (Boolean)result0;
     }
@@ -1020,37 +971,14 @@ public class CodeGenRunnerTest {
     private static GenericRow buildRow(final Map<Integer, Object> overrides) {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         overrides.forEach(columns::set);
-        return value(columns);
+        return genericRow(columns);
     }
 
-    private static Struct key() {
-        return key("rowkey");
+    private static GenericRow genericRow(final Object... columns) {
+        return genericRow(Arrays.asList(columns));
     }
 
-    private static Struct key(final String rowKey) {
-        return StructKeyUtil.asStructKey(rowKey);
-    }
-
-    private static Windowed<Struct> sessionKey(
-        final String rowKey,
-        final int startMs,
-        final int endMs
-    ) {
-        return new Windowed<>(key(rowKey), new SessionWindow(startMs, endMs));
-    }
-
-    private static Windowed<Struct> windowedKey(
-        final String rowKey,
-        final int startMs
-    ) {
-        return new Windowed<>(key(rowKey), new TimeWindow(startMs, startMs + 1));
-    }
-
-    private static GenericRow value(final Object... columns) {
-        return value(Arrays.asList(columns));
-    }
-
-    private static GenericRow value(final List<Object> columns) {
+    private static GenericRow genericRow(final List<Object> columns) {
         return new GenericRow(columns);
     }
 

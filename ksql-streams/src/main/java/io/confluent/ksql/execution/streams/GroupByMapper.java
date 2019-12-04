@@ -44,9 +44,9 @@ class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, Struct> {
   }
 
   @Override
-  public Struct apply(final K readOnlyKey, final GenericRow value) {
+  public Struct apply(final K key, final GenericRow row) {
     final String stringRowKey = IntStream.range(0, expressions.size())
-        .mapToObj(idx -> processColumn(idx, expressions.get(idx), readOnlyKey, value))
+        .mapToObj(idx -> processColumn(idx, expressions.get(idx), row))
         .collect(Collectors.joining(GROUP_BY_VALUE_SEPARATOR));
 
     return StructKeyUtil.asStructKey(stringRowKey);
@@ -55,11 +55,10 @@ class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, Struct> {
   private static String processColumn(
       final int index,
       final ExpressionMetadata exp,
-      final Object readOnlyKey,
-      final GenericRow value
+      final GenericRow row
   ) {
     try {
-      return String.valueOf(exp.evaluate(readOnlyKey, value));
+      return String.valueOf(exp.evaluate(row));
     } catch (final Exception e) {
       LOG.error("Error calculating group-by field with index {}", index, e);
       return "null";

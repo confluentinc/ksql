@@ -56,7 +56,7 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
     final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
     for (TableFunctionApplier applier : tableFunctionAppliers) {
-      List<?> exploded = applier.apply(readOnlyKey, value);
+      List<?> exploded = applier.apply(value);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }

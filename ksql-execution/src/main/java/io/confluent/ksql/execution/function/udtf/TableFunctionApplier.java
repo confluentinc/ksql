@@ -39,11 +39,11 @@ public class TableFunctionApplier {
     this.expressionMetadataList = ImmutableList.copyOf(requireNonNull(expressionMetadataList));
   }
 
-  List<?> apply(final Object readOnlyKey, final GenericRow value) {
+  List<?> apply(final GenericRow row) {
     Object[] args = new Object[expressionMetadataList.size()];
     int i = 0;
     for (ExpressionMetadata expressionMetadata : expressionMetadataList) {
-      args[i++] = expressionMetadata.evaluate(readOnlyKey, value);
+      args[i++] = expressionMetadata.evaluate(row);
     }
     return tableFunction.apply(args);
   }

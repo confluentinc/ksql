@@ -87,9 +87,9 @@ public class SelectValueMapperTest {
     transformer.transform(KEY, VALUE, ctx);
 
     // Then:
-    verify(col0).evaluate(KEY, VALUE);
-    verify(col1).evaluate(KEY, VALUE);
-    verify(col2).evaluate(KEY, VALUE);
+    verify(col0).evaluate(VALUE);
+    verify(col1).evaluate(VALUE);
+    verify(col2).evaluate(VALUE);
   }
 
   @Test
@@ -120,7 +120,7 @@ public class SelectValueMapperTest {
     when(col0.getExpression()).thenReturn(
         new FunctionCall(FunctionName.of("kumquat"), ImmutableList.of())
     );
-    when(col0.evaluate(any(), any())).thenThrow(new RuntimeException("oops"));
+    when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
 
     // When:
     transformer.transform(
@@ -151,8 +151,8 @@ public class SelectValueMapperTest {
   }
 
   private void givenEvaluations(final Object result0, final Object result1, final Object result2) {
-    when(col0.evaluate(any(), any())).thenReturn(result0);
-    when(col1.evaluate(any(), any())).thenReturn(result1);
-    when(col2.evaluate(any(), any())).thenReturn(result2);
+    when(col0.evaluate(any())).thenReturn(result0);
+    when(col1.evaluate(any())).thenReturn(result1);
+    when(col2.evaluate(any())).thenReturn(result2);
   }
 }

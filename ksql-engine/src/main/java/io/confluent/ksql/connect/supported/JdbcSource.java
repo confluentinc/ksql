@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.connect.transforms.ExtractField;
 import org.apache.kafka.connect.transforms.ValueToKey;
 
@@ -69,7 +68,6 @@ public final class JdbcSource implements SupportedConnector {
       resolved.put("transforms.ksqlExtractString.field", key);
     }
 
-    resolved.putIfAbsent("key.converter", StringConverter.class.getName());
     resolved.putIfAbsent("tasks.max", "1");
     return resolved;
   }

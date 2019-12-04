@@ -133,7 +133,6 @@ public class JdbcSourceTest {
             .put("transforms.ksqlCreateKey.fields", "id")
             .put("transforms.ksqlExtractString.type", "org.apache.kafka.connect.transforms.ExtractField$Key")
             .put("transforms.ksqlExtractString.field", "id")
-            .put("key.converter", "org.apache.kafka.connect.storage.StringConverter")
             .put("tasks.max", "1")
             .build()));
   }

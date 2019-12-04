@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,13 +64,8 @@ public class PullQueryExecutorTest {
       );
 
       // Then:
-      expectedException.expect(KsqlRestException.class);
-      expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-      expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-          "Pull queries are disabled"
-      ))));
-      expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
-          "SELECT * FROM test_table"))));
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage(containsString("Pull queries are disabled"));
 
       // When:
       PullQueryExecutor.execute(

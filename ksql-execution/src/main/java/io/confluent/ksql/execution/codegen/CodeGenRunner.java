@@ -206,7 +206,7 @@ public class CodeGenRunner {
     }
 
     private void addRequiredColumn(final ColumnRef columnRef) {
-      final Column column = schema.findColumn(columnRef)
+      final Column column = schema.findValueColumn(columnRef)
           .orElseThrow(() -> new KsqlException(
               "Cannot find the select field in the available fields."
                   + " field: " + columnRef
@@ -215,7 +215,6 @@ public class CodeGenRunner {
       spec.addParameter(
           column.ref(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
-          column.namespace(),
           column.index()
       );
     }

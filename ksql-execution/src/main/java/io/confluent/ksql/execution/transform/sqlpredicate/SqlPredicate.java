@@ -105,7 +105,7 @@ public final class SqlPredicate {
 
       try {
         Object[] values = new Object[spec.arguments().size()];
-        spec.resolve(readOnlyKey, value, values);
+        spec.resolve(value, values);
         final boolean result = (Boolean) ee.evaluate(values);
         return result
             ? Optional.of(value)

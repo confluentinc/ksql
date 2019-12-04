@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,18 +46,12 @@ import org.slf4j.LoggerFactory;
  * Also responsible for taking care of any exceptions that occur in the process.
  */
 public class CommandRunner implements Closeable {
-
-  private static final String DEFAULT_METRIC_GROUP_PREFIX = "ksql-rest-app";
-  private static final String METRIC_GROUP_POST_FIX = "-command-runner-status";
-  private static final String metricGroupName = DEFAULT_METRIC_GROUP_PREFIX + METRIC_GROUP_POST_FIX;
-  
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
   private static final int STATEMENT_RETRY_MS = 100;
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
-  private static final Duration COMMAND_RUNNER_HEALTH_TIMEOUT = Duration.ofMillis(15000);
 
   private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
@@ -67,10 +60,12 @@ public class CommandRunner implements Closeable {
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
+
   private final CommandRunnerStatusMetric commandRunnerStatusMetric;
   private final AtomicReference<Pair<QueuedCommand, Instant>> currentCommandRef;
+  private final Duration commandRunnerHealthTimeout;
 
-  protected enum CommandRunnerStatus {
+  public enum CommandRunnerStatus {
     RUNNING,
     ERROR
   }
@@ -81,7 +76,9 @@ public class CommandRunner implements Closeable {
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ServerState serverState,
-      final String ksqlServiceId
+      final String ksqlServiceId,
+      final Duration commandRunnerHealthTimeout,
+      final String metricsGroupPrefix
   ) {
     this(
         statementExecutor,
@@ -90,7 +87,9 @@ public class CommandRunner implements Closeable {
         clusterTerminator,
         Executors.newSingleThreadExecutor(r -> new Thread(r, "CommandRunner")),
         serverState,
-        ksqlServiceId
+        ksqlServiceId,
+        commandRunnerHealthTimeout,
+        metricsGroupPrefix
     );
   }
 
@@ -102,7 +101,9 @@ public class CommandRunner implements Closeable {
       final ClusterTerminator clusterTerminator,
       final ExecutorService executor,
       final ServerState serverState,
-      final String ksqlServiceId
+      final String ksqlServiceId,
+      final Duration commandRunnerHealthTimeout,
+      final String metricsGroupPrefix
   ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
@@ -110,8 +111,11 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.commandRunnerHealthTimeout =
+        Objects.requireNonNull(commandRunnerHealthTimeout, "commandRunnerHealthTimeout");
     this.currentCommandRef = new AtomicReference<>(null);
-    this.commandRunnerStatusMetric = new CommandRunnerStatusMetric(ksqlServiceId, this);
+    this.commandRunnerStatusMetric =
+        new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
   }
 
   /**
@@ -232,17 +236,17 @@ public class CommandRunner implements Closeable {
     log.info("The KSQL server was terminated.");
   }
 
-  protected CommandRunnerStatus checkCommandRunnerStatus() {
+  CommandRunnerStatus checkCommandRunnerStatus() {
     final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
     if (currentCommand == null) {
       return CommandRunnerStatus.RUNNING;
     }
 
     return Duration.between(currentCommand.right, Instant.now()).toMillis()
-        < COMMAND_RUNNER_HEALTH_TIMEOUT.toMillis()
+        < commandRunnerHealthTimeout.toMillis()
         ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
   }
-  
+
   private class Runner implements Runnable {
 
     @Override

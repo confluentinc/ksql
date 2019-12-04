@@ -520,7 +520,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
         serverState,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS)),
+        metricsPrefix
     );
 
     final KsqlResource ksqlResource = new KsqlResource(

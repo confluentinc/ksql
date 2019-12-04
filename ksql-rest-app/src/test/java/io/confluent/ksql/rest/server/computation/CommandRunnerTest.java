@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,7 +37,13 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,6 +54,7 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
+  private static long COMMAND_RUNNER_HEALTH_TIMEOUT = 2000;
 
   @Mock
   private InteractiveStatementExecutor statementExecutor;
@@ -93,7 +102,9 @@ public class CommandRunnerTest {
         clusterTerminator,
         executor,
         serverState,
-        "ksql-service-id"
+        "ksql-service-id",
+        Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
+        ""
     );
   }
 
@@ -169,6 +180,75 @@ public class CommandRunnerTest {
     verify(statementExecutor, never()).handleRestore(queuedCommand1);
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
+  }
+
+  @Test
+  public void shouldReportRunningIfNotStuckProcessingCommand() throws BrokenBarrierException, InterruptedException, ExecutionException {
+    try {
+      checkCommandRunnerStatus(
+          COMMAND_RUNNER_HEALTH_TIMEOUT - 500,
+          COMMAND_RUNNER_HEALTH_TIMEOUT - 1000,
+          CommandRunner.CommandRunnerStatus.RUNNING
+      );
+    } catch (Exception e) {
+      // fail test if an exception happens
+      assertThat(true, equalTo(false));
+    }
+  }
+
+  @Test
+  public void shouldReportErrorIfStuckProcessingCommand() throws BrokenBarrierException, InterruptedException, ExecutionException {
+    try {
+      checkCommandRunnerStatus(
+          COMMAND_RUNNER_HEALTH_TIMEOUT + 1000,
+          COMMAND_RUNNER_HEALTH_TIMEOUT + 500,
+          CommandRunner.CommandRunnerStatus.ERROR
+      );
+    } catch (Exception e) {
+      // fail test if an exception happens
+      assertThat(true, equalTo(false));
+    }
+  }
+
+  private void checkCommandRunnerStatus(
+      long commandProcessingTimeMs,
+      long timeToCheckMetricMs,
+      CommandRunner.CommandRunnerStatus expectedStatus
+  ) throws BrokenBarrierException, InterruptedException, ExecutionException {
+    // Given:
+    givenQueuedCommands(queuedCommand1);
+    doAnswer((Answer) invocation -> {
+      Thread.sleep(commandProcessingTimeMs);
+      return null;
+    }).when(statementExecutor).handleStatement(queuedCommand1);
+
+    // When:
+    final CyclicBarrier gate = new CyclicBarrier(3);
+    AtomicReference<Exception> expectedException = new AtomicReference<>(null);
+    (new Thread(() -> {
+      try {
+        gate.await();
+        commandRunner.fetchAndRunCommands();
+      } catch (Exception e) {
+        expectedException.set(e);
+      }
+    })).start();
+
+    CompletableFuture<CommandRunner.CommandRunnerStatus> statusFuture = new CompletableFuture<>();
+    (new Thread(() -> {
+      try {
+        gate.await();
+        Thread.sleep(timeToCheckMetricMs);
+        statusFuture.complete(commandRunner.checkCommandRunnerStatus());
+      } catch (Exception e) {
+        expectedException.set(e);
+      }
+    })).start();
+
+    // Then:
+    gate.await();
+    assertThat(statusFuture.get(), equalTo(expectedStatus));
+    assertThat(expectedException.get(), equalTo(null));
   }
 
   @Test

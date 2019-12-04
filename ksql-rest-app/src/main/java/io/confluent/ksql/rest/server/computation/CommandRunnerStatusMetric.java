@@ -34,19 +34,21 @@ public class CommandRunnerStatusMetric implements Closeable {
 
   private static final String DEFAULT_METRIC_GROUP_PREFIX = "ksql-rest-app";
   private static final String METRIC_GROUP_POST_FIX = "-command-runner";
-  private static final String metricGroupName = DEFAULT_METRIC_GROUP_PREFIX + METRIC_GROUP_POST_FIX;
   
   private final Metrics metrics;
   private final MetricName metricName;
+  private final String metricGroupName;
 
   CommandRunnerStatusMetric(
       final String ksqlServiceId,
-      final CommandRunner commandRunner
+      final CommandRunner commandRunner,
+      final String metricGroupPrefix
   ) {
     this(
         MetricCollectors.getMetrics(),
         commandRunner,
-        ksqlServiceId
+        ksqlServiceId,
+        metricGroupPrefix.isEmpty() ? DEFAULT_METRIC_GROUP_PREFIX : metricGroupPrefix
     );
   }
 
@@ -54,9 +56,11 @@ public class CommandRunnerStatusMetric implements Closeable {
   CommandRunnerStatusMetric(
       final Metrics metrics,
       final CommandRunner commandRunner,
-      final String ksqlServiceId
+      final String ksqlServiceId,
+      final String metricsGroupPrefix
   ) {
     this.metrics =  Objects.requireNonNull(metrics, "metrics");
+    this.metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
     this.metricName = metrics.metricName(
         "status",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,

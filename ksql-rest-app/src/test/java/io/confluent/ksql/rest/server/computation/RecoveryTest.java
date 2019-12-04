@@ -34,6 +34,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
@@ -202,13 +203,16 @@ public class RecoveryTest {
           queryIdGenerator
       );
 
+      MetricCollectors.initialize();
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
           1,
           mock(ClusterTerminator.class),
           serverState,
-          "ksql-service-id"
+          "ksql-service-id",
+          Duration.ofMillis(2000),
+          ""
       );
 
       this.ksqlResource = new KsqlResource(

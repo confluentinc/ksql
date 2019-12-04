@@ -24,15 +24,14 @@ public class UdfMetadataTest {
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            new UdfMetadata("name", "desc", "auth", "ver", "path", false),
-            new UdfMetadata("name", "desc", "auth", "ver", "path", false)
+            new UdfMetadata("name", "desc", "auth", "ver", "path"),
+            new UdfMetadata("name", "desc", "auth", "ver", "path")
         )
-        .addEqualityGroup(new UdfMetadata("DIF", "desc", "auth", "ver", "path", false))
-        .addEqualityGroup(new UdfMetadata("name", "DIF", "auth", "ver", "path", false))
-        .addEqualityGroup(new UdfMetadata("name", "desc", "DIF", "ver", "path", false))
-        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "DIF", "path", false))
-        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", "DIF", false))
-        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", "path", true))
+        .addEqualityGroup(new UdfMetadata("DIF", "desc", "auth", "ver", "path"))
+        .addEqualityGroup(new UdfMetadata("name", "DIF", "auth", "ver", "path"))
+        .addEqualityGroup(new UdfMetadata("name", "desc", "DIF", "ver", "path"))
+        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "DIF", "path"))
+        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", "DIF"))
         .testEquals();
   }
 }

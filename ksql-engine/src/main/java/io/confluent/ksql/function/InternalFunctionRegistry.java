@@ -16,10 +16,8 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -242,16 +240,14 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private static UdfFactory builtInUdfFactory(
-        final KsqlScalarFunction ksqlFunction,
-        final boolean internal
+        final KsqlScalarFunction ksqlFunction
     ) {
       final UdfMetadata metadata = new UdfMetadata(
           ksqlFunction.name().name(),
           ksqlFunction.getDescription(),
           KsqlConstants.CONFLUENT_AUTHOR,
           "",
-          KsqlScalarFunction.INTERNAL_PATH,
-          internal
+          KsqlScalarFunction.INTERNAL_PATH
       );
 
       return new UdfFactory(ksqlFunction.getKudfClass(), metadata);
@@ -261,7 +257,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addStringFunctions();
       addMathFunctions();
       addJsonFunctions();
-      addStructFieldFetcher();
       addUdafFunctions();
     }
 
@@ -374,36 +369,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       ));
     }
 
-    private void addStructFieldFetcher() {
-      addBuiltInFunction(
-          KsqlScalarFunction.create(
-              ((parameters, arguments) -> SqlTypes.struct().build()),
-              StructType.builder().build(),
-              ImmutableList.of(
-                  new ParameterInfo(
-                      "struct",
-                      StructType.builder().build(),
-                      "",
-                      false
-                  ),
-                  new ParameterInfo(
-                      "fieldName",
-                      ParamTypes.STRING,
-                      "",
-                      false
-                  )
-              ),
-              FetchFieldFromStruct.FUNCTION_NAME,
-              FetchFieldFromStruct.class,
-              config -> new FetchFieldFromStruct(),
-              "",
-              KsqlScalarFunction.INTERNAL_PATH,
-              false
-          ),
-          true
-      );
-    }
-
     private void addUdafFunctions() {
 
       functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());
@@ -417,12 +382,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addBuiltInFunction(final KsqlScalarFunction ksqlFunction) {
-      addBuiltInFunction(ksqlFunction, false);
-    }
-
-    private void addBuiltInFunction(final KsqlScalarFunction ksqlFunction, final boolean internal) {
       functionRegistry
-          .ensureFunctionFactory(builtInUdfFactory(ksqlFunction, internal))
+          .ensureFunctionFactory(builtInUdfFactory(ksqlFunction))
           .addFunction(ksqlFunction);
     }
   }

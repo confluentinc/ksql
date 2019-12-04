@@ -53,7 +53,6 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -106,7 +105,6 @@ public class ExpressionTypeManagerTest {
     UdfFactory internalFactory = mock(UdfFactory.class);
     UdfMetadata metadata = mock(UdfMetadata.class);
     when(internalFactory.getMetadata()).thenReturn(metadata);
-    when(metadata.isInternal()).thenReturn(true);
 
     when(functionRegistry.getUdfFactory(anyString()))
         .thenReturn(internalFactory);
@@ -299,23 +297,6 @@ public class ExpressionTypeManagerTest {
     SqlType result = expressionTypeManager.getExpressionSqlType(expression);
 
     assertThat(result, is(SqlTypes.STRING));
-  }
-
-  @Test
-  public void shouldThrowOnFetchFieldFromStructFunctionCall() {
-    // Given:
-    Expression expression = new FunctionCall(
-        FetchFieldFromStruct.FUNCTION_NAME,
-        ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'");
-
-    // When:
-    expressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test

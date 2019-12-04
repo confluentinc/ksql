@@ -321,9 +321,7 @@ public class InternalFunctionRegistryTest {
         // Math UDF
         "RANDOM",
         // JSON UDF
-        "EXTRACTJSONFIELD", "ARRAYCONTAINS",
-        // Struct UDF
-        "FETCH_FIELD_FROM_STRUCT"
+        "EXTRACTJSONFIELD", "ARRAYCONTAINS"
     );
 
     Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
@@ -382,7 +380,7 @@ public class InternalFunctionRegistryTest {
 
   private TableFunctionFactory createTableFunctionFactory() {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
-        "", "", "", "", false)) {
+        "", "", "", "")) {
       @Override
       public KsqlTableFunction createTableFunction(List<SqlType> argTypeList) {
         return tableFunction;

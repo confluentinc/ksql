@@ -74,8 +74,7 @@ public class UdtfLoader {
         udtfDescriptionAnnotation.description(),
         udtfDescriptionAnnotation.author(),
         udtfDescriptionAnnotation.version(),
-        path,
-        false
+        path
     );
 
     final TableFunctionFactory factory = new TableFunctionFactory(metadata);

@@ -42,7 +42,6 @@ public final class ListFunctionsExecutor {
     final FunctionRegistry functionRegistry = executionContext.getMetaStore();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
-        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.SCALAR
@@ -50,7 +49,6 @@ public final class ListFunctionsExecutor {
         .collect(Collectors.toList());
 
     functionRegistry.listTableFunctions().stream()
-        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.TABLE
@@ -58,7 +56,6 @@ public final class ListFunctionsExecutor {
         .forEach(all::add);
 
     functionRegistry.listAggregateFunctions().stream()
-        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.AGGREGATE

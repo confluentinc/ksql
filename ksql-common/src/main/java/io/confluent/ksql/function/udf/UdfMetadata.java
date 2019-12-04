@@ -23,23 +23,18 @@ public class UdfMetadata {
   private final String author;
   private final String version;
   private final String path;
-  private final boolean internal;
 
-  /**
-   * @param internal indicates the Udf is an impl detail, e.g. the UDF for handling structs.
-   */
   public UdfMetadata(final String name,
                      final String description,
                      final String author,
                      final String version,
-                     final String path,
-                     final boolean internal) {
+                     final String path
+  ) {
     this.name = Objects.requireNonNull(name, "name cant be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     this.author = Objects.requireNonNull(author, "author can't be null");
     this.version = Objects.requireNonNull(version, "version can't be null");
     this.path = Objects.requireNonNull(path, "path can't be null");
-    this.internal = internal;
   }
 
   public String getName() {
@@ -62,10 +57,6 @@ public class UdfMetadata {
     return path;
   }
 
-  public boolean isInternal() {
-    return internal;
-  }
-
   @Override
   public String toString() {
     return "UdfMetadata{"
@@ -74,7 +65,6 @@ public class UdfMetadata {
         + ", author='" + author + '\''
         + ", version='" + version + '\''
         + ", path='" + path + "'"
-        + ", internal=" + internal
         + '}';
   }
 
@@ -87,8 +77,7 @@ public class UdfMetadata {
       return false;
     }
     final UdfMetadata that = (UdfMetadata) o;
-    return internal == that.internal
-        && Objects.equals(name, that.name)
+    return Objects.equals(name, that.name)
         && Objects.equals(description, that.description)
         && Objects.equals(author, that.author)
         && Objects.equals(version, that.version)
@@ -97,6 +86,6 @@ public class UdfMetadata {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, description, author, version, path, internal);
+    return Objects.hash(name, description, author, version, path);
   }
 }

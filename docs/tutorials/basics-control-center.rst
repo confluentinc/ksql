@@ -231,6 +231,10 @@ end them with the TERMINATE statement.
 #. Click **Explain** to see the schema and query properties for the persistent
    query.
 
+   .. figure:: ../img/c3-ksql-explain-query.png
+      :alt: Screenshot of the KSQL Explain Query page in Confluent Control Center
+      :align: center
+
 Monitor Persistent Queries
 ==========================
 
@@ -309,7 +313,7 @@ View streams and tables
 You can see all of your persistent queries, streams, and tables in a single,
 unified view. 
 
-#. Click **KSQl Editor** and find the **All available streams and tables** pane
+#. Click **KSQL Editor** and find the **All available streams and tables** pane
    on the right side of the page,
 
 #. Click **KSQL_PROCESSING_LOG** to open the processing log stream. The schema

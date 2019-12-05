@@ -142,7 +142,7 @@ public class KsqlMaterializationFactoryTest {
     // Then:
     verify(predicateInfo).getPredicate(loggerCaptor.capture());
     assertThat(
-        loggerCaptor.getValue().apply(new Stacker().push("filter").getQueryContext()),
+        loggerCaptor.getValue().apply(new Stacker().getQueryContext()),
         is(filterProcessingLogger)
     );
   }
@@ -155,7 +155,7 @@ public class KsqlMaterializationFactoryTest {
     // Then:
     verify(mapperInfo).getMapper(loggerCaptor.capture());
     assertThat(
-        loggerCaptor.getValue().apply(new Stacker().push("project").getQueryContext()),
+        loggerCaptor.getValue().apply(new Stacker().getQueryContext()),
         is(mapProcessingLogger)
     );
   }

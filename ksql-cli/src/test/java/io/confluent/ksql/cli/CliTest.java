@@ -679,9 +679,9 @@ public class CliTest {
     final String queryString = String.format(
         "SELECT ITEMID, "
             + "ORDERUNITS*10 AS Col1, "
-            + "PRICEARRAY[0]+10 AS Col2, "
+            + "PRICEARRAY[1]+10 AS Col2, "
             + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10 AS Col3, "
-            + "PRICEARRAY[1]>1000 AS Col4 "
+            + "PRICEARRAY[2]>1000 AS Col4 "
             + "FROM %s "
             + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
         orderDataProvider.kstreamName()

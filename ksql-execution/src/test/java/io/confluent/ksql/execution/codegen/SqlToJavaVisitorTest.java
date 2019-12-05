@@ -124,26 +124,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression,
-        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))")
-    );
-  }
-
-  @Test
-  public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
-    // Given:
-    Expression expression = new SubscriptExpression(
-        ARRAYCOL,
-        ArithmeticUnaryExpression.negative(Optional.empty(), new IntegerLiteral(1))
-    );
-
-    // When:
-    String javaExpression = sqlToJavaVisitor.process(expression);
-
-    // Then:
-    assertThat(
-        javaExpression,
-        equalTo(
-            "((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))")
+        equalTo("((Double) (ArrayAccess.arrayAccess((java.util.List) TEST1_COL4, ((int) 0))))")
     );
   }
 

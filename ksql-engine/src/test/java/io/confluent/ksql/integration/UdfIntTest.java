@@ -137,9 +137,9 @@ public class UdfIntTest {
         "CREATE STREAM \"%s\" AS SELECT "
             + "ITEMID, "
             + "ORDERUNITS*10, "
-            + "PRICEARRAY[0]+10, "
+            + "PRICEARRAY[1]+10, "
             + "KEYVALUEMAP['key1'] * KEYVALUEMAP['key2']+10, "
-            + "PRICEARRAY[1] > 1000 "
+            + "PRICEARRAY[2] > 1000 "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
         resultStreamName,
         testData.sourceStreamName
@@ -163,7 +163,7 @@ public class UdfIntTest {
     final String queryString = String.format(
         "CREATE STREAM \"%s\" AS SELECT "
             + "CAST (ORDERUNITS AS INTEGER), "
-            + "CAST( PRICEARRAY[1]>1000 AS STRING), "
+            + "CAST( PRICEARRAY[2]>1000 AS STRING), "
             + "CAST (SUBSTRING(ITEMID, 6) AS DOUBLE), "
             + "CAST(ORDERUNITS AS VARCHAR) "
             + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",

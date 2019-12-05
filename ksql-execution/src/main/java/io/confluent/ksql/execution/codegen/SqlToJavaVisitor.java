@@ -22,6 +22,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
+import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -91,6 +92,7 @@ public class SqlToJavaVisitor {
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
+      "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
       "java.util.HashMap",
@@ -680,16 +682,14 @@ public class SqlToJavaVisitor {
           SqlArray array = (SqlArray) internalSchema;
           String listName = process(node.getBase(), context).getLeft();
           String suppliedIdx = process(node.getIndex(), context).getLeft();
-          String trueIdx = node.getIndex().toString().startsWith("-")
-              ? String.format("((%s)%s).size()%s", internalSchemaJavaType, listName, suppliedIdx)
-              : suppliedIdx;
 
           String code = format(
-              "((%s) ((%s)%s).get((int)%s))",
+              "((%s) (%s.arrayAccess((%s) %s, ((int) %s))))",
               SchemaConverters.sqlToJavaConverter().toJavaType(array.getItemType()).getSimpleName(),
+              ArrayAccess.class.getSimpleName(),
               internalSchemaJavaType,
               listName,
-              trueIdx
+              suppliedIdx
           );
 
           return new Pair<>(code, array.getItemType());

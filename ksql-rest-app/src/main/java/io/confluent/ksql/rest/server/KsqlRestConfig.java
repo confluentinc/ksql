@@ -77,10 +77,10 @@ public class KsqlRestConfig extends RestConfig {
       "Minimum time between consecutive health check evaluations. Health check queries before "
           + "the interval has elapsed will receive cached responses.";
 
-  static final String KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS =
-          KSQL_CONFIG_PREFIX + "server.command.runner.healthcheck.ms";
+  static final String KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS =
+          KSQL_CONFIG_PREFIX + "server.command.blocked.threshold.error.ms";
 
-  private static final String KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS_DOC =
+  private static final String KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC =
       "How long to wait for the command runner to process a command from the command topic "
           + "before reporting an error metric.";
 
@@ -131,11 +131,11 @@ public class KsqlRestConfig extends RestConfig {
         KSQL_HEALTHCHECK_INTERVAL_MS_DOC
     )
     .define(
-        KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS,
+        KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS,
         Type.LONG,
         15000L,
         Importance.LOW,
-        KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS_DOC
+        KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC
     );
   }
 

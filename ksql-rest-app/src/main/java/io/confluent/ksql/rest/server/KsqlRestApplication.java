@@ -521,7 +521,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
         serverState,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_COMMAND_RUNNER_HEALTH_CHECK_MS)),
+        Duration.ofMillis(restConfig.getLong(
+            KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix
     );
 

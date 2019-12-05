@@ -25,6 +25,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -64,6 +65,7 @@ public class CommandRunner implements Closeable {
   private final CommandRunnerStatusMetric commandRunnerStatusMetric;
   private final AtomicReference<Pair<QueuedCommand, Instant>> currentCommandRef;
   private final Duration commandRunnerHealthTimeout;
+  private final Clock clock;
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -89,7 +91,8 @@ public class CommandRunner implements Closeable {
         serverState,
         ksqlServiceId,
         commandRunnerHealthTimeout,
-        metricsGroupPrefix
+        metricsGroupPrefix,
+        Clock.systemUTC()
     );
   }
 
@@ -103,7 +106,8 @@ public class CommandRunner implements Closeable {
       final ServerState serverState,
       final String ksqlServiceId,
       final Duration commandRunnerHealthTimeout,
-      final String metricsGroupPrefix
+      final String metricsGroupPrefix,
+      final Clock clock
   ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
@@ -116,6 +120,7 @@ public class CommandRunner implements Closeable {
     this.currentCommandRef = new AtomicReference<>(null);
     this.commandRunnerStatusMetric =
         new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
+    this.clock = clock;
   }
 
   /**
@@ -155,7 +160,7 @@ public class CommandRunner implements Closeable {
     }
     restoreCommands.forEach(
         command -> {
-          currentCommandRef.set(new Pair<>(command, Instant.now()));
+          currentCommandRef.set(new Pair<>(command, clock.instant()));
           RetryUtil.retryWithBackoff(
               maxRetries,
               STATEMENT_RETRY_MS,
@@ -204,7 +209,7 @@ public class CommandRunner implements Closeable {
       }
     };
 
-    currentCommandRef.set(new Pair<>(queuedCommand, Instant.now()));
+    currentCommandRef.set(new Pair<>(queuedCommand, clock.instant()));
     RetryUtil.retryWithBackoff(
         maxRetries,
         STATEMENT_RETRY_MS,
@@ -241,10 +246,14 @@ public class CommandRunner implements Closeable {
     if (currentCommand == null) {
       return CommandRunnerStatus.RUNNING;
     }
-
-    return Duration.between(currentCommand.right, Instant.now()).toMillis()
+    
+    return Duration.between(currentCommand.right, clock.instant()).toMillis()
         < commandRunnerHealthTimeout.toMillis()
         ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
+  }
+
+  Pair<QueuedCommand, Instant> getCurrentCommand() {
+    return currentCommandRef.get();
   }
 
   private class Runner implements Runnable {

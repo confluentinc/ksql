@@ -55,4 +55,5 @@ Next KLIP number: **14**
 | [KLIP-12: Implement High-Availability for Pull queries](klip-12-pull-high-availability.md)| Proposal       | N/A     |
 | KLIP-13: Introduce KSQL command to print connect worker properties to the console | Proposal | N/A |
 | [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Proposal       | N/A     |
+| [KLIP-15: KSQLDB new API and Client(klip-15-new-api-and-client.md                  | Proposal       | N/A     |
 

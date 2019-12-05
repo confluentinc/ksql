@@ -36,27 +36,27 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_OUTPUT_0.KafkaTopic_Right.source = STRUCT<ID BIGINT, NAME VARCHAR> NOT NULL
-CSAS_OUTPUT_0.KafkaTopic_Left.source = STRUCT<ID BIGINT> NOT NULL
-CSAS_OUTPUT_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT> NOT NULL
+CSAS_OUTPUT_0.KafkaTopic_Right.Source = STRUCT<ID BIGINT, NAME VARCHAR> NOT NULL
+CSAS_OUTPUT_0.KafkaTopic_Left.Source = STRUCT<ID BIGINT> NOT NULL
+CSAS_OUTPUT_0.Join.Left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT> NOT NULL
 CSAS_OUTPUT_0.OUTPUT = STRUCT<S_ID BIGINT, NAME VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
     Source: Join-repartition-source (topics: [Join-repartition])
       --> Join
-    Processor: Join (stores: [KafkaTopic_Right-reduce])
-      --> SELECT-0
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project
       <-- Join-repartition-source
     Source: KSTREAM-SOURCE-0000000000 (topics: [NO_KEY])
       --> KTABLE-SOURCE-0000000001
-    Processor: SELECT-0 (stores: [])
+    Processor: Project (stores: [])
       --> KSTREAM-MAPVALUES-0000000012
       <-- Join
     Processor: KSTREAM-MAPVALUES-0000000012 (stores: [])
       --> KSTREAM-SINK-0000000013
-      <-- SELECT-0
-    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-reduce])
+      <-- Project
+    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-Reduce])
       --> KTABLE-TRANSFORMVALUES-0000000002
       <-- KSTREAM-SOURCE-0000000000
     Sink: KSTREAM-SINK-0000000013 (topic: OUTPUT)

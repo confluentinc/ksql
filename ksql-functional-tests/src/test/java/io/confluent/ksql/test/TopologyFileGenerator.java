@@ -111,7 +111,7 @@ public final class TopologyFileGenerator {
     }
 
     static void generateTopologies(final Path base) throws Exception {
-        final String formattedVersion = getFormattedVersionFromPomFile();
+        final String formattedVersion = "0_6_0-pre";
         final Path generatedTopologyPath = base.resolve(formattedVersion);
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));

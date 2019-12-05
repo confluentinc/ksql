@@ -49,8 +49,7 @@ public abstract class AggregateFunctionFactory {
         "",
         KsqlConstants.CONFLUENT_AUTHOR,
         "",
-        KsqlScalarFunction.INTERNAL_PATH,
-        false
+        KsqlScalarFunction.INTERNAL_PATH
     ));
   }
 

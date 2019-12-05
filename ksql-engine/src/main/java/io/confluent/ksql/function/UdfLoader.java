@@ -92,8 +92,7 @@ public class UdfLoader {
             udfDescriptionAnnotation.description(),
             udfDescriptionAnnotation.author(),
             udfDescriptionAnnotation.version(),
-            path,
-            false
+            path
         )
     );
 

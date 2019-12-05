@@ -54,7 +54,6 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -278,20 +277,14 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitDereferenceExpression(
         DereferenceExpression node, Void context
     ) {
-      String instanceName = funNameToCodeName
-          .apply(FetchFieldFromStruct.FUNCTION_NAME);
-
       SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(node);
       String javaReturnType =
           SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
 
-      String arguments =
-          process(node.getBase(), context).getLeft()
-              + ", "
-              + process(new StringLiteral(node.getFieldName()), context).getLeft();
-
-      String codeString = "((" + javaReturnType + ") " + instanceName
-          + ".evaluate(" + arguments + "))";
+      String struct = process(node.getBase(), context).getLeft();
+      String field = process(new StringLiteral(node.getFieldName()), context).getLeft();
+      String codeString = "((" + javaReturnType + ") "
+          + struct + ".get(" + field + "))";
 
       return new Pair<>(codeString, functionReturnSchema);
     }

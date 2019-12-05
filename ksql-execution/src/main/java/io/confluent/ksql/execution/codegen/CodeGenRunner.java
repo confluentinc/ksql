@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -23,7 +22,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
-import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -35,7 +33,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -187,21 +184,6 @@ public class CodeGenRunner {
     @Override
     public Void visitDereferenceExpression(DereferenceExpression node, Void context) {
       process(node.getBase(), null);
-
-      ImmutableList<SqlType> argumentTypes = ImmutableList.of(
-          expressionTypeManager.getExpressionSqlType(node.getBase()),
-          SqlTypes.STRING
-      );
-
-      KsqlScalarFunction function = functionRegistry
-          .getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name())
-          .getFunction(argumentTypes);
-
-      spec.addFunction(
-          function.name(),
-          function.newInstance(ksqlConfig)
-      );
-
       return null;
     }
 

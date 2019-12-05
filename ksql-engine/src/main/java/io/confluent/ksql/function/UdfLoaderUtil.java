@@ -40,8 +40,8 @@ public final class UdfLoaderUtil {
         udf.getDescription(),
         "Test Author",
         "",
-        KsqlScalarFunction.INTERNAL_PATH,
-        false);
+        KsqlScalarFunction.INTERNAL_PATH
+    );
 
     return new UdfFactory(udf.getKudfClass(), metadata);
   }

@@ -519,7 +519,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         commandStore,
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
-        serverState
+        serverState,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        Duration.ofMillis(restConfig.getLong(
+            KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
+        metricsPrefix
     );
 
     final KsqlResource ksqlResource = new KsqlResource(

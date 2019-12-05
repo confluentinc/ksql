@@ -36,7 +36,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QuerySchemas;
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;

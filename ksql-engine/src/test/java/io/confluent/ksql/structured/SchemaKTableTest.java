@@ -328,7 +328,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );

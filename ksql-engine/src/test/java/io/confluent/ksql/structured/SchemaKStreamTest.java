@@ -187,7 +187,6 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 

@@ -228,7 +228,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleMultiDimensionalArray() {
         // Given:
-        final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST EMIT CHANGES;";
+        final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST EMIT CHANGES;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         // When:

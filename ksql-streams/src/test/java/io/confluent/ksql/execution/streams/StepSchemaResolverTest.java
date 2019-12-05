@@ -169,8 +169,7 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE")),
-        "foo"
+            ref("CITRUS", "ORANGE"))
     );
 
     // When:
@@ -216,8 +215,7 @@ public class StepSchemaResolverTest {
     final StreamFilter<?> step = new StreamFilter<>(
         PROPERTIES,
         streamSource,
-        mock(Expression.class),
-        "name"
+        mock(Expression.class)
     );
 
     // When:
@@ -365,8 +363,7 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE")),
-        "foo"
+            ref("CITRUS", "ORANGE"))
     );
 
     // When:
@@ -388,8 +385,7 @@ public class StepSchemaResolverTest {
     final TableFilter<?> step = new TableFilter<>(
         PROPERTIES,
         tableSource,
-        mock(Expression.class),
-        "name"
+        mock(Expression.class)
     );
 
     // When:

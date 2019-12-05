@@ -18,23 +18,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
 @Immutable
 public final class ExecutionStepPropertiesV1 implements ExecutionStepProperties {
   private final QueryContext queryContext;
-  private final LogicalSchema schema;
 
   public ExecutionStepPropertiesV1(
-      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
       @JsonProperty(value = "queryContext", required = true) final QueryContext queryContext) {
     this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
-    this.schema = Objects.requireNonNull(schema, "schema");
-  }
-
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @JsonIgnore
@@ -55,20 +47,18 @@ public final class ExecutionStepPropertiesV1 implements ExecutionStepProperties 
       return false;
     }
     final ExecutionStepPropertiesV1 that = (ExecutionStepPropertiesV1) o;
-    return Objects.equals(queryContext, that.queryContext)
-        && Objects.equals(schema, that.schema);
+    return Objects.equals(queryContext, that.queryContext);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(queryContext, schema);
+    return Objects.hash(queryContext);
   }
 
   @Override
   public String toString() {
     return "ExecutionStepProperties{"
         + "queryContext='" + queryContext.toString() + '\''
-        + ", schema=" + schema
         + '}';
   }
 }

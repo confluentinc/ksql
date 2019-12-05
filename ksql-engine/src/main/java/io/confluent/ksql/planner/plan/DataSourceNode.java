@@ -139,7 +139,6 @@ public class DataSourceNode extends PlanNode {
     return schemaKStreamFactory.create(
         builder,
         dataSource,
-        schema,
         contextStacker.push(SOURCE_OP_NAME),
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField,
@@ -152,7 +151,6 @@ public class DataSourceNode extends PlanNode {
     SchemaKStream<?> create(
         KsqlQueryBuilder builder,
         DataSource<?> dataSource,
-        LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
         QueryContext.Stacker contextStacker,
         Optional<AutoOffsetReset> offsetReset,
         KeyField keyField,

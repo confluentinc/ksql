@@ -22,9 +22,11 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -38,24 +40,24 @@ import java.util.Optional;
 public class SchemaKGroupedStream {
 
   final ExecutionStep<KGroupedStreamHolder> sourceStep;
+  final LogicalSchema schema;
   final KeyFormat keyFormat;
   final KeyField keyField;
-  final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
 
   SchemaKGroupedStream(
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
+      final LogicalSchema schema,
       final KeyFormat keyFormat,
       final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
     this.sourceStep = sourceStep;
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.keyField = keyField;
-    this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
   }
@@ -87,8 +89,7 @@ public class SchemaKGroupedStream {
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
           aggregations,
-          windowExpression.get().getKsqlWindowExpression(),
-          functionRegistry
+          windowExpression.get().getKsqlWindowExpression()
       );
     } else {
       keyFormat = this.keyFormat;
@@ -97,16 +98,15 @@ public class SchemaKGroupedStream {
           sourceStep,
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
-          aggregations,
-          functionRegistry
+          aggregations
       );
     }
 
     return new SchemaKTable(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        sourceSchemaKStreams,
         ksqlConfig,
         functionRegistry
     );
@@ -117,5 +117,9 @@ public class SchemaKGroupedStream {
         FormatInfo.of(Format.KAFKA),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
+  }
+
+  LogicalSchema resolveSchema(final ExecutionStep<?> step) {
+    return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
   }
 }

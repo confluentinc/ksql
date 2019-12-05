@@ -15,23 +15,24 @@
 
 package io.confluent.ksql.structured;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
@@ -48,7 +49,6 @@ public final class SchemaKSourceFactory {
   public static SchemaKStream<?> buildSource(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final QueryContext.Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
@@ -61,7 +61,6 @@ public final class SchemaKSourceFactory {
             ? buildWindowedStream(
             builder,
             dataSource,
-            schemaWithMetaAndKeyFields,
             contextStacker,
             offsetReset,
             keyField,
@@ -69,7 +68,6 @@ public final class SchemaKSourceFactory {
         ) : buildStream(
             builder,
             dataSource,
-            schemaWithMetaAndKeyFields,
             contextStacker,
             offsetReset,
             keyField,
@@ -81,7 +79,6 @@ public final class SchemaKSourceFactory {
             ? buildWindowedTable(
             builder,
             dataSource,
-            schemaWithMetaAndKeyFields,
             contextStacker,
             offsetReset,
             keyField,
@@ -89,7 +86,6 @@ public final class SchemaKSourceFactory {
         ) : buildTable(
             builder,
             dataSource,
-            schemaWithMetaAndKeyFields,
             contextStacker,
             offsetReset,
             keyField,
@@ -104,7 +100,6 @@ public final class SchemaKSourceFactory {
   private static SchemaKStream<?> buildWindowedStream(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
@@ -115,7 +110,7 @@ public final class SchemaKSourceFactory {
 
     final WindowedStreamSource step = ExecutionStepFactory.streamSourceWindowed(
         contextStacker,
-        schemaWithMetaAndKeyFields,
+        dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
@@ -126,6 +121,7 @@ public final class SchemaKSourceFactory {
 
     return schemaKStream(
         builder,
+        resolveSchema(builder, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step,
         keyField
@@ -135,7 +131,6 @@ public final class SchemaKSourceFactory {
   private static SchemaKStream<?> buildStream(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
@@ -147,7 +142,7 @@ public final class SchemaKSourceFactory {
 
     final StreamSource step = ExecutionStepFactory.streamSource(
         contextStacker,
-        schemaWithMetaAndKeyFields,
+        dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         dataSource.getTimestampColumn(),
@@ -157,6 +152,7 @@ public final class SchemaKSourceFactory {
 
     return schemaKStream(
         builder,
+        resolveSchema(builder, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step,
         keyField
@@ -166,7 +162,6 @@ public final class SchemaKSourceFactory {
   private static SchemaKTable<?> buildWindowedTable(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
@@ -177,7 +172,7 @@ public final class SchemaKSourceFactory {
 
     final WindowedTableSource step = ExecutionStepFactory.tableSourceWindowed(
         contextStacker,
-        schemaWithMetaAndKeyFields,
+        dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
@@ -188,6 +183,7 @@ public final class SchemaKSourceFactory {
 
     return schemaKTable(
         builder,
+        resolveSchema(builder, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step,
         keyField
@@ -197,7 +193,6 @@ public final class SchemaKSourceFactory {
   private static SchemaKTable<?> buildTable(
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final Stacker contextStacker,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
@@ -209,7 +204,7 @@ public final class SchemaKSourceFactory {
 
     final TableSource step = ExecutionStepFactory.tableSource(
         contextStacker,
-        schemaWithMetaAndKeyFields,
+        dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         dataSource.getTimestampColumn(),
@@ -219,6 +214,7 @@ public final class SchemaKSourceFactory {
 
     return schemaKTable(
         builder,
+        resolveSchema(builder, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step,
         keyField
@@ -227,15 +223,16 @@ public final class SchemaKSourceFactory {
 
   private static <K> SchemaKStream<K> schemaKStream(
       final KsqlQueryBuilder builder,
+      final LogicalSchema schema,
       final KeyFormat keyFormat,
       final AbstractStreamSource<KStreamHolder<K>> streamSource,
       final KeyField keyField
   ) {
     return new SchemaKStream<>(
         streamSource,
+        schema,
         keyFormat,
         keyField,
-        ImmutableList.of(),
         builder.getKsqlConfig(),
         builder.getFunctionRegistry()
     );
@@ -243,15 +240,16 @@ public final class SchemaKSourceFactory {
 
   private static <K> SchemaKTable<K> schemaKTable(
       final KsqlQueryBuilder builder,
+      final LogicalSchema schema,
       final KeyFormat keyFormat,
       final AbstractStreamSource<KTableHolder<K>> tableSource,
       final KeyField keyField
   ) {
     return new SchemaKTable<>(
         tableSource,
+        schema,
         keyFormat,
         keyField,
-        ImmutableList.of(),
         builder.getKsqlConfig(),
         builder.getFunctionRegistry()
     );
@@ -263,5 +261,13 @@ public final class SchemaKSourceFactory {
         dataSource.getKsqlTopic().getValueFormat(),
         dataSource.getSerdeOptions()
     );
+  }
+
+  private static LogicalSchema resolveSchema(
+      final KsqlQueryBuilder queryBuilder,
+      final ExecutionStep<?> step,
+      final DataSource dataSource) {
+    return new StepSchemaResolver(queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry())
+        .resolve(step, dataSource.getSchema());
   }
 }

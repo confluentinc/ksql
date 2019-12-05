@@ -84,10 +84,7 @@ public class StreamSelectKeyBuilderTest {
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
-  private final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-      SCHEMA,
-      queryContext
-  );
+  private final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
   private PlanBuilder planBuilder;
   private StreamSelectKey selectKey;

@@ -88,7 +88,6 @@ public class StepSchemaResolverTest {
       .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
       .build();
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
-      SCHEMA,
       new QueryContext.Stacker().getQueryContext()
   );
 

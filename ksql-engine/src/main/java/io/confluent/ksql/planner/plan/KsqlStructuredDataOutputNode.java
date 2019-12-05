@@ -117,7 +117,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     return schemaKStream.into(
         getKsqlTopic().getKafkaTopicName(),
-        getSchema(),
         getKsqlTopic().getValueFormat(),
         serdeOptions,
         contextStacker

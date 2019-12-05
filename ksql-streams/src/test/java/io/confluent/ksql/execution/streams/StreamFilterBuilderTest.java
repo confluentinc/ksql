@@ -93,7 +93,6 @@ public class StreamFilterBuilderTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKStream
         .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(filteredKStream);
@@ -104,10 +103,7 @@ public class StreamFilterBuilderTest {
         schema,
         keySerdeFactory
     ));
-    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-        schema,
-        queryContext
-    );
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,

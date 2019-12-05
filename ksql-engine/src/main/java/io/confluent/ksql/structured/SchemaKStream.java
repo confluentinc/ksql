@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -26,7 +25,6 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -41,6 +39,7 @@ import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
@@ -53,7 +52,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -73,70 +71,44 @@ public class SchemaKStream<K> {
 
   final KeyFormat keyFormat;
   final KeyField keyField;
-  final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
+  final LogicalSchema schema;
   private final ExecutionStep<KStreamHolder<K>> sourceStep;
-  private final ExecutionStepProperties sourceProperties;
 
   SchemaKStream(
       final ExecutionStep<KStreamHolder<K>> sourceStep,
+      final LogicalSchema schema,
       final KeyFormat keyFormat,
       final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
-    this(
-        requireNonNull(sourceStep, "sourceStep"),
-        sourceStep.getProperties(),
-        keyFormat,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry
-    );
-  }
-
-  // CHECKSTYLE_RULES.OFF: ParameterNumber
-  SchemaKStream(
-      final ExecutionStep<KStreamHolder<K>> sourceStep,
-      final ExecutionStepProperties sourceProperties,
-      final KeyFormat keyFormat,
-      final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry
-  ) {
-    // CHECKSTYLE_RULES.ON: ParameterNumber
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.sourceStep = sourceStep;
-    this.sourceProperties = Objects.requireNonNull(sourceProperties, "sourceProperties");
-    this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(getSchema());
-    this.sourceSchemaKStreams = requireNonNull(sourceSchemaKStreams, "sourceSchemaKStreams");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(schema);
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
   }
 
   public SchemaKStream<K> into(
       final String kafkaTopicName,
-      final LogicalSchema outputSchema,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
       final QueryContext.Stacker contextStacker
   ) {
     final StreamSink<K> step = ExecutionStepFactory.streamSink(
         contextStacker,
-        outputSchema,
         Formats.of(keyFormat, valueFormat, options),
         sourceStep,
         kafkaTopicName
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
@@ -156,9 +128,9 @@ public class SchemaKStream<K> {
 
     return new SchemaKStream<>(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
@@ -180,15 +152,14 @@ public class SchemaKStream<K> {
         contextStacker,
         sourceStep,
         selectExpressions,
-        selectNodeName,
-        ksqlQueryBuilder
+        selectNodeName
     );
 
     return new SchemaKStream<>(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
@@ -229,7 +200,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final LogicalSchema joinSchema,
       final KeyField keyField,
       final ValueFormat valueFormat,
       final QueryContext.Stacker contextStacker
@@ -239,14 +209,13 @@ public class SchemaKStream<K> {
         JoinType.LEFT,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         sourceStep,
-        schemaKTable.getSourceTableStep(),
-        joinSchema
+        schemaKTable.getSourceTableStep()
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step, schemaKTable),
         keyFormat,
         keyField,
-        ImmutableList.of(this, schemaKTable),
         ksqlConfig,
         functionRegistry
     );
@@ -254,7 +223,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
@@ -268,14 +236,13 @@ public class SchemaKStream<K> {
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinSchema,
         joinWindows
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step, otherSchemaKStream),
         keyFormat,
         keyField,
-        ImmutableList.of(this, otherSchemaKStream),
         ksqlConfig,
         functionRegistry
     );
@@ -283,7 +250,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
-      final LogicalSchema joinSchema,
       final KeyField keyField,
       final ValueFormat valueFormat,
       final QueryContext.Stacker contextStacker
@@ -293,14 +259,13 @@ public class SchemaKStream<K> {
         JoinType.INNER,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         sourceStep,
-        schemaKTable.getSourceTableStep(),
-        joinSchema
+        schemaKTable.getSourceTableStep()
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step, schemaKTable),
         keyFormat,
         keyField,
-        ImmutableList.of(this, schemaKTable),
         ksqlConfig,
         functionRegistry
     );
@@ -308,7 +273,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
-      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
@@ -321,14 +285,13 @@ public class SchemaKStream<K> {
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinSchema,
         joinWindows
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step, otherSchemaKStream),
         keyFormat,
         keyField,
-        ImmutableList.of(this, otherSchemaKStream),
         ksqlConfig,
         functionRegistry
     );
@@ -336,7 +299,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
@@ -349,14 +311,13 @@ public class SchemaKStream<K> {
         Formats.of(keyFormat, rightFormat, SerdeOption.none()),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinSchema,
         joinWindows
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step, otherSchemaKStream),
         keyFormat,
         keyField,
-        ImmutableList.of(this, otherSchemaKStream),
         ksqlConfig,
         functionRegistry
     );
@@ -387,9 +348,9 @@ public class SchemaKStream<K> {
     if (namesMatch || isRowKey(proposedKey.ref())) {
       return (SchemaKStream<Struct>) new SchemaKStream<>(
           sourceStep,
+          schema,
           keyFormat,
           resultantKeyField,
-          sourceSchemaKStreams,
           ksqlConfig,
           functionRegistry
       );
@@ -406,9 +367,9 @@ public class SchemaKStream<K> {
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step),
         keyFormat,
         newKeyField,
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
@@ -474,9 +435,9 @@ public class SchemaKStream<K> {
     );
     return new SchemaKGroupedStream(
         source,
+        resolveSchema(source),
         rekeyedKeyFormat,
         KeyField.of(newKeyCol),
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
@@ -499,30 +460,28 @@ public class SchemaKStream<K> {
         );
     return new SchemaKGroupedStream(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
   }
 
   public SchemaKStream<K> flatMap(
-      final LogicalSchema outputSchema,
       final List<FunctionCall> tableFunctions,
       final QueryContext.Stacker contextStacker
   ) {
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
         contextStacker,
         sourceStep,
-        outputSchema,
         tableFunctions
     );
     return new SchemaKStream<>(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        sourceSchemaKStreams,
         ksqlConfig,
         functionRegistry);
   }
@@ -536,11 +495,7 @@ public class SchemaKStream<K> {
   }
 
   public LogicalSchema getSchema() {
-    return sourceProperties.getSchema();
-  }
-
-  public List<SchemaKStream> getSourceSchemaKStreams() {
-    return sourceSchemaKStreams;
+    return schema;
   }
 
   public KeyFormat getKeyFormat() {
@@ -563,5 +518,17 @@ public class SchemaKStream<K> {
         ColumnName.of(groupByExpressions.stream()
             .map(Expression::toString)
             .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR))));
+  }
+
+  LogicalSchema resolveSchema(final ExecutionStep<?> step) {
+    return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
+  }
+
+  LogicalSchema resolveSchema(final ExecutionStep<?> step, SchemaKStream right) {
+    return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(
+        step,
+        schema,
+        right.getSchema()
+    );
   }
 }

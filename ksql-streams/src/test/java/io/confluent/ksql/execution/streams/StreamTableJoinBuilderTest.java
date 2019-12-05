@@ -136,7 +136,7 @@ public class StreamTableJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
         LEFT_FMT,
         left,
@@ -147,7 +147,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
     join = new StreamTableJoin(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
         LEFT_FMT,
         left,
@@ -159,7 +159,7 @@ public class StreamTableJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
         LEFT_FMT,
         left,

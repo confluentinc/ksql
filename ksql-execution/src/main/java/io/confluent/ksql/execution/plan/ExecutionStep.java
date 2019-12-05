@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
 @JsonTypeInfo(
@@ -58,9 +57,4 @@ public interface ExecutionStep<S> {
   List<ExecutionStep<?>> getSources();
 
   S build(PlanBuilder planBuilder);
-
-  @JsonIgnore
-  default LogicalSchema getSchema() {
-    return getProperties().getSchema();
-  }
 }

@@ -46,7 +46,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -77,8 +76,6 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KeyField keyField;
   @Mock
-  private List<SchemaKStream> sourceStreams;
-  @Mock
   private KsqlConfig config;
   @Mock
   private WindowExpression windowExp;
@@ -101,14 +98,13 @@ public class SchemaKGroupedStreamTest {
 
   @Before
   public void setUp() {
-    when(sourceStep.getSchema()).thenReturn(IN_SCHEMA);
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
+        IN_SCHEMA,
         keyFormat,
         keyField,
-        sourceStreams,
         config,
         functionRegistry
     );
@@ -150,8 +146,7 @@ public class SchemaKGroupedStreamTest {
                 schemaGroupedStream.getSourceStep(),
                 Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                 1,
-                ImmutableList.of(AGG),
-                functionRegistry
+                ImmutableList.of(AGG)
             )
         )
     );
@@ -182,8 +177,7 @@ public class SchemaKGroupedStreamTest {
                 Formats.of(expected, valueFormat, SerdeOption.none()),
                 1,
                 ImmutableList.of(AGG),
-                KSQL_WINDOW_EXP,
-                functionRegistry
+                KSQL_WINDOW_EXP
             )
         )
     );

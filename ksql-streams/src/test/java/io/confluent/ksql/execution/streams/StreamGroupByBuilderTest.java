@@ -74,9 +74,8 @@ public class StreamGroupByBuilderTest {
   private static final QueryContext STEP_CTX =
       new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepPropertiesV1 SOURCE_PROPERTIES
-      = new ExecutionStepPropertiesV1(SCHEMA, SOURCE_CTX);
+      = new ExecutionStepPropertiesV1(SOURCE_CTX);
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
-      SCHEMA,
       STEP_CTX
   );
   private static final Formats FORMATS = Formats.of(
@@ -132,7 +131,6 @@ public class StreamGroupByBuilderTest {
     when(filteredStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
         .thenReturn(groupedStream);
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
-    when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
         new KStreamHolder<>(sourceStream, SCHEMA, mock(KeySerdeFactory.class)));
     streamGroupBy = new StreamGroupBy<>(

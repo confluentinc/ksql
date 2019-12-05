@@ -236,7 +236,6 @@ public final class SchemaKSourceFactory {
         keyFormat,
         keyField,
         ImmutableList.of(),
-        SchemaKStream.Type.SOURCE,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry()
     );
@@ -253,7 +252,6 @@ public final class SchemaKSourceFactory {
         keyFormat,
         keyField,
         ImmutableList.of(),
-        SchemaKStream.Type.SOURCE,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry()
     );

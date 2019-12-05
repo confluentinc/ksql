@@ -108,7 +108,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry
     );

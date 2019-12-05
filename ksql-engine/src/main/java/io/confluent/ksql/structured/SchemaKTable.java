@@ -56,7 +56,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final KeyFormat keyFormat,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -66,7 +65,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        type,
         ksqlConfig,
         functionRegistry
     );
@@ -93,7 +91,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        type,
         ksqlConfig,
         functionRegistry
     );
@@ -117,7 +114,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         Collections.singletonList(this),
-        Type.FILTER,
         ksqlConfig,
         functionRegistry
     );
@@ -144,7 +140,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         Collections.singletonList(this),
-        Type.PROJECT,
         ksqlConfig,
         functionRegistry
     );
@@ -206,7 +201,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, schemaKTable),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -230,7 +224,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, schemaKTable),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );
@@ -254,7 +247,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keyFormat,
         keyField,
         ImmutableList.of(this, schemaKTable),
-        Type.JOIN,
         ksqlConfig,
         functionRegistry
     );

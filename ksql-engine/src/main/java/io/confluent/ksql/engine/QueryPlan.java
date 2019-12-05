@@ -16,24 +16,28 @@
 package io.confluent.ksql.engine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.PhysicalPlan;
+import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
 import java.util.Set;
 
 public final class QueryPlan  {
   private final Set<SourceName> sources;
   private final SourceName sink;
-  private final PhysicalPlan physicalPlan;
+  private final ExecutionStep<?> physicalPlan;
+  private final QueryId queryId;
 
   public QueryPlan(
       @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
       @JsonProperty(value = "sink", required = true) final SourceName sink,
-      @JsonProperty(value = "physicalPlan", required = true) final PhysicalPlan physicalPlan
+      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
+      @JsonProperty(value = "queryId", required = true) final QueryId queryId
   ) {
     this.sources = Objects.requireNonNull(sources, "sources");
     this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
+    this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
   public SourceName getSink() {
@@ -44,7 +48,11 @@ public final class QueryPlan  {
     return sources;
   }
 
-  public PhysicalPlan getPhysicalPlan() {
+  public ExecutionStep<?> getPhysicalPlan() {
     return physicalPlan;
+  }
+
+  public QueryId getQueryId() {
+    return queryId;
   }
 }

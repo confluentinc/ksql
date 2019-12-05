@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -54,7 +53,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -64,7 +62,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -98,10 +95,6 @@ public class SchemaKStreamTest {
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
-  private final LogicalSchema simpleSchema = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("val"), SqlTypes.BIGINT)
-      .build();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
@@ -142,7 +135,6 @@ public class SchemaKStreamTest {
         keyFormat,
         ksqlTable.getKeyField(),
         new ArrayList<>(),
-        SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
@@ -700,84 +692,6 @@ public class SchemaKStreamTest {
     }
   }
 
-  @Test
-  public void shouldSummarizeExecutionPlanCorrectly() {
-    // Given:
-    when(sourceProperties.getSchema()).thenReturn(simpleSchema);
-    final SchemaKStream parentSchemaKStream = mock(SchemaKStream.class);
-    when(parentSchemaKStream.getExecutionPlan(any(), anyString()))
-        .thenReturn("parent plan");
-    when(sourceProperties.getQueryContext()).thenReturn(
-        queryContext.push("source").getQueryContext());
-    final SchemaKStream schemaKtream = new SchemaKStream(
-        sourceStep,
-        keyFormat,
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
-        ImmutableList.of(parentSchemaKStream),
-        Type.SOURCE,
-        ksqlConfig,
-        functionRegistry
-    );
-
-    // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
-            + "Logger: query.node.source\n"
-            + "\tparent plan"));
-  }
-
-  @Test
-  public void shouldSummarizeExecutionPlanCorrectlyForRoot() {
-    // Given:
-    when(sourceProperties.getSchema()).thenReturn(simpleSchema);
-    when(sourceProperties.getQueryContext()).thenReturn(
-        queryContext.push("source").getQueryContext());
-    final SchemaKStream schemaKtream = new SchemaKStream(
-        sourceStep,
-        keyFormat,
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
-        Collections.emptyList(),
-        Type.SOURCE,
-        ksqlConfig,
-        functionRegistry
-    );
-
-    // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
-            + "Logger: query.node.source\n"));
-  }
-
-  @Test
-  public void shouldSummarizeExecutionPlanCorrectlyWhenMultipleParents() {
-    // Given:
-    final SchemaKStream parentSchemaKStream1 = mock(SchemaKStream.class);
-    when(parentSchemaKStream1.getExecutionPlan(any(), anyString()))
-        .thenReturn("parent 1 plan");
-    final SchemaKStream parentSchemaKStream2 = mock(SchemaKStream.class);
-    when(parentSchemaKStream2.getExecutionPlan(any(), anyString()))
-        .thenReturn("parent 2 plan");
-    when(sourceProperties.getSchema()).thenReturn(simpleSchema);
-    when(sourceProperties.getQueryContext()).thenReturn(
-        queryContext.push("source").getQueryContext());
-    final SchemaKStream schemaKtream = new SchemaKStream(
-        sourceStep,
-        keyFormat,
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
-        ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
-        Type.SOURCE,
-        ksqlConfig,
-        functionRegistry
-    );
-
-    // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, `key` STRING, `val` BIGINT] | "
-            + "Logger: query.node.source\n"
-            + "\tparent 1 plan"
-            + "\tparent 2 plan"));
-  }
-
   private void givenSourcePropertiesWithSchema(final LogicalSchema schema) {
     reset(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
@@ -794,7 +708,6 @@ public class SchemaKStreamTest {
         keyFormat,
         keyField,
         new ArrayList<>(),
-        Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );
@@ -861,7 +774,6 @@ public class SchemaKStreamTest {
         keyFormat,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry
     );

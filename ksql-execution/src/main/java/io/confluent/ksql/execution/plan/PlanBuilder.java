@@ -22,7 +22,7 @@ import org.apache.kafka.streams.kstream.Windowed;
  * A visitor interface for building a query from an execution plan. There is a single
  * visit method for each execution step type (final implementations of ExecutionStep).
  * Implementers typically implement the visit methods by applying the transformation
- * specified in the step to the stream/table(s) returned by visiting hte source steps.
+ * specified in the step to the stream/table(s) returned by visiting the source steps.
  */
 public interface PlanBuilder {
   <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter);

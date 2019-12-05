@@ -201,6 +201,7 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata metadata = executeQuery(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
+
     assertThat(lines[0], startsWith(
         " > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
             + "KSQL_COL_2 BIGINT] |"));
@@ -209,15 +210,19 @@ public class PhysicalPlanBuilderTest {
             + "KSQL_INTERNAL_COL_1 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
             + "KSQL_AGG_VARIABLE_1 BIGINT] |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
+        "\t\t\t\t > [ GROUP_BY ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE] |"
+    ));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+        "\t\t\t\t\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
+    assertThat(lines[4], startsWith(
+        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
             + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
-    assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+    assertThat(lines[5], startsWith(
+        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
             + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));

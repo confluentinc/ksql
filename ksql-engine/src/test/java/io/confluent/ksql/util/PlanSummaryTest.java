@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -127,7 +127,7 @@ public class PlanSummaryTest {
       final String ctx,
       final LogicalSchema schema,
       final ExecutionStep<?> ...sources) {
-    final ExecutionStepProperties props = mock(ExecutionStepProperties.class);
+    final ExecutionStepPropertiesV1 props = mock(ExecutionStepPropertiesV1.class);
     when(step.getProperties()).thenReturn(props);
     when(props.getQueryContext())
         .thenReturn(new QueryContext.Stacker().push(ctx).getQueryContext());

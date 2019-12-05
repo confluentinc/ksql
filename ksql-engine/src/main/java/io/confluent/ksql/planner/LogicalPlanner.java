@@ -288,7 +288,7 @@ public class LogicalPlanner {
     );
   }
 
-  private Optional<ColumnName> getSelectAliasMatching(
+  private static Optional<ColumnName> getSelectAliasMatching(
       final BiFunction<Expression, ColumnName, Boolean> matcher,
       final PlanNode sourcePlanNode
   ) {
@@ -311,9 +311,7 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    final List<Column> keyColumns = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().key()
-        : sourcePlanNode.getSchema().key();
+    final List<Column> keyColumns = sourcePlanNode.getSchema().withoutAlias().key();
 
     builder.keyColumns(keyColumns);
 

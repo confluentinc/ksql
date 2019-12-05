@@ -491,7 +491,7 @@
       "name": "ROWKEY (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) FROM TEST GROUP BY ROWKEY;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "-"},
@@ -515,7 +515,7 @@
       ],
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) FROM TEST GROUP BY ROWKEY;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "-"},
@@ -538,31 +538,10 @@
       }
     },
     {
-      "name": "ROWKEY without ROWKEY in projection (stream->table)",
-      "statements": [
-        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWKEY;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1"},
-        {"topic": "OUTPUT", "key": "2", "value": "1"},
-        {"topic": "OUTPUT", "key": "1", "value": "2"},
-        {"topic": "OUTPUT", "key": "2", "value": "2"},
-        {"topic": "OUTPUT", "key": "1", "value": "3"}
-      ]
-    },
-    {
       "name": "ROWTIME (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT ROWTIME, COUNT(*) FROM TEST GROUP BY ROWTIME;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWTIME;"
       ],
       "inputs": [{"topic": "test_topic", "value": "-", "timestamp":  10}],
       "outputs": [{"topic": "OUTPUT", "key": "10", "value": "1", "timestamp":  10}]

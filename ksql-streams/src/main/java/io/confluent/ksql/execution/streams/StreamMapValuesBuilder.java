@@ -40,7 +40,7 @@ public final class StreamMapValuesBuilder {
         step.getProperties().getQueryContext()
     );
 
-    final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
+    final LogicalSchema sourceSchema = stream.getSchema();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,

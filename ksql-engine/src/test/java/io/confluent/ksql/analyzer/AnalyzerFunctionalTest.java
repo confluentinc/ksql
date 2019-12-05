@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -405,25 +404,6 @@ public class AnalyzerFunctionalTest {
         DEFAULT_SERDE_OPTIONS);
 
     assertThat(result.getSerdeOptions(), is(serdeOptions));
-  }
-
-  @Test
-  public void shouldExcludeRowTimeAndRowKeyWhenGettingSerdeOptions() {
-    // Given:
-    final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
-    when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
-
-    query = parseSingle("Select ROWTIME, ROWKEY, ROWTIME AS TIME, ROWKEY AS KEY, COL0, COL1 from TEST1;");
-
-    // When:
-    analyzer.analyze(query, Optional.of(sink));
-
-    // Then:
-    verify(serdeOptiponsSupplier).build(
-        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList())),
-        any(),
-        any(),
-        any());
   }
 
   @Test

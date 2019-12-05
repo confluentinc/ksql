@@ -276,7 +276,7 @@ public class PhysicalPlanBuilderTest {
         "> [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
 
     assertThat(lines[1], containsString(
-        "> [ PROJECT ] | Schema: [ROWKEY STRING KEY, ROWTIME BIGINT, ROWKEY STRING, COL0 INTEGER]"));
+        "> [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
 
     assertThat(lines[2], containsString(
         "> [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 INTEGER]"));

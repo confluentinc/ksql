@@ -131,10 +131,6 @@ public final class LogicalSchema {
    * @return the schema with the alias applied.
    */
   public LogicalSchema withAlias(final SourceName alias) {
-    if (isAliased()) {
-      throw new IllegalStateException("Already aliased");
-    }
-
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     columns.stream()
         .map(c -> c.withSource(alias))
@@ -149,24 +145,12 @@ public final class LogicalSchema {
    * @return the schema without any aliases in the column name.
    */
   public LogicalSchema withoutAlias() {
-    if (!isAliased()) {
-      throw new IllegalStateException("Not aliased");
-    }
-
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     columns.stream()
         .map(Column::withoutSource)
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
-  }
-
-  /**
-   * @return {@code true} is aliased, {@code false} otherwise.
-   */
-  public boolean isAliased() {
-    // Either all columns are aliased, or none:
-    return columns.get(0).source().isPresent();
   }
 
   /**

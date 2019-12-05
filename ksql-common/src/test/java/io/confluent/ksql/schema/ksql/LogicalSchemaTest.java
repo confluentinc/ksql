@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.testing.EqualsTester;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
@@ -150,16 +149,6 @@ public class LogicalSchemaTest {
     ));
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowIfAlreadyAliased() {
-    // Given:
-    final LogicalSchema aliased = SOME_SCHEMA.withAlias(BOB);
-
-    // When:
-    aliased.withAlias(BOB);
-  }
-
   @Test
   public void shouldOnlyAddAliasToTopLevelColumns() {
     // Given:
@@ -192,13 +181,6 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(SOME_SCHEMA));
-  }
-
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowIfNotAliased() {
-    // When:
-    SOME_SCHEMA.withoutAlias();
   }
 
   @Test

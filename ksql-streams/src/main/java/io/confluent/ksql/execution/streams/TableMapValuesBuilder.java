@@ -46,7 +46,7 @@ public final class TableMapValuesBuilder {
         step.getProperties().getQueryContext()
     );
 
-    final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
+    final LogicalSchema sourceSchema = table.getSchema();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,

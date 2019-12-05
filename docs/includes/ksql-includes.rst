@@ -48,7 +48,7 @@ Learn More
                           =  Streaming SQL Engine for Apache Kafka® =
                           ===========================================
 
-        Copyright 2018 Confluent Inc.
+        Copyright 2017-2019 Confluent Inc.
 
         CLI v|release|, Server v|release| located at http://localhost:8088
 

@@ -106,7 +106,7 @@ public class TableSinkBuilderTest {
     when(source.build(any())).thenReturn(
         KTableHolder.unmaterialized(kTable, SCHEMA, keySerdeFactory));
     sink = new TableSink<>(
-        new ExecutionStepPropertiesV1(SCHEMA, queryContext),
+        new ExecutionStepPropertiesV1(queryContext),
         source,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC

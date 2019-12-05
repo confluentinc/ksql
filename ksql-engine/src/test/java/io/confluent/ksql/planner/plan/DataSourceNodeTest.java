@@ -166,7 +166,7 @@ public class DataSourceNodeTest {
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
@@ -271,7 +271,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -285,7 +285,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -302,7 +302,6 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(OFFSET_RESET),
         same(node.getKeyField()),
@@ -326,7 +325,6 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(OFFSET_RESET),
         same(node.getKeyField()),

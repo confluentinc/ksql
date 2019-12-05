@@ -322,7 +322,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -354,7 +353,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).join(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -386,7 +384,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).outerJoin(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(KeyField.none()),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -533,7 +530,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -563,7 +559,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -593,7 +588,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).join(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -747,7 +741,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).join(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(CONTEXT_STACKER));
   }
@@ -775,7 +768,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(CONTEXT_STACKER));
   }
@@ -803,7 +795,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).outerJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(KeyField.none()),
         eq(CONTEXT_STACKER));
   }
@@ -915,6 +906,24 @@ public class JoinNodeTest {
     // Then:
     verify(leftSource, never()).getSerdeOptions();
     verify(rightSource, never()).getSerdeOptions();
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        Collections.emptyList(),
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
+        WITHIN_EXPRESSION
+    );
+
+    // Then:
+    assertThat(joinNode.getSchema(), is(JOIN_SCHEMA));
   }
 
   @SuppressWarnings("unchecked")

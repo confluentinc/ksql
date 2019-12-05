@@ -78,12 +78,6 @@ public class SchemaKGroupedTableTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private static <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
-    final ExecutionStep<S> step = mock(ExecutionStep.class);
-    when(step.getSchema()).thenReturn(schema);
-    return step;
-  }
-
   @Test
   public void shouldFailWindowedTableAggregation() {
     // Given:
@@ -127,10 +121,10 @@ public class SchemaKGroupedTableTest {
 
   private SchemaKGroupedTable buildSchemaKGroupedTable() {
     return new SchemaKGroupedTable(
-        buildSourceTableStep(IN_SCHEMA),
+        mock(ExecutionStep.class),
+        IN_SCHEMA,
         keyFormat,
         KeyField.of(IN_SCHEMA.value().get(0).ref()),
-        Collections.emptyList(),
         ksqlConfig,
         functionRegistry
     );
@@ -158,8 +152,7 @@ public class SchemaKGroupedTableTest {
                 kGroupedTable.getSourceTableStep(),
                 Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                 1,
-                ImmutableList.of(SUM, COUNT),
-                functionRegistry
+                ImmutableList.of(SUM, COUNT)
             )
         )
     );

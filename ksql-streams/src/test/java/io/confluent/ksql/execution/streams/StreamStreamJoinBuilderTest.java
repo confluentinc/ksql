@@ -147,7 +147,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
         LEFT_FMT,
         RIGHT_FMT,
@@ -162,7 +162,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenOuterJoin() {
     when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
         LEFT_FMT,
         RIGHT_FMT,
@@ -177,7 +177,7 @@ public class StreamStreamJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
         LEFT_FMT,
         RIGHT_FMT,

@@ -168,7 +168,7 @@ public class TableAggregateBuilderTest {
     when(aggregated.transformValues(any(), any(Named.class)))
         .thenReturn((KTable)aggregatedWithResults);
     aggregate = new TableAggregate(
-        new ExecutionStepPropertiesV1(AGGREGATE_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,

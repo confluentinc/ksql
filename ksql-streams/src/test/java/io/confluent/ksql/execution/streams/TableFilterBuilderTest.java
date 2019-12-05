@@ -115,17 +115,13 @@ public class TableFilterBuilderTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
     when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
     when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) preTransformer);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
-    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-        schema,
-        queryContext
-    );
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     step = new TableFilter<>(properties, sourceStep, filterExpression, "stepName");
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))

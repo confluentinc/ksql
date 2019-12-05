@@ -356,7 +356,7 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final StreamSource streamSource = new StreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         Optional.empty(),
@@ -599,7 +599,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
@@ -614,7 +614,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
@@ -629,7 +629,7 @@ public class SourceBuilderTest {
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
@@ -644,7 +644,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,

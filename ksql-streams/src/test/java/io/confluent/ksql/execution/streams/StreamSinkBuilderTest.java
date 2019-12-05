@@ -100,7 +100,7 @@ public class StreamSinkBuilderTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(source.build(any())).thenReturn(new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory));
     sink = new StreamSink<>(
-        new ExecutionStepPropertiesV1(SCHEMA, queryContext),
+        new ExecutionStepPropertiesV1(queryContext),
         source,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC

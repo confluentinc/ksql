@@ -324,7 +324,6 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -334,7 +333,6 @@ public class JoinNode extends PlanNode {
         case OUTER:
           return leftStream.outerJoin(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -344,7 +342,6 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -385,7 +382,6 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
@@ -394,7 +390,6 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
@@ -436,19 +431,16 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftTable.leftJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         default:

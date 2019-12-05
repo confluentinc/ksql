@@ -118,7 +118,6 @@ public class StreamMapValuesBuilderTest {
   @Before
   public void setup() {
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getSchema()).thenReturn(SCHEMA);
     when(properties.getQueryContext()).thenReturn(context);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));

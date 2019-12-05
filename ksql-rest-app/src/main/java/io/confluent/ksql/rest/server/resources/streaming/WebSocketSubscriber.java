@@ -79,7 +79,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
     log.error("error in session {}", session.getId(), e);
 
     final String msg = e.getMessage() == null || e.getMessage().trim().isEmpty()
-        ? "KSQL excetion: " + e.getClass().getSimpleName()
+        ? "KSQL exception: " + e.getClass().getSimpleName()
         : e.getMessage();
 
     SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, msg);

@@ -204,7 +204,7 @@ public class KsqlConfig extends AbstractConfig {
       + " which are secured with ACLs. Please enable only after careful consideration."
       + " If \"false\", KSQL pull queries will fail against a secure Kafka cluster";
 
-  public static final String KSQL_PULL_QUERIES_ENABLE_CONFIG = "ksql.pull.queries.enable";
+  public static final String KSQL_PULL_QUERIES_ENABLE_CONFIG = "ksql.query.pull.enable";
   public static final String KSQL_PULL_QUERIES_ENABLE_DOC =
       "Config to enable or disable transient pull queries on a specific KSQL server.";
   public static final boolean KSQL_PULL_QUERIES_ENABLE_DEFAULT = true;

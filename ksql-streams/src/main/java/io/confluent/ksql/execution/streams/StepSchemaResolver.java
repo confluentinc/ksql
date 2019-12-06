@@ -131,7 +131,7 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 
@@ -143,7 +143,7 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 
@@ -188,7 +188,7 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 

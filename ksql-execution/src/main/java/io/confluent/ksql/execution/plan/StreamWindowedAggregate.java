@@ -34,25 +34,27 @@ public class StreamWindowedAggregate
     implements ExecutionStep<KTableHolder<Windowed<Struct>>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final int nonFuncColumnCount;
-  private final ImmutableList<FunctionCall> aggregations;
+  private final ImmutableList<FunctionCall> aggregationFunctions;
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
-      @JsonProperty(value = "aggregations", required = true) List<FunctionCall> aggregations,
+      @JsonProperty(value = "aggregationFunctions", required = true)
+      List<FunctionCall> aggregationFunctions,
       @JsonProperty(value = "windowExpression", required = true)
       KsqlWindowExpression windowExpression) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
-    this.formats = requireNonNull(formats, "formats");
+    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = ImmutableList.copyOf(requireNonNull(aggregations, "aggregations"));
+    this.aggregationFunctions = ImmutableList.copyOf(
+        requireNonNull(aggregationFunctions, "aggregationFunctions"));
     this.windowExpression = requireNonNull(windowExpression, "windowExpression");
   }
 
@@ -71,12 +73,12 @@ public class StreamWindowedAggregate
     return nonFuncColumnCount;
   }
 
-  public List<FunctionCall> getAggregations() {
-    return aggregations;
+  public List<FunctionCall> getAggregationFunctions() {
+    return aggregationFunctions;
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public KsqlWindowExpression getWindowExpression() {
@@ -103,8 +105,8 @@ public class StreamWindowedAggregate
     StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(aggregations, that.aggregations)
+        && Objects.equals(internalFormats, that.internalFormats)
+        && Objects.equals(aggregationFunctions, that.aggregationFunctions)
         && nonFuncColumnCount == that.nonFuncColumnCount
         && Objects.equals(windowExpression, that.windowExpression);
   }
@@ -115,8 +117,8 @@ public class StreamWindowedAggregate
     return Objects.hash(
         properties,
         source,
-        formats,
-        aggregations,
+        internalFormats,
+        aggregationFunctions,
         nonFuncColumnCount,
         windowExpression
     );

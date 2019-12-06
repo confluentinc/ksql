@@ -40,7 +40,7 @@ public final class StreamTableJoinBuilder {
       final StreamTableJoin<K> join,
       final KsqlQueryBuilder queryBuilder,
       final JoinedFactory joinedFactory) {
-    final Formats leftFormats = join.getFormats();
+    final Formats leftFormats = join.getInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
     final LogicalSchema leftSchema = left.getSchema();

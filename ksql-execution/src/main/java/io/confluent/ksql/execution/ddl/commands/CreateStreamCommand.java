@@ -33,7 +33,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
       @JsonProperty(value = "keyField") Optional<ColumnName> keyField,
       @JsonProperty(value = "timestampColumn")
       Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
+      @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
   ) {
@@ -42,7 +42,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
         schema,
         keyField,
         timestampColumn,
-        kafkaTopicName,
+        topicName,
         formats,
         windowInfo
     );

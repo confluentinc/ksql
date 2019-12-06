@@ -44,6 +44,6 @@ public class RegisterTypeFactoryTest {
 
     // Then:
     assertThat(result.getType(), equalTo(ddlStatement.getType().getSqlType()));
-    assertThat(result.getName(), equalTo("alias"));
+    assertThat(result.getTypeName(), equalTo("alias"));
   }
 }

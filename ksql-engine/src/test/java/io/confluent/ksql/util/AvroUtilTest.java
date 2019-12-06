@@ -122,7 +122,7 @@ public class AvroUtilTest {
   public void setUp() {
     when(ddlCommand.getFormats()).thenReturn(FORMATS);
     when(ddlCommand.getSchema()).thenReturn(MUTLI_FIELD_SCHEMA);
-    when(ddlCommand.getKafkaTopicName()).thenReturn(RESULT_TOPIC_NAME);
+    when(ddlCommand.getTopicName()).thenReturn(RESULT_TOPIC_NAME);
   }
 
   @Test
@@ -258,7 +258,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not connect to Schema Registry service");
     expectedException.expectMessage(containsString(String.format(
         "Not authorized to access Schema Registry subject: [%s]",
-        ddlCommand.getKafkaTopicName()
+        ddlCommand.getTopicName()
             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
     )));
 

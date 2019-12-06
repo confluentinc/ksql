@@ -41,7 +41,7 @@ public final class StreamStreamJoinBuilder {
       final StreamStreamJoin<K> join,
       final KsqlQueryBuilder queryBuilder,
       final StreamJoinedFactory streamJoinedFactory) {
-    final Formats leftFormats = join.getLeftFormats();
+    final Formats leftFormats = join.getLeftInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
     final LogicalSchema leftSchema = left.getSchema();
@@ -54,7 +54,7 @@ public final class StreamStreamJoinBuilder {
         leftPhysicalSchema,
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
     );
-    final Formats rightFormats = join.getRightFormats();
+    final Formats rightFormats = join.getRightInternalFormats();
     final LogicalSchema rightSchema = right.getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
         rightSchema.withoutAlias(),
@@ -78,7 +78,7 @@ public final class StreamStreamJoinBuilder {
         StreamsUtil.buildOpName(queryContext)
     );
     final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
-    final JoinWindows joinWindows = JoinWindows.of(join.getBefore()).after(join.getAfter());
+    final JoinWindows joinWindows = JoinWindows.of(join.getBeforeMillis()).after(join.getAfterMillis());
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:

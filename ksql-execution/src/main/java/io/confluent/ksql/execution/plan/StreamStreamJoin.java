@@ -27,30 +27,32 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
-  private final Formats leftFormats;
-  private final Formats rightFormats;
+  private final Formats leftInternalFormats;
+  private final Formats rightInternalFormats;
   private final ExecutionStep<KStreamHolder<K>> left;
   private final ExecutionStep<KStreamHolder<K>> right;
-  private final Duration before;
-  private final Duration after;
+  private final Duration beforeMillis;
+  private final Duration afterMillis;
 
   public StreamStreamJoin(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "joinType", required = true) JoinType joinType,
-      @JsonProperty(value = "leftFormats", required = true) Formats leftFormats,
-      @JsonProperty(value = "rightFormats", required = true) Formats rightFormats,
+      @JsonProperty(value = "leftInternalFormats", required = true) Formats leftInternalFormats,
+      @JsonProperty(value = "rightInternalFormats", required = true) Formats rightInternalFormats,
       @JsonProperty(value = "left", required = true) ExecutionStep<KStreamHolder<K>> left,
       @JsonProperty(value = "right", required = true) ExecutionStep<KStreamHolder<K>> right,
-      @JsonProperty(value = "before", required = true) Duration before,
-      @JsonProperty(value = "after", required = true) Duration after) {
+      @JsonProperty(value = "beforeMillis", required = true) Duration beforeMillis,
+      @JsonProperty(value = "afterMillis", required = true) Duration afterMillis) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.leftFormats = Objects.requireNonNull(leftFormats, "formats");
-    this.rightFormats = Objects.requireNonNull(rightFormats, "rightFormats");
+    this.leftInternalFormats =
+        Objects.requireNonNull(leftInternalFormats, "leftInternalFormats");
+    this.rightInternalFormats =
+        Objects.requireNonNull(rightInternalFormats, "rightInternalFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
-    this.before = Objects.requireNonNull(before, "before");
-    this.after = Objects.requireNonNull(after, "after");
+    this.beforeMillis = Objects.requireNonNull(beforeMillis, "beforeMillis");
+    this.afterMillis = Objects.requireNonNull(afterMillis, "afterMillis");
   }
 
   @Override
@@ -64,12 +66,12 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     return ImmutableList.of(left, right);
   }
 
-  public Formats getLeftFormats() {
-    return leftFormats;
+  public Formats getLeftInternalFormats() {
+    return leftInternalFormats;
   }
 
-  public Formats getRightFormats() {
-    return rightFormats;
+  public Formats getRightInternalFormats() {
+    return rightInternalFormats;
   }
 
   public ExecutionStep<KStreamHolder<K>> getLeft() {
@@ -84,12 +86,12 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     return joinType;
   }
 
-  public Duration getAfter() {
-    return after;
+  public Duration getAfterMillis() {
+    return afterMillis;
   }
 
-  public Duration getBefore() {
-    return before;
+  public Duration getBeforeMillis() {
+    return beforeMillis;
   }
 
   @Override
@@ -109,12 +111,12 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
-        && Objects.equals(leftFormats, that.leftFormats)
-        && Objects.equals(rightFormats, that.rightFormats)
+        && Objects.equals(leftInternalFormats, that.leftInternalFormats)
+        && Objects.equals(rightInternalFormats, that.rightInternalFormats)
         && Objects.equals(left, that.left)
         && Objects.equals(right, that.right)
-        && Objects.equals(before, that.before)
-        && Objects.equals(after, that.after);
+        && Objects.equals(beforeMillis, that.beforeMillis)
+        && Objects.equals(afterMillis, that.afterMillis);
   }
   // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
@@ -123,12 +125,12 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     return Objects.hash(
         properties,
         joinType,
-        leftFormats,
-        rightFormats,
+        leftInternalFormats,
+        rightInternalFormats,
         left,
         right,
-        before,
-        after
+        beforeMillis,
+        afterMillis
     );
   }
 }

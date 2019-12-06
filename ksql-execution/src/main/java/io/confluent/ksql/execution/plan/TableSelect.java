@@ -25,15 +25,15 @@ import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
+public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
-  private final ExecutionStep<KStreamHolder<K>> source;
+  private final ExecutionStep<KTableHolder<K>> source;
   private final ImmutableList<SelectExpression> selectExpressions;
 
-  public StreamMapValues(
+  public TableSelect(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
       List<SelectExpression> selectExpressions
   ) {
@@ -57,13 +57,13 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     return selectExpressions;
   }
 
-  public ExecutionStep<KStreamHolder<K>> getSource() {
+  public ExecutionStep<KTableHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public KStreamHolder<K> build(PlanBuilder builder) {
-    return builder.visitStreamMapValues(this);
+  public KTableHolder<K> build(PlanBuilder builder) {
+    return builder.visitTableSelect(this);
   }
 
   @Override
@@ -74,7 +74,7 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamMapValues<?> that = (StreamMapValues<?>) o;
+    TableSelect<?> that = (TableSelect<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions);
@@ -82,7 +82,6 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
 
   @Override
   public int hashCode() {
-
     return Objects.hash(properties, source, selectExpressions);
   }
 }

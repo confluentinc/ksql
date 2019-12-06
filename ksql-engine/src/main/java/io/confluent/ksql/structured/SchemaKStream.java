@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -147,7 +147,7 @@ public class SchemaKStream<K> {
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final KeyField keyField = findKeyField(selectExpressions);
-    final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
+    final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,
         sourceStep,
         selectExpressions

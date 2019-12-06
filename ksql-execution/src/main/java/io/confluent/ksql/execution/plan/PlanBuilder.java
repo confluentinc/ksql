@@ -33,7 +33,7 @@ public interface PlanBuilder {
 
   KTableHolder<Struct> visitStreamAggregate(StreamAggregate streamAggregate);
 
-  <K> KStreamHolder<K> visitStreamMapValues(StreamMapValues<K> streamMapValues);
+  <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect);
 
   <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap);
 
@@ -64,7 +64,7 @@ public interface PlanBuilder {
 
   <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy);
 
-  <K> KTableHolder<K> visitTableMapValues(TableMapValues<K> tableMapValues);
+  <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
 
   <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
 

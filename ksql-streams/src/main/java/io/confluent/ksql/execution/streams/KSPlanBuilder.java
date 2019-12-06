@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
@@ -36,7 +36,7 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
@@ -121,10 +121,10 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KStreamHolder<K> visitStreamMapValues(
-      final StreamMapValues<K> streamMapValues) {
-    final KStreamHolder<K> source = streamMapValues.getSource().build(this);
-    return StreamMapValuesBuilder.build(source, streamMapValues, queryBuilder);
+  public <K> KStreamHolder<K> visitStreamSelect(
+      final StreamSelect<K> streamSelect) {
+    final KStreamHolder<K> source = streamSelect.getSource().build(this);
+    return StreamSelectBuilder.build(source, streamSelect, queryBuilder);
   }
 
   @Override
@@ -258,10 +258,10 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KTableHolder<K> visitTableMapValues(
-      final TableMapValues<K> tableMapValues) {
-    final KTableHolder<K> source = tableMapValues.getSource().build(this);
-    return TableMapValuesBuilder.build(source, tableMapValues, queryBuilder);
+  public <K> KTableHolder<K> visitTableSelect(
+      final TableSelect<K> tableSelect) {
+    final KTableHolder<K> source = tableSelect.getSource().build(this);
+    return TableSelectBuilder.build(source, tableSelect, queryBuilder);
   }
 
   @Override

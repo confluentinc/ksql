@@ -38,6 +38,9 @@ import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +61,16 @@ public class ListConnectorsExecutorTest {
       ConnectorType.SOURCE
   );
 
+  private static final ConnectorStateInfo STATUS = new ConnectorStateInfo(
+      "connector",
+      new ConnectorState("RUNNING", "foo", "bar"),
+      ImmutableList.of(
+          new TaskState(0, "RUNNING", "", ""),
+          new TaskState(1, "FAILED", "", "")
+      ),
+      ConnectorType.SOURCE
+  );
+
   @Mock
   private KsqlExecutionContext engine;
   @Mock
@@ -70,6 +83,8 @@ public class ListConnectorsExecutorTest {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(connectClient.describe("connector"))
         .thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
+    when(connectClient.status("connector"))
+        .thenReturn(ConnectResponse.success(STATUS, HttpStatus.SC_OK));
     when(connectClient.describe("connector2"))
         .thenReturn(ConnectResponse.failure("DANGER WILL ROBINSON.", HttpStatus.SC_NOT_FOUND));
   }
@@ -97,7 +112,7 @@ public class ListConnectorsExecutorTest {
         "",
         ImmutableList.of(),
         ImmutableList.of(
-            new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS)
+            new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS, "RUNNING (1/2 tasks RUNNING)")
         )
     )));
   }
@@ -153,7 +168,7 @@ public class ListConnectorsExecutorTest {
         ImmutableList.of(
             new KsqlWarning("Could not describe connector connector2: DANGER WILL ROBINSON.")),
         ImmutableList.of(
-            new SimpleConnectorInfo("connector2", ConnectorType.UNKNOWN, null)
+            new SimpleConnectorInfo("connector2", ConnectorType.UNKNOWN, null, null)
         )
     )));
   }

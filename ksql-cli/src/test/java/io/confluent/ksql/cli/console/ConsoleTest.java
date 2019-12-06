@@ -840,8 +840,8 @@ public class ConsoleTest {
             "statement",
             ImmutableList.of(),
             ImmutableList.of(
-                new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz"),
-                new SimpleConnectorInfo("bar", null, null)
+                new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz", "STATUS"),
+                new SimpleConnectorInfo("bar", null, null, null)
         ))
     ));
 
@@ -859,18 +859,19 @@ public class ConsoleTest {
           + "  \"connectors\" : [ {\n"
           + "    \"name\" : \"foo\",\n"
           + "    \"type\" : \"source\",\n"
-          + "    \"className\" : \"clazz\"\n"
+          + "    \"className\" : \"clazz\",\n"
+          + "    \"state\" : \"STATUS\"\n"
           + "  }, {\n"
           + "    \"name\" : \"bar\"\n"
           + "  } ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Connector Name | Type    | Class \n"
-          + "----------------------------------\n"
-          + " foo            | SOURCE  | clazz \n"
-          + " bar            | UNKNOWN |       \n"
-          + "----------------------------------\n"));
+          + " Connector Name | Type    | Class | Status \n"
+          + "-------------------------------------------\n"
+          + " foo            | SOURCE  | clazz | STATUS \n"
+          + " bar            | UNKNOWN |       |        \n"
+          + "-------------------------------------------\n"));
     }
   }
 

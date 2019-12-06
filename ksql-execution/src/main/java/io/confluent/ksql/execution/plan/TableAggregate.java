@@ -30,24 +30,24 @@ import org.apache.kafka.connect.data.Struct;
 public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedTableHolder> source;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final int nonFuncColumnCount;
-  private final ImmutableList<FunctionCall> aggregations;
+  private final ImmutableList<FunctionCall> aggregationFunctions;
 
   public TableAggregate(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KGroupedTableHolder> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
-      @JsonProperty(value = "aggregations", required = true)
-      List<FunctionCall> aggregations) {
+      @JsonProperty(value = "aggregationFunctions", required = true)
+      List<FunctionCall> aggregationFunctions) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
-    this.formats = requireNonNull(formats, "formats");
+    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = ImmutableList
-        .copyOf(requireNonNull(aggregations, "aggValToFunctionMap"));
+    this.aggregationFunctions = ImmutableList
+        .copyOf(requireNonNull(aggregationFunctions, "aggValToFunctionMap"));
   }
 
   @Override
@@ -61,12 +61,12 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return Collections.singletonList(source);
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
-  public List<FunctionCall> getAggregations() {
-    return aggregations;
+  public List<FunctionCall> getAggregationFunctions() {
+    return aggregationFunctions;
   }
 
   public int getNonFuncColumnCount() {
@@ -93,14 +93,15 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
     TableAggregate that = (TableAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
+        && Objects.equals(internalFormats, that.internalFormats)
         && nonFuncColumnCount == that.nonFuncColumnCount
-        && Objects.equals(aggregations, that.aggregations);
+        && Objects.equals(aggregationFunctions, that.aggregationFunctions);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, nonFuncColumnCount, aggregations);
+    return Objects.hash(properties, source, internalFormats, nonFuncColumnCount,
+        aggregationFunctions);
   }
 }

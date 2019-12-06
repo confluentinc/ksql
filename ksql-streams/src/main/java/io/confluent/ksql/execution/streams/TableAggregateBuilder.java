@@ -62,7 +62,7 @@ public final class TableAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
@@ -70,7 +70,7 @@ public final class TableAggregateBuilder {
         AggregateBuilderUtils.buildMaterialized(
             aggregate,
             aggregateSchema,
-            aggregate.getFormats(),
+            aggregate.getInternalFormats(),
             queryBuilder,
             materializedFactory
         );

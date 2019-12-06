@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
@@ -62,7 +62,7 @@ public final class StepSchemaResolver {
       .put(StreamFlatMap.class, StepSchemaResolver::handleStreamFlatMap)
       .put(StreamGroupBy.class, StepSchemaResolver::sameSchema)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
-      .put(StreamMapValues.class, StepSchemaResolver::handleStreamMapValues)
+      .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
       .put(StreamSelectKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSink.class, StepSchemaResolver::handleSink)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
@@ -70,7 +70,7 @@ public final class StepSchemaResolver {
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupBy.class, StepSchemaResolver::sameSchema)
-      .put(TableMapValues.class, StepSchemaResolver::handleTableMapValues)
+      .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
       .put(TableSink.class, StepSchemaResolver::handleSink)
       .put(TableSource.class, StepSchemaResolver::handleSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleSource)
@@ -131,7 +131,7 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 
@@ -143,7 +143,7 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 
@@ -158,13 +158,13 @@ public final class StepSchemaResolver {
     );
   }
 
-  private LogicalSchema handleStreamMapValues(
+  private LogicalSchema handleStreamSelect(
       final LogicalSchema schema,
-      final StreamMapValues<?> streamMapValues
+      final StreamSelect<?> streamSelect
   ) {
     return Selection.of(
         schema,
-        streamMapValues.getSelectExpressions(),
+        streamSelect.getSelectExpressions(),
         ksqlConfig,
         functionRegistry
     ).getSchema();
@@ -188,13 +188,13 @@ public final class StepSchemaResolver {
         schema,
         step.getNonFuncColumnCount(),
         functionRegistry,
-        step.getAggregations()
+        step.getAggregationFunctions()
     ).getSchema();
   }
 
-  private LogicalSchema handleTableMapValues(
+  private LogicalSchema handleTableSelect(
       final LogicalSchema schema,
-      final TableMapValues<?> step
+      final TableSelect<?> step
   ) {
     return Selection.of(
         schema,

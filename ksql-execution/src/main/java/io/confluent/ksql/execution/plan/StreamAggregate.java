@@ -30,24 +30,25 @@ import org.apache.kafka.connect.data.Struct;
 public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final int nonFuncColumnCount;
-  private final ImmutableList<FunctionCall> aggregations;
+  private final ImmutableList<FunctionCall> aggregationFunctions;
 
   public StreamAggregate(
       @JsonProperty(value = "properties", required = true)
           ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
-      @JsonProperty(value = "aggregations", required = true)
-      List<FunctionCall> aggregations) {
+      @JsonProperty(value = "aggregationFunctions", required = true)
+      List<FunctionCall> aggregationFunctions) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
-    this.formats = requireNonNull(formats, "formats");
+    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = ImmutableList.copyOf(requireNonNull(aggregations, "aggregations"));
+    this.aggregationFunctions = ImmutableList.copyOf(
+        requireNonNull(aggregationFunctions, "aggregationFunctions"));
   }
 
   @Override
@@ -65,12 +66,12 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return nonFuncColumnCount;
   }
 
-  public List<FunctionCall> getAggregations() {
-    return aggregations;
+  public List<FunctionCall> getAggregationFunctions() {
+    return aggregationFunctions;
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public ExecutionStep<KGroupedStreamHolder> getSource() {
@@ -93,8 +94,8 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
     StreamAggregate that = (StreamAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(aggregations, that.aggregations)
+        && Objects.equals(internalFormats, that.internalFormats)
+        && Objects.equals(aggregationFunctions, that.aggregationFunctions)
         && nonFuncColumnCount == that.nonFuncColumnCount;
   }
 
@@ -104,8 +105,8 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return Objects.hash(
         properties,
         source,
-        formats,
-        aggregations,
+        internalFormats,
+        aggregationFunctions,
         nonFuncColumnCount
     );
   }

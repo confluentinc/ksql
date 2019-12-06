@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -118,7 +118,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final KeyField keyField = findKeyField(selectExpressions);
-    final TableMapValues<K> step = ExecutionStepFactory.tableMapValues(
+    final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
         selectExpressions

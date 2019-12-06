@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
@@ -42,7 +42,7 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableTableJoin;
@@ -194,7 +194,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamMapValues<K> streamMapValues(
+  public static <K> StreamSelect<K> streamSelect(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final List<SelectExpression> selectExpressions
@@ -202,7 +202,7 @@ public final class ExecutionStepFactory {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
     );
-    return new StreamMapValues<>(
+    return new StreamSelect<>(
         properties,
         source,
         selectExpressions
@@ -285,7 +285,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableMapValues<K> tableMapValues(
+  public static <K> TableSelect<K> tableMapValues(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final List<SelectExpression> selectExpressions
@@ -293,7 +293,7 @@ public final class ExecutionStepFactory {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
     );
-    return new TableMapValues<>(
+    return new TableSelect<>(
         properties,
         source,
         selectExpressions

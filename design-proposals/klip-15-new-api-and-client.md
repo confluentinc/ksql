@@ -134,7 +134,7 @@ used toolkits which are known for great performance, and have few dependencies.
 clarify the server side implementation result in a cleaner implementation and reduced lines of code.
 * The current query streaming endpoints (chunked response and Websockets) will be retired.
 * Any current Jetty specific plugins (e.g. security plugins) will be migrated to Vert.x
-* Vert.x has great support for working with various different network protocols and has has unrivalled performance/scalability
+* Vert.x has great support for working with various different network protocols and has has [unrivalled performance/scalability](https://www.techempower.com/benchmarks/)
 characteristics for a JVM toolkit. It will also set us up well for a fully async / reactive internal threading model in the server that we
 should aim towards for the future.
 

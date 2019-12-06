@@ -7,16 +7,16 @@
         "CREATE TABLE T1 as SELECT NAME, VALUE FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,one,100"},
-        {"topic": "test_topic", "key": 2, "value": "2,two,200"},
-        {"topic": "test_topic", "key": 1, "value": "1,one,300"},
-        {"topic": "test_topic", "key": 1, "value": null}
+        {"topic": "test_topic", "key": "1", "value": "1,one,100"},
+        {"topic": "test_topic", "key": "2", "value": "2,two,200"},
+        {"topic": "test_topic", "key": "1", "value": "1,one,300"},
+        {"topic": "test_topic", "key": "1", "value": null}
       ],
       "outputs": [
-        {"topic": "T1", "key": 1, "value": "one,100"},
-        {"topic": "T1", "key": 2, "value": "two,200"},
-        {"topic": "T1", "key": 1, "value": "one,300"},
-        {"topic": "T1", "key": 1, "value": null}
+        {"topic": "T1", "key": "1", "value": "one,100"},
+        {"topic": "T1", "key": "2", "value": "two,200"},
+        {"topic": "T1", "key": "1", "value": "one,300"},
+        {"topic": "T1", "key": "1", "value": null}
       ]
     },
     {
@@ -26,10 +26,10 @@
         "CREATE TABLE T1 as SELECT * FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "2"}
+        {"topic": "test_topic", "key": "1", "value": "2"}
       ],
       "outputs": [
-        {"topic": "T1", "key": 1, "value": "2"}
+        {"topic": "T1", "key": "1", "value": "2"}
       ],
       "post": {
         "topics": {
@@ -47,11 +47,11 @@
         "ksql.streams.topology.optimization": "none"
       },
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "2"}
+        {"topic": "test_topic", "key": "1", "value": "2"}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog", "key": "1", "value": "2"},
-        {"topic": "T1", "key": 1, "value": "2"}
+        {"topic": "T1", "key": "1", "value": "2"}
       ]
     }
   ]

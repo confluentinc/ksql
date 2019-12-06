@@ -10,14 +10,14 @@
         "CREATE TABLE S2 as SELECT id, count() FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
-        {"topic": "test_topic", "key": 0, "value": "0,100,0.0"},
-        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": "0", "value": "0,100,0.0"},
+        {"topic": "test_topic", "key": "100", "value": "100,100,0.0"}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,1"},
-        {"topic": "S2", "key": 0, "value": "0,2"},
-        {"topic": "S2", "key": 100, "value": "100,1"}
+        {"topic": "S2", "key": "0", "value": "0,1"},
+        {"topic": "S2", "key": "0", "value": "0,2"},
+        {"topic": "S2", "key": "100", "value": "100,1"}
       ]
     },{
       "name": "count star",
@@ -26,9 +26,9 @@
         "CREATE TABLE OUTPUT as SELECT count(*) FROM input group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": 0, "value": "-"},
-        {"topic": "input_topic", "key": 0, "value": "-"},
-        {"topic": "input_topic", "key": 100, "value": "-"}
+        {"topic": "input_topic", "key": "0", "value": "-"},
+        {"topic": "input_topic", "key": "0", "value": "-"},
+        {"topic": "input_topic", "key": "100", "value": "-"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": "1"},
@@ -43,11 +43,11 @@
         "CREATE TABLE OUTPUT as SELECT count(1) FROM input group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": 0, "value": "-"},
-        {"topic": "input_topic", "key": 0, "value": "-"},
-        {"topic": "input_topic", "key": 100, "value": "-"},
-        {"topic": "input_topic", "key": 100, "value": null},
-        {"topic": "input_topic", "key": 100, "value": "-"}
+        {"topic": "input_topic", "key": "0", "value": "-"},
+        {"topic": "input_topic", "key": "0", "value": "-"},
+        {"topic": "input_topic", "key": "100", "value": "-"},
+        {"topic": "input_topic", "key": "100", "value": null},
+        {"topic": "input_topic", "key": "100", "value": "-"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": "1"},
@@ -63,10 +63,10 @@
         "CREATE TABLE OUTPUT as SELECT count(1) FROM input group by name;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": 0, "value": "bob"},
-        {"topic": "input_topic", "key": 0, "value": "john"},
-        {"topic": "input_topic", "key": 100, "value": "john"},
-        {"topic": "input_topic", "key": 100, "value": null}
+        {"topic": "input_topic", "key": "0", "value": "bob"},
+        {"topic": "input_topic", "key": "0", "value": "john"},
+        {"topic": "input_topic", "key": "100", "value": "john"},
+        {"topic": "input_topic", "key": "100", "value": null}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "bob", "value": "1"},

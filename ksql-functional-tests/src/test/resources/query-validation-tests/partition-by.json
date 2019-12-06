@@ -7,7 +7,7 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -19,7 +19,7 @@
         "CREATE STREAM OUTPUT AS select ID from INPUT partition by ID;"
       ],
       "inputs": [
-        {"topic": "input", "key": 0, "value": 10}
+        {"topic": "input", "key": "0", "value": 10}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "10", "value": 10}
@@ -32,7 +32,7 @@
         "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "0,zero,50"}
@@ -45,8 +45,8 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": null},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": null},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -59,8 +59,8 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,,1"},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,,1"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -87,12 +87,12 @@
         "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID, NAME from TEST partition by ID;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,a"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"}
+        {"topic": "test_topic", "key": "0", "value": "0,a"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": 0, "value": "0_new,a"},
-        {"topic": "REPARTITIONED", "key": 1, "value": "1_new,b"}
+        {"topic": "REPARTITIONED", "key": "0", "value": "0_new,a"},
+        {"topic": "REPARTITIONED", "key": "1", "value": "1_new,b"}
       ],
       "post": {
         "sources": [
@@ -115,7 +115,7 @@
         "CREATE STREAM INPUT (ID bigint) with (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWKEY;"
       ],
-      "inputs": [{"topic": "input", "key": 10, "value": {"ID":  22}}],
+      "inputs": [{"topic": "input", "key": "10", "value": {"ID":  22}}],
       "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}}],
       "post": {
         "topics": {

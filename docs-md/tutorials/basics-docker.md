@@ -96,7 +96,7 @@ From the host machine, start ksqlDB CLI:
 
 ```bash
 docker run --network tutorials_default --rm --interactive --tty \
-    confluentinc/cp-ksql-cli:{{ site.release }} \
+    confluentinc/ksqldb-cli:{{ site.release }} \
     http://ksql-server:8088
 ```
 

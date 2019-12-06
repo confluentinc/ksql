@@ -121,11 +121,11 @@ If you're running with Confluent CLI, use the `confluent stop` command:
 confluent stop KSQL
 ```
 
-If you're running ksqlDB in Docker containers, stop the `cp-ksql-server`
+If you're running ksqlDB in Docker containers, stop the `ksqldb-server`
 container:
 
 ```bash
-docker stop <cp-ksql-server-container-name>
+docker stop <ksqldb-server-container-name>
 ```
 
 If you're running ksqlDB as a system service, use the `systemctl stop`

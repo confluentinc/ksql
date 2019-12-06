@@ -31,8 +31,6 @@ import org.apache.kafka.streams.kstream.Named;
 
 public final class TableMapValuesBuilder {
 
-  private static final String PROJECT_OP_NAME = "PROJECT";
-
   private TableMapValuesBuilder() {
   }
 
@@ -42,11 +40,8 @@ public final class TableMapValuesBuilder {
       final TableMapValues<K> step,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
-        step.getProperties().getQueryContext()
-    );
-
     final LogicalSchema sourceSchema = table.getSchema();
+    final QueryContext queryContext = step.getProperties().getQueryContext();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,
@@ -63,11 +58,11 @@ public final class TableMapValuesBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push(PROJECT_OP_NAME).getQueryContext()
+                queryContext
             )
         );
 
-    final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
+    final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 
     return table
         .withTable(
@@ -81,7 +76,7 @@ public final class TableMapValuesBuilder {
             table.getMaterializationBuilder().map(b -> b.map(
                 pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
                 selection.getSchema(),
-                PROJECT_OP_NAME
+                queryContext
             ))
         );
   }

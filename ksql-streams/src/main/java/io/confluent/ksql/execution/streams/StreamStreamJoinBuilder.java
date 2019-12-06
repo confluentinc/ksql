@@ -29,8 +29,8 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.StreamJoined;
 
 public final class StreamStreamJoinBuilder {
-  private static final String LEFT_SERDE_CTX = "left";
-  private static final String RIGHT_SERDE_CTX = "right";
+  private static final String LEFT_SERDE_CTX = "Left";
+  private static final String RIGHT_SERDE_CTX = "Right";
 
   private StreamStreamJoinBuilder() {
   }

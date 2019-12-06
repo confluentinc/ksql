@@ -300,13 +300,10 @@
         },
         "filterExpression" : {
           "type" : "string"
-        },
-        "stepName" : {
-          "type" : "string"
         }
       },
       "title" : "streamFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
+      "required" : [ "@type", "properties", "source", "filterExpression" ]
     },
     "StreamFlatMap" : {
       "type" : "object",
@@ -403,13 +400,10 @@
           "items" : {
             "type" : "string"
           }
-        },
-        "selectNodeName" : {
-          "type" : "string"
         }
       },
       "title" : "streamMapValuesV1",
-      "required" : [ "@type", "properties", "source", "selectExpressions", "selectNodeName" ]
+      "required" : [ "@type", "properties", "source", "selectExpressions" ]
     },
     "StreamSelectKey" : {
       "type" : "object",
@@ -753,13 +747,10 @@
         },
         "filterExpression" : {
           "type" : "string"
-        },
-        "stepName" : {
-          "type" : "string"
         }
       },
       "title" : "tableFilterV1",
-      "required" : [ "@type", "properties", "source", "filterExpression", "stepName" ]
+      "required" : [ "@type", "properties", "source", "filterExpression" ]
     },
     "TableGroupBy" : {
       "type" : "object",
@@ -809,13 +800,10 @@
           "items" : {
             "type" : "string"
           }
-        },
-        "selectNodeName" : {
-          "type" : "string"
         }
       },
       "title" : "tableMapValuesV1",
-      "required" : [ "@type", "properties", "source", "selectExpressions", "selectNodeName" ]
+      "required" : [ "@type", "properties", "source", "selectExpressions" ]
     },
     "TableSink" : {
       "type" : "object",

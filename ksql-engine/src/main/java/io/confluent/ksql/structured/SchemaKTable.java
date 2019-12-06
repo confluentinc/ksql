@@ -93,14 +93,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final String stepName,
       final Stacker contextStacker
   ) {
     final TableFilter<K> step = ExecutionStepFactory.tableFilter(
         contextStacker,
         sourceTableStep,
-        rewriteTimeComparisonForFilter(filterExpression),
-        stepName
+        rewriteTimeComparisonForFilter(filterExpression)
     );
 
     return new SchemaKTable<>(
@@ -116,7 +114,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
-      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
@@ -124,8 +121,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final TableMapValues<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
 
     return new SchemaKTable<>(

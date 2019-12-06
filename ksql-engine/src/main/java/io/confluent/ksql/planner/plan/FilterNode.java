@@ -31,7 +31,6 @@ import java.util.Objects;
 @Immutable
 public class FilterNode extends PlanNode {
 
-  private static final String WHERE_FILTER_OP_NAME = "WHERE-FILTER";
   private final PlanNode source;
   private final Expression predicate;
   private final ImmutableList<SelectExpression> selectExpressions;
@@ -93,8 +92,7 @@ public class FilterNode extends PlanNode {
     return getSource().buildStream(builder)
         .filter(
             getPredicate(),
-            WHERE_FILTER_OP_NAME,
-            contextStacker.push(WHERE_FILTER_OP_NAME.toLowerCase())
+            contextStacker
         );
   }
 }

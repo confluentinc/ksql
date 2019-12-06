@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,8 +46,6 @@ public class FilterNodeTest {
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private Stacker stacker;
-  @Mock
-  private Stacker updatedStacker;
 
   private FilterNode node;
 
@@ -59,11 +58,10 @@ public class FilterNodeTest {
     when(sourceNode.buildStream(any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any(), any(), any()))
+    when(schemaKStream.filter(any(), any()))
         .thenReturn(schemaKStream);
 
     when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
-    when(stacker.push(any())).thenReturn(updatedStacker);
 
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -75,7 +73,7 @@ public class FilterNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-    verify(schemaKStream).filter(predicate, "WHERE-FILTER", updatedStacker);
+    verify(schemaKStream).filter(predicate, stacker);
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
@@ -85,6 +83,6 @@ public class FilterNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stacker).push("where-filter");
+    verifyNoMoreInteractions(stacker);
   }
 }

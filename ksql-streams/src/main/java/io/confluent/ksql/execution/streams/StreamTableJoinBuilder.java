@@ -29,7 +29,7 @@ import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamTableJoinBuilder {
-  private static final String SERDE_CTX = "left";
+  private static final String SERDE_CTX = "Left";
 
   private StreamTableJoinBuilder() {
   }

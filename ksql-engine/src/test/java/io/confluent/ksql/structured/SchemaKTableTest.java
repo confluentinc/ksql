@@ -127,8 +127,6 @@ public class SchemaKTableTest {
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
 
-  private static final String SELECT_NODE_NAME = "SelectStep";
-
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
   private KTable secondKTable;
@@ -279,7 +277,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -303,7 +300,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -315,8 +311,7 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableMapValues(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                projectNode.getSelectExpressions(),
-                SELECT_NODE_NAME
+                projectNode.getSelectExpressions()
             )
         )
     );
@@ -333,7 +328,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -357,7 +351,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
-        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -381,7 +374,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -410,7 +402,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKTable = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -440,7 +431,6 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        "step",
         childContextStacker
     );
 
@@ -451,8 +441,7 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableFilter(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                filterNode.getPredicate(),
-                "step"
+                filterNode.getPredicate()
             )
         )
     );
@@ -735,7 +724,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
         is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
@@ -749,7 +738,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -764,7 +753,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -779,7 +768,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -793,7 +782,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -808,7 +797,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -822,7 +811,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -835,7 +824,7 @@ public class SchemaKTableTest {
         "SELECT * FROM test2 EMIT CHANGES;");
 
     final SchemaKTable selected = initialSchemaKTable
-        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
 

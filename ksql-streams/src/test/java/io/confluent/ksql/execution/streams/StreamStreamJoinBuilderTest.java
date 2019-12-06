@@ -297,7 +297,7 @@ public class StreamStreamJoinBuilderTest {
     join.build(planBuilder);
 
     // Then:
-    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("left").getQueryContext();
+    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
     verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON), LEFT_PHYSICAL, leftCtx);
   }
 
@@ -310,7 +310,7 @@ public class StreamStreamJoinBuilderTest {
     join.build(planBuilder);
 
     // Then:
-    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("right").getQueryContext();
+    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Right").getQueryContext();
     verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.AVRO), RIGHT_PHYSICAL, leftCtx);
   }
 }

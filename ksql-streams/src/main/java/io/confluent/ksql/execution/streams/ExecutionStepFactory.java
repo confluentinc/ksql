@@ -185,23 +185,20 @@ public final class ExecutionStepFactory {
   public static <K> StreamFilter<K> streamFilter(
       final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
-      final Expression filterExpression,
-      final String stepName
+      final Expression filterExpression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFilter<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
-        filterExpression,
-        stepName
+        filterExpression
     );
   }
 
   public static <K> StreamMapValues<K> streamMapValues(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
-      final List<SelectExpression> selectExpressions,
-      final String selectNodeName
+      final List<SelectExpression> selectExpressions
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
@@ -209,8 +206,7 @@ public final class ExecutionStepFactory {
     return new StreamMapValues<>(
         properties,
         source,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
   }
 
@@ -280,23 +276,20 @@ public final class ExecutionStepFactory {
   public static <K> TableFilter<K> tableFilter(
       final Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
-      final Expression filterExpression,
-      final String stepName
+      final Expression filterExpression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableFilter<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
-        filterExpression,
-        stepName
+        filterExpression
     );
   }
 
   public static <K> TableMapValues<K> tableMapValues(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
-      final List<SelectExpression> selectExpressions,
-      final String selectNodeName
+      final List<SelectExpression> selectExpressions
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
@@ -304,8 +297,7 @@ public final class ExecutionStepFactory {
     return new TableMapValues<>(
         properties,
         source,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
   }
 

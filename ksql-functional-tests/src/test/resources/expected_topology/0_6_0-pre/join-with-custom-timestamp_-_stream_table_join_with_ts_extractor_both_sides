@@ -4,44 +4,41 @@
   "ksql.security.extension.class" : null,
   "ksql.transient.prefix" : "transient_",
   "ksql.persistence.wrap.single.values" : "true",
-  "ksql.named.internal.topics" : "on",
-  "ksql.windowed.session.key.legacy" : "false",
-  "ksql.query.stream.groupby.rowkey.repartition" : "false",
   "ksql.schema.registry.url" : "http://localhost:8081",
   "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
   "ksql.output.topic.name.prefix" : "",
   "ksql.streams.auto.offset.reset" : "earliest",
-  "ksql.sink.partitions" : null,
   "ksql.connect.url" : "http://localhost:8083",
-  "ksql.avro.maps.named" : "true",
   "ksql.service.id" : "some.ksql.service.id",
+  "ksql.internal.topic.min.insync.replicas" : "1",
   "ksql.internal.topic.replicas" : "1",
   "ksql.insert.into.values.enabled" : "true",
+  "ksql.query.pull.enable" : "true",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.access.validator.enable" : "auto",
   "ksql.streams.bootstrap.servers" : "localhost:0",
   "ksql.streams.commit.interval.ms" : "2000",
   "ksql.metric.reporters" : "",
   "ksql.streams.auto.commit.interval.ms" : "0",
-  "ksql.sink.replicas" : null,
   "ksql.metrics.extension" : null,
   "ksql.streams.topology.optimization" : "all",
+  "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
-  "ksql.functions.substring.legacy.args" : "false",
+  "ksql.query.pull.skip.access.validator" : "false",
   "ksql.connect.worker.config" : "",
+  "ksql.query.pull.routing.timeout.ms" : "30000",
   "ksql.sink.window.change.log.additional.retention" : "1000000",
-  "ksql.query.inject.legacy.map.values.node" : "false",
   "ksql.udf.collect.metrics" : "false",
   "ksql.persistent.prefix" : "query_",
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_S1_JOIN_T1_0.KafkaTopic_Right.source = STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL
-CSAS_S1_JOIN_T1_0.KafkaTopic_Left.source = STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL
-CSAS_S1_JOIN_T1_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL
+CSAS_S1_JOIN_T1_0.KafkaTopic_Right.Source = STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL
+CSAS_S1_JOIN_T1_0.KafkaTopic_Left.Source = STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL
+CSAS_S1_JOIN_T1_0.Join.Left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL
 CSAS_S1_JOIN_T1_0.S1_JOIN_T1 = STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
@@ -51,18 +48,18 @@ Topologies:
     Processor: KSTREAM-TRANSFORMVALUES-0000000004 (stores: [])
       --> Join
       <-- KSTREAM-SOURCE-0000000003
-    Processor: Join (stores: [KafkaTopic_Right-reduce])
-      --> SELECT-0
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project
       <-- KSTREAM-TRANSFORMVALUES-0000000004
     Source: KSTREAM-SOURCE-0000000000 (topics: [t1])
       --> KTABLE-SOURCE-0000000001
-    Processor: SELECT-0 (stores: [])
+    Processor: Project (stores: [])
       --> KSTREAM-MAPVALUES-0000000007
       <-- Join
     Processor: KSTREAM-MAPVALUES-0000000007 (stores: [])
       --> KSTREAM-SINK-0000000008
-      <-- SELECT-0
-    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-reduce])
+      <-- Project
+    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-Reduce])
       --> KTABLE-TRANSFORMVALUES-0000000002
       <-- KSTREAM-SOURCE-0000000000
     Sink: KSTREAM-SINK-0000000008 (topic: S1_JOIN_T1)

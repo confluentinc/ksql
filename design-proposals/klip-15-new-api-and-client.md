@@ -3,7 +3,9 @@
 **Author**: Tim Fox (purplefox) | 
 **Release Target**: ? | 
 **Status**: _In Discussion_ | 
-**Discussion**: https://groups.google.com/forum/#!topic/ksql-dev/yxcRlsOsNmo https://groups.google.com/forum/#!topic/ksql-dev/5mLKvtZFs4Y
+**Discussion**:
+https://groups.google.com/forum/#!topic/ksql-dev/yxcRlsOsNmo
+https://groups.google.com/forum/#!topic/ksql-dev/5mLKvtZFs4Y
 
  For ksqlDB to be a successful project we need to provide an awesome out of the box developer experience
  and it should be super easy and fun to write powerful event streaming applications.
@@ -113,6 +115,8 @@ The following changes / additions to APIs will occur:
 * The networking will be handled by Vert.x (which uses Netty). Both Vert.x and Netty are very widely
 used toolkits which are known for great performance, and have few dependencies.
 * The client will have minimal transitive jar dependencies - this is important as the client will be embedded in end user applications.
+* Client connections are designed to be re-used.
+* The client will be thread-safe.
 
 ### The server
 
@@ -150,7 +154,7 @@ We will require unit/module level tests and integration tests for all the new or
 ## Documentation Updates
 
 * We will produce new guide(s) for the Java and JavaScript clients.
-* We will produce example applications showing how to use the client in a real app. E.g. using Spring Boot / Vert.x (Java) and Node.js for JavaScript
+* We will produce example applications showing how to use the client in a real app. E.g. using Spring Boot / Vert.x (Java) and Node.js (JavaScript)
 * The current documentation for the HTTP/REST API can remain more or less as-is with the removal of the problematic parts.
 * We will write up a document on the new wire protocol to encourage 3rd parties to implement new clients.
 * There may be some server side configuration changes due to the new server implementation.

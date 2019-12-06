@@ -4,6 +4,9 @@
 **Release Target**: ? | 
 **Status**: _In Discussion_ | 
 **Discussion**:
+
+Please read the initial discussions on the ksqlDB developer group first:
+
 https://groups.google.com/forum/#!topic/ksql-dev/yxcRlsOsNmo
 https://groups.google.com/forum/#!topic/ksql-dev/5mLKvtZFs4Y
 

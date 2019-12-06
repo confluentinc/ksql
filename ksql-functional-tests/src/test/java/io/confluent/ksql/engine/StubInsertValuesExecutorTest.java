@@ -61,8 +61,8 @@ public final class StubInsertValuesExecutorTest {
         new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
-        1,
-        Optional.empty()));
+        1
+    ));
 
     stubProducer = new StubProducer(stubKafkaService);
   }
@@ -126,8 +126,8 @@ public final class StubInsertValuesExecutorTest {
         new StringSerdeSupplier(),
         new AvroSerdeSupplier(),
         1,
-        1,
-        Optional.empty()));
+        1
+    ));
 
     final long timestamp = 22L;
     final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(

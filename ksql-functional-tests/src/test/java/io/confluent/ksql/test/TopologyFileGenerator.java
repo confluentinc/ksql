@@ -253,8 +253,7 @@ public final class TopologyFileGenerator {
                 keySerdes,
                 valueSerdes,
                 1,
-                1,
-                Optional.empty()
+                1
             );
 
             stubKafkaService.createTopic(sinkTopic);

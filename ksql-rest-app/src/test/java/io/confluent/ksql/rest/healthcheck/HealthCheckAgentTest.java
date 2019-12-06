@@ -104,7 +104,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfKafkaCheckFails() {
     // Given:
-    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list topics extended;"))
+    when(ksqlClient.makeKsqlRequest(SERVER_URI, "list topics;"))
         .thenReturn(unSuccessfulResponse);
 
     // When:

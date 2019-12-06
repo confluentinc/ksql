@@ -32,16 +32,19 @@ public class SimpleConnectorInfo {
   private final String name;
   private final ConnectorType type;
   private final String className;
+  private final String state;
 
   @JsonCreator
   public SimpleConnectorInfo(
       @JsonProperty("name")       final String name,
       @JsonProperty("type")       final ConnectorType type,
-      @JsonProperty("className")  final String className
+      @JsonProperty("className")  final String className,
+      @JsonProperty("state")      final String state
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = type;
     this.className = className;
+    this.state = state;
   }
 
   public String getName() {
@@ -56,6 +59,10 @@ public class SimpleConnectorInfo {
     return className;
   }
 
+  public String getState() {
+    return state;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -67,12 +74,13 @@ public class SimpleConnectorInfo {
     final SimpleConnectorInfo that = (SimpleConnectorInfo) o;
     return Objects.equals(name, that.name)
         && type == that.type
-        && Objects.equals(className, that.className);
+        && Objects.equals(className, that.className)
+        && Objects.equals(state, that.state);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, className);
+    return Objects.hash(name, type, className, state);
   }
 
   @Override
@@ -81,6 +89,7 @@ public class SimpleConnectorInfo {
         + "name='" + name + '\''
         + ", type=" + type
         + ", className='" + className + '\''
+        + ", state=" + state
         + '}';
   }
 }

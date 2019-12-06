@@ -48,7 +48,7 @@ public final class StubKafkaRecord {
     Objects.requireNonNull(topic, "topic");
     final Record testRecord = new Record(
         topic,
-        Objects.toString(producerRecord.key()),
+        producerRecord.key(),
         producerRecord.value(),
         null,
         Optional.of(producerRecord.timestamp()),

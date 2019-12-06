@@ -39,14 +39,14 @@ public final class RecordNode {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private final String topicName;
-  private final Optional<String> key;
+  private final Optional<Object> key;
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
 
   private RecordNode(
       final String topicName,
-      final Optional<String> key,
+      final Optional<Object> key,
       final JsonNode value,
       final Optional<Long> timestamp,
       final Optional<WindowData> window
@@ -112,8 +112,8 @@ public final class RecordNode {
 
       final String topic = JsonParsingUtil.getRequired("topic", node, jp, String.class);
 
-      final Optional<String> key = node.has("key")
-          ? JsonParsingUtil.getOptional("key", node, jp, String.class)
+      final Optional<Object> key = node.has("key")
+          ? JsonParsingUtil.getOptional("key", node, jp, Object.class)
           : Optional.of("");
 
       final JsonNode value = JsonParsingUtil.getRequired("value", node, jp, JsonNode.class);

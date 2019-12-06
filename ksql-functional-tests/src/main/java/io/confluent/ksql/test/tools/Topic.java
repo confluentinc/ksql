@@ -21,13 +21,10 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 
 @SuppressWarnings("rawtypes")
 public class Topic {
@@ -38,7 +35,6 @@ public class Topic {
   private final SerdeSupplier valueSerdeSupplier;
   private final int numPartitions;
   private final short replicas;
-  private final Optional<Long> windowSize;
 
   public Topic(
       final String name,
@@ -55,7 +51,6 @@ public class Topic {
     this.valueSerdeSupplier = requireNonNull(valueSerdeSupplier, "valueSerdeSupplier");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
-    this.windowSize = requireNonNull(windowSize, "windowSize");
   }
 
   public String getName() {
@@ -107,30 +102,8 @@ public class Topic {
   }
 
   public Deserializer<?> getKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Deserializer<?> deserializer = createKeyDeserializer(schemaRegistryClient);
+    final Deserializer<?> deserializer = keySerdeFactory.getDeserializer(schemaRegistryClient);
     deserializer.configure(ImmutableMap.of(), true);
     return deserializer;
-  }
-
-  private Deserializer<?> createKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Deserializer<?> deserializer = keySerdeFactory.getDeserializer(schemaRegistryClient);
-    if (!(deserializer instanceof TimeWindowedDeserializer)) {
-      return deserializer;
-    }
-
-    if (windowSize.isPresent()) {
-      return new TimeWindowedDeserializer<>(new StringDeserializer(), windowSize.get());
-    }
-
-    final TimeWindowedDeserializer timeWindowedDeserializer =
-        (TimeWindowedDeserializer) deserializer;
-
-    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE) {
-      throw new KsqlException("Window size is not present for time windowed deserializer.");
-    }
-
-    return new TimeWindowedDeserializer<>(
-        new StringDeserializer(),
-        timeWindowedDeserializer.getWindowSize());
   }
 }

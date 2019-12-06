@@ -32,16 +32,17 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 
 public class Record {
+
   final Topic topic;
-  private final String key;
+  private final Object key;
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
-  private Optional<JsonNode> jsonValue;
+  private final Optional<JsonNode> jsonValue;
 
   public Record(
       final Topic topic,
-      final String key,
+      final Object key,
       final Object value,
       final JsonNode jsonValue,
       final long timestamp,
@@ -52,7 +53,7 @@ public class Record {
 
   public Record(
       final Topic topic,
-      final String key,
+      final Object key,
       final Object value,
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
@@ -89,16 +90,15 @@ public class Record {
         : new TimeWindowedDeserializer<>(inner, window.size());
   }
 
-  @SuppressWarnings("unchecked")
-  public <W> W key() {
+  public Object key() {
     if (window == null) {
-      return (W) key;
+      return key;
     }
 
     final Window w = window.type == WindowData.Type.SESSION
         ? new SessionWindow(this.window.start, this.window.end)
         : new TimeWindow(this.window.start, this.window.end);
-    return (W) new Windowed<>(key, w);
+    return new Windowed<>(key, w);
   }
 
   public Object value() {

@@ -16,7 +16,13 @@
 package io.confluent.ksql.test.serde.kafka;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +32,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema.Type;
 
 public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
@@ -47,28 +52,29 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     return new RowDeserializer();
   }
 
-  private ConnectSchema getConnectSchema(final boolean isKey) {
+  private SqlType getColumnType(final boolean isKey) {
     final LogicalSchema schema = schemaSupplier.get();
-    final ConnectSchema connectSchema = isKey
-        ? schema.keyConnectSchema()
-        : schema.valueConnectSchema();
-
-    final List<Field> fields = connectSchema.fields();
-    if (fields.isEmpty()) {
-      throw new IllegalStateException("No fields in schema");
+    final List<Column> columns = isKey ? schema.key() : schema.value();
+    if (columns.isEmpty()) {
+      throw new IllegalStateException("No columns in schema");
     }
 
-    if (fields.size() != 1) {
-      throw new IllegalStateException("KAFKA format only supports single field schemas.");
+    if (columns.size() != 1) {
+      throw new IllegalStateException("KAFKA format only supports single column schemas.");
     }
-    return connectSchema;
+
+    return columns.get(0).type();
   }
 
   @SuppressWarnings("unchecked")
-  private static Serde<Object> getSerde(
-      final ConnectSchema connectSchema
+  private Serde<Object> getSerde(
+      final SqlType sqlType
   ) {
-    switch (connectSchema.fields().get(0).schema().type()) {
+    final Type connectType = SchemaConverters.sqlToConnectConverter()
+        .toConnectSchema(sqlType)
+        .type();
+
+    switch (connectType) {
       case INT32:
         return (Serde) Serdes.Integer();
       case INT64:
@@ -85,17 +91,36 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   private final class RowSerializer implements Serializer<Object> {
 
     private Serializer<Object> delegate;
+    private SqlType sqlType;
 
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
-      final ConnectSchema connectSchema = getConnectSchema(isKey);
-      delegate = getSerde(connectSchema).serializer();
+      sqlType = getColumnType(isKey);
+      delegate = getSerde(sqlType).serializer();
       delegate.configure(configs, isKey);
     }
 
     @Override
     public byte[] serialize(final String topic, final Object value) {
-      return delegate.serialize(topic, value);
+      final Object coerced = coerce(value);
+
+      return delegate.serialize(topic, coerced);
+    }
+
+    // Need to coerce some types, e.g. integer -> long, as test framework uses
+    // default JSON deserialization, which doesn't always get the type right.
+    private Object coerce(final Object value) {
+      if (value == null) {
+        return null;
+      }
+
+      if (sqlType.baseType() == SqlBaseType.STRING) {
+        return value.toString();
+      }
+
+      return DefaultSqlValueCoercer.INSTANCE.coerce(value, sqlType)
+              .orElseThrow(() -> new TestFrameworkException(
+                  "Failed to coerce value: " + value + ", to type: " + sqlType));
     }
   }
 
@@ -105,8 +130,8 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
-      final ConnectSchema connectSchema = getConnectSchema(isKey);
-      delegate = getSerde(connectSchema).deserializer();
+      final SqlType sqlType = getColumnType(isKey);
+      delegate = getSerde(sqlType).deserializer();
       delegate.configure(configs, isKey);
     }
 

@@ -5,9 +5,12 @@
 **Status**: _In Discussion_ | 
 **Discussion**:
 
-Please read the initial discussions on the ksqlDB developer group first:
+Please read the initial discussion on the ksqlDB developer group first:
 
 https://groups.google.com/forum/#!topic/ksql-dev/yxcRlsOsNmo
+
+And there is a partially working prototype for this work described here:
+
 https://groups.google.com/forum/#!topic/ksql-dev/5mLKvtZFs4Y
 
  For ksqlDB to be a successful project we need to provide an awesome out of the box developer experience
@@ -39,7 +42,7 @@ This KLIP proposes that we:
 for an application
 * Create a new server side implementation that supports the client and enables the functionality of the client to be delivered in a straightforward
 and efficient way
-* This will also involve the creation of a new wire protocol for the client<->server communication.
+* The creation of a new wire protocol for the client<->server communication.
 * Migrate the functionality of the current HTTP/REST API over to the new server implementation and retire the parts that are no longer needed.
 
 ## What is in scope

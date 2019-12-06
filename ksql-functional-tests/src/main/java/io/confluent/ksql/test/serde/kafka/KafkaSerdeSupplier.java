@@ -17,12 +17,9 @@ package io.confluent.ksql.test.serde.kafka;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.util.List;
 import java.util.Map;
@@ -91,36 +88,17 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   private final class RowSerializer implements Serializer<Object> {
 
     private Serializer<Object> delegate;
-    private SqlType sqlType;
 
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
-      sqlType = getColumnType(isKey);
+      final SqlType sqlType = getColumnType(isKey);
       delegate = getSerde(sqlType).serializer();
       delegate.configure(configs, isKey);
     }
 
     @Override
     public byte[] serialize(final String topic, final Object value) {
-      final Object coerced = coerce(value);
-
-      return delegate.serialize(topic, coerced);
-    }
-
-    // Need to coerce some types, e.g. integer -> long, as test framework uses
-    // default JSON deserialization, which doesn't always get the type right.
-    private Object coerce(final Object value) {
-      if (value == null) {
-        return null;
-      }
-
-      if (sqlType.baseType() == SqlBaseType.STRING) {
-        return value.toString();
-      }
-
-      return DefaultSqlValueCoercer.INSTANCE.coerce(value, sqlType)
-              .orElseThrow(() -> new TestFrameworkException(
-                  "Failed to coerce value: " + value + ", to type: " + sqlType));
+      return delegate.serialize(topic, value);
     }
   }
 

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
@@ -122,5 +123,26 @@ public class Record {
 
   public Optional<JsonNode> getJsonValue() {
     return jsonValue;
+  }
+
+  /**
+   * Coerce the key value to the correct type.
+   *
+   * <p>The type of the key loaded from the JSON test case file may not be the exact match on type,
+   * e.g. JSON will load a small number as an integer, but the key type of the source might be a
+   * long.
+   *
+   * @param keyCoercer function to coerce the key to the right type
+   * @return a new Record with the correct key type.
+   */
+  public Record coerceKey(final Function<Object, Object> keyCoercer) {
+    return new Record(
+        topic,
+        keyCoercer.apply(key),
+        value,
+        jsonValue.orElse(null),
+        timestamp,
+        window
+    );
   }
 }

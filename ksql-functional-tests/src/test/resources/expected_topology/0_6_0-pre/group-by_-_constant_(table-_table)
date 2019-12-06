@@ -76,11 +76,8 @@ Topologies:
       --> KTABLE-TOSTREAM-0000000011
       <-- Aggregate-Aggregate-ToOutputSchema
     Processor: KTABLE-TOSTREAM-0000000011 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000012
+      --> KSTREAM-SINK-0000000012
       <-- Aggregate-Project
-    Processor: KSTREAM-MAPVALUES-0000000012 (stores: [])
-      --> KSTREAM-SINK-0000000013
+    Sink: KSTREAM-SINK-0000000012 (topic: OUTPUT)
       <-- KTABLE-TOSTREAM-0000000011
-    Sink: KSTREAM-SINK-0000000013 (topic: OUTPUT)
-      <-- KSTREAM-MAPVALUES-0000000012
 

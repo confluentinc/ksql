@@ -53,11 +53,8 @@ Topologies:
       --> Project
       <-- KSTREAM-FILTER-0000000002
     Processor: Project (stores: [])
-      --> KSTREAM-MAPVALUES-0000000005
+      --> KSTREAM-SINK-0000000005
       <-- KSTREAM-KEY-SELECT-0000000003
-    Processor: KSTREAM-MAPVALUES-0000000005 (stores: [])
-      --> KSTREAM-SINK-0000000006
+    Sink: KSTREAM-SINK-0000000005 (topic: REPARTITIONED)
       <-- Project
-    Sink: KSTREAM-SINK-0000000006 (topic: REPARTITIONED)
-      <-- KSTREAM-MAPVALUES-0000000005
 

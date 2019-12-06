@@ -70,11 +70,8 @@ Topologies:
       --> KTABLE-TOSTREAM-0000000009
       <-- Aggregate-HavingFilter-PostProcess
     Processor: KTABLE-TOSTREAM-0000000009 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000010
+      --> KSTREAM-SINK-0000000010
       <-- Aggregate-Project
-    Processor: KSTREAM-MAPVALUES-0000000010 (stores: [])
-      --> KSTREAM-SINK-0000000011
+    Sink: KSTREAM-SINK-0000000010 (topic: T1)
       <-- KTABLE-TOSTREAM-0000000009
-    Sink: KSTREAM-SINK-0000000011 (topic: T1)
-      <-- KSTREAM-MAPVALUES-0000000010
 

@@ -64,11 +64,8 @@ Topologies:
       --> KTABLE-TOSTREAM-0000000007
       <-- Aggregate-Aggregate-WindowSelect
     Processor: KTABLE-TOSTREAM-0000000007 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000008
+      --> KSTREAM-SINK-0000000008
       <-- Aggregate-Project
-    Processor: KSTREAM-MAPVALUES-0000000008 (stores: [])
-      --> KSTREAM-SINK-0000000009
+    Sink: KSTREAM-SINK-0000000008 (topic: S2)
       <-- KTABLE-TOSTREAM-0000000007
-    Sink: KSTREAM-SINK-0000000009 (topic: S2)
-      <-- KSTREAM-MAPVALUES-0000000008
 

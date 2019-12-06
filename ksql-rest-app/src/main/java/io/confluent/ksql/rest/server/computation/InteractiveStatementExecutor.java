@@ -210,11 +210,13 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
           statement, command, commandId, commandStatusFuture, mode, offset);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
+      
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
       );
-      putFinalStatus(commandId, commandStatusFuture, errorStatus);
+      putStatus(commandId, commandStatusFuture, errorStatus);
+      throw exception;
     }
   }
 

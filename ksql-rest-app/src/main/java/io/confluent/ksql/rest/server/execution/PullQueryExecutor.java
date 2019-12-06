@@ -140,12 +140,12 @@ public final class PullQueryExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG)) {
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
       throw new KsqlException(
           "Pull queries are disabled. "
               + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
               + System.lineSeparator()
-              + "Please set " + KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG + "=true to enable "
+              + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature.");
     }
 

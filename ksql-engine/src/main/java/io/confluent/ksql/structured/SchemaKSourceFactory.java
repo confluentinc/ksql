@@ -35,8 +35,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import java.util.Optional;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 /**
  * Factory class used to create stream and table sources
@@ -50,7 +48,6 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
       final QueryContext.Stacker contextStacker,
-      final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
@@ -62,14 +59,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            offsetReset,
             keyField,
             alias
         ) : buildStream(
             builder,
             dataSource,
             contextStacker,
-            offsetReset,
             keyField,
             alias
         );
@@ -80,14 +75,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            offsetReset,
             keyField,
             alias
         ) : buildTable(
             builder,
             dataSource,
             contextStacker,
-            offsetReset,
             keyField,
             alias
         );
@@ -101,7 +94,6 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
       final Stacker contextStacker,
-      final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
@@ -115,7 +107,6 @@ public final class SchemaKSourceFactory {
         buildFormats(dataSource),
         windowInfo,
         dataSource.getTimestampColumn(),
-        offsetReset,
         alias
     );
 
@@ -132,7 +123,6 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
       final Stacker contextStacker,
-      final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
@@ -146,7 +136,6 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         dataSource.getTimestampColumn(),
-        offsetReset,
         alias
     );
 
@@ -163,7 +152,6 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
       final Stacker contextStacker,
-      final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
@@ -177,7 +165,6 @@ public final class SchemaKSourceFactory {
         buildFormats(dataSource),
         windowInfo,
         dataSource.getTimestampColumn(),
-        offsetReset,
         alias
     );
 
@@ -194,7 +181,6 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource<?> dataSource,
       final Stacker contextStacker,
-      final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField,
       final SourceName alias
   ) {
@@ -208,7 +194,6 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         dataSource.getTimestampColumn(),
-        offsetReset,
         alias
     );
 

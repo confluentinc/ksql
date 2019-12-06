@@ -23,7 +23,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public final class WindowedTableSource
@@ -37,7 +36,6 @@ public final class WindowedTableSource
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty("offsetReset") final Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
       @JsonProperty(value = "alias", required = true) SourceName alias
   ) {
@@ -46,7 +44,6 @@ public final class WindowedTableSource
         topicName,
         formats,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );

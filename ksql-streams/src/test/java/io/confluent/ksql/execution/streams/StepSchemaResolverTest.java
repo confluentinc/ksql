@@ -281,7 +281,6 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        Optional.empty(),
         SCHEMA,
         SourceName.of("alias")
     );
@@ -300,7 +299,6 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
-        Optional.empty(),
         Optional.empty(),
         SCHEMA,
         SourceName.of("alias")
@@ -402,7 +400,6 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        Optional.empty(),
         SCHEMA,
         SourceName.of("alias")
     );
@@ -421,7 +418,6 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         mock(WindowInfo.class),
-        Optional.empty(),
         Optional.empty(),
         SCHEMA,
         SourceName.of("alias")

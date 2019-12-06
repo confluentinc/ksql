@@ -171,7 +171,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         handleLine(readLine());
       } catch (final EndOfFileException exception) {
         // EOF is fine, just terminate the REPL
-        terminal.writer().println("Exiting KSQL.");
+        terminal.writer().println("Exiting ksqlDB.");
         eof = true;
       } catch (final Exception exception) {
         LOGGER.error("", exception);

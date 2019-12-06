@@ -1036,7 +1036,7 @@ Run the `exit` command to leave the ksqlDB CLI.
 
 ```
 ksql> exit
-Exiting KSQL.
+Exiting ksqlDB.
 ```
 
 ### Docker

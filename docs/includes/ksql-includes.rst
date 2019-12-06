@@ -484,7 +484,7 @@ queries.
    ::
 
        ksql> exit
-       Exiting KSQL.
+       Exiting ksqlDB.
 
 .. terminate_and_exit__end
 

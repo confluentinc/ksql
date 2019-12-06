@@ -327,7 +327,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
     ```
     ksql>
-    Exiting KSQL.
+    Exiting ksqlDB.
     ```
 
 2.  Set up the required Elasticsearch document mapping template

@@ -961,7 +961,7 @@ KSQL
 
     ```
     ksql> exit
-    Exiting KSQL.
+    Exiting ksqlDB.
     ```
 
 Confluent CLI

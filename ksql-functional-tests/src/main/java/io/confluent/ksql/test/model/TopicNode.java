@@ -88,8 +88,7 @@ public final class TopicNode {
         keySerdeSupplier,
         valueSerdeSupplier,
         numPartitions,
-        replicas,
-        Optional.empty()
+        replicas
     );
   }
 

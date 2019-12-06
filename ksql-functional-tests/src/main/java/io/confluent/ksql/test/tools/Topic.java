@@ -42,8 +42,7 @@ public class Topic {
       final SerdeSupplier keySerdeFactory,
       final SerdeSupplier valueSerdeSupplier,
       final int numPartitions,
-      final int replicas,
-      final Optional<Long> windowSize
+      final int replicas
   ) {
     this.name = requireNonNull(name, "name");
     this.schema = requireNonNull(schema, "schema");

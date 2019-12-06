@@ -153,7 +153,7 @@ monolithic piece of work. Some obvious partitions of the work would be:
 
 We should retain the current API implementation until it's ready to be switched over to the new implementation. The new implementation can exist
 in the same codebase during development, and only after switchover will the old implementation be removed.
-That way we can ensure there is a working API at all times.
+That way we can ensure a seamless switchover as there is a working API at all times.
 
 ## Test plan
 

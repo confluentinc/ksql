@@ -21,7 +21,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
 public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
@@ -30,7 +29,6 @@ public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struc
       @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
-      @JsonProperty("offsetReset") Optional<AutoOffsetReset> offsetReset,
       @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
       @JsonProperty(value = "alias", required = true) SourceName alias) {
     super(
@@ -38,7 +36,6 @@ public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struc
         topicName,
         formats,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );

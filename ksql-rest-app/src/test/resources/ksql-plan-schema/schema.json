@@ -473,10 +473,6 @@
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
-        "offsetReset" : {
-          "type" : "string",
-          "enum" : [ "EARLIEST", "LATEST" ]
-        },
         "sourceSchema" : {
           "type" : "string"
         },
@@ -510,10 +506,6 @@
         },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
-        },
-        "offsetReset" : {
-          "type" : "string",
-          "enum" : [ "EARLIEST", "LATEST" ]
         },
         "sourceSchema" : {
           "type" : "string"
@@ -647,10 +639,6 @@
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
         },
-        "offsetReset" : {
-          "type" : "string",
-          "enum" : [ "EARLIEST", "LATEST" ]
-        },
         "sourceSchema" : {
           "type" : "string"
         },
@@ -684,10 +672,6 @@
         },
         "timestampColumn" : {
           "$ref" : "#/definitions/TimestampColumn"
-        },
-        "offsetReset" : {
-          "type" : "string",
-          "enum" : [ "EARLIEST", "LATEST" ]
         },
         "sourceSchema" : {
           "type" : "string"

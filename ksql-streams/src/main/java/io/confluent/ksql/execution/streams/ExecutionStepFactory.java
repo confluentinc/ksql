@@ -57,7 +57,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -74,7 +73,6 @@ public final class ExecutionStepFactory {
       final Formats formats,
       final WindowInfo windowInfo,
       final Optional<TimestampColumn> timestampColumn,
-      final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -84,7 +82,6 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );
@@ -96,7 +93,6 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -105,7 +101,6 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );
@@ -117,7 +112,6 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -126,7 +120,6 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );
@@ -139,7 +132,6 @@ public final class ExecutionStepFactory {
       final Formats formats,
       final WindowInfo windowInfo,
       final Optional<TimestampColumn> timestampColumn,
-      final Optional<AutoOffsetReset> offsetReset,
       final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -149,7 +141,6 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        offsetReset,
         sourceSchema,
         alias
     );

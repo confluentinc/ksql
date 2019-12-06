@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
@@ -32,7 +31,6 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final String topicName;
   private final Formats formats;
   private final Optional<TimestampColumn> timestampColumn;
-  private final Optional<AutoOffsetReset> offsetReset;
   private final LogicalSchema sourceSchema;
   private final SourceName alias;
 
@@ -48,14 +46,12 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
       String topicName,
       Formats formats,
       Optional<TimestampColumn> timestampColumn,
-      Optional<AutoOffsetReset> offsetReset,
       LogicalSchema sourceSchema,
       SourceName alias) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
-    this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
     this.alias = Objects.requireNonNull(alias, "alias");
   }
@@ -72,10 +68,6 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
 
   public LogicalSchema getSourceSchema() {
     return sourceSchema;
-  }
-
-  public Optional<AutoOffsetReset> getOffsetReset() {
-    return offsetReset;
   }
 
   public Optional<TimestampColumn> getTimestampColumn() {
@@ -107,7 +99,6 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(offsetReset, that.offsetReset)
         && Objects.equals(sourceSchema, that.sourceSchema);
   }
 
@@ -118,7 +109,6 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
         topicName,
         formats,
         timestampColumn,
-        offsetReset,
         sourceSchema
     );
   }

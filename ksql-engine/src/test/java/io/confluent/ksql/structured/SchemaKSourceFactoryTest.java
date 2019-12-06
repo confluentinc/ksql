@@ -49,7 +49,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,8 +57,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKSourceFactoryTest {
-  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(
-      AutoOffsetReset.EARLIEST);
   private static final KeyField KEY_FIELD = KeyField.none();
   private static final SourceName ALIAS = SourceName.of("bob");
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
@@ -125,7 +122,6 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -150,7 +146,6 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -175,7 +170,6 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -200,7 +194,6 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );

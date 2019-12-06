@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -580,8 +579,6 @@ public class KsqlConfig extends AbstractConfig {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
-    streamsConfigDefaults.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
-        .defaultAutoOffsetRestConfig);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(

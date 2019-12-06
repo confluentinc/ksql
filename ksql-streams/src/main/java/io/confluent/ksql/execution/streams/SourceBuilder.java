@@ -18,7 +18,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
@@ -35,15 +34,18 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -81,6 +83,7 @@ public final class SourceBuilder {
         source,
         keySerde,
         valueSerde,
+        AutoOffsetReset.LATEST,
         queryBuilder,
         consumedFactory
     );
@@ -120,6 +123,7 @@ public final class SourceBuilder {
         source,
         keySerde,
         valueSerde,
+        AutoOffsetReset.LATEST,
         queryBuilder,
         consumedFactory
     );
@@ -158,6 +162,7 @@ public final class SourceBuilder {
         source,
         keySerde,
         valueSerde,
+        AutoOffsetReset.EARLIEST,
         queryBuilder,
         consumedFactory
     );
@@ -206,6 +211,7 @@ public final class SourceBuilder {
         source,
         keySerde,
         valueSerde,
+        AutoOffsetReset.EARLIEST,
         queryBuilder,
         consumedFactory
     );
@@ -237,30 +243,6 @@ public final class SourceBuilder {
         .getSourceSchema()
         .withAlias(source.getAlias())
         .withMetaAndKeyColsInValue();
-  }
-
-  private static Serde<Struct> buildNonWindowedKeySerde(
-      final KsqlQueryBuilder queryBuilder,
-      final KeyFormat fmt,
-      final PhysicalSchema schema,
-      final QueryContext ctx
-  ) {
-    return queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx);
-  }
-
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
-  private static Serde<Windowed<Struct>> buildWindowedKeySerde(
-      final KsqlQueryBuilder queryBuilder,
-      final KeyFormat fmt,
-      final PhysicalSchema schema,
-      final QueryContext ctx
-  ) {
-    return queryBuilder.buildKeySerde(
-        fmt.getFormatInfo(),
-        fmt.getWindowInfo().get(),
-        schema,
-        ctx
-    );
   }
 
   private static Serde<GenericRow> getValueSerde(
@@ -331,6 +313,7 @@ public final class SourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
+      final Topology.AutoOffsetReset defaultReset,
       final KsqlQueryBuilder queryBuilder,
       final ConsumedFactory consumedFactory) {
     final TimestampExtractor timestampExtractor = timestampExtractor(
@@ -341,9 +324,7 @@ public final class SourceBuilder {
     final Consumed<K, GenericRow> consumed = consumedFactory
         .create(keySerde, valueSerde)
         .withTimestampExtractor(timestampExtractor);
-    return streamSource.getOffsetReset()
-        .map(consumed::withOffsetResetPolicy)
-        .orElse(consumed);
+    return consumed.withOffsetResetPolicy(getAutoOffsetReset(defaultReset, queryBuilder));
   }
 
   private static org.apache.kafka.connect.data.Field getKeySchemaSingleField(
@@ -431,6 +412,27 @@ public final class SourceBuilder {
         public void close() {
         }
       };
+    }
+  }
+
+  private static Topology.AutoOffsetReset getAutoOffsetReset(
+      final Topology.AutoOffsetReset defaultValue,
+      final KsqlQueryBuilder queryBuilder) {
+    final Object offestReset = queryBuilder.getKsqlConfig()
+        .getKsqlStreamConfigProps()
+        .get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    if (offestReset == null) {
+      return defaultValue;
+    }
+
+    try {
+      return AutoOffsetReset.valueOf(offestReset.toString().toUpperCase());
+    } catch (final Exception e) {
+      throw new ConfigException(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          offestReset,
+          "Unknown value"
+      );
     }
   }
 }

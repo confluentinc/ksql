@@ -39,7 +39,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JLineReader.class);
 
-  private static final String DEFAULT_PROMPT = "ksql> ";
+  private static final String DEFAULT_PROMPT = "ksqlDB> ";
 
   private final DefaultHistory history;
 

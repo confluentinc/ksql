@@ -58,16 +58,18 @@ the start.
 
 * Binary multiplexed protocol. The protocol will support multiple independent channels over a single connection. We want to discourage clients from opening new
 connections for single operations (e.g. a single query) and closing them again. This leads to poor performance and an inefficient use of resources. Multiplexing allows
-many queries to be running over a single connection.
+many queries to be running over a single connection. Multiplexing is also important because it is likely each KSQL node will maintain connections to other KSQL nodes
+for clustering purposes (e.g. proxying queries) It is far more efficient for a particular node to hold a single connection (or a small number of connections)
+to each other node rather than creating new connections for each query.
 * Each channel will implement flow control (back pressure) to prevent any one channel overwhelming the connection.
 * The protocol will run over WebSockets - WebSockets clients are available and very easy to use in all languages of interest.
 WebSockets are also usable from browsers - this will be very useful with a JavaScript client.
-* The protocol will also run over TCP.
+* The protocol will also run over TCP. TCP might make sense in simple data centre deployments where there's no particular advantage to using WebSockets.
 * The protocol will support both streaming and request/response semantics
 * The protocol will follow tried and tested designs proved over many years by some of the most well known and best performing messaging
  systems in the industry.
 * The protocol will be designed for generic flow controlled streaming of data, not limited to KSQL. Therefore it has potential for re-use in other
-Confluent projects which might have a need for streamlined high performance streaming. 
+Confluent projects which might have a need for high performance streaming. 
 
 ### The server
 

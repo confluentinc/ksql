@@ -17,16 +17,21 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -111,6 +116,13 @@ public class TestExecutorTest {
 
     when(internalTopicsAccessor.apply(topologyTestDriver))
         .thenReturn(ImmutableSet.of(INTERNAL_TOPIC_0));
+
+    final DataSource<?> sink = mock(DataSource.class);
+    when(sink.getKafkaTopicName()).thenReturn("sink_topic");
+    when(sink.getSchema()).thenReturn(LogicalSchema.builder().build());
+    when(metaStore.getAllDataSources()).thenReturn(
+        ImmutableMap.of(SourceName.of("sink"), sink)
+    );
   }
 
   @Test

@@ -296,7 +296,7 @@ public class TestExecutor implements Closeable {
       // Source / sink topic:
       final Set<SqlType> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
           .stream()
-          .filter(source -> source.getKsqlTopic().getKafkaTopicName().equals(topicName))
+          .filter(source -> source.getKafkaTopicName().equals(topicName))
           .map(TestExecutor::getKeyType)
           .collect(Collectors.toSet());
 
@@ -371,20 +371,19 @@ public class TestExecutor implements Closeable {
   ) {
 
     for (final Record record : testCase.getInputRecords()) {
-      if (!topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
-        throw new TestFrameworkException("Unknown topic: " + record.topic.getName());
+      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
+
+        final Record coerced = record.coerceKey(keyCoercerForTopic(record.topic.getName()));
+
+        processSingleRecord(
+            testCase,
+            StubKafkaRecord.of(coerced, null),
+            stubKafkaService,
+            topologyTestDriverContainer,
+            serviceContext.getSchemaRegistryClient(),
+            ImmutableSet.copyOf(stubKafkaService.getAllTopics())
+        );
       }
-
-      final Record coerced = record.coerceKey(keyCoercerForTopic(record.topic.getName()));
-
-      processSingleRecord(
-          testCase,
-          StubKafkaRecord.of(coerced, null),
-          stubKafkaService,
-          topologyTestDriverContainer,
-          serviceContext.getSchemaRegistryClient(),
-          ImmutableSet.copyOf(stubKafkaService.getAllTopics())
-      );
     }
   }
 

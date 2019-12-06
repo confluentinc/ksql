@@ -26,15 +26,15 @@ import org.apache.kafka.connect.data.Struct;
 public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<Struct>> source;
-  private final Formats formats;
+  private final Formats internalFormats;
 
   public StreamGroupByKey(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<KStreamHolder<Struct>> source,
-      @JsonProperty(value = "formats", required = true) Formats formats) {
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.formats = Objects.requireNonNull(formats, "formats");
+    this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
     this.source = Objects.requireNonNull(source, "source");
   }
 
@@ -53,8 +53,8 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
     return source;
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   @Override
@@ -73,12 +73,12 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
     StreamGroupByKey that = (StreamGroupByKey) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats);
+        && Objects.equals(internalFormats, that.internalFormats);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats);
+    return Objects.hash(properties, source, internalFormats);
   }
 }

@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
@@ -76,7 +76,7 @@ public class PlanSummaryTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
         .build();
-    final ExecutionStep step = givenStep(StreamMapValues.class, "child", schema, sourceStep);
+    final ExecutionStep step = givenStep(StreamSelect.class, "child", schema, sourceStep);
 
     // When:
     final String summary = planSummaryBuilder.summarize(step);

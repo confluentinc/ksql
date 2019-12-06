@@ -79,7 +79,7 @@ public final class StreamAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
@@ -87,7 +87,7 @@ public final class StreamAggregateBuilder {
         AggregateBuilderUtils.buildMaterialized(
             aggregate,
             aggregateSchema,
-            aggregate.getFormats(),
+            aggregate.getInternalFormats(),
             queryBuilder,
             materializedFactory
         );
@@ -151,7 +151,7 @@ public final class StreamAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
@@ -223,7 +223,7 @@ public final class StreamAggregateBuilder {
       this.materializedFactory = Objects.requireNonNull(materializedFactory, "materializedFactory");
       this.aggregateParams = Objects.requireNonNull(aggregateParams, "aggregateParams");
       this.queryContext = AggregateBuilderUtils.materializeContext(aggregate);
-      this.formats = aggregate.getFormats();
+      this.formats = aggregate.getInternalFormats();
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
           aggregateSchema,
           formats.getOptions()

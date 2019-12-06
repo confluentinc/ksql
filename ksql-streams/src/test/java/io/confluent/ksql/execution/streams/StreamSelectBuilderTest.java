@@ -35,7 +35,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -62,7 +62,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
-public class StreamMapValuesBuilderTest {
+public class StreamSelectBuilderTest {
 
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
@@ -113,7 +113,7 @@ public class StreamMapValuesBuilderTest {
       new QueryContext.Stacker().push("foo").push("bar").getQueryContext();
 
   private PlanBuilder planBuilder;
-  private StreamMapValues<Struct> step;
+  private StreamSelect<Struct> step;
 
   @Before
   public void setup() {
@@ -131,7 +131,7 @@ public class StreamMapValuesBuilderTest {
     final KStreamHolder<Struct> sourceStream
         = new KStreamHolder<>(sourceKStream, SCHEMA, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceStream);
-    step = new StreamMapValues<>(
+    step = new StreamSelect<>(
         properties,
         sourceStep,
         SELECT_EXPRESSIONS

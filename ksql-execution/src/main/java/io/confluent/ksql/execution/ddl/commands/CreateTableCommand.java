@@ -32,7 +32,7 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "schema", required = true) LogicalSchema schema,
       @JsonProperty("keyField") Optional<ColumnName> keyField,
       @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
+      @JsonProperty(value = "topicName", required = true) String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
   ) {
@@ -41,7 +41,7 @@ public class CreateTableCommand extends CreateSourceCommand {
         schema,
         keyField,
         timestampColumn,
-        kafkaTopicName,
+        topicName,
         formats,
         windowInfo
     );

@@ -169,7 +169,7 @@ public class SchemaKStreamTest {
     assertThat(
         projectedSchemaKStream.getSourceStep(),
         equalTo(
-            ExecutionStepFactory.streamMapValues(
+            ExecutionStepFactory.streamSelect(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 selectExpressions

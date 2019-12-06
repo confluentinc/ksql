@@ -44,7 +44,7 @@ public final class StreamGroupByBuilder {
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
-    final Formats formats = step.getFormats();
+    final Formats formats = step.getInternalFormats();
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,
         sourceSchema,
@@ -63,7 +63,7 @@ public final class StreamGroupByBuilder {
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
-    final Formats formats = step.getFormats();
+    final Formats formats = step.getInternalFormats();
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,
         sourceSchema,

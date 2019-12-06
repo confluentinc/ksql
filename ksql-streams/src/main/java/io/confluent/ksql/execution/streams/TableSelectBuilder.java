@@ -15,30 +15,33 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;
 
-public final class StreamMapValuesBuilder {
-  private StreamMapValuesBuilder() {
+public final class TableSelectBuilder {
+
+  private TableSelectBuilder() {
   }
 
-  public static <K> KStreamHolder<K> build(
-      final KStreamHolder<K> stream,
-      final StreamMapValues<K> step,
+  @SuppressWarnings("unchecked")
+  public static <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableSelect<K> step,
       final KsqlQueryBuilder queryBuilder
   ) {
+    final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
-
-    final LogicalSchema sourceSchema = stream.getSchema();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,
@@ -53,18 +56,28 @@ public final class StreamMapValuesBuilder {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
+            QueryLoggerUtil.queryLoggerName(
+                queryBuilder.getQueryId(),
+                queryContext
+            )
         );
 
-    final Named selectName =
-        Named.as(StreamsUtil.buildOpName(queryContext));
+    final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 
-    return stream.withStream(
-        stream.getStream().transformValues(
-            () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
-            selectName
-        ),
-        selection.getSchema()
-    );
+    return table
+        .withTable(
+            table.getTable().transformValues(
+                () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+                selectName
+            ),
+            selection.getSchema()
+        )
+        .withMaterialization(
+            table.getMaterializationBuilder().map(b -> b.map(
+                pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+                selection.getSchema(),
+                queryContext
+            ))
+        );
   }
 }

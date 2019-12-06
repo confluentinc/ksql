@@ -53,7 +53,7 @@ public final class AvroUtil {
         ksqlConfig
     );
 
-    final String topicName = ddl.getKafkaTopicName();
+    final String topicName = ddl.getTopicName();
 
     if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
       throw new KsqlStatementException(String.format(

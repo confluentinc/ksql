@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -32,14 +32,18 @@ import java.util.Objects;
 public class RepartitionNode extends PlanNode {
 
   private final PlanNode source;
-  private final ColumnRef partitionBy;
+  private final Expression partitionBy;
   private final KeyField keyField;
 
-  public RepartitionNode(PlanNodeId id, PlanNode source, ColumnRef partitionBy, KeyField keyField) {
+  public RepartitionNode(
+      PlanNodeId id,
+      PlanNode source,
+      Expression partitionBy,
+      KeyField keyField
+  ) {
     super(id, source.getNodeOutputType());
-    final SourceName alias = source.getTheSourceNode().getAlias();
     this.source = Objects.requireNonNull(source, "source");
-    this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy").withSource(alias);
+    this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
   }
 
@@ -72,5 +76,10 @@ public class RepartitionNode extends PlanNode {
   public SchemaKStream<?> buildStream(KsqlQueryBuilder builder) {
     return source.buildStream(builder)
         .selectKey(partitionBy, builder.buildNodeContext(getId().toString()));
+  }
+
+  @VisibleForTesting
+  public Expression getPartitionBy() {
+    return partitionBy;
   }
 }

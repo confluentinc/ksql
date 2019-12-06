@@ -420,12 +420,12 @@
         "source" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
-        "fieldName" : {
+        "keyExpression" : {
           "type" : "string"
         }
       },
       "title" : "streamSelectKeyV1",
-      "required" : [ "@type", "properties", "source", "fieldName" ]
+      "required" : [ "@type", "properties", "source", "keyExpression" ]
     },
     "StreamSink" : {
       "type" : "object",

@@ -404,7 +404,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          getPartitionBy(context.partitionBy),
+          visitIfPresent(context.partitionBy, Expression.class),
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
           pullQuery,
@@ -1119,19 +1119,6 @@ public class AstBuilder {
           .map(this::visit)
           .map(clazz::cast)
           .collect(toList());
-    }
-
-    private static Optional<Expression> getPartitionBy(
-        final SqlBaseParser.IdentifierContext identifier
-    ) {
-      if (identifier == null) {
-        return Optional.empty();
-      }
-
-      final Optional<NodeLocation> location = getLocation(identifier);
-      final ColumnRef name = ColumnRef.withoutSource(
-          ColumnName.of(ParserUtil.getIdentifierText(identifier)));
-      return Optional.of(new ColumnReferenceExp(location, name));
     }
 
     private static Operator getArithmeticBinaryOperator(

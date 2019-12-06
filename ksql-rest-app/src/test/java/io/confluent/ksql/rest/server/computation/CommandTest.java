@@ -59,24 +59,6 @@ public class CommandTest {
     assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
   }
 
-  @Test
-  public void shouldDeserializeWithoutUseOffsetAsQueryIDCorrectly() throws IOException {
-    final String commandStr = "{" +
-            "\"statement\": \"test statement;\", " +
-            "\"streamsProperties\": {\"foo\": \"bar\"}, " +
-            "\"originalProperties\": {\"biz\": \"baz\"} " +
-            "}";
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
-    final Command command = mapper.readValue(commandStr, Command.class);
-    assertThat(command.getStatement(), equalTo("test statement;"));
-    final Map<String, Object> expecteOverwriteProperties
-            = Collections.singletonMap("foo", "bar");
-    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
-    final Map<String, Object> expectedOriginalProperties
-            = Collections.singletonMap("biz", "baz");
-    assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
-  }
-
   private void grep(final String string, final String regex) {
     assertThat(string.matches(regex), is(true));
   }

@@ -21,8 +21,7 @@ especially on a production system.
 
 ## What is in scope
 
-We would like to extend `(LIST|SHOW) PROPERTIES` `KSQL` command to `(LIST|SHOW) PROPERTIES (CONNECT)?` 
-that could be run from `ksql cli` and prints connect worker configuration.
+We would like to extend `(LIST|SHOW) PROPERTIES` `KSQL` command to print embedded connect worker configuration.
 
 ## What is not in scope
 
@@ -36,13 +35,12 @@ from the `ksql cli` that gives better user experience.
 
 ## Public APIS
 
-We need to make small change to KSQL query language by introducing new keyword `CONNECT`.
+No changes to API are required.
 
 ## Design
 
-One of the way to implement it is to add a `flag` field to `ListProperties` statement class. The `flag` 
-will be set if key word `(LIST|SHOW) PROPERTIES` follows by `CONNECT` keyword. Base on `flag` print 
-connect worker or all configuration properties.
+One of the way to implement it is to read file at `ksql.connect.worker.config` location and if it exists
+and not empty merge connect worker properties with global one.
 
 ## Test plan
 
@@ -50,11 +48,11 @@ New unit/module level tests will be written as appropriate.
 
 ## Documentation Updates
 
-Documentation should reflect that new extension is introduced to `(LIST|SHOW) PROPERTIES` `KSQL` command.
+Documentation should reflect that `(LIST|SHOW) PROPERTIES` `KSQL` command prints connect worker properties also.
 
 # Compatibility Implications
 
-The only implication is that we are introducing new keyword `CONNECT` that should be supported.
+No compatibility implications.
 
 ## Performance Implications
 

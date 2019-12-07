@@ -20,14 +20,17 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
+import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -41,12 +44,14 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.SerdeUtil;
@@ -55,6 +60,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +76,8 @@ import org.apache.kafka.streams.TopologyTestDriver;
 @SuppressWarnings("deprecation")
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
 
   private TestExecutorUtil() {
   }
@@ -275,7 +283,6 @@ public final class TestExecutorUtil {
         .collect(Collectors.toList());
   }
 
-
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static ExecuteResultAndSortedSources execute(
       final KsqlExecutionContext executionContext,
@@ -308,7 +315,7 @@ public final class TestExecutorUtil {
 
     final ExecuteResult executeResult;
     try {
-      executeResult = executionContext.execute(executionContext.getServiceContext(), reformatted);
+      executeResult = executeConfiguredStatement(executionContext, reformatted);
     } catch (final KsqlStatementException statementException) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement
@@ -337,6 +344,31 @@ public final class TestExecutorUtil {
         executeResult,
         null,
         Optional.empty());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ExecuteResult executeConfiguredStatement(
+      final KsqlExecutionContext executionContext,
+      final ConfiguredStatement<?> stmt) {
+    final ConfiguredKsqlPlan configuredPlan;
+    try {
+      configuredPlan = buildConfiguredPlan(executionContext, stmt);
+    } catch (final IOException e) {
+      throw new TestFrameworkException("Error (de)serializing plan: " + e.getMessage(), e);
+    }
+    return executionContext.execute(executionContext.getServiceContext(), configuredPlan);
+  }
+
+  private static ConfiguredKsqlPlan buildConfiguredPlan(
+      final KsqlExecutionContext executionContext,
+      final ConfiguredStatement<?> stmt
+  ) throws IOException {
+    final KsqlPlan plan = executionContext.plan(executionContext.getServiceContext(), stmt);
+    final String serialized = PLAN_MAPPER.writeValueAsString(plan);
+    return ConfiguredKsqlPlan.of(
+        PLAN_MAPPER.readValue(serialized, KsqlPlan.class),
+        stmt.getOverrides(),
+        stmt.getConfig());
   }
 
   private static Optional<Long> getWindowSize(final Query query) {

@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
@@ -53,7 +53,7 @@ public class TableRowsEntityTest {
     MAPPER = new ObjectMapper();
     MAPPER.registerModule(new Jdk8Module());
     MAPPER.registerModule(new KsqlTypesSerializationModule());
-    MAPPER.registerModule(new KsqlTypesDeserializationModule());
+    MAPPER.registerModule(new KsqlTypesDeserializationModule(false));
   }
 
   @Test(expected = IllegalArgumentException.class)

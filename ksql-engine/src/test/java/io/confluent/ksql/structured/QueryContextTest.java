@@ -18,13 +18,18 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.context.QueryContext;
+import java.io.IOException;
 import org.junit.Test;
 
 public class QueryContextTest {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
   private final QueryContext.Stacker contextStacker = new QueryContext.Stacker().push("node");
   private final QueryContext queryContext = contextStacker.getQueryContext();
 
@@ -50,5 +55,27 @@ public class QueryContextTest {
     assertQueryContext(queryContext, "node");
     assertQueryContext(childContext, "node", "child");
     assertQueryContext(grandchildContext, "node", "child", "grandchild");
+  }
+
+  @Test
+  public void shouldSerializeCorrectly() throws IOException {
+    // Given:
+    final QueryContext context = contextStacker.push("child").getQueryContext();
+
+    // When:
+    final String serialized = MAPPER.writeValueAsString(context);
+
+    // Then:
+    assertThat(serialized, is("\"node/child\""));
+  }
+
+  @Test
+  public void shouldDeserializeCorrectly() throws IOException {
+    // When:
+    final QueryContext deserialized = MAPPER.readValue("\"node/child\"", QueryContext.class);
+
+    // Then:
+    final QueryContext expected = contextStacker.push("child").getQueryContext();
+    assertThat(deserialized, is(expected));
   }
 }

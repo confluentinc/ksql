@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.context;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -43,12 +44,12 @@ public final class QueryContext {
     }
   }
 
-  @SuppressWarnings("unused")// Invoked via reflection by Jackson
   @JsonCreator
-  private QueryContext(final String context) {
+  private QueryContext(String context) {
     this(ImmutableList.copyOf(context.split(DELIMITER)));
   }
 
+  @JsonIgnore
   public List<String> getContext() {
     return context;
   }

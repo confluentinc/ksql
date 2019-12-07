@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +35,7 @@ public final class KsqlClient implements AutoCloseable {
   static {
     JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-    JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule());
+    JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule(false));
   }
 
   private final Client httpClient;

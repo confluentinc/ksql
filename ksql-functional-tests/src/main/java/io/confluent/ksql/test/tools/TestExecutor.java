@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -34,11 +35,18 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
@@ -48,6 +56,7 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,6 +67,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -81,6 +91,9 @@ public class TestExecutor implements Closeable {
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
+
+  private static final Pattern INTERNAL_TOPIC_PATTERN = Pattern
+      .compile("_confluent.*query_(.*_\\d+)-.*-(changelog|repartition)");
 
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
@@ -222,7 +235,7 @@ public class TestExecutor implements Closeable {
         ));
   }
 
-  private static void validateTopicData(
+  private void validateTopicData(
       final String topicName,
       final List<Record> expected,
       final List<StubKafkaRecord> actual,
@@ -233,8 +246,10 @@ public class TestExecutor implements Closeable {
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
 
+    final Function<Object, Object> keyCoercer = keyCoercerForTopic(topicName);
+
     for (int i = 0; i < expected.size(); i++) {
-      final Record expectedRecord = expected.get(i);
+      final Record expectedRecord = expected.get(i).coerceKey(keyCoercer);
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
 
       validateCreatedMessage(
@@ -245,6 +260,66 @@ public class TestExecutor implements Closeable {
           i
       );
     }
+  }
+
+  private Function<Object, Object> keyCoercerForTopic(final String topicName) {
+    final SqlType keyType = getKeyType(topicName);
+
+    return key -> {
+      if (key == null) {
+        return null;
+      }
+      return DefaultSqlValueCoercer.INSTANCE
+          .coerce(key, keyType)
+          .orElseThrow(() -> new TestFrameworkException("Failed to coerce key to required type. "
+              + "type: " + keyType
+              + ", key: " + key));
+    };
+  }
+
+  private SqlType getKeyType(final String topicName) {
+    try {
+      final java.util.regex.Matcher matcher = INTERNAL_TOPIC_PATTERN.matcher(topicName);
+      if (matcher.matches()) {
+        // Internal topic:
+        final QueryId queryId = new QueryId(matcher.group(1));
+        final PersistentQueryMetadata query = ksqlEngine
+            .getPersistentQuery(queryId)
+            .orElseThrow(() -> new TestFrameworkException("Unknown queryId for internal topic: "
+                + queryId));
+
+        final SourceName sinkName = query.getSinkName();
+        final DataSource<?> source = ksqlEngine.getMetaStore().getSource(sinkName);
+        return getKeyType(source);
+      }
+
+      // Source / sink topic:
+      final Set<SqlType> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
+          .stream()
+          .filter(source -> source.getKafkaTopicName().equals(topicName))
+          .map(TestExecutor::getKeyType)
+          .collect(Collectors.toSet());
+
+      if (keyTypes.isEmpty()) {
+        throw new TestFrameworkException("no source found for topic");
+      }
+
+      return Iterables.get(keyTypes, 0);
+    } catch (final Exception e) {
+      throw new TestFrameworkException("Failed to determine key type for"
+          + System.lineSeparator() + "topic: " + topicName
+          + System.lineSeparator() + "reason: " + e.getMessage(), e);
+    }
+  }
+
+  private static SqlType getKeyType(final DataSource<?> source) {
+    final List<Column> keyColumns = source.getSchema().key();
+    if (keyColumns.size() != 1) {
+      throw new UnsupportedOperationException("only single key columns currently supported. "
+          + "got: " + keyColumns);
+    }
+
+    return keyColumns.get(0).type();
   }
 
   private static String getActualsForErrorMessage(final List<StubKafkaRecord> actual) {
@@ -288,7 +363,7 @@ public class TestExecutor implements Closeable {
     });
   }
 
-  private static void pipeRecordsFromProvidedInput(
+  private void pipeRecordsFromProvidedInput(
       final TestCase testCase,
       final StubKafkaService stubKafkaService,
       final TopologyTestDriverContainer topologyTestDriverContainer,
@@ -297,9 +372,12 @@ public class TestExecutor implements Closeable {
 
     for (final Record record : testCase.getInputRecords()) {
       if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
+
+        final Record coerced = record.coerceKey(keyCoercerForTopic(record.topic.getName()));
+
         processSingleRecord(
             testCase,
-            StubKafkaRecord.of(record, null),
+            StubKafkaRecord.of(coerced, null),
             stubKafkaService,
             topologyTestDriverContainer,
             serviceContext.getSchemaRegistryClient(),

@@ -10,16 +10,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 0}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 500}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 100}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 0}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 0}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 100}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 500}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 600}}
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 0}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 100}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 600}}
       ]
     },
     {
@@ -31,24 +31,24 @@
         "CREATE TABLE OUTPUT AS SELECT t1.id as ID, SUM(t2.total) as SUM FROM T1 LEFT JOIN T2 ON (t1.id = t2.id) GROUP BY t1.id;"
       ],
       "inputs": [
-        {"topic": "T1", "key": 0, "value": {"id": 0, "total": 100}},
-        {"topic": "T1", "key": 1, "value": {"id": 1, "total": 101}},
-        {"topic": "T2", "key": 0, "value": {"id": 0, "total": 5}},
-        {"topic": "T2", "key": 1, "value": {"id": 1, "total": 10}},
-        {"topic": "T2", "key": 0, "value": {"id": 0, "total": 20}},
-        {"topic": "T2", "key": 0, "value": null}
+        {"topic": "T1", "key": "0", "value": {"id": 0, "total": 100}},
+        {"topic": "T1", "key": "1", "value": {"id": 1, "total": 101}},
+        {"topic": "T2", "key": "0", "value": {"id": 0, "total": 5}},
+        {"topic": "T2", "key": "1", "value": {"id": 1, "total": 10}},
+        {"topic": "T2", "key": "0", "value": {"id": 0, "total": 20}},
+        {"topic": "T2", "key": "0", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 5}},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "SUM": 10}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 20}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "SUM": 0}}
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 5}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 10}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 20}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}}
       ]
     },
     {
@@ -58,16 +58,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) as SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 2147483648}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 500}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 100}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 2147483648}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 2147483648}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 2147483748}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 500}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 600}}
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 2147483648}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 2147483748}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 600}}
       ]
     },
     {
@@ -77,16 +77,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 5.4}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100.1}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 500.9}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 300.8}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 5.4}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100.1}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500.9}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 300.8}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 5.4}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": 105.5}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 500.9}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": 801.7}}
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 5.4}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 105.5}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500.9}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 801.7}}
       ]
     },
     {
@@ -96,16 +96,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "5.4"}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "100.1"}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": "500.9"}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": "300.8"}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "5.4"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "100.1"}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "500.9"}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "300.8"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": "005.4"}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "SUM": "105.5"}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": "500.9"}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "SUM": "801.7"}}
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": "005.4"}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": "105.5"}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": "500.9"}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": "801.7"}}
       ]
     },
     {
@@ -115,18 +115,18 @@
         "CREATE TABLE S2 as SELECT id, sum(value['key1']) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":20.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":30.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":40.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":50.0}}
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":20.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":30.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":40.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":50.0}}
       ]
     },
     {
@@ -136,18 +136,18 @@
         "CREATE TABLE S2 as SELECT id, sum(2) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}}
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
@@ -157,18 +157,18 @@
         "CREATE TABLE S2 as SELECT id, sum(cast (2 as BIGINT)) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}}
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
@@ -178,18 +178,18 @@
         "CREATE TABLE S2 as SELECT id, sum(1.0) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":1.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":3.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4.0}},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":5.0}}
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":1.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":3.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4.0}},
+        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":5.0}}
       ]
     },
     {
@@ -199,16 +199,16 @@
         "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[2.0, 2.0]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[922337203685.0, 1.0]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0, null]}}
+        {"topic": "test_topic", "key": "0", "value": {"value":[1.0, 1.0]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[2.0, 2.0]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[922337203685.0, 1.0]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[1.0, 1.0, null]}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2.0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6.0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":922337203692.0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":922337203694.0}}
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":2.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":6.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203692.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":922337203694.0}}
       ]
     },
     {
@@ -218,16 +218,16 @@
         "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"value":[1, 1]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[2, 2]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100, null]}}
+        {"topic": "test_topic", "key": "0", "value": {"value":[1, 1]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[2, 2]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[100, 100]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[100, 100, null]}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":206}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":406}}
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":2}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":6}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":206}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":406}}
       ]
     },
     {
@@ -237,16 +237,16 @@
         "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"value":[1, 1]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[2, 2]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100, null]}}
+        {"topic": "test_topic", "key": "0", "value": {"value":[1, 1]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[2, 2]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[100, 100]}},
+        {"topic": "test_topic", "key": "0", "value": {"value":[100, 100, null]}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":206}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":406}}
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":2}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":6}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":206}},
+        {"topic": "OUTPUT", "key": "0", "value": {"SUM_VAL":406}}
       ]
     }
   ]

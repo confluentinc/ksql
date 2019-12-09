@@ -26,10 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
-import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -61,8 +61,8 @@ public final class StubInsertValuesExecutorTest {
         new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
-        1,
-        Optional.empty()));
+        1
+    ));
 
     stubProducer = new StubProducer(stubKafkaService);
   }
@@ -126,8 +126,8 @@ public final class StubInsertValuesExecutorTest {
         new StringSerdeSupplier(),
         new AvroSerdeSupplier(),
         1,
-        1,
-        Optional.empty()));
+        1
+    ));
 
     final long timestamp = 22L;
     final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(

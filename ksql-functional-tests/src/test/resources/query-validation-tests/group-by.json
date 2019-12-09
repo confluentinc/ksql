@@ -74,11 +74,11 @@
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 3, "value": "3,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "3", "value": "3,a"}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
@@ -101,11 +101,11 @@
       ],
       "format": ["AVRO", "JSON"],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": 3, "value": {"F1": 3, "F2": "a"}}
+        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": "3", "value": {"F1": 3, "F2": "a"}}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
@@ -127,11 +127,11 @@
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f3, (f2, f1);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
-        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
-        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
-        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
-        {"topic": "test_topic", "key": 3, "value": "3,a,-3"}
+        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
+        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
+        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
+        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
+        {"topic": "test_topic", "key": "3", "value": "3,a,-3"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "-1|+|a|+|1", "value": "1,a,1"},
@@ -148,11 +148,11 @@
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"},
-        {"topic": "test_topic", "key": 2, "value": null},
-        {"topic": "test_topic", "key": 1, "value": "1,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"},
+        {"topic": "test_topic", "key": "2", "value": null},
+        {"topic": "test_topic", "key": "1", "value": "1,a"}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
@@ -179,11 +179,11 @@
       ],
       "format": ["AVRO", "JSON"],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "b"}},
-        {"topic": "test_topic", "key": 2, "value": null},
-        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}}
+        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "b"}},
+        {"topic": "test_topic", "key": "2", "value": null},
+        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
@@ -494,11 +494,11 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"}
+        {"topic": "test_topic", "key": "1", "value": "-"},
+        {"topic": "test_topic", "key": "2", "value": "-"},
+        {"topic": "test_topic", "key": "1", "value": "-"},
+        {"topic": "test_topic", "key": "2", "value": "-"},
+        {"topic": "test_topic", "key": "1", "value": "-"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": "1"},
@@ -518,11 +518,11 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"},
-        {"topic": "test_topic", "key": 2, "value": "-"},
-        {"topic": "test_topic", "key": 1, "value": "-"}
+        {"topic": "test_topic", "key": "1", "value": "-"},
+        {"topic": "test_topic", "key": "2", "value": "-"},
+        {"topic": "test_topic", "key": "1", "value": "-"},
+        {"topic": "test_topic", "key": "2", "value": "-"},
+        {"topic": "test_topic", "key": "1", "value": "-"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": "1"},
@@ -837,12 +837,12 @@
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(f1) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 1 AND f1=1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,a"},
-        {"topic": "test_topic", "key": 0, "value": "2,b"},
-        {"topic": "test_topic", "key": 0, "value": "1,test"},
-        {"topic": "test_topic", "key": 0, "value": "2,test"},
-        {"topic": "test_topic", "key": 0, "value": "2,test"},
-        {"topic": "test_topic", "key": 0, "value": "1,test"}
+        {"topic": "test_topic", "key": "0", "value": "1,a"},
+        {"topic": "test_topic", "key": "0", "value": "2,b"},
+        {"topic": "test_topic", "key": "0", "value": "1,test"},
+        {"topic": "test_topic", "key": "0", "value": "2,test"},
+        {"topic": "test_topic", "key": "0", "value": "2,test"},
+        {"topic": "test_topic", "key": "0", "value": "1,test"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": null},
@@ -883,11 +883,11 @@
         "CREATE TABLE OUTPUT AS SELECT f2, SUM(f1) FROM TEST GROUP BY f2 HAVING f2='test';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,a"},
-        {"topic": "test_topic", "key": 0, "value": "2,b"},
-        {"topic": "test_topic", "key": 0, "value": "2,test"},
-        {"topic": "test_topic", "key": 0, "value": "2,b"},
-        {"topic": "test_topic", "key": 0, "value": "3,test"}
+        {"topic": "test_topic", "key": "0", "value": "1,a"},
+        {"topic": "test_topic", "key": "0", "value": "2,b"},
+        {"topic": "test_topic", "key": "0", "value": "2,test"},
+        {"topic": "test_topic", "key": "0", "value": "2,b"},
+        {"topic": "test_topic", "key": "0", "value": "3,test"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "a", "value": null},
@@ -904,11 +904,11 @@
         "CREATE TABLE OUTPUT AS SELECT f1, 'some constant' as f3, COUNT(f1) FROM TEST GROUP BY f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1"},
-        {"topic": "test_topic", "key": 2, "value": "2"},
-        {"topic": "test_topic", "key": 1, "value": "1"},
-        {"topic": "test_topic", "key": 2, "value": "2"},
-        {"topic": "test_topic", "key": 3, "value": "3"}
+        {"topic": "test_topic", "key": "1", "value": "1"},
+        {"topic": "test_topic", "key": "2", "value": "2"},
+        {"topic": "test_topic", "key": "1", "value": "1"},
+        {"topic": "test_topic", "key": "2", "value": "2"},
+        {"topic": "test_topic", "key": "3", "value": "3"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": "1,some constant,1"},
@@ -945,11 +945,11 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY f2;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"},
-        {"topic": "test_topic", "key": 2, "value": null},
-        {"topic": "test_topic", "key": 1, "value": "1,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"},
+        {"topic": "test_topic", "key": "2", "value": null},
+        {"topic": "test_topic", "key": "1", "value": "1,a"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "a", "value": "1"},

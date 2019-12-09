@@ -32,7 +32,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class DefaultSqlValueCoercer implements SqlValueCoercer {
+public enum DefaultSqlValueCoercer implements SqlValueCoercer {
+
+  INSTANCE;
 
   private static final Map<SqlBaseType, Function<Number, Number>> UPCASTER =
       ImmutableMap.<SqlBaseType, Function<Number, Number>>builder()

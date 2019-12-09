@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
@@ -32,16 +33,17 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 
 public class Record {
+
   final Topic topic;
-  private final String key;
+  private final Object key;
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
-  private Optional<JsonNode> jsonValue;
+  private final Optional<JsonNode> jsonValue;
 
   public Record(
       final Topic topic,
-      final String key,
+      final Object key,
       final Object value,
       final JsonNode jsonValue,
       final long timestamp,
@@ -52,7 +54,7 @@ public class Record {
 
   public Record(
       final Topic topic,
-      final String key,
+      final Object key,
       final Object value,
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
@@ -89,16 +91,15 @@ public class Record {
         : new TimeWindowedDeserializer<>(inner, window.size());
   }
 
-  @SuppressWarnings("unchecked")
-  public <W> W key() {
+  public Object key() {
     if (window == null) {
-      return (W) key;
+      return key;
     }
 
     final Window w = window.type == WindowData.Type.SESSION
         ? new SessionWindow(this.window.start, this.window.end)
         : new TimeWindow(this.window.start, this.window.end);
-    return (W) new Windowed<>(key, w);
+    return new Windowed<>(key, w);
   }
 
   public Object value() {
@@ -122,5 +123,26 @@ public class Record {
 
   public Optional<JsonNode> getJsonValue() {
     return jsonValue;
+  }
+
+  /**
+   * Coerce the key value to the correct type.
+   *
+   * <p>The type of the key loaded from the JSON test case file may not be the exact match on type,
+   * e.g. JSON will load a small number as an integer, but the key type of the source might be a
+   * long.
+   *
+   * @param keyCoercer function to coerce the key to the right type
+   * @return a new Record with the correct key type.
+   */
+  public Record coerceKey(final Function<Object, Object> keyCoercer) {
+    return new Record(
+        topic,
+        keyCoercer.apply(key),
+        value,
+        jsonValue.orElse(null),
+        timestamp,
+        window
+    );
   }
 }

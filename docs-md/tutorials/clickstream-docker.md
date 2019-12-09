@@ -166,7 +166,7 @@ Load the Streaming Data to KSQL
 1.  Launch the KSQL CLI:
 
     ```bash
-    docker-compose exec ksql-cli ksql http://ksqldb-server:8088
+    docker-compose exec ksql-cli ksql http://ksql-server:8088
     ```
 
     You should now be in the KSQL CLI.
@@ -185,7 +185,7 @@ Load the Streaming Data to KSQL
 
     Copyright 2017-2019 Confluent Inc.
 
-    CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksqldb-server:8088
+    CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
 
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

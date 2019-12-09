@@ -15,28 +15,45 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
+
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -45,7 +62,11 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
+  private static long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+  
   @Mock
   private InteractiveStatementExecutor statementExecutor;
   @Mock
@@ -56,6 +77,8 @@ public class CommandRunnerTest {
   private ServerState serverState;
   @Mock
   private KsqlEngine ksqlEngine;
+  @Mock
+  private Clock clock;
   @Mock
   private Command command;
   @Mock
@@ -72,6 +95,7 @@ public class CommandRunnerTest {
 
   @Before
   public void setup() {
+    MetricCollectors.initialize();
     when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
     when(command.getStatement()).thenReturn("something that is not terminate");
@@ -87,10 +111,15 @@ public class CommandRunnerTest {
     commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
-        1,
+        3,
         clusterTerminator,
         executor,
-        serverState);
+        serverState,
+        "ksql-service-id",
+        Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
+        "",
+        clock
+    );
   }
 
   @Test
@@ -152,6 +181,37 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleStatement(queuedCommand3);
   }
 
+
+  @Test
+  public void shouldRetryOnException() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
+    doThrow(new RuntimeException())
+        .doThrow(new RuntimeException())
+        .doNothing().when(statementExecutor).handleStatement(queuedCommand2);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor, times(1)).handleStatement(queuedCommand1);
+    inOrder.verify(statementExecutor, times(3)).handleStatement(queuedCommand2);
+  }
+
+  @Test
+  public void shouldThrowExceptionIfOverMaxRetries() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
+    doThrow(new RuntimeException()).when(statementExecutor).handleStatement(queuedCommand2);
+
+    // Expect:
+    expectedException.expect(RuntimeException.class);
+    
+    // When:
+    commandRunner.fetchAndRunCommands();
+  }
+
   @Test
   public void shouldEarlyOutIfNewCommandsContainsTerminate() {
     // Given:
@@ -165,6 +225,45 @@ public class CommandRunnerTest {
     verify(statementExecutor, never()).handleRestore(queuedCommand1);
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
+  }
+
+  @Test
+  public void shouldTransitionFromRunningToError() throws InterruptedException {
+    // Given:
+    givenQueuedCommands(queuedCommand1);
+
+    final Instant current = Instant.now();
+    final CountDownLatch handleStatementLatch = new CountDownLatch(1);
+    final CountDownLatch commandSetLatch = new CountDownLatch(1);
+    when(clock.instant()).thenReturn(current)
+        .thenReturn(current.plusMillis(500))
+        .thenReturn(current.plusMillis(1500))
+        .thenReturn(current.plusMillis(2500));
+    doAnswer(invocation -> {
+      commandSetLatch.countDown();
+      handleStatementLatch.await();
+      return null;
+    }).when(statementExecutor).handleStatement(queuedCommand1);
+
+    // When:
+    AtomicReference<Exception> expectedException = new AtomicReference<>(null);
+    final Thread commandRunnerThread = (new Thread(() -> {
+      try {
+        commandRunner.fetchAndRunCommands();
+      } catch (Exception e) {
+        expectedException.set(e);
+      }
+    }));
+
+    // Then:
+    commandRunnerThread.start();
+    commandSetLatch.await();
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.RUNNING));
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.ERROR));
+    handleStatementLatch.countDown();
+    commandRunnerThread.join();
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.RUNNING));
+    assertThat(expectedException.get(), equalTo(null));
   }
 
   @Test

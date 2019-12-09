@@ -79,15 +79,15 @@ public final class StreamAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         AggregateBuilderUtils.buildMaterialized(
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
-            aggregate.getFormats(),
+            aggregate.getInternalFormats(),
             queryBuilder,
             materializedFactory
         );
@@ -103,7 +103,7 @@ public final class StreamAggregateBuilder {
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
             aggregateParams.getAggregator(),
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
             resultSchema
         );
@@ -111,7 +111,8 @@ public final class StreamAggregateBuilder {
     final KTable<Struct, GenericRow> result = aggregated
         .transformValues(
             () -> new KsTransformer<>(aggregator.getResultMapper()),
-            Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+            Named.as(StreamsUtil.buildOpName(
+                AggregateBuilderUtils.outputContext(aggregate)))
         );
 
     return KTableHolder.materialized(
@@ -150,7 +151,7 @@ public final class StreamAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
@@ -171,13 +172,13 @@ public final class StreamAggregateBuilder {
 
     KTable<Windowed<Struct>, GenericRow> reduced = aggregated.transformValues(
         () -> new KsTransformer<>(aggregator.getResultMapper()),
-        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+        Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
             aggregateParams.getAggregator(),
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
             resultSchema
         );
@@ -186,7 +187,7 @@ public final class StreamAggregateBuilder {
     if (windowSelectMapper.hasSelects()) {
       reduced = reduced.transformValues(
           () -> new KsTransformer<>(windowSelectMapper.getTransformer()),
-          Named.as(queryBuilder.buildUniqueNodeName("AGGREGATE-WINDOW-SELECT"))
+          Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.windowSelectContext(aggregate)))
       );
     }
 
@@ -221,12 +222,13 @@ public final class StreamAggregateBuilder {
       this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
       this.materializedFactory = Objects.requireNonNull(materializedFactory, "materializedFactory");
       this.aggregateParams = Objects.requireNonNull(aggregateParams, "aggregateParams");
-      this.queryContext = aggregate.getProperties().getQueryContext();
-      this.formats = aggregate.getFormats();
+      this.queryContext = AggregateBuilderUtils.materializeContext(aggregate);
+      this.formats = aggregate.getInternalFormats();
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
           aggregateSchema,
           formats.getOptions()
       );
+
       keySerde = queryBuilder.buildKeySerde(
           formats.getKeyFormat(),
           physicalSchema,

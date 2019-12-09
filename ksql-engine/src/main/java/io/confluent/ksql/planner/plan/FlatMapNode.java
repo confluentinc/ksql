@@ -111,7 +111,6 @@ public class FlatMapNode extends PlanNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
     return getSource().buildStream(builder).flatMap(
-        outputSchema,
         analysis.getTableFunctions(),
         contextStacker
     );

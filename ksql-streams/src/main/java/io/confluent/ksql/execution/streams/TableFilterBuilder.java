@@ -29,6 +29,10 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Named;
 
 public final class TableFilterBuilder {
+  private static final String PRE_PROCESS_OP = "ApplyPredicate";
+  private static final String FILTER_OP = "Filter";
+  private static final String POST_PROCESS_OP = "PostProcess";
+
 
   private TableFilterBuilder() {
   }
@@ -46,10 +50,6 @@ public final class TableFilterBuilder {
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory
   ) {
-    final Stacker contextStacker = Stacker.of(
-        step.getProperties().getQueryContext()
-    );
-
     final SqlPredicate predicate = sqlPredicateFactory.create(
         step.getFilterExpression(),
         table.getSchema(),
@@ -63,22 +63,23 @@ public final class TableFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push(step.getStepName()).getQueryContext()
+                step.getProperties().getQueryContext()
             )
         );
 
+    final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
     final KTable<K, GenericRow> filtered = table.getTable()
         .transformValues(
             () -> new KsTransformer<>(predicate.getTransformer(processingLogger)),
-            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName() + "-PRE-PROCESS"))
+            Named.as(StreamsUtil.buildOpName(stacker.push(PRE_PROCESS_OP).getQueryContext()))
         )
         .filter(
             (k, v) -> v.isPresent(),
-            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName()))
+            Named.as(StreamsUtil.buildOpName(stacker.push(FILTER_OP).getQueryContext()))
         )
         .mapValues(
             Optional::get,
-            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName() + "-POST-PROCESS"))
+            Named.as(StreamsUtil.buildOpName(stacker.push(POST_PROCESS_OP).getQueryContext()))
         );
 
     return table
@@ -89,7 +90,7 @@ public final class TableFilterBuilder {
         .withMaterialization(
             table.getMaterializationBuilder().map(b -> b.filter(
                 predicate::getTransformer,
-                step.getStepName()
+                step.getProperties().getQueryContext()
             ))
         );
   }

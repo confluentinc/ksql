@@ -15,18 +15,18 @@
         "CREATE TABLE AVG AS select id, abs(sum(value)/count(id)) * 10 as avg from test GROUP BY id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-50"},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-10"},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-15"},
-        {"topic": "test_topic", "key": 1, "value": "1,one,100"},
-        {"topic": "test_topic", "key": 1, "value": "1,one,10"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,-50"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,-10"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,-15"},
+        {"topic": "test_topic", "key": "1", "value": "1,one,100"},
+        {"topic": "test_topic", "key": "1", "value": "1,one,10"}
       ],
       "outputs": [
-        {"topic": "AVG", "key": 0, "value": "0,500"},
-        {"topic": "AVG", "key": 0, "value": "0,300"},
-        {"topic": "AVG", "key": 0, "value": "0,250"},
-        {"topic": "AVG", "key": 1, "value": "1,1000"},
-        {"topic": "AVG", "key": 1, "value": "1,550"}
+        {"topic": "AVG", "key": "0", "value": "0,500"},
+        {"topic": "AVG", "key": "0", "value": "0,300"},
+        {"topic": "AVG", "key": "0", "value": "0,250"},
+        {"topic": "AVG", "key": "1", "value": "1,1000"},
+        {"topic": "AVG", "key": "1", "value": "1,550"}
       ]
     }
   ]

@@ -17,7 +17,7 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +28,7 @@ import org.apache.kafka.connect.data.Struct;
 public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
 
   private final ExecutionStepPropertiesV1 properties;
-  private final ColumnRef fieldName;
+  private final Expression keyExpression;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<?>> source;
 
@@ -36,10 +36,11 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true)
       ExecutionStep<? extends KStreamHolder<?>> source,
-      @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName) {
+      @JsonProperty(value = "keyExpression", required = true) Expression keyExpression
+  ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+    this.keyExpression = Objects.requireNonNull(keyExpression, "keyExpression");
   }
 
   @Override
@@ -53,8 +54,8 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
     return Collections.singletonList(source);
   }
 
-  public ColumnRef getFieldName() {
-    return fieldName;
+  public Expression getKeyExpression() {
+    return keyExpression;
   }
 
   public ExecutionStep<? extends KStreamHolder<?>> getSource() {

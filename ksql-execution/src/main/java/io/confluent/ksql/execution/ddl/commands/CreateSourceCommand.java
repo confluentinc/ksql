@@ -34,7 +34,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final LogicalSchema schema;
   private final Optional<ColumnName> keyField;
   private final Optional<TimestampColumn> timestampColumn;
-  private final String kafkaTopicName;
+  private final String topicName;
   private final Formats formats;
   private final Optional<WindowInfo> windowInfo;
 
@@ -43,7 +43,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final LogicalSchema schema,
       final Optional<ColumnName> keyField,
       final Optional<TimestampColumn> timestampColumn,
-      final String kafkaTopicName,
+      final String topicName,
       final Formats formats,
       final Optional<WindowInfo> windowInfo
   ) {
@@ -52,7 +52,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.timestampColumn =
         Objects.requireNonNull(timestampColumn, "timestampColumn");
-    this.kafkaTopicName = Objects.requireNonNull(kafkaTopicName, "kafkaTopicName");
+    this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
 
@@ -78,8 +78,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return keyField;
   }
 
-  public String getKafkaTopicName() {
-    return kafkaTopicName;
+  public String getTopicName() {
+    return topicName;
   }
 
   public Formats getFormats() {

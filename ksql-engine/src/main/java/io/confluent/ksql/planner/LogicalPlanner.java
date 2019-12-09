@@ -47,7 +47,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
@@ -199,26 +198,31 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
-    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+    return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
   private static RepartitionNode buildRepartitionNode(
       final PlanNode sourceNode,
-      final ColumnRef partitionBy
+      final Expression partitionBy
   ) {
-    if (!sourceNode.getSchema().withoutAlias().findValueColumn(partitionBy).isPresent()) {
-      throw new KsqlException("Invalid identifier for PARTITION BY clause: '" + partitionBy
-          + "'. Only columns from the source schema can be referenced in the PARTITION BY clause.");
+    if (!(partitionBy instanceof ColumnReferenceExp)) {
+      return new RepartitionNode(
+          new PlanNodeId("PartitionBy"),
+          sourceNode,
+          partitionBy,
+          KeyField.none());
     }
 
-    final KeyField keyField;
+    final ColumnRef partitionColumn = ((ColumnReferenceExp) partitionBy).getReference();
     final LogicalSchema schema = sourceNode.getSchema();
-    if (schema.isMetaColumn(partitionBy.name())) {
+
+    final KeyField keyField;
+    if (schema.isMetaColumn(partitionColumn.name())) {
       keyField = KeyField.none();
-    } else if (schema.isKeyColumn(partitionBy.name())) {
+    } else if (schema.isKeyColumn(partitionColumn.name())) {
       keyField = sourceNode.getKeyField();
     } else {
-      keyField = KeyField.of(partitionBy);
+      keyField = KeyField.of(partitionColumn);
     }
 
     return new RepartitionNode(
@@ -226,6 +230,7 @@ public class LogicalPlanner {
         sourceNode,
         partitionBy,
         keyField);
+
   }
 
   private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {

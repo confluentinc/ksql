@@ -46,7 +46,7 @@ public final class TableGroupByBuilder {
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
-    final Formats formats = step.getFormats();
+    final Formats formats = step.getInternalFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         sourceSchema,
         formats.getOptions()

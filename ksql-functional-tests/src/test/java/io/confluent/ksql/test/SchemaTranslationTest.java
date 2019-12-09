@@ -53,8 +53,8 @@ public class SchemaTranslationTest {
       new StringSerdeSupplier(),
       new ValueSpecAvroSerdeSupplier(),
       1,
-      1,
-      Optional.empty());
+      1
+  );
 
   private final TestCase testCase;
 
@@ -164,8 +164,7 @@ public class SchemaTranslationTest {
             new StringSerdeSupplier(),
             new AvroSerdeSupplier(),
             1,
-            1,
-            Optional.empty()
+            1
         );
 
         final List<Record> inputRecords = generateInputRecords(srcTopic, schema);

@@ -10,13 +10,13 @@
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) VAL FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"MY_ARR": [1, 2]}},
-        {"topic": "test_topic", "key": 1, "value": {"MY_ARR": [3, 4]}},
-        {"topic": "test_topic", "key": 2, "value": {"MY_ARR": [5]}},
-        {"topic": "test_topic", "key": 3, "value": {"MY_ARR": []}},
-        {"topic": "test_topic", "key": 4, "value": {"MY_ARR": [6]}},
-        {"topic": "test_topic", "key": 5, "value": {"MY_ARR":  null}},
-        {"topic": "test_topic", "key": 6, "value": {"MY_ARR": [7]}}
+        {"topic": "test_topic", "key": "0", "value": {"MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": "1", "value": {"MY_ARR": [3, 4]}},
+        {"topic": "test_topic", "key": "2", "value": {"MY_ARR": [5]}},
+        {"topic": "test_topic", "key": "3", "value": {"MY_ARR": []}},
+        {"topic": "test_topic", "key": "4", "value": {"MY_ARR": [6]}},
+        {"topic": "test_topic", "key": "5", "value": {"MY_ARR":  null}},
+        {"topic": "test_topic", "key": "6", "value": {"MY_ARR": [7]}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": {"VAL": 1}},
@@ -35,7 +35,7 @@
         "CREATE STREAM OUTPUT AS SELECT ABS(F1), EXPLODE(MY_ARR), ABS(F2) FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"F1": 1, "F2": 2, "MY_ARR": [1, 2]}}
+        {"topic": "test_topic", "key": "0", "value": {"F1": 1, "F2": 2, "MY_ARR": [1, 2]}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1, "KSQL_COL_2": 2}},
@@ -72,7 +72,7 @@
       ],
       "inputs": [
         {
-          "topic": "test_topic", "key": 0, "value": {"F0": [1, 2], "F1": [2, 3], "F2": [3.1, 4.1], "F3": [true, false], "F4": ["foo", "bar"], "F5": [123.456, 456.123]}
+          "topic": "test_topic", "key": "0", "value": {"F0": [1, 2], "F1": [2, 3], "F2": [3.1, 4.1], "F3": [true, false], "F4": ["foo", "bar"], "F5": [123.456, 456.123]}
         }
       ],
       "outputs": [

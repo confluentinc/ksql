@@ -7,7 +7,7 @@
         "CREATE STREAM OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
         {"topic": "input", "key": "", "value": {"id": 3}},
         {"topic": "input", "key": null, "value": {"id": 4}}
@@ -26,7 +26,7 @@
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
         {"topic": "input", "key": "", "value": {"id": 3}}
       ],
@@ -43,7 +43,7 @@
         "CREATE STREAM OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
         {"topic": "input", "key": "", "value": {"id": 3}},
         {"topic": "input", "key": null, "value": {"id": 4}}
@@ -62,7 +62,7 @@
         "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
         {"topic": "input", "key": "", "value": {"id": 3}}
       ],
@@ -94,6 +94,7 @@
     },
     {
       "name": "KEY key field name",
+      "comment": "tests that `KEY` is allowed as a KEY column name",
       "statements": [
         "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
@@ -104,12 +105,13 @@
     },
     {
       "name": "KEY value field name",
+      "comment": "tests that `KEY` is allowed as a column name",
       "statements": [
         "CREATE STREAM INPUT (KEY STRING, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input", "key": 1, "value": {"key": "a", "id": 1}}
+        {"topic": "input", "key": "1", "value": {"key": "a", "id": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "a"}}

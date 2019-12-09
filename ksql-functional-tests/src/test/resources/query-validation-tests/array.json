@@ -11,7 +11,7 @@
       ],
       "inputs": [
         {
-          "topic": "test_topic", "key": 1, "value": {
+          "topic": "test_topic", "key": "1", "value": {
           "INTMAP": {"K1": 1, "K2": 2, "K3": 3},
           "BIGINTMAP": {"K1": 1, "K2": 2, "K3": 3},
           "DOUBLEMAP": {"K1": 1.0, "K2": 2.0, "K3": 3.0},
@@ -23,7 +23,7 @@
       ],
       "outputs": [
         {
-          "topic": "OUTPUT", "key": 1,
+          "topic": "OUTPUT", "key": "1",
           "value": {
             "KSQL_COL_0": [{"K": "K1", "V": 1}, {"K": "K2", "V": 2}, {"K": "K3", "V": 3}],
             "KSQL_COL_1": [{"K": "K1", "V": 1}, {"K": "K2", "V": 2}, {"K": "K3", "V": 3}],
@@ -42,16 +42,16 @@
         "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1) FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 3}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": -2, "F1": 1}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 3}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 0}}
+        {"topic": "test_topic", "key": "1", "value": {"F0": 0, "F1": 3}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": -2, "F1": 1}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 4, "F1": 3}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 4, "F1": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [-2, -1, 0, 1]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [4, 3]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [4, 3, 2, 1, 0]}}
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [-2, -1, 0, 1]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [4, 3]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [4, 3, 2, 1, 0]}}
       ]
     },
     {
@@ -61,20 +61,20 @@
         "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1, F2) FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 3, "F2": 1}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": -2, "F1": 1, "F2": 2}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 9, "F2": 3}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 3, "F1": 0, "F2": -1}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 1, "F1": -2, "F2": -2}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 9, "F1": 0, "F2": -3}}
+        {"topic": "test_topic", "key": "1", "value": {"F0": 0, "F1": 3, "F2": 1}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": -2, "F1": 1, "F2": 2}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 0, "F1": 9, "F2": 3}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 3, "F1": 0, "F2": -1}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 1, "F1": -2, "F2": -2}},
+        {"topic": "test_topic", "key": "1", "value": {"F0": 9, "F1": 0, "F2": -3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [-2, 0]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 3, 6, 9]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [3, 2, 1, 0]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [1, -1]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [9, 6, 3, 0]}}
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [-2, 0]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [0, 3, 6, 9]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [3, 2, 1, 0]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [1, -1]}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": [9, 6, 3, 0]}}
       ]
     }
   ]

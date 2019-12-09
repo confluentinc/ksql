@@ -4,86 +4,80 @@
   "ksql.security.extension.class" : null,
   "ksql.transient.prefix" : "transient_",
   "ksql.persistence.wrap.single.values" : "true",
-  "ksql.named.internal.topics" : "on",
-  "ksql.windowed.session.key.legacy" : "false",
-  "ksql.query.stream.groupby.rowkey.repartition" : "false",
   "ksql.schema.registry.url" : "http://localhost:8081",
   "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
   "ksql.output.topic.name.prefix" : "",
   "ksql.streams.auto.offset.reset" : "earliest",
-  "ksql.sink.partitions" : null,
   "ksql.connect.url" : "http://localhost:8083",
-  "ksql.avro.maps.named" : "true",
   "ksql.service.id" : "some.ksql.service.id",
+  "ksql.internal.topic.min.insync.replicas" : "1",
   "ksql.internal.topic.replicas" : "1",
   "ksql.insert.into.values.enabled" : "true",
+  "ksql.query.pull.enable" : "true",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.access.validator.enable" : "auto",
   "ksql.streams.bootstrap.servers" : "localhost:0",
   "ksql.streams.commit.interval.ms" : "2000",
   "ksql.metric.reporters" : "",
   "ksql.streams.auto.commit.interval.ms" : "0",
-  "ksql.sink.replicas" : null,
   "ksql.metrics.extension" : null,
   "ksql.streams.topology.optimization" : "all",
+  "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
-  "ksql.functions.substring.legacy.args" : "false",
+  "ksql.query.pull.skip.access.validator" : "false",
   "ksql.connect.worker.config" : "",
+  "ksql.query.pull.routing.timeout.ms" : "30000",
   "ksql.sink.window.change.log.additional.retention" : "1000000",
-  "ksql.query.inject.legacy.map.values.node" : "false",
   "ksql.udf.collect.metrics" : "false",
   "ksql.persistent.prefix" : "query_",
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_OUTPUT_0.KsqlTopic.source = STRUCT<FOO INT, BAR INT> NOT NULL
-CTAS_OUTPUT_0.Aggregate.groupby = STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL
-CTAS_OUTPUT_0.Aggregate.aggregate = STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL
+CTAS_OUTPUT_0.KsqlTopic.Source = STRUCT<FOO INT, BAR INT> NOT NULL
+CTAS_OUTPUT_0.Aggregate.GroupBy = STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL
+CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize = STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL
 CTAS_OUTPUT_0.OUTPUT = STRUCT<BAR INT, KSQL_COL_1 BIGINT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
     Source: KSTREAM-SOURCE-0000000000 (topics: [input_topic])
       --> KTABLE-SOURCE-0000000001
-    Processor: KTABLE-SOURCE-0000000001 (stores: [KsqlTopic-reduce])
+    Processor: KTABLE-SOURCE-0000000001 (stores: [KsqlTopic-Reduce])
       --> KTABLE-TRANSFORMVALUES-0000000002
       <-- KSTREAM-SOURCE-0000000000
     Processor: KTABLE-TRANSFORMVALUES-0000000002 (stores: [])
-      --> PRE-AGGREGATE-SELECT-0
+      --> Aggregate-Prepare
       <-- KTABLE-SOURCE-0000000001
-    Processor: PRE-AGGREGATE-SELECT-0 (stores: [])
+    Processor: Aggregate-Prepare (stores: [])
       --> KTABLE-FILTER-0000000004
       <-- KTABLE-TRANSFORMVALUES-0000000002
     Processor: KTABLE-FILTER-0000000004 (stores: [])
-      --> Aggregate-groupby
-      <-- PRE-AGGREGATE-SELECT-0
-    Processor: Aggregate-groupby (stores: [])
+      --> Aggregate-GroupBy
+      <-- Aggregate-Prepare
+    Processor: Aggregate-GroupBy (stores: [])
       --> KSTREAM-SINK-0000000006
       <-- KTABLE-FILTER-0000000004
-    Sink: KSTREAM-SINK-0000000006 (topic: Aggregate-groupby-repartition)
-      <-- Aggregate-groupby
+    Sink: KSTREAM-SINK-0000000006 (topic: Aggregate-GroupBy-repartition)
+      <-- Aggregate-GroupBy
 
   Sub-topology: 1
-    Source: KSTREAM-SOURCE-0000000007 (topics: [Aggregate-groupby-repartition])
+    Source: KSTREAM-SOURCE-0000000007 (topics: [Aggregate-GroupBy-repartition])
       --> KTABLE-AGGREGATE-0000000008
-    Processor: KTABLE-AGGREGATE-0000000008 (stores: [Aggregate-aggregate])
-      --> AGGREGATE-TO-OUTPUT-SCHEMA-1
+    Processor: KTABLE-AGGREGATE-0000000008 (stores: [Aggregate-Aggregate-Materialize])
+      --> Aggregate-Aggregate-ToOutputSchema
       <-- KSTREAM-SOURCE-0000000007
-    Processor: AGGREGATE-TO-OUTPUT-SCHEMA-1 (stores: [])
-      --> SELECT-2
+    Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
+      --> Aggregate-Project
       <-- KTABLE-AGGREGATE-0000000008
-    Processor: SELECT-2 (stores: [])
+    Processor: Aggregate-Project (stores: [])
       --> KTABLE-TOSTREAM-0000000011
-      <-- AGGREGATE-TO-OUTPUT-SCHEMA-1
+      <-- Aggregate-Aggregate-ToOutputSchema
     Processor: KTABLE-TOSTREAM-0000000011 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000012
-      <-- SELECT-2
-    Processor: KSTREAM-MAPVALUES-0000000012 (stores: [])
-      --> KSTREAM-SINK-0000000013
+      --> KSTREAM-SINK-0000000012
+      <-- Aggregate-Project
+    Sink: KSTREAM-SINK-0000000012 (topic: OUTPUT)
       <-- KTABLE-TOSTREAM-0000000011
-    Sink: KSTREAM-SINK-0000000013 (topic: OUTPUT)
-      <-- KSTREAM-MAPVALUES-0000000012
 

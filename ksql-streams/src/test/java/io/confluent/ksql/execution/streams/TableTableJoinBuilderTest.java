@@ -36,7 +36,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TableTableJoinBuilderTest {
   private static final SourceName LEFT = SourceName.of("LEFT");
   private static final SourceName RIGHT = SourceName.of("RIGHT");
-  private static final SourceName ALIAS = SourceName.of("ALIAS");
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
@@ -48,14 +47,6 @@ public class TableTableJoinBuilderTest {
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
       .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
@@ -95,7 +86,7 @@ public class TableTableJoinBuilderTest {
   private void givenLeftJoin() {
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
         left,
         right
@@ -106,7 +97,7 @@ public class TableTableJoinBuilderTest {
   private void givenOuterJoin() {
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
         left,
         right
@@ -117,7 +108,7 @@ public class TableTableJoinBuilderTest {
   private void givenInnerJoin() {
     when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
-        new ExecutionStepPropertiesV1(SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
         left,
         right

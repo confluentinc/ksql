@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -61,6 +60,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -160,7 +160,6 @@ public class SourceBuilderTest {
   private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
-  private Optional<AutoOffsetReset> offsetReset = Optional.of(AutoOffsetReset.EARLIEST);
   private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
   private PlanBuilder planBuilder;
 
@@ -219,6 +218,45 @@ public class SourceBuilderTest {
     validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(any());
+  }
+
+  @Test
+  public void shouldUseOffsetResetLatestForStream() {
+    // Given:
+    givenUnwindowedSourceStream();
+
+    // When
+    streamSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+  @Test
+  public void shouldUseOffsetResetLatestForWindowedStream() {
+    // Given:
+    givenWindowedSourceStream();
+
+    // When
+    windowedStreamSource.build(planBuilder);
+
+    // Then:
+    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+  @Test
+  public void shouldUseConfiguredResetPolicyForStream() {
+    // Given:
+    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    ));
+    givenUnwindowedSourceStream();
+
+    // When
+    streamSource.build(planBuilder);
+
+    // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
   }
 
@@ -260,6 +298,45 @@ public class SourceBuilderTest {
   }
 
   @Test
+  public void shouldUseOffsetResetEarliestForTable() {
+    // Given:
+    givenUnwindowedSourceTable();
+
+    // When
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  public void shouldUseOffsetResetEarliestForWindowedTable() {
+    // Given:
+    givenWindowedSourceTable();
+
+    // When
+    windowedTableSource.build(planBuilder);
+
+    // Then:
+    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  public void shouldUseConfiguredResetPolicyForTable() {
+    // Given:
+    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
+    ));
+    givenUnwindowedSourceTable();
+
+    // When
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+  @Test
   public void shouldReturnCorrectSchemaForUnwindowedSourceStream() {
     // Given:
     givenUnwindowedSourceStream();
@@ -281,21 +358,6 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(builtKTable.getSchema(), is(SCHEMA));
-  }
-
-  @Test
-  public void shouldNotBuildWithOffsetResetIfNotProvided() {
-    // Given:
-    offsetReset = Optional.empty();
-    givenUnwindowedSourceStream();
-
-    // When
-    streamSource.build(planBuilder);
-
-    // Then:
-    verify(consumedFactory).create(keySerde, valueSerde);
-    verify(consumed).withTimestampExtractor(any());
-    verifyNoMoreInteractions(consumed, consumedFactory);
   }
 
   @Test
@@ -356,11 +418,10 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final StreamSource streamSource = new StreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         Optional.empty(),
-        offsetReset,
         LogicalSchema.builder()
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
             .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
@@ -570,7 +631,7 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder);
 
     // Then:
-    verify(materializationFactory).create(keySerde, valueSerde, "base-reduce");
+    verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
   }
 
   @SuppressWarnings("unchecked")
@@ -599,12 +660,11 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );
@@ -614,11 +674,10 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );
@@ -629,12 +688,11 @@ public class SourceBuilderTest {
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );
@@ -644,11 +702,10 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
-        new ExecutionStepPropertiesV1(SCHEMA, ctx),
+        new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        offsetReset,
         SOURCE_SCHEMA,
         ALIAS
     );

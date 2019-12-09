@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -275,7 +276,7 @@ public class JoinNodeTest {
         = (TopologyDescription.Processor) getNodeByName(topology, "Join");
     final List<String> predecessors = leftJoin.predecessors().stream()
         .map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-reduce")));
+    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-Reduce")));
     assertThat(predecessors, equalTo(Collections.singletonList("Join-repartition-source")));
   }
 
@@ -322,7 +323,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -354,7 +354,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).join(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -386,7 +385,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).outerJoin(
         eq(rightSchemaKStream),
-        eq(JOIN_SCHEMA),
         eq(KeyField.none()),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
@@ -533,7 +531,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -563,7 +560,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -593,7 +589,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKStream).join(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
         eq(CONTEXT_STACKER)
@@ -747,7 +742,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).join(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(CONTEXT_STACKER));
   }
@@ -775,7 +769,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).leftJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(CONTEXT_STACKER));
   }
@@ -803,7 +796,6 @@ public class JoinNodeTest {
     // Then:
     verify(leftSchemaKTable).outerJoin(
         eq(rightSchemaKTable),
-        eq(JOIN_SCHEMA),
         eq(KeyField.none()),
         eq(CONTEXT_STACKER));
   }
@@ -887,7 +879,7 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).selectKey(
-        eq(LEFT_JOIN_FIELD_REF),
+        eq(new ColumnReferenceExp(LEFT_JOIN_FIELD_REF)),
         any()
     );
   }
@@ -915,6 +907,24 @@ public class JoinNodeTest {
     // Then:
     verify(leftSource, never()).getSerdeOptions();
     verify(rightSource, never()).getSerdeOptions();
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        Collections.emptyList(),
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
+        WITHIN_EXPRESSION
+    );
+
+    // Then:
+    assertThat(joinNode.getSchema(), is(JOIN_SCHEMA));
   }
 
   @SuppressWarnings("unchecked")

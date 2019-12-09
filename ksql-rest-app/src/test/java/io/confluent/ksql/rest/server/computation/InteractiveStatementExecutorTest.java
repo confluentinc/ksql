@@ -67,6 +67,8 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -97,6 +99,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InteractiveStatementExecutorTest {
 
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
+  private static final String CREATE_STREAM_FOO_STATMENT = "CREATE STREAM foo ("
+      + "biz bigint,"
+      + " baz varchar) "
+      + "WITH (kafka_topic = 'foo', "
+      + "value_format = 'json');";
 
   private KsqlEngine ksqlEngine;
   private InteractiveStatementExecutor statementExecutor;
@@ -289,11 +296,7 @@ public class InteractiveStatementExecutorTest {
   public void shouldCompleteFutureOnSuccess() {
     // Given:
     final Command command = new Command(
-        "CREATE STREAM foo ("
-        + "biz bigint,"
-        + " baz varchar) "
-        + "WITH (kafka_topic = 'foo', "
-        + "value_format = 'json');",
+        CREATE_STREAM_FOO_STATMENT,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -318,16 +321,12 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
-  public void shouldCompleteFutureOnFailure() {
+  public void shouldThrowExceptionIfCommandFails() {
     // Given:
     shouldCompleteFutureOnSuccess();
 
     final Command command = new Command(
-        "CREATE STREAM foo ("
-        + "biz bigint,"
-        + " baz varchar) "
-        + "WITH (kafka_topic = 'foo', "
-        + "value_format = 'json');",
+        CREATE_STREAM_FOO_STATMENT,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -336,19 +335,22 @@ public class InteractiveStatementExecutorTest {
     final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     // When:
-    handleStatement(command, commandId, Optional.of(status), 0L);
-
-    // Then:
+    try {
+      handleStatement(command, commandId, Optional.of(status), 0L);
+    } catch (KsqlStatementException e) {
+      // Then:
+      assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
+          "Statement: " + CREATE_STREAM_FOO_STATMENT, 
+          e.getMessage());
+    }
     InOrder inOrder = Mockito.inOrder(status);
     ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
-    ArgumentCaptor<CommandStatus> argFinalCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
-    inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());
-    inOrder.verify(status, times(1)).setFinalStatus(argFinalCommandStatus.capture());
+    inOrder.verify(status, times(3)).setStatus(argCommandStatus.capture());
 
     List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.PARSING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(1).getStatus());
-    assertEquals(CommandStatus.Status.ERROR, argFinalCommandStatus.getValue().getStatus());
+    assertEquals(CommandStatus.Status.ERROR, commandStatusList.get(2).getStatus());
   }
 
   @Test
@@ -367,6 +369,8 @@ public class InteractiveStatementExecutorTest {
         CommandId.Action.CREATE);
 
     // When:
+    expectedException.expect(KsqlStatementException.class);
+
     for (int i = 0; i < priorCommands.size(); i++) {
       final Pair<CommandId, Command> pair = priorCommands.get(i);
       statementExecutor.handleRestore(
@@ -418,6 +422,7 @@ public class InteractiveStatementExecutorTest {
     createStreamsAndStartTwoPersistentQueries();
 
     // Now try to drop streams/tables to test referential integrity
+    expectedException.expect(KsqlStatementException.class);
     tryDropThatViolatesReferentialIntegrity();
 
     // Terminate the queries using the stream/table
@@ -599,7 +604,9 @@ public class InteractiveStatementExecutorTest {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement,
-                Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap()),
+                Collections.singletonMap("ksql.run.script.statements", queryStatement),
+                emptyMap()
+            ),
             Optional.empty(),
             0L
         )

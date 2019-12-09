@@ -132,6 +132,8 @@ public class StreamAggregateBuilderTest {
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
+  private static final QueryContext MATERIALIZE_CTX = QueryContext.Stacker.of(CTX)
+      .push("Materialize").getQueryContext();
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
   private static final Duration WINDOW = Duration.ofMillis(30000);
@@ -204,8 +206,6 @@ public class StreamAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.buildUniqueNodeName(any()))
-        .thenAnswer(inv -> inv.<String>getArgument(0) + "-unique");
     when(aggregateParamsFactory.create(any(), anyInt(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
@@ -216,7 +216,7 @@ public class StreamAggregateBuilderTest {
     when(aggregateParams.getInitializer()).thenReturn(initializer);
     when(aggregateParams.getWindowSelectMapper()).thenReturn(windowSelectMapper);
     when(windowSelectMapper.hasSelects()).thenReturn(false);
-    when(windowSelectMapper.getTransformer()).thenReturn(windowSelectTransformer);
+
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -239,7 +239,7 @@ public class StreamAggregateBuilderTest {
     when(aggregated.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) aggregatedWithResults);
     aggregate = new StreamAggregate(
-        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -261,7 +261,7 @@ public class StreamAggregateBuilderTest {
   private void givenTumblingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -273,7 +273,7 @@ public class StreamAggregateBuilderTest {
   private void givenHoppingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -297,7 +297,7 @@ public class StreamAggregateBuilderTest {
     when(windowed.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) windowedWithResults);
     windowedAggregate = new StreamWindowedAggregate(
-        new ExecutionStepPropertiesV1(OUTPUT_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -367,7 +367,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(any(), any(), eq("agg-regate"));
+    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
   }
 
   @Test
@@ -379,7 +379,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
+    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
   }
 
   @Test
@@ -394,7 +394,7 @@ public class StreamAggregateBuilderTest {
     verify(queryBuilder).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
-        CTX
+        MATERIALIZE_CTX
     );
   }
 
@@ -539,7 +539,7 @@ public class StreamAggregateBuilderTest {
       windowedAggregate.build(planBuilder);
 
       // Then:
-      verify(materializedFactory).create(any(), any(), eq("agg-regate"));
+      verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
     }
   }
 
@@ -555,7 +555,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(queryBuilder)
-          .buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
+          .buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }
 
@@ -596,7 +596,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(queryBuilder)
-          .buildValueSerde(VALUE_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
+          .buildValueSerde(VALUE_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }
 
@@ -651,7 +651,7 @@ public class StreamAggregateBuilderTest {
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
 
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
-    assertThat(info.stateStoreName(), equalTo("agg-regate"));
+    assertThat(info.stateStoreName(), equalTo("agg-regate-Materialize"));
     assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA));
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));

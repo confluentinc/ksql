@@ -21,10 +21,13 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +47,6 @@ import org.slf4j.LoggerFactory;
  * Also responsible for taking care of any exceptions that occur in the process.
  */
 public class CommandRunner implements Closeable {
-
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
   private static final int STATEMENT_RETRY_MS = 100;
@@ -59,12 +62,25 @@ public class CommandRunner implements Closeable {
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
 
+  private final CommandRunnerStatusMetric commandRunnerStatusMetric;
+  private final AtomicReference<Pair<QueuedCommand, Instant>> currentCommandRef;
+  private final Duration commandRunnerHealthTimeout;
+  private final Clock clock;
+
+  public enum CommandRunnerStatus {
+    RUNNING,
+    ERROR
+  }
+
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
-      final ServerState serverState
+      final ServerState serverState,
+      final String ksqlServiceId,
+      final Duration commandRunnerHealthTimeout,
+      final String metricsGroupPrefix
   ) {
     this(
         statementExecutor,
@@ -72,7 +88,11 @@ public class CommandRunner implements Closeable {
         maxRetries,
         clusterTerminator,
         Executors.newSingleThreadExecutor(r -> new Thread(r, "CommandRunner")),
-        serverState
+        serverState,
+        ksqlServiceId,
+        commandRunnerHealthTimeout,
+        metricsGroupPrefix,
+        Clock.systemUTC()
     );
   }
 
@@ -83,7 +103,11 @@ public class CommandRunner implements Closeable {
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ExecutorService executor,
-      final ServerState serverState
+      final ServerState serverState,
+      final String ksqlServiceId,
+      final Duration commandRunnerHealthTimeout,
+      final String metricsGroupPrefix,
+      final Clock clock
   ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
@@ -91,6 +115,12 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.commandRunnerHealthTimeout =
+        Objects.requireNonNull(commandRunnerHealthTimeout, "commandRunnerHealthTimeout");
+    this.currentCommandRef = new AtomicReference<>(null);
+    this.commandRunnerStatusMetric =
+        new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
+    this.clock = clock;
   }
 
   /**
@@ -114,6 +144,7 @@ public class CommandRunner implements Closeable {
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+    commandRunnerStatusMetric.close();
     commandStore.close();
   }
 
@@ -128,13 +159,17 @@ public class CommandRunner implements Closeable {
       return;
     }
     restoreCommands.forEach(
-        command -> RetryUtil.retryWithBackoff(
-            maxRetries,
-            STATEMENT_RETRY_MS,
-            MAX_STATEMENT_RETRY_MS,
-            () -> statementExecutor.handleRestore(command),
-            WakeupException.class
-        )
+        command -> {
+          currentCommandRef.set(new Pair<>(command, clock.instant()));
+          RetryUtil.retryWithBackoff(
+              maxRetries,
+              STATEMENT_RETRY_MS,
+              MAX_STATEMENT_RETRY_MS,
+              () -> statementExecutor.handleRestore(command),
+              WakeupException.class
+          );
+          currentCommandRef.set(null);
+        }
     );
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
@@ -174,6 +209,7 @@ public class CommandRunner implements Closeable {
       }
     };
 
+    currentCommandRef.set(new Pair<>(queuedCommand, clock.instant()));
     RetryUtil.retryWithBackoff(
         maxRetries,
         STATEMENT_RETRY_MS,
@@ -181,6 +217,7 @@ public class CommandRunner implements Closeable {
         task,
         WakeupException.class
     );
+    currentCommandRef.set(null);
   }
 
   private static Optional<QueuedCommand> findTerminateCommand(
@@ -202,6 +239,21 @@ public class CommandRunner implements Closeable {
 
     clusterTerminator.terminateCluster(deleteTopicList);
     log.info("The KSQL server was terminated.");
+  }
+
+  CommandRunnerStatus checkCommandRunnerStatus() {
+    final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
+    if (currentCommand == null) {
+      return CommandRunnerStatus.RUNNING;
+    }
+    
+    return Duration.between(currentCommand.right, clock.instant()).toMillis()
+        < commandRunnerHealthTimeout.toMillis()
+        ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
+  }
+
+  Pair<QueuedCommand, Instant> getCurrentCommand() {
+    return currentCommandRef.get();
   }
 
   private class Runner implements Runnable {

@@ -496,7 +496,7 @@ public class InsertValuesExecutor {
     private final SqlType fieldType;
     private final ColumnName fieldName;
     private final LogicalSchema schema;
-    private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
+    private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.INSTANCE;
     private final FunctionRegistry functionRegistry;
     private final KsqlConfig config;
 
@@ -529,7 +529,7 @@ public class InsertValuesExecutor {
       // we expect no column references, so we can pass in an empty generic row
       final Object value = metadata.evaluate(new GenericRow());
 
-      return defaultSqlValueCoercer.coerce(value, fieldType)
+      return sqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {
             final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
                 .toSqlType(value.getClass());

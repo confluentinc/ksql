@@ -104,6 +104,8 @@ public class TableAggregateBuilderTest {
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
+  private static final QueryContext MATERIALIZE_CTX = QueryContext.Stacker.of(CTX)
+      .push("Materialize").getQueryContext();
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
 
@@ -151,8 +153,6 @@ public class TableAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.buildUniqueNodeName(any()))
-        .thenAnswer(inv -> inv.<String>getArgument(0) + "-unique");
     when(aggregateParamsFactory.createUndoable(any(), anyInt(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator)aggregator);
@@ -168,7 +168,7 @@ public class TableAggregateBuilderTest {
     when(aggregated.transformValues(any(), any(Named.class)))
         .thenReturn((KTable)aggregatedWithResults);
     aggregate = new TableAggregate(
-        new ExecutionStepPropertiesV1(AGGREGATE_SCHEMA, CTX),
+        new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -226,7 +226,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(materializedFactory).create(any(), any(), eq("agg-regate"));
+    verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
   }
 
   @Test
@@ -235,7 +235,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, CTX);
+    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
   }
 
   @Test
@@ -247,7 +247,7 @@ public class TableAggregateBuilderTest {
     verify(queryBuilder).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
-        CTX
+        MATERIALIZE_CTX
     );
   }
 
@@ -269,7 +269,7 @@ public class TableAggregateBuilderTest {
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
 
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
-    assertThat(info.stateStoreName(), equalTo("agg-regate"));
+    assertThat(info.stateStoreName(), equalTo("agg-regate-Materialize"));
     assertThat(info.getSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));

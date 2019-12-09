@@ -34,7 +34,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -99,7 +98,6 @@ public class DataSourceNodeTest {
       = KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")));
   private static final TimestampColumn TIMESTAMP_COLUMN =
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
-  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
@@ -166,7 +164,7 @@ public class DataSourceNodeTest {
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
@@ -271,7 +269,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -285,7 +283,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -302,15 +300,13 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
-        eq(OFFSET_RESET),
         same(node.getKeyField()),
         eq(SourceName.of("name"))
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
-        equalTo(ImmutableList.of("0", "source"))
+        equalTo(ImmutableList.of("0", "Source"))
     );
   }
 
@@ -326,15 +322,13 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
-        eq(OFFSET_RESET),
         same(node.getKeyField()),
         eq(SourceName.of("name"))
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
-        equalTo(ImmutableList.of("0", "source"))
+        equalTo(ImmutableList.of("0", "Source"))
     );
   }
 

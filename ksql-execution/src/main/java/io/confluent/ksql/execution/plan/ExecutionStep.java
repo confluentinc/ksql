@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
 @JsonTypeInfo(
@@ -33,7 +32,7 @@ import java.util.List;
     @Type(value = StreamFlatMap.class, name = "streamFlatMapV1"),
     @Type(value = StreamGroupBy.class, name = "streamGroupByV1"),
     @Type(value = StreamGroupByKey.class, name = "streamGroupByKeyV1"),
-    @Type(value = StreamMapValues.class, name = "streamMapValuesV1"),
+    @Type(value = StreamSelect.class, name = "streamSelectV1"),
     @Type(value = StreamSelectKey.class, name = "streamSelectKeyV1"),
     @Type(value = StreamSink.class, name = "streamSinkV1"),
     @Type(value = StreamSource.class, name = "streamSourceV1"),
@@ -46,7 +45,7 @@ import java.util.List;
     @Type(value = TableAggregate.class, name = "tableAggregateV1"),
     @Type(value = TableFilter.class, name = "tableFilterV1"),
     @Type(value = TableGroupBy.class, name = "tableGroupByV1"),
-    @Type(value = TableMapValues.class, name = "tableMapValuesV1"),
+    @Type(value = TableSelect.class, name = "tableSelectV1"),
     @Type(value = TableSink.class, name = "tableSinkV1"),
     @Type(value = TableTableJoin.class, name = "tableTableJoinV1")
 })
@@ -58,9 +57,4 @@ public interface ExecutionStep<S> {
   List<ExecutionStep<?>> getSources();
 
   S build(PlanBuilder planBuilder);
-
-  @JsonIgnore
-  default LogicalSchema getSchema() {
-    return getProperties().getSchema();
-  }
 }

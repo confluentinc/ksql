@@ -19,7 +19,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
@@ -27,18 +27,16 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.Named;
 
-public final class StreamMapValuesBuilder {
-  private StreamMapValuesBuilder() {
+public final class StreamSelectBuilder {
+  private StreamSelectBuilder() {
   }
 
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
-      final StreamMapValues<K> step,
+      final StreamSelect<K> step,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
-        step.getProperties().getQueryContext()
-    );
+    final QueryContext queryContext = step.getProperties().getQueryContext();
 
     final LogicalSchema sourceSchema = stream.getSchema();
 
@@ -55,13 +53,11 @@ public final class StreamMapValuesBuilder {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                queryBuilder.getQueryId(),
-                contextStacker.push("PROJECT").getQueryContext()
-            )
+            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
         );
 
-    final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
+    final Named selectName =
+        Named.as(StreamsUtil.buildOpName(queryContext));
 
     return stream.withStream(
         stream.getStream().transformValues(

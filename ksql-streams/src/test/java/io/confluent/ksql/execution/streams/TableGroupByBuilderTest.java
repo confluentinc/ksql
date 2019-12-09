@@ -75,9 +75,8 @@ public class TableGroupByBuilderTest {
   private static final QueryContext STEP_CONTEXT =
       new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepPropertiesV1 SOURCE_PROPERTIES =
-      new ExecutionStepPropertiesV1(SCHEMA, SOURCE_CONTEXT);
+      new ExecutionStepPropertiesV1(SOURCE_CONTEXT);
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
-      SCHEMA,
       STEP_CONTEXT
   );
   private static final Formats FORMATS = Formats.of(
@@ -132,7 +131,6 @@ public class TableGroupByBuilderTest {
     when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
         .thenReturn(groupedTable);
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
-    when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.unmaterialized(sourceTable, SCHEMA, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(

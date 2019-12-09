@@ -111,22 +111,17 @@ public class TableFilterBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
     when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
     when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) preTransformer);
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
-    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-        schema,
-        queryContext
-    );
-    step = new TableFilter<>(properties, sourceStep, filterExpression, "stepName");
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
+    step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
     ;
@@ -178,7 +173,7 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar.stepName");
+    verify(processingLoggerFactory).getLogger("foo.bar");
   }
 
   @Test
@@ -187,7 +182,9 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(materializationBuilder).filter(predicateFactoryCaptor.capture(), eq("stepName"));
+    verify(materializationBuilder).filter(
+        predicateFactoryCaptor.capture(),
+        eq(queryContext));
 
     // Given:
     final KsqlTransformer<Object, Optional<GenericRow>> predicate = predicateFactoryCaptor

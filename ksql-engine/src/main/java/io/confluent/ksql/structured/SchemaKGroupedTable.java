@@ -29,6 +29,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -45,17 +46,17 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
   SchemaKGroupedTable(
       final ExecutionStep<KGroupedTableHolder> sourceTableStep,
+      final LogicalSchema schema,
       final KeyFormat keyFormat,
       final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
     super(
         null,
+        schema,
         keyFormat,
         keyField,
-        sourceSchemaKStreams,
         ksqlConfig,
         functionRegistry
     );
@@ -81,9 +82,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     }
 
     final List<String> unsupportedFunctionNames = aggregations.stream()
-        .map(call -> UdafUtil.resolveAggregateFunction(
-            functionRegistry, call, sourceTableStep.getSchema())
-        ).filter(function -> !(function instanceof TableAggregationFunction))
+        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema))
+        .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::name)
         .collect(Collectors.toList());
@@ -99,15 +99,14 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         sourceTableStep,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         nonFuncColumnCount,
-        aggregations,
-        functionRegistry
+        aggregations
     );
 
     return new SchemaKTable<>(
         step,
+        resolveSchema(step),
         keyFormat,
         keyField,
-        sourceSchemaKStreams,
         ksqlConfig,
         functionRegistry
     );

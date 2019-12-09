@@ -89,11 +89,9 @@ public class StreamFilterBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKStream
         .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(filteredKStream);
@@ -104,17 +102,14 @@ public class StreamFilterBuilderTest {
         schema,
         keySerdeFactory
     ));
-    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-        schema,
-        queryContext
-    );
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
-    step = new StreamFilter<>(properties, sourceStep, filterExpression, "stepName");
+    step = new StreamFilter<>(properties, sourceStep, filterExpression);
   }
 
   @Test
@@ -156,6 +151,6 @@ public class StreamFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(processingLoggerFactory).getLogger("foo.bar.stepName");
+    verify(processingLoggerFactory).getLogger("foo.bar");
   }
 }

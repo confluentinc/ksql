@@ -36,7 +36,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QuerySchemas;
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -53,7 +52,6 @@ public final class KsqlQueryBuilder {
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
   private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
-  private final AtomicInteger nodeIdGenerator = new AtomicInteger();
 
   public static KsqlQueryBuilder of(
       StreamsBuilder streamsBuilder, KsqlConfig ksqlConfig, ServiceContext serviceContext,
@@ -184,9 +182,5 @@ public final class KsqlQueryBuilder {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }
     schemas.put(loggerNamePrefix, schema);
-  }
-
-  public String buildUniqueNodeName(final String prefix) {
-    return prefix + "-" + nodeIdGenerator.getAndIncrement();
   }
 }

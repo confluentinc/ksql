@@ -16,11 +16,8 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 public interface ExecutionStepProperties {
-  LogicalSchema getSchema();
-
   String getId();
 
   QueryContext getQueryContext();

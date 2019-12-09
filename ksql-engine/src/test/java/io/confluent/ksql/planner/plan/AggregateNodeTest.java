@@ -110,11 +110,6 @@ public class AggregateNodeTest {
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
 
-  @Before
-  public void setUp() {
-    when(ksqlStreamBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0));
-  }
-
   @Test
   public void shouldBuildSourceNode() {
     // When:
@@ -210,11 +205,11 @@ public class AggregateNodeTest {
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
-        builder.build(), "Aggregate-groupby-repartition-source");
+        builder.build(), "Aggregate-GroupBy-repartition-source");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
-    assertThat(node.topicSet(), containsInAnyOrder("Aggregate-groupby-repartition"));
+    assertThat(node.topicSet(), containsInAnyOrder("Aggregate-GroupBy-repartition"));
   }
 
   @Test
@@ -222,7 +217,7 @@ public class AggregateNodeTest {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         builder.build(), "KSTREAM-AGGREGATE-0000000004");
-    assertThat(node.stores(), hasItem(equalTo("Aggregate-aggregate")));
+    assertThat(node.stores(), hasItem(equalTo("Aggregate-Aggregate-Materialize")));
   }
 
   @Test
@@ -234,9 +229,9 @@ public class AggregateNodeTest {
 
     // Then:
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(),
-        "Aggregate-groupby-repartition-sink");
+        "Aggregate-GroupBy-repartition-sink");
     final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(
-        builder.build(), "Aggregate-groupby-repartition-source");
+        builder.build(), "Aggregate-GroupBy-repartition-source");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }
@@ -304,9 +299,9 @@ public class AggregateNodeTest {
         .collect(Collectors.toList());
 
     assertThat(loggers, contains(
-        "queryid.KsqlTopic.source",
-        "queryid.Aggregate.groupby",
-        "queryid.Aggregate.aggregate"
+        "queryid.KsqlTopic.Source",
+        "queryid.Aggregate.GroupBy",
+        "queryid.Aggregate.Aggregate.Materialize"
     ));
   }
 

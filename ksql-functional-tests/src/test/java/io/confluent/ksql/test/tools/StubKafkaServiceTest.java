@@ -56,8 +56,8 @@ public class StubKafkaServiceTest {
         new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
-        1,
-        Optional.empty());
+        1
+    );
   }
 
 

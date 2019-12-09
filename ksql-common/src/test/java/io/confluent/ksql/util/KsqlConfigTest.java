@@ -65,6 +65,13 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldNotSetAutoOffsetResetByDefault() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
   public void shouldSetLogAndContinueExceptionHandlerWhenFailOnDeserializationErrorFalse() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);

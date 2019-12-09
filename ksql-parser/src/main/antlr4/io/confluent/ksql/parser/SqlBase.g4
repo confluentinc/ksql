@@ -77,7 +77,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy=identifier)?
+      (PARTITION BY partitionBy=booleanExpression)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?

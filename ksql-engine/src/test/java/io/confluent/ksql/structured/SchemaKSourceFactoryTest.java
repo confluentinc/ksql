@@ -28,17 +28,19 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -47,7 +49,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,11 +57,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKSourceFactoryTest {
-
-  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(
-      AutoOffsetReset.EARLIEST);
   private static final KeyField KEY_FIELD = KeyField.none();
   private static final SourceName ALIAS = SourceName.of("bob");
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("FOO"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("BAR"), SqlTypes.STRING)
+      .build();
   private static final Set<SerdeOption> SERDE_OPTIONS = ImmutableSet
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
   private static final String TOPIC_NAME = "fred";
@@ -70,12 +72,6 @@ public class SchemaKSourceFactoryTest {
   private KsqlQueryBuilder builder;
   @Mock
   private DataSource<?> dataSource;
-  @Mock
-  private LogicalSchemaWithMetaAndKeyFields schemaWithStuff;
-  @Mock
-  private LogicalSchema schema;
-  @Mock
-  private LogicalSchema originalSchema;
   @Mock
   private Stacker contextStacker;
   @Mock
@@ -100,12 +96,10 @@ public class SchemaKSourceFactoryTest {
     when(dataSource.getSerdeOptions()).thenReturn(SERDE_OPTIONS);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(dataSource.getSchema()).thenReturn(SCHEMA);
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);
     when(topic.getValueFormat()).thenReturn(valueFormat);
-
-    when(schemaWithStuff.getSchema()).thenReturn(schema);
-    when(schemaWithStuff.getOriginalSchema()).thenReturn(originalSchema);
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
@@ -127,9 +121,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -138,8 +130,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, not(instanceOf(SchemaKTable.class)));
     assertThat(result.getSourceStep(), instanceOf(WindowedStreamSource.class));
 
-    assertThat(result.getSchema(), is(schema));
-    assertThat(result.getSourceSchemaKStreams(), is(empty()));
+    assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
 
@@ -154,9 +145,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -165,8 +154,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, not(instanceOf(SchemaKTable.class)));
     assertThat(result.getSourceStep(), instanceOf(StreamSource.class));
 
-    assertThat(result.getSchema(), is(schema));
-    assertThat(result.getSourceSchemaKStreams(), is(empty()));
+    assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
 
@@ -181,9 +169,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -192,8 +178,7 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, instanceOf(SchemaKTable.class));
     assertThat(result.getSourceStep(), instanceOf(WindowedTableSource.class));
 
-    assertThat(result.getSchema(), is(schema));
-    assertThat(result.getSourceSchemaKStreams(), is(empty()));
+    assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
 
@@ -208,9 +193,7 @@ public class SchemaKSourceFactoryTest {
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
         builder,
         dataSource,
-        schemaWithStuff,
         contextStacker,
-        OFFSET_RESET,
         KEY_FIELD,
         ALIAS
     );
@@ -219,8 +202,14 @@ public class SchemaKSourceFactoryTest {
     assertThat(result, instanceOf(SchemaKTable.class));
     assertThat(result.getSourceStep(), instanceOf(TableSource.class));
 
-    assertThat(result.getSchema(), is(schema));
-    assertThat(result.getSourceSchemaKStreams(), is(empty()));
+    assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));
+  }
+
+  private void assertValidSchema(final SchemaKStream<?> result) {
+    assertThat(
+        result.getSchema(),
+        is(new StepSchemaResolver(CONFIG, functionRegistry).resolve(result.getSourceStep(), SCHEMA))
+    );
   }
 }

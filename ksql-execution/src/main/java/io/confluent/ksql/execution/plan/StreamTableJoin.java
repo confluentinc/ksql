@@ -26,18 +26,18 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final ExecutionStep<KStreamHolder<K>> left;
   private final ExecutionStep<KTableHolder<K>> right;
 
   public StreamTableJoin(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "joinType", required = true) JoinType joinType,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "left", required = true) ExecutionStep<KStreamHolder<K>> left,
       @JsonProperty(value = "right", required = true) ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.formats = Objects.requireNonNull(formats, "formats");
+    this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
@@ -54,8 +54,8 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     return ImmutableList.of(left, right);
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public ExecutionStep<KStreamHolder<K>> getLeft() {
@@ -86,7 +86,7 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     StreamTableJoin<?> that = (StreamTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
-        && Objects.equals(formats, that.formats)
+        && Objects.equals(internalFormats, that.internalFormats)
         && Objects.equals(left, that.left)
         && Objects.equals(right, that.right);
   }
@@ -94,6 +94,6 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, joinType, formats, left, right);
+    return Objects.hash(properties, joinType, internalFormats, left, right);
   }
 }

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -285,7 +286,7 @@ public class JoinNode extends PlanNode {
         final ColumnRef joinFieldName,
         final Stacker contextStacker
     ) {
-      return stream.selectKey(joinFieldName, contextStacker);
+      return stream.selectKey(new ColumnReferenceExp(joinFieldName), contextStacker);
     }
 
     static ValueFormat getFormatForSource(final DataSourceNode sourceNode) {
@@ -324,7 +325,6 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -334,7 +334,6 @@ public class JoinNode extends PlanNode {
         case OUTER:
           return leftStream.outerJoin(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -344,7 +343,6 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(
               rightStream,
-              joinNode.schema,
               joinNode.keyField,
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
@@ -385,7 +383,6 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
@@ -394,7 +391,6 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               getFormatForSource(joinNode.left),
               contextStacker
@@ -436,19 +432,16 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftTable.leftJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
-              joinNode.schema,
               joinNode.keyField,
               contextStacker);
         default:

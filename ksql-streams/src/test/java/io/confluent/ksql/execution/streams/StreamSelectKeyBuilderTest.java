@@ -23,15 +23,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -42,6 +45,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
@@ -65,7 +69,8 @@ public class StreamSelectKeyBuilderTest {
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
-  private static final ColumnRef KEY = ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI"));
+  private static final ColumnReferenceExp KEY =
+      new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));
 
   @Mock
   private KStream<Struct, GenericRow> kstream;
@@ -77,6 +82,8 @@ public class StreamSelectKeyBuilderTest {
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
   private KsqlQueryBuilder queryBuilder;
+  @Mock
+  private FunctionRegistry functionRegistry;
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
   @Captor
@@ -84,10 +91,7 @@ public class StreamSelectKeyBuilderTest {
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
-  private final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
-      SCHEMA,
-      queryContext
-  );
+  private final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
   private PlanBuilder planBuilder;
   private StreamSelectKey selectKey;
@@ -99,6 +103,8 @@ public class StreamSelectKeyBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(queryBuilder.getQueryId()).thenReturn(new QueryId("hey"));
+    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
     when(sourceStep.getProperties()).thenReturn(properties);
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);

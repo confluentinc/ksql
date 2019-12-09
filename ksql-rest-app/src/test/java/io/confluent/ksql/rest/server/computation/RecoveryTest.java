@@ -34,6 +34,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
@@ -202,12 +203,16 @@ public class RecoveryTest {
           queryIdGenerator
       );
 
+      MetricCollectors.initialize();
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
           1,
           mock(ClusterTerminator.class),
-          serverState
+          serverState,
+          "ksql-service-id",
+          Duration.ofMillis(2000),
+          ""
       );
 
       this.ksqlResource = new KsqlResource(
@@ -617,50 +622,6 @@ public class RecoveryTest {
     ));
 
     assertThat(topicClient.listTopicNames(), hasItem("B"));
-  }
-
-  @Test
-  public void shouldRecoverLogWithRepeatedTerminates() {
-    server1.submitCommands(
-        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B AS SELECT * FROM A;"
-    );
-    server2.executeCommands();
-    server1.submitCommands(
-        "TERMINATE CSAS_B_1;",
-        "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE InsertQuery_3;"
-    );
-    server2.submitCommands("TERMINATE CSAS_B_1;");
-    shouldRecover(commands);
-  }
-
-  @Test
-  public void shouldRecoverLogWithDropWithRacingInsert() {
-    server1.submitCommands(
-        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;"
-    );
-    server2.executeCommands();
-    server1.submitCommands("INSERT INTO B SELECT * FROM A;");
-    server2.submitCommands("DROP STREAM B;");
-    shouldRecover(commands);
-  }
-
-  @Test
-  public void shouldRecoverLogWithTerminateAfterDrop() {
-    topicClient.preconditionTopicExists("B");
-
-    server1.submitCommands(
-        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
-    );
-    server2.executeCommands();
-    server1.submitCommands("INSERT INTO B SELECT * FROM A;");
-    server2.submitCommands("DROP STREAM B;");
-    server1.submitCommands("TERMINATE InsertQuery_2;");
-    shouldRecover(commands);
   }
 
   @Test

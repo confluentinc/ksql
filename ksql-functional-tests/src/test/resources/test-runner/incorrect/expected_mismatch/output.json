@@ -1,5 +1,5 @@
 {
   "outputs": [
-    {"topic": "S1", "key": 1001, "value": "101"}
+    {"topic": "S1", "key": "1001", "value": "101"}
   ]
 }

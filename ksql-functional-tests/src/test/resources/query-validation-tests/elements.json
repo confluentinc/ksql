@@ -483,10 +483,10 @@
         "CREATE STREAM OUTPUT as SELECT i1.* FROM INPUT_1 i1 JOIN INPUT_2 i2 WITHIN 10 SECONDS ON i1.ROWKEY = i2.ROWKEY;"
       ],
       "inputs": [
-        {"topic": "input_1", "key": 1, "value": {"F0": 4}, "timestamp": 10},
-        {"topic": "input_2", "key": 1, "value": {"F0": 4}, "timestamp": 11}
+        {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
+        {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join qualified select star right",
@@ -496,10 +496,10 @@
         "CREATE STREAM OUTPUT as SELECT i2.* FROM INPUT_1 i1 JOIN INPUT_2 i2 WITHIN 10 SECONDS ON i1.ROWKEY = i2.ROWKEY;"
       ],
       "inputs": [
-        {"topic": "input_1", "key": 1, "value": {"F0": 4}, "timestamp": 10},
-        {"topic": "input_2", "key": 1, "value": {"F0": 4}, "timestamp": 11}
+        {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
+        {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unqualified select star",
@@ -509,10 +509,10 @@
         "CREATE STREAM OUTPUT as SELECT * FROM INPUT_1 i1 JOIN INPUT_2 i2 WITHIN 10 SECONDS ON i1.ROWKEY = i2.ROWKEY;"
       ],
       "inputs": [
-        {"topic": "input_1", "key": 1, "value": {"F0": 4}, "timestamp": 10},
-        {"topic": "input_2", "key": 1, "value": {"F0": 4}, "timestamp": 11}
+        {"topic": "input_1", "key": "1", "value": {"F0": 4}, "timestamp": 10},
+        {"topic": "input_2", "key": "1", "value": {"F0": 4}, "timestamp": 11}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
+      "outputs": [{"topic": "OUTPUT", "key": "1", "value": {"I1_ROWTIME": 10, "I1_ROWKEY": "1", "I1_F0": 4, "I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
       "name": "join unknown qualified select star",

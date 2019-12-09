@@ -92,14 +92,14 @@
         "INSERT INTO SINK SELECT * FROM SOURCE;"
       ],
       "inputs": [
-        {"topic": "source", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
-        {"topic": "source", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
-        {"topic": "source", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "sink", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
-        {"topic": "sink", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
-        {"topic": "sink", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
       ]
     },
     {
@@ -110,14 +110,14 @@
         "INSERT INTO SINK SELECT * FROM SOURCE;"
       ],
       "inputs": [
-        {"topic": "source", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
-        {"topic": "source", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
-        {"topic": "source", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "sink", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
-        {"topic": "sink", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
-        {"topic": "sink", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
       ]
     }
   ]

@@ -63,7 +63,7 @@ public class Analysis implements ImmutableAnalysis {
   private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
-  private Optional<ColumnRef> partitionBy = Optional.empty();
+  private Optional<Expression> partitionBy = Optional.empty();
   private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
@@ -134,11 +134,11 @@ public class Analysis implements ImmutableAnalysis {
     this.havingExpression = Optional.of(havingExpression);
   }
 
-  public Optional<ColumnRef> getPartitionBy() {
+  public Optional<Expression> getPartitionBy() {
     return partitionBy;
   }
 
-  void setPartitionBy(final ColumnRef partitionBy) {
+  void setPartitionBy(final Expression partitionBy) {
     this.partitionBy = Optional.of(partitionBy);
   }
 

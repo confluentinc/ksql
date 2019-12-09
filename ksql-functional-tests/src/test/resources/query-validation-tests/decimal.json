@@ -8,10 +8,10 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": "10.1234512345123451234"}
+        {"topic": "test", "key": "0", "value": "10.1234512345123451234"}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": "10.1234512345123451234"}
+        {"topic": "TEST2", "key": "0", "value": "10.1234512345123451234"}
       ]
     },
     {
@@ -21,10 +21,10 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "test", "key": "0", "value": {"DEC": "10.1234512345123451234"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "TEST2", "key": "0", "value": {"DEC": "10.1234512345123451234"}}
       ]
     },
     {
@@ -38,10 +38,10 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "test", "key": "0", "value": {"DEC": "10.1234512345123451234"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "TEST2", "key": "0", "value": {"DEC": "10.1234512345123451234"}}
       ]
     },
     {
@@ -51,10 +51,10 @@
         "CREATE STREAM TEST2 AS SELECT -dec AS negated FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"DEC": "10.12345"}}
+        {"topic": "test", "key": "0", "value": {"DEC": "10.12345"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"NEGATED": "-10.12345"}}
+        {"topic": "TEST2", "key": "0", "value": {"NEGATED": "-10.12345"}}
       ]
     },
     {
@@ -64,14 +64,14 @@
         "CREATE STREAM TEST2 AS SELECT (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "5.10"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "-5.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "0.00"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "5.10"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "-5.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "0.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "15.11"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "5.01"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "10.01"}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "15.11"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "5.01"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "10.01"}}
       ]
     },
     {
@@ -81,14 +81,14 @@
         "CREATE STREAM TEST2 AS SELECT (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  5.1}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  -5.0}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  0.0}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  5.1}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  -5.0}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  0.0}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": 15.11}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": 5.01}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": 10.01}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": 15.11}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": 5.01}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": 10.01}}
       ]
     },
     {
@@ -98,14 +98,14 @@
         "CREATE STREAM TEST2 AS SELECT (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": 5}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": -5}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": 0}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B": 5}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B": -5}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B": 0}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "15.01"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "5.01"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "10.01"}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "15.01"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "5.01"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "10.01"}}
       ]
     },
     {
@@ -115,10 +115,10 @@
         "CREATE STREAM TEST2 AS SELECT (a + a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "5.10"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "5.10"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "25.12"}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "25.12"}}
       ]
     },
     {
@@ -128,14 +128,14 @@
         "CREATE STREAM TEST2 AS SELECT (a - b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "5.10"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "-5.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "0.00"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "5.10"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "-5.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "0.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "05.00"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "15.10"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "10.10"}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "05.00"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "15.10"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "10.10"}}
       ]
     },
     {
@@ -145,14 +145,14 @@
         "CREATE STREAM TEST2 AS SELECT (a * b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "-02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "00.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "20.2000"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "-20.2000"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "00.0000"}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "20.2000"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "-20.2000"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "00.0000"}}
       ]
     },
     {
@@ -165,14 +165,14 @@
         "The last record causes division by zero, the error is logged and a null value is output"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "-02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "00.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "005.0500000"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "-005.0500000"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": null}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "005.0500000"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "-005.0500000"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": null}}
       ]
     },
     {
@@ -185,14 +185,14 @@
         "The last record causes modulo by zero, the error is logged and a null value is output"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "-02.00"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.10", "B":  "00.00"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "0.10"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": "0.10"}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": null}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "0.10"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": "0.10"}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": null}}
       ]
     },
     {
@@ -202,16 +202,16 @@
         "CREATE STREAM TEST2 AS SELECT (a = b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -221,16 +221,16 @@
         "CREATE STREAM TEST2 AS SELECT (a <> b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -240,16 +240,16 @@
         "CREATE STREAM TEST2 AS SELECT (a IS DISTINCT FROM b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -259,16 +259,16 @@
         "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -278,16 +278,16 @@
         "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.010"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.012"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.010"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.010"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.012"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.010"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -297,18 +297,18 @@
         "CREATE STREAM TEST2 AS SELECT (a <= b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -318,18 +318,18 @@
         "CREATE STREAM TEST2 AS SELECT (a >= b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -339,18 +339,18 @@
         "CREATE STREAM TEST2 AS SELECT (a > b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     },
     {
@@ -360,16 +360,16 @@
         "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  1}},
-        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  12}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  12}},
-        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  1}},
+        {"topic": "test", "key": "0", "value": {"A": "10.01", "B":  12}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  12}},
+        {"topic": "test", "key": "0", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
-        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": "0", "value": {"RESULT": false}}
       ]
     }
   ]

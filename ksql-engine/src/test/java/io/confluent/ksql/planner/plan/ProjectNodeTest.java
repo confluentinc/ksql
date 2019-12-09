@@ -76,7 +76,7 @@ public class ProjectNodeTest {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0, SELECT_1));
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
-    when(stream.select(any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
+    when(stream.select(any(), any(), any())).thenReturn((SchemaKStream) stream);
 
     projectNode = new ProjectNode(
         NODE_ID,
@@ -126,7 +126,6 @@ public class ProjectNodeTest {
     // Then:
     verify(stream).select(
         eq(ImmutableList.of(SELECT_0, SELECT_1)),
-        eq("SELECT"),
         eq(stacker),
         same(ksqlStreamBuilder)
     );

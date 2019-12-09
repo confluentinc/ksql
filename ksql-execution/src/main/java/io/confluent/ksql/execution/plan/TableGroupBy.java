@@ -29,19 +29,19 @@ import java.util.Objects;
 public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final ImmutableList<Expression> groupByExpressions;
 
   public TableGroupBy(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "groupByExpressions", required = true)
       List<Expression> groupByExpressions
   ) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
-    this.formats = requireNonNull(formats, "formats");
+    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.groupByExpressions = ImmutableList
         .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
   }
@@ -57,8 +57,8 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
     return Collections.singletonList(source);
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public List<Expression> getGroupByExpressions() {
@@ -85,13 +85,13 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
     TableGroupBy<?> that = (TableGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
+        && Objects.equals(internalFormats, that.internalFormats)
         && Objects.equals(groupByExpressions, that.groupByExpressions);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, groupByExpressions);
+    return Objects.hash(properties, source, internalFormats, groupByExpressions);
   }
 }

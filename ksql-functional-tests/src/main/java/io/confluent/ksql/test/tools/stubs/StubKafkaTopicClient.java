@@ -104,7 +104,6 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   private final Map<String, StubTopic> topicMap = new HashMap<>();
-  private final Map<String, StubTopic> createdTopics = new HashMap<>();
 
   @Override
   public void createTopic(
@@ -126,7 +125,6 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
 
     final StubTopic info = createStubTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
-    createdTopics.put(topic, info);
   }
 
   @Override

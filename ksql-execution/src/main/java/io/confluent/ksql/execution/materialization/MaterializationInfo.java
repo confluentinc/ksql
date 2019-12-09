@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -97,15 +98,15 @@ public final class MaterializationInfo {
      *
      * @param mapperFactory a factory from which to get the mapper to apply.
      * @param resultSchema schema after applying aggregate result mapping.
-     * @param stepName the name of the step, as will be used by the processing logger
+     * @param queryContext the query context of the step, used to create the processing logger
      * @return A builder instance with this transformation.
      */
     public Builder map(
         final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory,
         final LogicalSchema resultSchema,
-        final String stepName
+        final QueryContext queryContext
     ) {
-      transforms.add(new MapperInfo(mapperFactory, stepName));
+      transforms.add(new MapperInfo(mapperFactory, queryContext));
       this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
@@ -114,14 +115,14 @@ public final class MaterializationInfo {
      * Adds a transform that filters rows from the materialization.
      *
      * @param predicateFactory a factory from which to get the predicate to apply.
-     * @param stepName the name of the step, as will be used by the processing logger
+     * @param queryContext the query context of the step, used to create the processing logger
      * @return A builder instance with this transformation.
      */
     public Builder filter(
         final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicateFactory,
-        final String stepName
+        final QueryContext queryContext
     ) {
-      transforms.add(new PredicateInfo(predicateFactory, stepName));
+      transforms.add(new PredicateInfo(predicateFactory, queryContext));
       return this;
     }
 
@@ -156,20 +157,20 @@ public final class MaterializationInfo {
   public static class MapperInfo implements TransformInfo {
 
     private final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory;
-    private final String stepName;
+    private final QueryContext queryContext;
 
     MapperInfo(
         final TransformFactory<KsqlTransformer<Object, GenericRow>> mapperFactory,
-        final String stepName
+        final QueryContext queryContext
     ) {
       this.mapperFactory = requireNonNull(mapperFactory, "mapperFactory");
-      this.stepName = requireNonNull(stepName, "stepName");
+      this.queryContext = requireNonNull(queryContext, "queryContext");
     }
 
     public KsqlTransformer<Object, GenericRow> getMapper(
-        final Function<String, ProcessingLogger> loggerFactory
+        final Function<QueryContext, ProcessingLogger> loggerFactory
     ) {
-      return mapperFactory.apply(loggerFactory.apply(stepName));
+      return mapperFactory.apply(loggerFactory.apply(queryContext));
     }
 
     public <R> R visit(TransformVisitor<R> visitor) {
@@ -180,20 +181,20 @@ public final class MaterializationInfo {
   public static class PredicateInfo implements TransformInfo {
 
     private final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicate;
-    private final String stepName;
+    private final QueryContext queryContext;
 
     PredicateInfo(
         final TransformFactory<KsqlTransformer<Object, Optional<GenericRow>>> predicate,
-        final String stepName
+        final QueryContext queryContext
     ) {
       this.predicate = Objects.requireNonNull(predicate, "predicate");
-      this.stepName = requireNonNull(stepName, "stepName");
+      this.queryContext = requireNonNull(queryContext, "queryContext");
     }
 
     public KsqlTransformer<Object, Optional<GenericRow>> getPredicate(
-        final Function<String, ProcessingLogger> loggerFactory
+        final Function<QueryContext, ProcessingLogger> loggerFactory
     ) {
-      return predicate.apply(loggerFactory.apply(stepName));
+      return predicate.apply(loggerFactory.apply(queryContext));
     }
 
     @Override

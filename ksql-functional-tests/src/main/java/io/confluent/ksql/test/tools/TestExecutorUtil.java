@@ -125,7 +125,6 @@ public final class TestExecutorUtil {
 
       final Topic sinkTopic = buildSinkTopic(
           ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
-          persistentQueryAndSortedSources.getWindowSize(),
           stubKafkaService,
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(
@@ -143,7 +142,6 @@ public final class TestExecutorUtil {
 
   private static Topic buildSinkTopic(
       final DataSource<?> sinkDataSource,
-      final Optional<Long> windowSize,
       final StubKafkaService stubKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -168,8 +166,7 @@ public final class TestExecutorUtil {
         keySerdeFactory,
         valueSerdeSupplier,
         KsqlConstants.legacyDefaultSinkPartitionCount,
-        KsqlConstants.legacyDefaultSinkReplicaCount,
-        windowSize
+        KsqlConstants.legacyDefaultSinkReplicaCount
     );
 
     if (stubKafkaService.topicExists(sinkTopic)) {

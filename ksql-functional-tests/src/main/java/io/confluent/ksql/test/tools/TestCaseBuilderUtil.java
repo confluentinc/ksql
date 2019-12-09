@@ -140,8 +140,8 @@ public final class TestCaseBuilderUtil {
             getKeySerdeSupplier(recordNode.getWindow()),
             defaultValueSerdeSupplier,
             4,
-            1,
-            Optional.empty()))
+            1
+        ))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics;
@@ -197,8 +197,8 @@ public final class TestCaseBuilderUtil {
           keySerdeSupplier,
           valueSerdeSupplier,
           KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount,
-          Optional.empty());
+          KsqlConstants.legacyDefaultSinkReplicaCount
+      );
     };
 
     try {

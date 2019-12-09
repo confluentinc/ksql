@@ -509,13 +509,7 @@ class Analyzer {
     }
 
     private void analyzePartitionBy(final Expression partitionBy) {
-      if (partitionBy instanceof ColumnReferenceExp) {
-        analysis.setPartitionBy(((ColumnReferenceExp) partitionBy).getReference());
-        return;
-      }
-
-      throw new KsqlException(
-          "Expected partition by to be a valid column but got " + partitionBy);
+      analysis.setPartitionBy(partitionBy);
     }
 
     private void analyzeWindowExpression(final WindowExpression windowExpression) {

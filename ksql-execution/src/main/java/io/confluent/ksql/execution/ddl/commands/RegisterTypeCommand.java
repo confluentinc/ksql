@@ -23,13 +23,13 @@ import java.util.Objects;
 @Immutable
 public class RegisterTypeCommand implements DdlCommand {
   private final SqlType type;
-  private final String name;
+  private final String typeName;
 
   public RegisterTypeCommand(
       @JsonProperty(value = "type", required = true) final SqlType type,
-      @JsonProperty(value = "name", required = true) final String name) {
+      @JsonProperty(value = "typeName", required = true) final String typeName) {
     this.type = Objects.requireNonNull(type, "type");
-    this.name = Objects.requireNonNull(name, "name");
+    this.typeName = Objects.requireNonNull(typeName, "typeName");
   }
 
   @Override
@@ -41,7 +41,7 @@ public class RegisterTypeCommand implements DdlCommand {
     return type;
   }
 
-  public String getName() {
-    return name;
+  public String getTypeName() {
+    return typeName;
   }
 }

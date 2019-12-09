@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -49,10 +48,6 @@ public final class StreamFilterBuilder {
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory predicateFactory
   ) {
-    final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
-        step.getProperties().getQueryContext()
-    );
-
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
         stream.getSchema(),
@@ -66,14 +61,14 @@ public final class StreamFilterBuilder {
         .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push(step.getStepName()).getQueryContext()
+                step.getProperties().getQueryContext()
             )
         );
 
     final KStream<K, GenericRow> filtered = stream.getStream()
         .flatTransformValues(
             () -> toFlatMapTransformer(predicate.getTransformer(processingLogger)),
-            Named.as(queryBuilder.buildUniqueNodeName(step.getStepName()))
+            Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
         );
 
     return stream.withStream(

@@ -58,13 +58,11 @@ public class AggregateNode extends PlanNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
-  private static final String PREPARE_OP_NAME = "prepare";
-  private static final String AGGREGATION_OP_NAME = "aggregate";
-  private static final String GROUP_BY_OP_NAME = "groupby";
-  private static final String HAVING_FILTER_OP_NAME = "having-filter";
-  private static final String PROJECT_OP_NAME = "project";
-
-  private static final String PRE_AGGR_SELECT_NODE_NAME = "PRE-AGGREGATE-SELECT";
+  private static final String PREPARE_OP_NAME = "Prepare";
+  private static final String AGGREGATION_OP_NAME = "Aggregate";
+  private static final String GROUP_BY_OP_NAME = "GroupBy";
+  private static final String HAVING_FILTER_OP_NAME = "HavingFilter";
+  private static final String PROJECT_OP_NAME = "Project";
 
   private final PlanNode source;
   private final LogicalSchema schema;
@@ -192,7 +190,6 @@ public class AggregateNode extends PlanNode {
 
     final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
         internalSchema.getAggArgExpansionList(),
-        PRE_AGGR_SELECT_NODE_NAME,
         contextStacker.push(PREPARE_OP_NAME),
         builder
     );
@@ -240,7 +237,6 @@ public class AggregateNode extends PlanNode {
     if (havingExpression.isPresent()) {
       aggregated = aggregated.filter(
           havingExpression.get(),
-          HAVING_FILTER_OP_NAME.toUpperCase(),
           contextStacker.push(HAVING_FILTER_OP_NAME)
       );
     }
@@ -250,7 +246,6 @@ public class AggregateNode extends PlanNode {
 
     return aggregated.select(
         finalSelects,
-        ProjectNode.SELECT_NODE_NAME,
         contextStacker.push(PROJECT_OP_NAME),
         builder
     );

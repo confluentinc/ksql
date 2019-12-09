@@ -18,7 +18,7 @@
       "inputs": [
         {
           "topic": "test_topic",
-          "key": 0,
+          "key": "0",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -63,7 +63,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 100,
+          "key": "100",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -108,7 +108,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -153,7 +153,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -198,7 +198,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -245,7 +245,7 @@
       "outputs": [
         {
           "topic": "S1",
-          "key": 0,
+          "key": "0",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -290,7 +290,7 @@
         },
         {
           "topic": "S1",
-          "key": 100,
+          "key": "100",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -335,7 +335,7 @@
         },
         {
           "topic": "S1",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -380,7 +380,7 @@
         },
         {
           "topic": "S1",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -425,7 +425,7 @@
         },
         {
           "topic": "S1",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -479,7 +479,7 @@
       "inputs": [
         {
           "topic": "test_topic",
-          "key": 0,
+          "key": "0",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -524,7 +524,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 100,
+          "key": "100",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -569,7 +569,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -614,7 +614,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -659,7 +659,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -706,7 +706,7 @@
       "outputs": [
         {
           "topic": "S2",
-          "key": 0,
+          "key": "0",
           "value": {
             "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
               44.00196898385005,
@@ -724,7 +724,7 @@
         },
         {
           "topic": "S2",
-          "key": 100,
+          "key": "100",
           "value": {
             "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
               14.483946419811055,
@@ -742,7 +742,7 @@
         },
         {
           "topic": "S2",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
               25.385083987245714,
@@ -760,7 +760,7 @@
         },
         {
           "topic": "S2",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
               74.68834760950283,
@@ -778,7 +778,7 @@
         },
         {
           "topic": "S2",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD__SL1_STRUCT__SL2_STRUCT__SL3_STRUCT__SL4_DOUBLE_ARRAY": [
               32.27711275538546,
@@ -805,7 +805,7 @@
       "inputs": [
         {
           "topic": "test_topic",
-          "key": 0,
+          "key": "0",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -850,7 +850,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 100,
+          "key": "100",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -895,7 +895,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -940,7 +940,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -985,7 +985,7 @@
         },
         {
           "topic": "test_topic",
-          "key": 101,
+          "key": "101",
           "value": {
             "NESTED_STRUCT_FIELD": {
               "SL1_STRUCT": {
@@ -1032,7 +1032,7 @@
       "outputs": [
         {
           "topic": "S3",
-          "key": 0,
+          "key": "0",
           "value": {
             "COL1": 44.00196898385005,
             "COL2": {
@@ -1046,7 +1046,7 @@
         },
         {
           "topic": "S3",
-          "key": 100,
+          "key": "100",
           "value": {
             "COL1": 14.483946419811055,
             "COL2": {
@@ -1060,7 +1060,7 @@
         },
         {
           "topic": "S3",
-          "key": 101,
+          "key": "101",
           "value": {
             "COL1": 25.385083987245714,
             "COL2": {
@@ -1074,7 +1074,7 @@
         },
         {
           "topic": "S3",
-          "key": 101,
+          "key": "101",
           "value": {
             "COL1": 74.68834760950283,
             "COL2": {
@@ -1088,7 +1088,7 @@
         },
         {
           "topic": "S3",
-          "key": 101,
+          "key": "101",
           "value": {
             "COL1": 32.27711275538546,
             "COL2": {

@@ -161,7 +161,7 @@ public class RecordTest {
         null);
 
     // When:
-    final String key = record.key();
+    final Object key = record.key();
 
     // Then:
     assertThat(key, equalTo("foo"));

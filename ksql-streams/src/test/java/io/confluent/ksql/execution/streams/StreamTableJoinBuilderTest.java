@@ -264,7 +264,7 @@ public class StreamTableJoinBuilderTest {
     join.build(planBuilder);
 
     // Then:
-    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("left").getQueryContext();
+    final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
     verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON), LEFT_PHYSICAL, leftCtx);
   }
 }

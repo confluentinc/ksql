@@ -15,16 +15,11 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
@@ -54,19 +49,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSinkBuilderTest {
+
   private static final String TOPIC = "TOPIC";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
-      .build()
-      .withMetaAndKeyColsInValue();
+      .build();
+
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
@@ -93,12 +87,11 @@ public class StreamSinkBuilderTest {
   private StreamSink<Struct> sink;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setup() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(source.build(any())).thenReturn(new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory));
+
     sink = new StreamSink<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
@@ -111,19 +104,6 @@ public class StreamSinkBuilderTest {
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldWriteOutStream() {
-    // When:
-    sink.build(planBuilder);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(kStream);
-    inOrder.verify(kStream).mapValues(any(ValueMapper.class));
-    inOrder.verify(kStream).to(anyString(), any());
-    verifyNoMoreInteractions(kStream);
   }
 
   @Test
@@ -164,30 +144,5 @@ public class StreamSinkBuilderTest {
 
     // Then:
     verify(kStream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
-  }
-
-  @Test
-  public void shouldRemoveKeyAndTimeFieldsFromValue() {
-    // When:
-    sink.build(planBuilder);
-
-    // Then:
-    verify(kStream).mapValues(mapperCaptor.capture());
-    final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
-    assertThat(
-        mapper.apply(new GenericRow(123, "456", 789, "101112")),
-        equalTo(new GenericRow(789, "101112"))
-    );
-  }
-
-  @Test
-  public void shouldIgnoreNullRowsWhenRemovingKeyAndTimeFieldsFromValue() {
-    // When:
-    sink.build(planBuilder);
-
-    // Then:
-    verify(kStream).mapValues(mapperCaptor.capture());
-    final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
-    assertThat(mapper.apply(null), is(nullValue()));
   }
 }

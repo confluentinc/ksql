@@ -36,7 +36,7 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_OUTPUT_0.KsqlTopic.source = STRUCT<FOO INT, BAR INT> NOT NULL
+CSAS_OUTPUT_0.KsqlTopic.Source = STRUCT<FOO INT, BAR INT> NOT NULL
 CSAS_OUTPUT_0.OUTPUT = STRUCT<FOO INT, BAR INT> NOT NULL
 SCHEMAS_END
 Topologies:
@@ -50,14 +50,11 @@ Topologies:
       --> KSTREAM-KEY-SELECT-0000000003
       <-- KSTREAM-TRANSFORMVALUES-0000000001
     Processor: KSTREAM-KEY-SELECT-0000000003 (stores: [])
-      --> SELECT-0
+      --> Project
       <-- KSTREAM-FILTER-0000000002
-    Processor: SELECT-0 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000005
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000005
       <-- KSTREAM-KEY-SELECT-0000000003
-    Processor: KSTREAM-MAPVALUES-0000000005 (stores: [])
-      --> KSTREAM-SINK-0000000006
-      <-- SELECT-0
-    Sink: KSTREAM-SINK-0000000006 (topic: OUTPUT)
-      <-- KSTREAM-MAPVALUES-0000000005
+    Sink: KSTREAM-SINK-0000000005 (topic: OUTPUT)
+      <-- Project
 

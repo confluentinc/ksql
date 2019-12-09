@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -275,7 +276,7 @@ public class JoinNodeTest {
         = (TopologyDescription.Processor) getNodeByName(topology, "Join");
     final List<String> predecessors = leftJoin.predecessors().stream()
         .map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-reduce")));
+    assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-Reduce")));
     assertThat(predecessors, equalTo(Collections.singletonList("Join-repartition-source")));
   }
 
@@ -878,7 +879,7 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).selectKey(
-        eq(LEFT_JOIN_FIELD_REF),
+        eq(new ColumnReferenceExp(LEFT_JOIN_FIELD_REF)),
         any()
     );
   }

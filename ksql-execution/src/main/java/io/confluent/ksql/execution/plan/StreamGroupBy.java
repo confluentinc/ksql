@@ -30,17 +30,17 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-  private final Formats formats;
+  private final Formats internalFormats;
   private final ImmutableList<Expression> groupByExpressions;
 
   public StreamGroupBy(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
       @JsonProperty(value = "groupByExpressions", required = true)
       List<Expression> groupByExpressions) {
     this.properties = requireNonNull(properties, "properties");
-    this.formats = requireNonNull(formats, "formats");
+    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.source = requireNonNull(source, "source");
     this.groupByExpressions = ImmutableList
         .copyOf(requireNonNull(groupByExpressions, "groupByExpressions"));
@@ -61,8 +61,8 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
     return Collections.singletonList(source);
   }
 
-  public Formats getFormats() {
-    return formats;
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public ExecutionStep<KStreamHolder<K>> getSource() {
@@ -85,12 +85,12 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
     StreamGroupBy<?> that = (StreamGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
+        && Objects.equals(internalFormats, that.internalFormats)
         && Objects.equals(groupByExpressions, that.groupByExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, formats, groupByExpressions);
+    return Objects.hash(properties, source, internalFormats, groupByExpressions);
   }
 }

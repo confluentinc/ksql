@@ -36,31 +36,28 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_JOINED_0.KafkaTopic_Right.source = STRUCT<with.dot VARCHAR> NOT NULL
-CSAS_JOINED_0.KafkaTopic_Left.source = STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL
-CSAS_JOINED_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, SELECT VARCHAR, field! VARCHAR> NOT NULL
+CSAS_JOINED_0.KafkaTopic_Right.Source = STRUCT<with.dot VARCHAR> NOT NULL
+CSAS_JOINED_0.KafkaTopic_Left.Source = STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL
+CSAS_JOINED_0.Join.Left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, SELECT VARCHAR, field! VARCHAR> NOT NULL
 CSAS_JOINED_0.JOINED = STRUCT<field! VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
     Source: Join-repartition-source (topics: [Join-repartition])
       --> Join
-    Processor: Join (stores: [KafkaTopic_Right-reduce])
-      --> SELECT-0
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project
       <-- Join-repartition-source
     Source: KSTREAM-SOURCE-0000000000 (topics: [right_topic])
       --> KTABLE-SOURCE-0000000001
-    Processor: SELECT-0 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000012
-      <-- Join
-    Processor: KSTREAM-MAPVALUES-0000000012 (stores: [])
-      --> KSTREAM-SINK-0000000013
-      <-- SELECT-0
-    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-reduce])
+    Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-Reduce])
       --> KTABLE-TRANSFORMVALUES-0000000002
       <-- KSTREAM-SOURCE-0000000000
-    Sink: KSTREAM-SINK-0000000013 (topic: JOINED)
-      <-- KSTREAM-MAPVALUES-0000000012
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000012
+      <-- Join
+    Sink: KSTREAM-SINK-0000000012 (topic: JOINED)
+      <-- Project
     Processor: KTABLE-TRANSFORMVALUES-0000000002 (stores: [])
       --> none
       <-- KTABLE-SOURCE-0000000001

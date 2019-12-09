@@ -81,7 +81,7 @@ public class DefaultSqlValueCoercerTest {
 
   @Before
   public void setUp() {
-    coercer = new DefaultSqlValueCoercer();
+    coercer = DefaultSqlValueCoercer.INSTANCE;
   }
 
   @Test(expected = KsqlException.class)

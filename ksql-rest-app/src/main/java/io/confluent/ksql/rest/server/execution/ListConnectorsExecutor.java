@@ -31,8 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.connect.runtime.AbstractStatus.State;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.AbstractState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
@@ -58,15 +61,18 @@ public final class ListConnectorsExecutor {
     final List<SimpleConnectorInfo> infos = new ArrayList<>();
     final List<KsqlWarning> warnings = new ArrayList<>();
     final Scope scope = configuredStatement.getStatement().getScope();
+
     for (final String name : connectors.datum().get()) {
       final ConnectResponse<ConnectorInfo> response = connectClient.describe(name);
+
       if (response.datum().filter(i -> inScope(i.type(), scope)).isPresent()) {
-        infos.add(fromConnectorInfoResponse(name, response)
-        );
+        final ConnectResponse<ConnectorStateInfo> status = connectClient.status(name);
+        infos.add(fromConnectorInfoResponse(name, response, status));
       } else if (response.error().isPresent()) {
         if (scope == Scope.ALL) {
-          infos.add(new SimpleConnectorInfo(name, ConnectorType.UNKNOWN, null));
+          infos.add(new SimpleConnectorInfo(name, ConnectorType.UNKNOWN, null, null));
         }
+
         warnings.add(
             new KsqlWarning(
                 String.format(
@@ -96,16 +102,35 @@ public final class ListConnectorsExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   private static SimpleConnectorInfo fromConnectorInfoResponse(
       final String name,
-      final ConnectResponse<ConnectorInfo> response
+      final ConnectResponse<ConnectorInfo> response,
+      final ConnectResponse<ConnectorStateInfo> status
   ) {
-    if (response.error().isPresent()) {
-      return new SimpleConnectorInfo(name, null, null);
+    if (response.error().isPresent() || status.error().isPresent()) {
+      return new SimpleConnectorInfo(name, null, null, status.datum().get().connector().state());
     }
 
     final ConnectorInfo info = response.datum().get();
     return new SimpleConnectorInfo(
         name,
         info.type(),
-        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG));
+        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
+        summarizeState(status.datum().get())
+    );
+  }
+
+  private static String summarizeState(final ConnectorStateInfo connectorState) {
+    if (!connectorState.connector().state().equals(State.RUNNING.name())) {
+      return connectorState.connector().state();
+    }
+
+    final long numRunningTasks = connectorState.tasks()
+        .stream()
+        .map(AbstractState::state)
+        .filter(State.RUNNING.name()::equals)
+        .count();
+
+    return String.format("RUNNING (%s/%s tasks RUNNING)",
+        numRunningTasks,
+        connectorState.tasks().size());
   }
 }

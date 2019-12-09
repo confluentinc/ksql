@@ -130,6 +130,9 @@ public class ConnectIntegrationTest {
     assertThat(
         ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getName(),
         is("mock-connector"));
+    assertThat(
+        ((ConnectorList) response.getResponse().get(0)).getConnectors().get(0).getState(),
+        is("RUNNING (1/1 tasks RUNNING)"));
   }
 
   @Test

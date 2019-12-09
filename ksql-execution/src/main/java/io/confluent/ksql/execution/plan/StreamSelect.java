@@ -25,23 +25,21 @@ import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
+public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final ImmutableList<SelectExpression> selectExpressions;
-  private final String selectNodeName;
 
-  public StreamMapValues(
+  public StreamSelect(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
-      List<SelectExpression> selectExpressions,
-      @JsonProperty(value = "selectNodeName", required = true) String selectNodeName) {
+      List<SelectExpression> selectExpressions
+  ) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
-    this.selectNodeName = requireNonNull(selectNodeName, "selectNodeName");
   }
 
   @Override
@@ -63,13 +61,9 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     return source;
   }
 
-  public String getSelectNodeName() {
-    return selectNodeName;
-  }
-
   @Override
   public KStreamHolder<K> build(PlanBuilder builder) {
-    return builder.visitStreamMapValues(this);
+    return builder.visitStreamSelect(this);
   }
 
   @Override
@@ -80,16 +74,15 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamMapValues<?> that = (StreamMapValues<?>) o;
+    StreamSelect<?> that = (StreamSelect<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(selectExpressions, that.selectExpressions)
-        && Objects.equals(selectNodeName, that.selectNodeName);
+        && Objects.equals(selectExpressions, that.selectExpressions);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, selectExpressions, selectNodeName);
+    return Objects.hash(properties, source, selectExpressions);
   }
 }

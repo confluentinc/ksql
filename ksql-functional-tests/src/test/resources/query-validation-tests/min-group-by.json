@@ -15,26 +15,26 @@
       "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": -2147483647}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 5}},
-        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 100}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 6}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 300}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 2000}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100}}
+        {"topic": "test_topic", "key": "1", "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": -2147483647}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 5}},
+        {"topic": "test_topic", "key": "0", "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 6}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 300}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 2000}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -2147483647}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -2147483647}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -2147483647}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 100}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -2147483647}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -2147483647}}
+        {"topic": "S2", "key": "1", "value": {"ID":  1, "MIN":  null}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -2147483647}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -2147483647}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -2147483647}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 100}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -2147483647}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -2147483647}}
       ]
     },
     {
@@ -44,26 +44,26 @@
         "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": -1000000}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 5}},
-        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 100}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 6}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 300}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": -9223372036854775807}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100}}
+        {"topic": "test_topic", "key": "1", "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": -1000000}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 5}},
+        {"topic": "test_topic", "key": "0", "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 6}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 300}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": -9223372036854775807}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -1000000}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -1000000}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -1000000}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 100}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -9223372036854775807}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -9223372036854775807}}
+        {"topic": "S2", "key": "1", "value": {"ID":  1, "MIN":  null}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -1000000}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -1000000}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -1000000}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 100}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -9223372036854775807}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -9223372036854775807}}
       ]
     },
     {
@@ -73,27 +73,27 @@
         "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 1.7976931348623157E308}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 5.1}},
-        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 100.1}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 6.4}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": 300.8}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": -1.7976931348623157E308}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": 100.11}}
+        {"topic": "test_topic", "key": "1", "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 1.7976931348623157E308}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 5.1}},
+        {"topic": "test_topic", "key": "0", "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100.1}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 6.4}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 300.8}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": -1.7976931348623157E308}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100.11}}
 
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": 1.7976931348623157E308}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": 5.1}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": 5.1}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 100.1}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6.4}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": 6.4}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -1.7976931348623157E308}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": -1.7976931348623157E308}}
+        {"topic": "S2", "key": "1", "value": {"ID":  1, "MIN":  null}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": 1.7976931348623157E308}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": 5.1}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": 5.1}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 100.1}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6.4}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": 6.4}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -1.7976931348623157E308}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": -1.7976931348623157E308}}
       ]
     },
     {
@@ -103,27 +103,27 @@
         "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "21.79"}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "1.10"}},
-        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": "10.10"}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": "06.40"}},
-        {"topic": "test_topic", "key": 100, "value": {"id": 100, "value": "30.80"}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "-01.79"}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "value": "10.11"}}
+        {"topic": "test_topic", "key": "1", "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "21.79"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "1.10"}},
+        {"topic": "test_topic", "key": "0", "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "10.10"}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "06.40"}},
+        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "30.80"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "-01.79"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "10.11"}}
 
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": "21.79"}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": "01.10"}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": "01.10"}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": "10.10"}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": "06.40"}},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "MIN": "06.40"}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": "-01.79"}},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "MIN": "-01.79"}}
+        {"topic": "S2", "key": "1", "value": {"ID":  1, "MIN":  null}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": "21.79"}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": "01.10"}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": "01.10"}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": "10.10"}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": "06.40"}},
+        {"topic": "S2", "key": "100", "value": {"ID": 100, "MIN": "06.40"}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": "-01.79"}},
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "MIN": "-01.79"}}
       ]
     }
   ]

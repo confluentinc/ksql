@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
@@ -45,12 +45,14 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
@@ -116,14 +118,12 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final String stepName,
       final Stacker contextStacker
   ) {
     final StreamFilter<K> step = ExecutionStepFactory.streamFilter(
         contextStacker,
         sourceStep,
-        rewriteTimeComparisonForFilter(filterExpression),
-        stepName
+        rewriteTimeComparisonForFilter(filterExpression)
     );
 
     return new SchemaKStream<>(
@@ -143,16 +143,14 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
-      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final KeyField keyField = findKeyField(selectExpressions);
-    final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
+    final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,
         sourceStep,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
 
     return new SchemaKStream<>(
@@ -325,54 +323,63 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
-      final ColumnRef columnRef,
+      final Expression keyExpression,
       final QueryContext.Stacker contextStacker
   ) {
     if (keyFormat.isWindowed()) {
       throw new UnsupportedOperationException("Can not selectKey of windowed stream");
     }
 
+    if (!needsRepartition(keyExpression)) {
+      return (SchemaKStream<Struct>) this;
+    }
+
+    final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
+        contextStacker,
+        sourceStep,
+        keyExpression
+    );
+
+    return new SchemaKStream<>(
+        step,
+        resolveSchema(step),
+        keyFormat,
+        getNewKeyField(keyExpression),
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  private KeyField getNewKeyField(final Expression expression) {
+    if (!(expression instanceof ColumnReferenceExp)) {
+      return KeyField.none();
+    }
+
+    final ColumnRef columnRef = ((ColumnReferenceExp) expression).getReference();
+    final KeyField newKeyField = isRowKey(columnRef) ? keyField : KeyField.of(columnRef);
+    return getSchema().isMetaColumn(columnRef.name()) ? KeyField.none() : newKeyField;
+  }
+
+  private boolean needsRepartition(final Expression expression) {
+    if (!(expression instanceof ColumnReferenceExp)) {
+      return true;
+    }
+
+    final ColumnRef columnRef = ((ColumnReferenceExp) expression).getReference();
     final Optional<Column> existingKey = keyField.resolve(getSchema());
 
-    final Column proposedKey = getSchema().findValueColumn(columnRef)
-        .orElseThrow(IllegalArgumentException::new);
+    final Column proposedKey = getSchema()
+        .findValueColumn(columnRef)
+        .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
+            + columnRef.name().toString(FormatOptions.noEscape()) + "' Only columns from the "
+            + "source schema can be referenced in the PARTITION BY clause."));
 
-    final KeyField resultantKeyField = isRowKey(columnRef)
-        ? keyField
-        : KeyField.of(columnRef);
 
     final boolean namesMatch = existingKey
         .map(kf -> kf.ref().equals(proposedKey.ref()))
         .orElse(false);
 
-    if (namesMatch || isRowKey(proposedKey.ref())) {
-      return (SchemaKStream<Struct>) new SchemaKStream<>(
-          sourceStep,
-          schema,
-          keyFormat,
-          resultantKeyField,
-          ksqlConfig,
-          functionRegistry
-      );
-    }
-
-    final KeyField newKeyField = getSchema().isMetaColumn(columnRef.name())
-        ? KeyField.none()
-        : resultantKeyField;
-
-    final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
-        contextStacker,
-        sourceStep,
-        columnRef
-    );
-    return new SchemaKStream<>(
-        step,
-        resolveSchema(step),
-        keyFormat,
-        newKeyField,
-        ksqlConfig,
-        functionRegistry
-    );
+    return !namesMatch && !isRowKey(columnRef);
   }
 
   private static boolean isRowKey(final ColumnRef fieldName) {

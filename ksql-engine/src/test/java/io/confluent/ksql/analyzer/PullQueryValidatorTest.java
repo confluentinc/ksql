@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
@@ -126,7 +127,7 @@ public class PullQueryValidatorTest {
   public void shouldThrowOnPartitionBy() {
     // Given:
     when(analysis.getPartitionBy())
-        .thenReturn(Optional.of(ColumnRef.withoutSource(ColumnName.of("Something"))));
+        .thenReturn(Optional.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("Something")))));
 
     // Then:
     expectedException.expect(KsqlException.class);

@@ -25,7 +25,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
 
   private static final List<String> HEADERS = ImmutableList.of(
-      "Connector Name", "Type", "Class"
+      "Connector Name", "Type", "Class", "Status"
   );
 
 
@@ -38,7 +38,8 @@ public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
             .map(info -> ImmutableList.of(
                 info.getName(),
                 ObjectUtils.defaultIfNull(info.getType(), ConnectorType.UNKNOWN).name(),
-                ObjectUtils.defaultIfNull(info.getClassName(), ""))))
+                ObjectUtils.defaultIfNull(info.getClassName(), ""),
+                ObjectUtils.defaultIfNull(info.getState(), ""))))
         .build();
   }
 }

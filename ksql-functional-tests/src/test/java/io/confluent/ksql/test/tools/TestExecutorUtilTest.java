@@ -77,8 +77,7 @@ public class TestExecutorUtilTest {
         new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
-        1,
-        Optional.empty()
+        1
     );
 
     stubKafkaService.createTopic(sourceTopic);

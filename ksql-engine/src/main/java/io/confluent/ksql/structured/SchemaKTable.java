@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -93,14 +93,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final String stepName,
       final Stacker contextStacker
   ) {
     final TableFilter<K> step = ExecutionStepFactory.tableFilter(
         contextStacker,
         sourceTableStep,
-        rewriteTimeComparisonForFilter(filterExpression),
-        stepName
+        rewriteTimeComparisonForFilter(filterExpression)
     );
 
     return new SchemaKTable<>(
@@ -116,16 +114,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
-      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
     final KeyField keyField = findKeyField(selectExpressions);
-    final TableMapValues<K> step = ExecutionStepFactory.tableMapValues(
+    final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
-        selectExpressions,
-        selectNodeName
+        selectExpressions
     );
 
     return new SchemaKTable<>(

@@ -7,7 +7,7 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -19,7 +19,7 @@
         "CREATE STREAM OUTPUT AS select ID from INPUT partition by ID;"
       ],
       "inputs": [
-        {"topic": "input", "key": 0, "value": 10}
+        {"topic": "input", "key": "0", "value": 10}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "10", "value": 10}
@@ -32,7 +32,7 @@
         "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "0,zero,50"}
@@ -45,8 +45,8 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": null},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": null},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -59,8 +59,8 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,,1"},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+        {"topic": "test_topic", "key": "0", "value": "0,,1"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -87,12 +87,12 @@
         "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID, NAME from TEST partition by ID;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,a"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"}
+        {"topic": "test_topic", "key": "0", "value": "0,a"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": 0, "value": "0_new,a"},
-        {"topic": "REPARTITIONED", "key": 1, "value": "1_new,b"}
+        {"topic": "REPARTITIONED", "key": "0", "value": "0_new,a"},
+        {"topic": "REPARTITIONED", "key": "1", "value": "1_new,b"}
       ],
       "post": {
         "sources": [
@@ -115,7 +115,7 @@
         "CREATE STREAM INPUT (ID bigint) with (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWKEY;"
       ],
-      "inputs": [{"topic": "input", "key": 10, "value": {"ID":  22}}],
+      "inputs": [{"topic": "input", "key": "10", "value": {"ID":  22}}],
       "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}}],
       "post": {
         "topics": {
@@ -131,6 +131,31 @@
       ],
       "inputs": [{"topic": "input", "value": {"ID":  22}, "timestamp": 10}],
       "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}, "timestamp": 10}]
+    },
+    {
+      "name": "partition by ROWKEY in join on non-ROWKEY",
+      "statements": [
+        "CREATE STREAM L (A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');",
+        "CREATE STREAM R (C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');",
+        "CREATE STREAM OUTPUT AS SELECT L.A, L.B, R.C, R.D, L.ROWKEY, R.ROWKEY FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.ROWKEY;"
+      ],
+      "comments": [
+        "This test demonstrates a problem when we JOIN on a non-ROWKEY field and then PARTITION BY ",
+        "a ROWKEY field. Note that the key is 'join' when it should be 'a' and the key-field is 'B' ",
+        "when it should be 'L_ROWKEY'"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "a", "value": {"A": "a", "B": "join"}},
+        {"topic": "RIGHT", "key": "c", "value": {"C": "c", "D": "join"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "join", "value": {"A": "a", "B": "join", "C": "c", "D": "join", "L_ROWKEY": "a", "R_ROWKEY": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": "B"}
+        ]
+      }
     }
   ]
 }

@@ -34,17 +34,11 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
 public class DataSourceNode extends PlanNode {
 
-  private static final String SOURCE_OP_NAME = "source";
+  private static final String SOURCE_OP_NAME = "Source";
 
   private final DataSource<?> dataSource;
   private final SourceName alias;
@@ -140,7 +134,6 @@ public class DataSourceNode extends PlanNode {
         builder,
         dataSource,
         contextStacker.push(SOURCE_OP_NAME),
-        getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField,
         alias
     );
@@ -152,27 +145,8 @@ public class DataSourceNode extends PlanNode {
         KsqlQueryBuilder builder,
         DataSource<?> dataSource,
         QueryContext.Stacker contextStacker,
-        Optional<AutoOffsetReset> offsetReset,
         KeyField keyField,
         SourceName alias
     );
-  }
-
-  private static Optional<Topology.AutoOffsetReset> getAutoOffsetReset(
-      final Map<String, Object> props) {
-    final Object offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    if (offestReset == null) {
-      return Optional.empty();
-    }
-
-    try {
-      return Optional.of(AutoOffsetReset.valueOf(offestReset.toString().toUpperCase()));
-    } catch (final Exception e) {
-      throw new ConfigException(
-          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-          offestReset,
-          "Unknown value"
-      );
-    }
   }
 }

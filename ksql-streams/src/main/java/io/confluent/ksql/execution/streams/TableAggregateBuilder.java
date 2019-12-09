@@ -62,15 +62,15 @@ public final class TableAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         queryBuilder.getFunctionRegistry(),
-        aggregate.getAggregations()
+        aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         AggregateBuilderUtils.buildMaterialized(
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
-            aggregate.getFormats(),
+            aggregate.getInternalFormats(),
             queryBuilder,
             materializedFactory
         );
@@ -81,13 +81,13 @@ public final class TableAggregateBuilder {
         materialized
     ).transformValues(
         () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
-        Named.as(queryBuilder.buildUniqueNodeName(AggregateBuilderUtils.STEP_NAME))
+        Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
             aggregateParams.getAggregator(),
-            aggregate.getProperties().getQueryContext(),
+            aggregate,
             aggregateSchema,
             resultSchema
         );

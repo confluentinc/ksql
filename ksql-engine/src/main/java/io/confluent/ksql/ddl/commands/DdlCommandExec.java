@@ -114,7 +114,7 @@ public class DdlCommandExec {
 
     @Override
     public DdlCommandResult executeRegisterType(final RegisterTypeCommand registerType) {
-      final String name = registerType.getName();
+      final String name = registerType.getTypeName();
       final SqlType type = registerType.getType();
       metaStore.registerType(name, type);
       return new DdlCommandResult(
@@ -141,7 +141,7 @@ public class DdlCommandExec {
 
   private static KsqlTopic getKsqlTopic(final CreateSourceCommand createSource) {
     return new KsqlTopic(
-        createSource.getKafkaTopicName(),
+        createSource.getTopicName(),
         KeyFormat.of(createSource.getFormats().getKeyFormat(), createSource.getWindowInfo()),
         ValueFormat.of(createSource.getFormats().getValueFormat())
     );

@@ -36,7 +36,7 @@ public class HealthCheckAgent {
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
       new ExecuteStatementCheck(METASTORE_CHECK_NAME, "list streams; list tables; list queries;"),
-      new ExecuteStatementCheck(KAFKA_CHECK_NAME, "list topics extended;")
+      new ExecuteStatementCheck(KAFKA_CHECK_NAME, "list topics;")
   );
 
   private final SimpleKsqlClient ksqlClient;

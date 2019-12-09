@@ -226,7 +226,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
+            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
           }
         ]
       }
@@ -260,7 +260,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<FOO MAP<STRING, STRING>>"
+            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, STRING>"
           }
         ]
       }
@@ -301,7 +301,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
+            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
           }
         ]
       }
@@ -330,7 +330,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
+            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
           }
         ]
       }

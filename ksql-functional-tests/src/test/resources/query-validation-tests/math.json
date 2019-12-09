@@ -229,7 +229,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)>"
+            "schema": "ROWKEY STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
           }
         ]
       }

@@ -213,7 +213,7 @@
           {
             "name": "OUTPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 STRING, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>>"
+            "schema": "ROWKEY STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 STRING, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>"
           }
         ]
       }

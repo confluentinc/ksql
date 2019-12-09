@@ -133,7 +133,7 @@
             "name": "OUTPUT",
             "type": "table",
             "keyField": "FOO",
-            "valueSchema": "STRUCT<FOO INT, KSQL_COL_1 BIGINT>"
+            "schema": "ROWKEY STRING KEY, FOO INT, KSQL_COL_1 BIGINT"
           }
         ]
       }

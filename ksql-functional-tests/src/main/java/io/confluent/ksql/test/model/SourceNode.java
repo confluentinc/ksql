@@ -22,13 +22,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.parser.SchemaParser;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.test.model.matchers.MetaStoreMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.JsonParsingUtil;
@@ -36,9 +35,6 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -50,20 +46,20 @@ final class SourceNode {
   private final String name;
   private final Class<? extends DataSource> type;
   private final Optional<KeyFieldNode> keyField;
-  private final Optional<Schema> valueSchema;
+  private final Optional<LogicalSchema> schema;
   private final Optional<KeyFormatNode> keyFormat;
 
   private SourceNode(
       final String name,
       final Class<? extends DataSource> type,
       final Optional<KeyFieldNode> keyField,
-      final Optional<Schema> valueSchema,
+      final Optional<LogicalSchema> schema,
       final Optional<KeyFormatNode> keyFormat
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
-    this.valueSchema = Objects.requireNonNull(valueSchema, "valueSchema");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
 
     if (this.name.isEmpty()) {
@@ -88,9 +84,9 @@ final class SourceNode {
         .map(MetaStoreMatchers::hasKeyField)
         .orElse(null);
 
-    final Matcher<DataSource<?>> valueSchemaMatcher = valueSchema
+    final Matcher<DataSource<?>> schemaMatcher = schema
         .map(Matchers::is)
-        .map(MetaStoreMatchers::hasValueSchema)
+        .map(MetaStoreMatchers::hasSchema)
         .orElse(null);
 
     final Matcher<DataSource<?>> keyFormatMatcher = keyFormat
@@ -99,7 +95,7 @@ final class SourceNode {
         .orElse(null);
 
     final Matcher<DataSource<?>>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher, keyFormatMatcher)
+        .of(nameMatcher, typeMatcher, keyFieldMatcher, schemaMatcher, keyFormatMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -119,22 +115,9 @@ final class SourceNode {
     }
   }
 
-  private static Optional<Schema> parseSchema(final String schema) {
-    return Optional.ofNullable(schema)
-        .map(schemaString -> SqlTypeParser.create(TypeRegistry.EMPTY).parse(schemaString))
-        .map(Type::getSqlType)
-        .map(SchemaConverters.sqlToConnectConverter()::toConnectSchema)
-        .map(SourceNode::makeTopLevelStructNoneOptional);
-  }
-
-  private static ConnectSchema makeTopLevelStructNoneOptional(final Schema schema) {
-    if (schema.type() != Schema.Type.STRUCT) {
-      return (ConnectSchema) schema.schema();
-    }
-
-    final SchemaBuilder builder = SchemaBuilder.struct();
-    schema.fields().forEach(field -> builder.field(field.name(), field.schema()));
-    return (ConnectSchema) builder.build();
+  private static LogicalSchema parseSchema(final String text) {
+    return SchemaParser.parse(text, TypeRegistry.EMPTY)
+        .toLogicalSchema(true);
   }
 
   public static class Deserializer extends JsonDeserializer<SourceNode> {
@@ -154,14 +137,14 @@ final class SourceNode {
       final Optional<KeyFieldNode> keyField = JsonParsingUtil
           .getOptionalOrElse("keyField", node, jp, KeyFieldNode.class, KeyFieldNode.none());
 
-      final Optional<Schema> valueSchema = JsonParsingUtil
-          .getOptional("valueSchema", node, jp, String.class)
-          .flatMap(SourceNode::parseSchema);
+      final Optional<LogicalSchema> schema = JsonParsingUtil
+          .getOptional("schema", node, jp, String.class)
+          .map(SourceNode::parseSchema);
 
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
-      return new SourceNode(name, type, keyField, valueSchema, keyFormat);
+      return new SourceNode(name, type, keyField, schema, keyFormat);
     }
   }
 }

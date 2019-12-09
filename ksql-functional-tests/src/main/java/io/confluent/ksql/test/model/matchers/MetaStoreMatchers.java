@@ -23,9 +23,9 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -62,17 +62,17 @@ public final class MetaStoreMatchers {
     };
   }
 
-  public static Matcher<DataSource<?>> hasValueSchema(
-      final Matcher<Schema> schemaMatcher
+  public static Matcher<DataSource<?>> hasSchema(
+      final Matcher<LogicalSchema> schemaMatcher
   ) {
-    return new FeatureMatcher<DataSource<?>, Schema>(
+    return new FeatureMatcher<DataSource<?>, LogicalSchema>(
         schemaMatcher,
-        "source with value schema",
-        "value schema"
+        "source with schema",
+        "schema"
     ) {
       @Override
-      protected Schema featureValueOf(final DataSource<?> actual) {
-        return actual.getSchema().valueConnectSchema();
+      protected LogicalSchema featureValueOf(final DataSource<?> actual) {
+        return actual.getSchema();
       }
     };
   }

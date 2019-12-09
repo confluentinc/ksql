@@ -43,7 +43,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KafkaStreamsUncaughtExceptionHandler;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -162,8 +161,6 @@ public final class QueryExecutor {
 
     final BuildResult built =
         kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
-
-    built.kafkaStreams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
 
     final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
 

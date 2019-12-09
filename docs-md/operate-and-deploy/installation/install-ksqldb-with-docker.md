@@ -300,7 +300,7 @@ docker run -d -p 10.0.0.11:8088:8088 \
   confluentinc/ksqldb-server:{{ site.release }}
 
 # Connect the ksqlDB CLI to the server.
-docker run -it confluentinc/ksqldb-cli http://10.0.0.11:8088 
+docker run -it confluentinc/ksqldb-cli ksql http://10.0.0.11:8088 
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -328,7 +328,7 @@ ls /path/on/host/ksql-cli.properties
 
 docker run -it \
   -v /path/on/host/:/path/in/container  \
-  confluentinc/ksqldb-cli:{{ site.release }} http://10.0.0.11:8088 \
+  confluentinc/ksqldb-cli:{{ site.release }} ksql http://10.0.0.11:8088 \
   --config-file /path/in/container/ksql-cli.properties
 ```
 
@@ -338,7 +338,7 @@ Run a ksqlDB CLI instance in a container and connect to a remote ksqlDB
 Server host:
 
 ```bash
-docker run -it confluentinc/ksqldb-cli:{{ site.release }} \
+docker run -it confluentinc/ksqldb-cli:{{ site.release }} ksql \
   http://ec2-blah.us-blah.compute.amazonaws.com:8080
 ```
 

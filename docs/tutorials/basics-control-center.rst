@@ -67,26 +67,19 @@ Inspect Topics By Using KSQL in |c3-short|
 
        {
          "name": "pageviews",
-         "registered": false,
          "replicaInfo": [
            1
-         ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
+         ]
        },
        {
          "name": "users",
-         "registered": false,
          "replicaInfo": [
            1
-         ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
+         ]
        }
 
-   The ``"registered": false`` indicator means that you haven't created a stream
-   or table on top of these topics, so you can't write streaming queries against
-   them yet.
+   To see the count of consumers and consumer groups, use the SHOW TOPICS
+   EXTENDED command.
 
 #. In the editing window, use the PRINT TOPIC statement to inspect the records in
    the ``users`` topic. Click **Run** to start the query.
@@ -151,14 +144,10 @@ statements in KSQL Editor, just like you use them in the KSQL CLI.
 
        {
          "name": "pageviews",
-         "registered": true,
          "replicaInfo": [
            1
          ]
        },
-
-   The ``"registered": true`` indicator means that you have registered the topic
-   and you can write streaming queries against it.
 
 Create a Table in the |c3-short| UI
 ===================================

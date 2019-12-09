@@ -47,11 +47,8 @@ Topologies:
       --> Project
       <-- KSTREAM-SOURCE-0000000000
     Processor: Project (stores: [])
-      --> KSTREAM-MAPVALUES-0000000003
+      --> KSTREAM-SINK-0000000003
       <-- KSTREAM-TRANSFORMVALUES-0000000001
-    Processor: KSTREAM-MAPVALUES-0000000003 (stores: [])
-      --> KSTREAM-SINK-0000000004
+    Sink: KSTREAM-SINK-0000000003 (topic: OUT)
       <-- Project
-    Sink: KSTREAM-SINK-0000000004 (topic: OUT)
-      <-- KSTREAM-MAPVALUES-0000000003
 

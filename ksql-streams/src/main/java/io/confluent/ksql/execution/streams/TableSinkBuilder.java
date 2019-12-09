@@ -21,12 +21,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSink;
-import io.confluent.ksql.execution.util.SinkSchemaUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Produced;
 
@@ -39,7 +35,7 @@ public final class TableSinkBuilder {
       final TableSink<K> tableSink,
       final KsqlQueryBuilder queryBuilder) {
     final QueryContext queryContext = tableSink.getProperties().getQueryContext();
-    final LogicalSchema schema = SinkSchemaUtil.sinkSchema(table.getSchema());
+    final LogicalSchema schema = table.getSchema();
     final Formats formats = tableSink.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
     final Serde<K> keySerde = table.getKeySerdeFactory().buildKeySerde(
@@ -47,27 +43,15 @@ public final class TableSinkBuilder {
         physicalSchema,
         queryContext
     );
+
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext
     );
-    final Set<Integer> rowkeyIndexes =
-        SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(table.getSchema());
-    final String kafkaTopicName = tableSink.getTopicName();
-    table.getTable().toStream()
-        .mapValues(row -> {
-              if (row == null) {
-                return null;
-              }
-              final List<Object> columns = new ArrayList<>();
-              for (int i = 0; i < row.getColumns().size(); i++) {
-                if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.getColumns().get(i));
-                }
-              }
-              return new GenericRow(columns);
-            }
-        ).to(kafkaTopicName, Produced.with(keySerde, valueSerde));
+
+    table.getTable()
+        .toStream()
+        .to(tableSink.getTopicName(), Produced.with(keySerde, valueSerde));
   }
 }

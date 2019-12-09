@@ -82,13 +82,10 @@ Topologies:
       --> Project
       <-- Join-this-join, Join-outer-other-join
     Processor: Project (stores: [])
-      --> KSTREAM-MAPVALUES-0000000020
+      --> KSTREAM-SINK-0000000020
       <-- Join-merge
-    Processor: KSTREAM-MAPVALUES-0000000020 (stores: [])
-      --> KSTREAM-SINK-0000000021
+    Sink: KSTREAM-SINK-0000000020 (topic: LEFT_OUTER_JOIN)
       <-- Project
-    Sink: KSTREAM-SINK-0000000021 (topic: LEFT_OUTER_JOIN)
-      <-- KSTREAM-MAPVALUES-0000000020
 
   Sub-topology: 2
     Source: KSTREAM-SOURCE-0000000004 (topics: [right_topic])

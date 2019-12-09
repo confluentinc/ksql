@@ -39,7 +39,6 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.select.Selection;
-import io.confluent.ksql.execution.util.SinkSchemaUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.HandlerMaps;
@@ -64,14 +63,14 @@ public final class StepSchemaResolver {
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
       .put(StreamSelectKey.class, StepSchemaResolver::sameSchema)
-      .put(StreamSink.class, StepSchemaResolver::handleSink)
+      .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
       .put(WindowedStreamSource.class, StepSchemaResolver::handleSource)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupBy.class, StepSchemaResolver::sameSchema)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
-      .put(TableSink.class, StepSchemaResolver::handleSink)
+      .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleSource)
       .build();
@@ -202,10 +201,6 @@ public final class StepSchemaResolver {
         ksqlConfig,
         functionRegistry
     ).getSchema();
-  }
-
-  private LogicalSchema handleSink(final LogicalSchema schema, final ExecutionStep<?> step) {
-    return SinkSchemaUtil.sinkSchema(schema);
   }
 
   private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep step) {

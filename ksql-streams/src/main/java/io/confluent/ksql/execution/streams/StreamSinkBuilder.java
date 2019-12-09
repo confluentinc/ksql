@@ -21,12 +21,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSink;
-import io.confluent.ksql.execution.util.SinkSchemaUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Produced;
 
@@ -39,7 +35,7 @@ public final class StreamSinkBuilder {
       final StreamSink<K> streamSink,
       final KsqlQueryBuilder queryBuilder) {
     final QueryContext queryContext = streamSink.getProperties().getQueryContext();
-    final LogicalSchema schema = SinkSchemaUtil.sinkSchema(stream.getSchema());
+    final LogicalSchema schema = stream.getSchema();
     final Formats formats = streamSink.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
     final Serde<K> keySerde = stream.getKeySerdeFactory().buildKeySerde(
@@ -47,26 +43,14 @@ public final class StreamSinkBuilder {
         physicalSchema,
         queryContext
     );
+
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext
     );
-    final Set<Integer> rowkeyIndexes =
-        SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(stream.getSchema());
-    final String kafkaTopicName = streamSink.getTopicName();
+
     stream.getStream()
-        .mapValues(row -> {
-          if (row == null) {
-            return null;
-          }
-          final List<Object> columns = new ArrayList<>();
-          for (int i = 0; i < row.getColumns().size(); i++) {
-            if (!rowkeyIndexes.contains(i)) {
-              columns.add(row.getColumns().get(i));
-            }
-          }
-          return new GenericRow(columns);
-        }).to(kafkaTopicName, Produced.with(keySerde, valueSerde));
+        .to(streamSink.getTopicName(), Produced.with(keySerde, valueSerde));
   }
 }

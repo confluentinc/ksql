@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -29,6 +30,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.streams.state.HostInfo;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
@@ -69,6 +71,20 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final URI serverEndpoint,
       final String sql
   ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void makeAsyncHeartbeatRequest(
+      final URI serverEndPoint,
+      final HostInfo host,
+      final long timestamp
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
     throw new UnsupportedOperationException();
   }
 }

@@ -46,12 +46,15 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
+import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
+import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -155,6 +158,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final List<KsqlServerPrecondition> preconditions;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  private final Optional<HeartbeatAgent> heartbeatAgent;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -181,7 +185,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
-      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
+      final Optional<HeartbeatAgent> heartbeatAgent
   ) {
     super(restConfig);
 
@@ -205,6 +210,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+    this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
   }
 
   @Override
@@ -216,6 +222,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(ksqlResource);
     config.register(streamedQueryResource);
     config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
+    if (heartbeatAgent.isPresent()) {
+      config.register(new HeartbeatResource(heartbeatAgent.get()));
+      config.register(new ClusterStatusResource(heartbeatAgent.get()));
+    }
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }
@@ -225,7 +235,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
-    startKsql();
+    startKsql(ksqlConfigWithPort);
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
@@ -235,9 +245,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   @VisibleForTesting
-  void startKsql() {
+  void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
-    initialize();
+    initialize(ksqlConfigWithPort);
   }
 
   @VisibleForTesting
@@ -278,7 +288,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
   }
 
-  private void initialize() {
+  private void initialize(final KsqlConfig configWithApplicationServer) {
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
     registerCommandTopic();
@@ -299,6 +309,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlResource,
         serviceContext
     );
+
+    if (heartbeatAgent.isPresent()) {
+      heartbeatAgent.get().setLocalAddress((String)configWithApplicationServer
+          .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+      heartbeatAgent.get().startAgent();
+    }
 
     serverState.setReady();
   }
@@ -327,6 +343,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    if (heartbeatAgent.isPresent()) {
+      try {
+        heartbeatAgent.get().stopAgent();
+      } catch (final Exception e) {
+        log.error("Exception while shutting down HeartbeatAgent", e);
+      }
     }
   }
 
@@ -602,6 +626,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
 
+    final Optional<HeartbeatAgent> heartbeatAgent =
+        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext);
+
     return new KsqlRestApplication(
         serviceContext,
         ksqlEngine,
@@ -620,8 +647,35 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext,
         preconditions,
         configurables,
-        rocksDBConfigSetterHandler
+        rocksDBConfigSetterHandler,
+        heartbeatAgent
     );
+  }
+
+  private static Optional<HeartbeatAgent> initializeHeartbeatAgent(
+      final KsqlRestConfig restConfig,
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext
+  ) {
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
+      final Builder builder = HeartbeatAgent.builder();
+      return Optional.of(
+          builder
+              .heartbeatSendInterval(restConfig.getLong(
+                 KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG))
+             .heartbeatCheckInterval(restConfig.getLong(
+                 KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG))
+             .heartbeatMissedThreshold(restConfig.getLong(
+                 KsqlRestConfig.KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG))
+             .heartbeatWindow(restConfig.getLong(
+                 KsqlRestConfig.KSQL_HEARTBEAT_WINDOW_MS_CONFIG))
+             .discoverClusterInterval(restConfig.getLong(
+                 KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG))
+             .threadPoolSize(restConfig.getInt(
+                 KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG))
+             .build(ksqlEngine, serviceContext));
+    }
+    return Optional.empty();
   }
 
   private void registerCommandTopic() {

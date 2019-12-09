@@ -26,12 +26,15 @@ import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.streams.state.HostInfo;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
 
@@ -97,5 +100,30 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     }
 
     return RestResponse.successful(resp.getStatusCode(), rows.build());
+  }
+
+  @Override
+  public void makeAsyncHeartbeatRequest(
+      final URI serverEndPoint,
+      final HostInfo host,
+      final long timestamp) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint);
+
+    authHeader
+        .map(target::authorizationHeader)
+        .orElse(target)
+        .postAsyncHeartbeatRequest(new HostInfoEntity(host.host(), host.port()), timestamp);
+  }
+
+  @Override
+  public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint);
+
+    return authHeader
+        .map(target::authorizationHeader)
+        .orElse(target)
+        .getClusterStatus();
   }
 }

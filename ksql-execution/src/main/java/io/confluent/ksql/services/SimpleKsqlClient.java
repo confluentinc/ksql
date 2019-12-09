@@ -16,11 +16,13 @@
 package io.confluent.ksql.services;
 
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
 import java.util.List;
 import javax.annotation.concurrent.ThreadSafe;
+import org.apache.kafka.streams.state.HostInfo;
 
 @ThreadSafe
 public interface SimpleKsqlClient {
@@ -34,4 +36,23 @@ public interface SimpleKsqlClient {
       URI serverEndPoint,
       String sql
   );
+
+  /**
+   * Send heartbeat to remote Ksql server.
+   * @param serverEndPoint the remote destination.
+   * @param host the host information of the sender.
+   * @param timestamp the timestamp the heartbeat is sent.
+   */
+  void makeAsyncHeartbeatRequest(
+      URI serverEndPoint,
+      HostInfo host,
+      long timestamp
+  );
+
+  /**
+   * Send a request to remote Ksql server to inquire about its view of the status of the cluster.
+   * @param serverEndPoint the remote destination.
+   * @return response containing the cluster status.
+   */
+  RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
 }

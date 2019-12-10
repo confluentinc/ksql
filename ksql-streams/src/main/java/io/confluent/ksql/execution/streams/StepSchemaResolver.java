@@ -39,10 +39,13 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.select.Selection;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -62,7 +65,7 @@ public final class StepSchemaResolver {
       .put(StreamGroupBy.class, StepSchemaResolver::sameSchema)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
-      .put(StreamSelectKey.class, StepSchemaResolver::sameSchema)
+      .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
       .put(WindowedStreamSource.class, StepSchemaResolver::handleSource)
@@ -169,13 +172,29 @@ public final class StepSchemaResolver {
     ).getSchema();
   }
 
+  private LogicalSchema handleSelectKey(
+      final LogicalSchema sourceSchema,
+      final StreamSelectKey step
+  ) {
+    final ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(sourceSchema, functionRegistry);
+
+    final SqlType keyType = expressionTypeManager
+        .getExpressionSqlType(step.getKeyExpression());
+
+    return LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+        .valueColumns(sourceSchema.value())
+        .build();
+  }
+
   private LogicalSchema handleSource(
       final LogicalSchema schema,
       final AbstractStreamSource<?> step) {
     return schema.withAlias(step.getAlias()).withMetaAndKeyColsInValue();
   }
 
-  private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep step) {
+  private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {
     return JoinParamsFactory.createSchema(schemas.left, schemas.right);
   }
 
@@ -203,7 +222,7 @@ public final class StepSchemaResolver {
     ).getSchema();
   }
 
-  private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep step) {
+  private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep<?> step) {
     return schema;
   }
 

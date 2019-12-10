@@ -34,10 +34,11 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -46,31 +47,51 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyBuilderTest {
+
   private static final SourceName ALIAS = SourceName.of("ATL");
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+
+  private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("BOI"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
+
   private static final ColumnReferenceExp KEY =
       new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));
+
+  private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .valueColumn(ALIAS, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(ALIAS, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumn(ALIAS, ColumnName.of("BIG"), SqlTypes.BIGINT)
+      .valueColumn(ALIAS, ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .build();
+
+  private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keySchema(RESULT_SCHEMA);
+
+
+  private static final long A_BOI = 5000;
+  private static final long A_BIG = 3000;
+  private static final Struct SOURCE_KEY = asStructKey("dre");
 
   @Mock
   private KStream<Struct, GenericRow> kstream;
@@ -91,25 +112,19 @@ public class StreamSelectKeyBuilderTest {
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
-  private final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
   private PlanBuilder planBuilder;
   private StreamSelectKey selectKey;
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("hey"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
-    when(sourceStep.getProperties()).thenReturn(properties);
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
     when(sourceStep.build(any())).thenReturn(
-        new KStreamHolder<>(kstream, SCHEMA, mock(KeySerdeFactory.class)));
+        new KStreamHolder<>(kstream, SOURCE_SCHEMA, mock(KeySerdeFactory.class)));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -117,14 +132,13 @@ public class StreamSelectKeyBuilderTest {
         mock(StreamsFactories.class)
     );
     selectKey = new StreamSelectKey(
-        properties,
+        new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         KEY
     );
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldRekeyCorrectly() {
     // When:
     final KStreamHolder<Struct> result = selectKey.build(planBuilder);
@@ -138,7 +152,6 @@ public class StreamSelectKeyBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldReturnCorrectSerdeFactory() {
     // When:
     final KStreamHolder<Struct> result = selectKey.build(planBuilder);
@@ -146,12 +159,12 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
         FormatInfo.of(Format.JSON),
-        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
         FormatInfo.of(Format.JSON),
-        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext);
   }
 
@@ -163,7 +176,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
-    assertThat(predicate.test(asStructKey("dre"), null), is(false));
+    assertThat(predicate.test(SOURCE_KEY, null), is(false));
   }
 
   @Test
@@ -175,7 +188,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(asStructKey("dre"), new GenericRow(0, "dre", 3000, null)),
+        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, null)),
         is(false)
     );
   }
@@ -189,7 +202,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(asStructKey("dre"), new GenericRow(0, "dre", 3000, "bob")),
+        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
         is(true)
     );
   }
@@ -202,7 +215,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
-    assertThat(predicate.test(asStructKey("dre"), new GenericRow(0, "dre", null, "bob")), is(true));
+    assertThat(predicate.test(SOURCE_KEY, value(0, "dre", null, A_BOI)), is(true));
   }
 
   @Test
@@ -213,8 +226,8 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     final KeyValueMapper<Struct, GenericRow, Struct> keyValueMapper = getKeyMapper();
     assertThat(
-        keyValueMapper.apply(asStructKey("dre"), new GenericRow(0, "dre", 3000, "bob")),
-        is(asStructKey("bob"))
+        keyValueMapper.apply(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
+        is(RESULT_KEY_BUILDER.build(A_BOI))
     );
   }
 
@@ -224,7 +237,7 @@ public class StreamSelectKeyBuilderTest {
     final KStreamHolder<Struct> result = selectKey.build(planBuilder);
 
     // Then:
-    assertThat(result.getSchema(), is(SCHEMA));
+    assertThat(result.getSchema(), is(RESULT_SCHEMA));
   }
 
   private KeyValueMapper<Struct, GenericRow, Struct> getKeyMapper() {
@@ -235,5 +248,14 @@ public class StreamSelectKeyBuilderTest {
   private Predicate<Struct, GenericRow> getPredicate() {
     verify(kstream).filter(predicateCaptor.capture());
     return predicateCaptor.getValue();
+  }
+
+  private static GenericRow value(
+      final int rowTime,
+      final String rowKey,
+      final Long big,
+      final Long boi
+  ) {
+    return new GenericRow(rowTime, rowKey, big, boi);
   }
 }

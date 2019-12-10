@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
@@ -40,23 +41,41 @@ public final class StreamSelectKeyBuilder {
       final KsqlQueryBuilder queryBuilder
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
-    final CodeGenRunner codeGen = new CodeGenRunner(
-        sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry());
 
-    final ExpressionMetadata expression =
-        codeGen.buildCodeGenFromParseTree(selectKey.getKeyExpression(), EXP_TYPE);
+    final ExpressionMetadata expression = buildExpressionEvaluator(
+        selectKey,
+        queryBuilder,
+        sourceSchema
+    );
+
+    final LogicalSchema resultSchema = new StepSchemaResolver(queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry()).resolve(selectKey, sourceSchema);
+
+    final KeyBuilder keyBuilder = StructKeyUtil.keySchema(resultSchema);
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream
         .filter((key, val) -> val != null && expression.evaluate(val) != null)
-        .selectKey((key, val) -> StructKeyUtil.asStructKey(expression.evaluate(val).toString()));
+        .selectKey((key, val) -> keyBuilder.build(expression.evaluate(val)));
 
     return new KStreamHolder<>(
         rekeyed,
-        stream.getSchema(),
+        resultSchema,
         KeySerdeFactory.unwindowed(queryBuilder)
     );
+  }
+
+  private static ExpressionMetadata buildExpressionEvaluator(
+      final StreamSelectKey selectKey,
+      final KsqlQueryBuilder queryBuilder,
+      final LogicalSchema sourceSchema
+  ) {
+    final CodeGenRunner codeGen = new CodeGenRunner(
+        sourceSchema,
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry()
+    );
+
+    return codeGen.buildCodeGenFromParseTree(selectKey.getKeyExpression(), EXP_TYPE);
   }
 }

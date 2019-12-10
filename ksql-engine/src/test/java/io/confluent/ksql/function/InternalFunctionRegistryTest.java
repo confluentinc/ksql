@@ -321,7 +321,7 @@ public class InternalFunctionRegistryTest {
         // Math UDF
         "RANDOM",
         // JSON UDF
-        "EXTRACTJSONFIELD", "ARRAYCONTAINS"
+        "EXTRACTJSONFIELD"
     );
 
     Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),

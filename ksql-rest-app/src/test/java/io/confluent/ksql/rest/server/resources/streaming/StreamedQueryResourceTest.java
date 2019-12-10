@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -451,7 +452,7 @@ public class StreamedQueryResourceTest {
     verify(mockKafkaStreams).start();
     verify(mockKafkaStreams).setUncaughtExceptionHandler(any());
     verify(mockKafkaStreams).cleanUp();
-    verify(mockKafkaStreams).close();
+    verify(mockKafkaStreams).close(any(Duration.class));
 
     // If one of the other threads has somehow managed to throw an exception without breaking things up until this
     // point, we throw that exception now in the main thread and cause the test to fail

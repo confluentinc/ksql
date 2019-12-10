@@ -18,6 +18,10 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyByte;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +32,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -131,7 +136,7 @@ public class QueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
-    inOrder.verify(kafkaStreams).close();
+    inOrder.verify(kafkaStreams).close(any(Duration.class));
     inOrder.verify(closeCallback).accept(query);
   }
 
@@ -142,7 +147,7 @@ public class QueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
-    inOrder.verify(kafkaStreams).close();
+    inOrder.verify(kafkaStreams).close(any(Duration.class));
     inOrder.verify(kafkaStreams).cleanUp();
   }
 

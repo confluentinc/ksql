@@ -20,6 +20,7 @@ import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -141,7 +142,9 @@ public class QueryMetadata {
   }
 
   public void close() {
-    kafkaStreams.close();
+    int closeWaitDuration = Integer.parseInt(
+        streamsProperties.getOrDefault("close.wait", "60").toString());
+    kafkaStreams.close(Duration.ofSeconds(closeWaitDuration));
 
     kafkaStreams.cleanUp();
 

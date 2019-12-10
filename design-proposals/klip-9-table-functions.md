@@ -2,7 +2,7 @@
 
 **Author**: Tim Fox (GitHub: purplefox)
 **Release Target**: 5.4 
-**Status**: In Discussion 
+**Status**: Approved 
 **Discussion**: https://github.com/confluentinc/ksql/issues/527
 
 ## Motivation and background

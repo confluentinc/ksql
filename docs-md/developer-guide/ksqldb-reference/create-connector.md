@@ -24,6 +24,9 @@ configuration passed in the WITH clause. Some connectors have ksqlDB templates
 that simplify configuring them. For more information, see
 [Natively Supported Connectors](../../concepts/connectors.md#natively-supported-connectors).
 
+!!! note
+    CREATE CONNECTOR works only in interactive mode. 
+
 Example
 -------
 

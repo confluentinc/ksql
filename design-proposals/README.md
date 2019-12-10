@@ -48,7 +48,7 @@ Next KLIP number: **14**
 | [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | 5.4     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
 | [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Approved       | 5.4     |
-| [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Approved       | 5.4     |
+| [KLIP-8: Queryable State Stores](klip-8-queryable-state-stores.md)                 | Approved       | 5.4     |
 | [KLIP-9: Table Functions](klip-9-table-functions.md)                               | Approved       | 5.4     |
 | [KLIP-10: Suppress](klip-10-suppress.md)                                           | Proposal       | N/A     |
 | [KLIP-11: Redesign KSQL query language](klip-11-DQL.md)                            | Proposal       | N/A     |

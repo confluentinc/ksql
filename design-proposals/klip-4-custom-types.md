@@ -2,7 +2,7 @@
 
 **Author**: agavra | 
 **Release Target**: 5.4 | 
-**Status**: In Discussion | 
+**Status**: Approved | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/2894
 
 **tl;dr:** *Introduce a feature that makes custom types easier to work with in KSQL by aliasing

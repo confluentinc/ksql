@@ -22,12 +22,20 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.utils.Utils;
 
 public final class ListPropertiesExecutor {
 
@@ -44,9 +52,7 @@ public final class ListPropertiesExecutor {
     final Map<String, String> engineProperties
         = statement.getConfig().getAllConfigPropsWithSecretsObfuscated();
 
-    final Map<String, String> mergedProperties = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides())
-        .getAllConfigPropsWithSecretsObfuscated();
+    final Map<String, String> mergedProperties = mergedProperties(statement);
 
     final List<String> overwritten = mergedProperties.entrySet()
         .stream()
@@ -65,4 +71,33 @@ public final class ListPropertiesExecutor {
         statement.getStatementText(), mergedProperties, overwritten, defaultProps));
   }
 
+  private static Map<String, String> mergedProperties(
+      ConfiguredStatement<ListProperties> statement) {
+    Map<String, String> mergedProperties = new HashMap<>();
+
+    Map<String, String> obfuscated = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides())
+        .getAllConfigPropsWithSecretsObfuscated();
+
+    mergedProperties.putAll(obfuscated);
+    mergedProperties.putAll(embeddedConnectWorkerProperties(statement));
+    return mergedProperties;
+  }
+
+  private static Map<String, String> embeddedConnectWorkerProperties(
+      ConfiguredStatement<ListProperties> statement) {
+    String configFile = statement.getConfig()
+        .getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
+    return !configFile.isEmpty()
+        ? Utils.propsToStringMap(getWorkerProps(configFile))
+        : Collections.emptyMap();
+  }
+
+  private static Properties getWorkerProps(String configFile) {
+    try {
+      return Utils.loadProps(configFile);
+    } catch (IOException e) {
+      return new Properties();
+    }
+  }
 }

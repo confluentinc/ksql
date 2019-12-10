@@ -382,8 +382,11 @@ public class SchemaKStream<K> {
     return !namesMatch && !isRowKey(columnRef);
   }
 
-  private static boolean isRowKey(final ColumnRef fieldName) {
-    return fieldName.name().equals(SchemaUtil.ROWKEY_NAME);
+  private boolean isRowKey(final ColumnRef fieldName) {
+    // until we support structured keys, there will never be any key column other
+    // than "ROWKEY" - furthermore, that key column is always prefixed at this point
+    // unless it is a join, in which case every other source field is prefixed
+    return fieldName.equals(schema.key().get(0).ref());
   }
 
   private static ColumnName fieldNameFromExpression(final Expression expression) {

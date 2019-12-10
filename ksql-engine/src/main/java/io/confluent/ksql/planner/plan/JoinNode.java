@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -93,6 +94,10 @@ public class JoinNode extends PlanNode {
             : KeyField.of(leftKeyCol.ref());
 
     this.schema = JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
+
+    if (schema.key().get(0).type().baseType() != SqlBaseType.STRING) {
+      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
+    }
   }
 
   @Override

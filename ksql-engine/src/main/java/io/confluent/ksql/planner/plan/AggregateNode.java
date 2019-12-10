@@ -34,6 +34,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -108,6 +109,10 @@ public class AggregateNode extends PlanNode {
     this.havingExpressions = havingExpressions;
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
+
+    if (schema.key().get(0).type().baseType() != SqlBaseType.STRING) {
+      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
+    }
   }
 
   @Override

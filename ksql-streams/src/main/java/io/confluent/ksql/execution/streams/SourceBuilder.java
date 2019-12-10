@@ -267,7 +267,7 @@ public final class SourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, String> rowKeyGenerator
+      final Function<K, Object> rowKeyGenerator
   ) {
     KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
@@ -280,7 +280,7 @@ public final class SourceBuilder {
       final AbstractStreamSource<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, String> rowKeyGenerator,
+      final Function<K, Object> rowKeyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
   ) {
     final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
@@ -344,7 +344,7 @@ public final class SourceBuilder {
     return StreamsUtil.buildOpName(stacker.push("Reduce").getQueryContext());
   }
 
-  private static Function<Windowed<Struct>, String> windowedRowKeyGenerator(
+  private static Function<Windowed<Struct>, Object> windowedRowKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
@@ -362,7 +362,7 @@ public final class SourceBuilder {
     };
   }
 
-  private static Function<Struct, String> nonWindowedRowKeyGenerator(
+  private static Function<Struct, Object> nonWindowedRowKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
@@ -371,19 +371,16 @@ public final class SourceBuilder {
         return null;
       }
 
-      final Object k = key.get(keyField);
-      return k == null
-          ? null
-          : k.toString();
+      return key.get(keyField);
     };
   }
 
   private static class AddKeyAndTimestampColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
-    private final Function<K, String> rowKeyGenerator;
+    private final Function<K, Object> rowKeyGenerator;
 
-    AddKeyAndTimestampColumns(final Function<K, String> rowKeyGenerator) {
+    AddKeyAndTimestampColumns(final Function<K, Object> rowKeyGenerator) {
       this.rowKeyGenerator = requireNonNull(rowKeyGenerator, "rowKeyGenerator");
     }
 

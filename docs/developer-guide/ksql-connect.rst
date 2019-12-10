@@ -68,6 +68,8 @@ Create a new Connector in the |kconnect-long| cluster with the configuration pas
 clause. Note that some connectors have KSQL templates that simplify the configuration - for more
 information see :ref:`native-connectors`.
 
+.. note:: CREATE CONNECTOR works only in interactive mode. 
+
 Example:
 
 .. code:: sql

@@ -8,8 +8,8 @@ keywords: ksqldb, docker, install
 
 You can deploy ksqlDB by using Docker containers. Starting with {{ site.cp }}
 4.1.2, Confluent maintains images at [Docker Hub](https://hub.docker.com/u/confluentinc)
-for [ksqlDB Server](https://hub.docker.com/r/confluentinc/cp-ksql-server/) and the
-[ksqlDB command-line interface (CLI)](https://hub.docker.com/r/confluentinc/cp-ksql-cli/).
+for [ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/) and the
+[ksqlDB command-line interface (CLI)](https://hub.docker.com/r/confluentinc/ksqldb-cli/).
 
 ksqlDB runs separately from your {{ site.aktm }} cluster, so you specify
 the IP addresses of the cluster's bootstrap servers when you start a
@@ -90,7 +90,7 @@ docker run -d \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_KSQL_SERVICE_ID=ksql_standalone_1_ \
   -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-  confluentinc/cp-ksql-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.release }}
 ```
 TODO: Figure out how to style these
 
@@ -108,50 +108,6 @@ TODO: Figure out how to style these
 
 :   A file that specifies predefined SQL queries.
 
-### ksqlDB Headless Server with Interceptors Settings (Production)
-
-{{ site.cp }} supports pluggable *interceptors* to examine and modify
-incoming and outgoing records. Specify interceptor classes by assigning
-the `KSQL_PRODUCER_INTERCEPTOR_CLASSES` and `KSQL_CONSUMER_INTERCEPTOR_CLASSES`
-settings. For more info on interceptor classes, see
-[Confluent Monitoring Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
-
-Use the following command to run a headless, standalone ksqlDB Server with
-the specified interceptor classes in a container:
-
-```bash
-docker run -d \
-  -v /path/on/host:/path/in/container/ \
-  -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
-  -e KSQL_KSQL_SERVICE_ID=ksql_standalone_2_ \
-  -e KSQL_PRODUCER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor \
-  -e KSQL_CONSUMER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor \
-  -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-  confluentinc/cp-ksql-server:{{ site.release }}
-```
-
-`KSQL_BOOTSTRAP_SERVERS`
-
-:   A list of hosts for establishing the initial connection to the Kafka
-    cluster.
-
-`KSQL_KSQL_SERVICE_ID`
-
-:   The service ID of the ksqlDB server, which is used as the prefix for
-    the internal topics created by ksqlDB.
-
-`KSQL_KSQL_QUERIES_FILE`
-
-:   A file that specifies predefined SQL queries.
-
-`KSQL_PRODUCER_INTERCEPTOR_CLASSES`
-
-:   A list of fully qualified class names for producer interceptors.
-
-`KSQL_CONSUMER_INTERCEPTOR_CLASSES`
-
-:   A list of fully qualified class names for consumer interceptors.
-
 ### ksqlDB Interactive Server Settings (Development)
 
 Develop your ksqlDB applications by using the ksqlDB command-line interface
@@ -165,7 +121,7 @@ docker run -d \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
   -e KSQL_KSQL_SERVICE_ID=ksql_service_2_ \
-  confluentinc/cp-ksql-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.release }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -186,51 +142,6 @@ docker run -d \
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
 
-### ksqlDB Interactive Server with Interceptors Settings (Development)
-
-Run a ksqlDB Server with interceptors that enables manual interaction by
-using the ksqlDB CLI:
-
-```bash
-docker run -d \
-  -p 127.0.0.1:8088:8088 \
-  -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
-  -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
-  -e KSQL_KSQL_SERVICE_ID=ksql_service_3_ \
-  -e KSQL_PRODUCER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor \
-  -e KSQL_CONSUMER_INTERCEPTOR_CLASSES=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor \
-  confluentinc/cp-ksql-server:{{ site.release }}
-```
-
-`KSQL_BOOTSTRAP_SERVERS`
-
-:   A list of hosts for establishing the initial connection to the Kafka
-    cluster.
-
-`KSQL_KSQL_SERVICE_ID`
-
-:   The service ID of the ksqlDB server, which is used as the prefix for
-    the internal topics created by ksqlDB.
-
-`KSQL_LISTENERS`
-
-:   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6, set to `http://[::]:8088`.
-
-`KSQL_PRODUCER_INTERCEPTOR_CLASSES`
-
-:   A list of fully qualified class names for producer interceptors.
-
-`KSQL_CONSUMER_INTERCEPTOR_CLASSES`
-
-:   A list of fully qualified class names for consumer interceptors.
-
-For more info on interceptor classes, see
-[Confluent Monitoring Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
-
-In interactive mode, a CLI instance running outside of Docker can
-connect to the server running in Docker.
-
 Connect ksqlDB Server to a Secure Kafka Cluster, Like Confluent Cloud
 ===================================================================
 
@@ -250,7 +161,7 @@ docker run -d \
   -e KSQL_SECURITY_PROTOCOL=SASL_SSL \
   -e KSQL_SASL_MECHANISM=PLAIN \
   -e KSQL_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<username>\" password=\"<strong-password>\";" \
-  confluentinc/cp-ksql-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.release }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -312,7 +223,7 @@ docker run -d \
   -v /path/on/host:/path/in/container/ \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dksql.queries.file=/path/in/container/queries.sql" \
-  confluentinc/cp-ksql-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.release }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -386,10 +297,10 @@ that's running in a different container.
 docker run -d -p 10.0.0.11:8088:8088 \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dlisteners=http://0.0.0.0:8088/" \  
-  confluentinc/cp-ksql-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.release }}
 
 # Connect the ksqlDB CLI to the server.
-docker run -it confluentinc/cp-ksql-cli http://10.0.0.11:8088 
+docker run -it confluentinc/ksqldb-cli ksql http://10.0.0.11:8088 
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -417,7 +328,7 @@ ls /path/on/host/ksql-cli.properties
 
 docker run -it \
   -v /path/on/host/:/path/in/container  \
-  confluentinc/cp-ksql-cli:{{ site.release }} http://10.0.0.11:8088 \
+  confluentinc/ksqldb-cli:{{ site.release }} ksql http://10.0.0.11:8088 \
   --config-file /path/in/container/ksql-cli.properties
 ```
 
@@ -427,7 +338,7 @@ Run a ksqlDB CLI instance in a container and connect to a remote ksqlDB
 Server host:
 
 ```bash
-docker run -it confluentinc/cp-ksql-cli:{{ site.release }} \
+docker run -it confluentinc/ksqldb-cli:{{ site.release }} ksql \
   http://ec2-blah.us-blah.compute.amazonaws.com:8080
 ```
 
@@ -515,8 +426,8 @@ which is either `Entrypoint` or `Cmd`:
 
 ```bash
 {% raw %}
-docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksql-server:{{ site.release }}
-docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksql-server:{{ site.release }}
+docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:{{ site.release }}
+docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:{{ site.release }}
 {% endraw %}
 ```
 
@@ -538,7 +449,7 @@ a directory and downloads a tar archive into it.
 
 ```yaml
 ksql-server:
-  image: confluentinc/cp-ksql-server:{{ site.release }}
+  image: confluentinc/ksqldb-server:{{ site.release }}
   depends_on:
     - kafka
   environment:
@@ -555,7 +466,7 @@ ksql-server:
 ```
 
 After the `mkdir`, `cd`, `curl`, and `tar` commands run, the
-`/etc/confluent/docker/run` command starts the `cp-ksql-server` image
+`/etc/confluent/docker/run` command starts the `ksqldb-server` image
 with the specified settings.
 
 !!! note
@@ -573,7 +484,7 @@ the environment to a desired state.
 
 ```yaml
 ksql-cli:
-  image: confluentinc/cp-ksql-cli:{{ site.release }}
+  image: confluentinc/ksqldb-cli:{{ site.release }}
   depends_on:
     - ksql-server
   volumes:

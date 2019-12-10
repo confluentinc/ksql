@@ -804,28 +804,6 @@ Consumer groups
 	For more information about interactive and non-interactive queries, see
     [Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
 
-#### Configure Control Center Monitoring Interceptors
-
-This configuration enables SASL and SSL for the [monitoring
-interceptors](https://docs.confluent.io/current/control-center/installation/clients.html)
-that integrate ksqlDB with {{ site.c3short }}.
-
-```properties
-# Confluent Monitoring Interceptors for Control Center streams monitoring
-producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
-consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
-
-# Confluent Monitoring interceptors SASL / SSL config
-confluent.monitoring.interceptor.security.protocol=SASL_SSL
-confluent.monitoring.interceptor.ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
-confluent.monitoring.interceptor.ssl.truststore.password=confluent
-confluent.monitoring.interceptor.ssl.keystore.location=/etc/kafka/secrets/kafka.client.keystore.jks
-confluent.monitoring.interceptor.ssl.keystore.password=confluent
-confluent.monitoring.interceptor.ssl.key.password=confluent
-confluent.monitoring.interceptor.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="ksql-user" password="ksql-user-secret";
-confluent.monitoring.interceptor.sasl.mechanism=PLAIN
-```
-
 Next Steps
 ----------
 

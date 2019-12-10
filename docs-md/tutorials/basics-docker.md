@@ -96,7 +96,7 @@ From the host machine, start ksqlDB CLI:
 
 ```bash
 docker run --network tutorials_default --rm --interactive --tty \
-    confluentinc/cp-ksql-cli:{{ site.release }} \
+    confluentinc/ksqldb-cli:{{ site.release }} ksql \
     http://ksql-server:8088
 ```
 
@@ -116,7 +116,7 @@ Your output should resemble:
 
 Copyright 2017-2019 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksqldb-server:8088
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

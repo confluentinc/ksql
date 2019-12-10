@@ -14,7 +14,7 @@ For more information on setting properties, see
 !!! tip
 	Each property has a corresponding environment variable in the Docker
     image for
-    [ksqlDB Server](https://hub.docker.com/r/confluentinc/cp-ksql-server/). The
+    [ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/). The
     environment variable name is constructed from the configuration property
     name by converting to uppercase, replacing periods with underscores, and
     prepending with `KSQL_`. For example, the name of the `ksql.service.id`
@@ -49,7 +49,7 @@ For more information, see [Kafka Consumer](https://docs.confluent.io/current/cli
 [AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.release }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_AUTO_OFFSET_RESET`.
 
 ### ksql.streams.bootstrap.servers
@@ -69,7 +69,7 @@ and
 [BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS` or `KSQL_BOOTSTRAP_SERVERS`. For
 more information, see
 [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
@@ -90,7 +90,7 @@ and
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_COMMIT_INTERVAL_MS`.
 
 ### ksql.streams.cache.max.bytes.buffering
@@ -109,7 +109,7 @@ and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_CACHE_MAX_BYTES_BUFFERING`.
 
 ### ksql.streams.num.stream.threads
@@ -120,7 +120,7 @@ information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_NUM_STREAM_THREADS`.
 
 ### ksql.output.topic.name.prefix
@@ -134,7 +134,7 @@ interactive mode. For more information, see
 [Interactive ksqlDB clusters](security.md#interactive-ksqldb-clusters).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX`.
 
 ksqlDB Query Settings
@@ -181,7 +181,7 @@ ksql.fail.on.production.error=false
 ```
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_FAIL_ON_DESERIALIZATION_ERROR`.
 
 ### ksql.schema.registry.url
@@ -191,7 +191,7 @@ over a secure connection, see
 [Configure ksqlDB for Secured {{ site.srlong }}](security.md#configure-ksqldb-for-https).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_SCHEMA_REGISTRY_URL`.
 
 ### ksql.service.id
@@ -221,7 +221,7 @@ configured separately. For more information, see
 [Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_INTERNAL_TOPIC_REPLICAS`.
 
 ### ksql.sink.partitions (Deprecated)
@@ -233,7 +233,7 @@ For more info see the WITH clause properties in
 [CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/) is
 `KSQL_KSQL_SINK_PARTITIONS`.
 
 ### ksql.sink.replicas (Deprecated)
@@ -251,7 +251,7 @@ documentation in the [function](../../../developer-guide/ksqldb-reference/scalar
 guide for details.
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 
 ### ksql.persistence.wrap.single.values
@@ -349,7 +349,7 @@ For an example, see
 [Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_QUERIES_FILE`.
 
 ### listeners
@@ -378,7 +378,7 @@ You can configure ksqlDB Server to use HTTPS. For more information, see
 [Configure ksqlDB for HTTPS](security.md#configure-ksqldb-for-https).
 
 The corresponding environment variable in the
-[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_LISTENERS`.
 
 ### ksql.metrics.tags.custom

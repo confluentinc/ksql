@@ -19,7 +19,7 @@ Docker support
 You can deploy ksqlDB by using
 [Docker containers](install-ksqldb-with-docker.md).
 Starting with {{ site.cp }} 4.1.2, Confluent maintains images at
-[Docker Hub](https://hub.docker.com/r/confluentinc/cp-ksql-server/).
+[Docker Hub](https://hub.docker.com/r/confluentinc/ksqldb-server/).
 To start ksqlDB containers in configurations like "ksqlDB Headless
 Server" and "Interactive Server with Interceptors", see
 [Docker Configuration Parameters](https://docs.confluent.io/current/installation/docker/config-reference.html).
@@ -156,7 +156,7 @@ After ksqlDB is started, your terminal should resemble this.
 
 Copyright 2017-2019 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksqldb-server:8088
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://localhost:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

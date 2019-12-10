@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
@@ -36,13 +35,14 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
-   * @param statement              The statement to be distributed
+   * @param command                The command to be distributed
    * @param transactionalProducer  The transactional producer used to for enqueue the command
    * @return an asynchronous tracker that can be used to determine the current
    *         state of the command
    */
   QueuedCommandStatus enqueueCommand(
-      ConfiguredStatement<?> statement,
+      CommandId commandId,
+      Command command,
       Producer<CommandId, Command> transactionalProducer
   );
   

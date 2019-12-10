@@ -24,6 +24,7 @@ import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Test;
 
 public class CommandTest {
@@ -45,20 +46,6 @@ public class CommandTest {
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
   }
 
-  @Test
-  public void shouldDeserializeWithoutKsqlConfigCorrectly() throws IOException {
-    final String commandStr = "{" +
-        "\"statement\": \"test statement;\", " +
-        "\"streamsProperties\": {\"foo\": \"bar\"}" +
-        "}";
-    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
-    final Command command = mapper.readValue(commandStr, Command.class);
-    assertThat(command.getStatement(), equalTo("test statement;"));
-    final Map<String, Object> expecteOverwriteProperties = Collections.singletonMap("foo", "bar");
-    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
-    assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
-  }
-
   private void grep(final String string, final String regex) {
     assertThat(string.matches(regex), is(true));
   }
@@ -67,7 +54,8 @@ public class CommandTest {
   public void shouldSerializeDeserializeCorrectly() throws IOException {
     final Command command = new Command(
         "test statement;",
-        Collections.singletonMap("foo", "bar"), Collections.singletonMap("biz", "baz"));
+        Collections.singletonMap("foo", "bar"), Collections.singletonMap("biz", "baz"),
+        Optional.empty());
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");

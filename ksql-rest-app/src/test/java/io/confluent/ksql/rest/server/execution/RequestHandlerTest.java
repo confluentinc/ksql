@@ -83,7 +83,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -130,8 +130,6 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(statements.get(0)),
-            eq(ImmutableMap.of()),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -159,8 +157,6 @@ public class RequestHandlerTest {
                 preparedStatement(instanceOf(CreateStream.class)),
                     ImmutableMap.of("x", "y"),
                     ksqlConfig))),
-            eq(statements.get(0)),
-            eq(ImmutableMap.of("x", "y")),
             eq(ksqlEngine),
             eq(serviceContext)
         );

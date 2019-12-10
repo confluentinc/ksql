@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
@@ -53,6 +54,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,6 +81,9 @@ public class RequestValidatorTest {
   private Injector schemaInjector;
   @Mock
   private Injector topicInjector;
+  @Mock
+  private BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
+      distributedStatementValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -280,7 +285,8 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
-        ksqlConfig
+        ksqlConfig,
+        distributedStatementValidator
     );
   }
 

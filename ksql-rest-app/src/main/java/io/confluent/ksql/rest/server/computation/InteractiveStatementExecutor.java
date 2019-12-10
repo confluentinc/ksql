@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
@@ -194,6 +195,10 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final long offset
   ) {
     try {
+      if (command.getPlan().isPresent()) {
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode);
+        return;
+      }
       final String statementString = command.getStatement();
       putStatus(
           commandId,
@@ -217,6 +222,29 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       putStatus(commandId, commandStatusFuture, errorStatus);
       throw exception;
     }
+  }
+
+  private void executePlan(
+      final Command command,
+      final CommandId commandId,
+      final Optional<CommandStatusFuture> commandStatusFuture,
+      final KsqlPlan plan,
+      final Mode mode
+  ) {
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
+    final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
+        plan,
+        command.getOverwriteProperties(),
+        mergedConfig
+    );
+    final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
+    if (mode == Mode.EXECUTE) {
+      result.getQuery().ifPresent(QueryMetadata::start);
+    }
+    final String successMessage = "TODO";
+    final CommandStatus successStatus =
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+    putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
   @SuppressWarnings("unchecked")

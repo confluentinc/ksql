@@ -16,23 +16,17 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.validation.RequestValidator;
-import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
-import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -48,19 +42,19 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * {@code distributedCmdResponseTimeout}.
  */
 public class DistributingExecutor {
-
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
-  private final RequestValidator requestValidator;
+  private final ValidatedCommandFactory validatedCommandFactory;
+  private final CommandIdAssigner commandIdAssigner;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final RequestValidator requestValidator
+      final ValidatedCommandFactory validatedCommandFactory
   ) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
@@ -68,8 +62,11 @@ public class DistributingExecutor {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator =
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
-    this.requestValidator =
-        Objects.requireNonNull(requestValidator, "requestValidator");
+    this.validatedCommandFactory = Objects.requireNonNull(
+        validatedCommandFactory,
+        "validatedCommandFactory"
+    );
+    this.commandIdAssigner = new CommandIdAssigner();
   }
 
   /**
@@ -83,9 +80,7 @@ public class DistributingExecutor {
    * the old producer will be fenced off and unable to continue with its transaction.
    */
   public Optional<KsqlEntity> execute(
-      final ConfiguredStatement<Statement> statement,
-      final ParsedStatement parsedStatement,
-      final Map<String, Object> mutableScopedProperties,
+      final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -101,20 +96,14 @@ public class DistributingExecutor {
       transactionalProducer.initTransactions();
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
-      
-      // Don't perform validation on Terminate Cluster statements
-      if (!parsedStatement.getStatementText()
-          .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-        requestValidator.validate(
-            SandboxedServiceContext.create(serviceContext),
-            Collections.singletonList(parsedStatement),
-            mutableScopedProperties,
-            parsedStatement.getStatementText()
-        );
-      }
 
+      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+      final Command command = validatedCommandFactory.create(
+          injected,
+          executionContext.createSandbox(executionContext.getServiceContext())
+      );
       final QueuedCommandStatus queuedCommandStatus =
-          commandQueue.enqueueCommand(injected, transactionalProducer);
+          commandQueue.enqueueCommand(commandId, command, transactionalProducer);
 
       transactionalProducer.commitTransaction();
       final CommandStatus commandStatus = queuedCommandStatus

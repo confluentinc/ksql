@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -35,6 +36,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -49,6 +51,8 @@ public class RequestValidator {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
+  private final BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
+      distributedStatementValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -62,12 +66,16 @@ public class RequestValidator {
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
+          distributedStatementValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.distributedStatementValidator = requireNonNull(
+        distributedStatementValidator, "distributedStatementValidator");
   }
 
   /**
@@ -134,9 +142,10 @@ public class RequestValidator {
     if (customValidator != null) {
       customValidator
           .validate(configured, mutableScopedProperties, executionContext, serviceContext);
-    } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
+    } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
+        || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
-      executionContext.execute(serviceContext, statementInjected);
+      distributedStatementValidator.accept(statementInjected, executionContext);
     } else {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass

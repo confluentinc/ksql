@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -83,10 +82,8 @@ public class KafkaConfigStoreTest {
   private final List<TopicPartition> topicPartitionAsList
       = Collections.singletonList(topicPartition);
   private final List<ConsumerRecords<byte[], byte[]>> log = new LinkedList<>();
-  private final Serializer<StringKey> keySerializer
-      = InternalTopicJsonSerdeUtil.getJsonSerializer(true);
-  private final Serializer<KsqlProperties> serializer
-      = InternalTopicJsonSerdeUtil.getJsonSerializer(false);
+  private final Serializer<StringKey> keySerializer = InternalTopicSerdes.serializer();
+  private final Serializer<KsqlProperties> serializer = InternalTopicSerdes.serializer();
 
   @Mock
   private KafkaConsumer<byte[], byte[]> consumerBefore;
@@ -369,7 +366,7 @@ public class KafkaConfigStoreTest {
   public void shouldDeserializeEmptyContentsToEmptyProps() {
     // When:
     final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
-        = InternalTopicJsonSerdeUtil.getJsonDeserializer(KsqlProperties.class, false);
+        = InternalTopicSerdes.deserializer(KsqlProperties.class);
     final KafkaConfigStore.KsqlProperties ksqlProperties
         = deserializer.deserialize(TOPIC_NAME, "{}".getBytes(StandardCharsets.UTF_8));
 

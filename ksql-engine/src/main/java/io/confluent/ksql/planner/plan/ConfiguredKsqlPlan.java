@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -39,7 +40,7 @@ public final class ConfiguredKsqlPlan {
       final KsqlConfig config
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
-    this.overrides = Objects.requireNonNull(overrides, "overrides");
+    this.overrides = ImmutableMap.copyOf(Objects.requireNonNull(overrides, "overrides"));
     this.config = Objects.requireNonNull(config, "config");
   }
 
@@ -53,5 +54,24 @@ public final class ConfiguredKsqlPlan {
 
   public KsqlConfig getConfig() {
     return config;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ConfiguredKsqlPlan that = (ConfiguredKsqlPlan) o;
+    return Objects.equals(plan, that.plan)
+        && Objects.equals(overrides, that.overrides)
+        && Objects.equals(config, that.config);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(plan, overrides, config);
   }
 }

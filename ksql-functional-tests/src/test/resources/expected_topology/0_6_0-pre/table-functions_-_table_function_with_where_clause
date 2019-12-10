@@ -13,7 +13,7 @@
   "ksql.internal.topic.min.insync.replicas" : "1",
   "ksql.internal.topic.replicas" : "1",
   "ksql.insert.into.values.enabled" : "true",
-  "ksql.query.pull.enable" : "true",
+  "ksql.pull.queries.enable" : "true",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.access.validator.enable" : "auto",
   "ksql.streams.bootstrap.servers" : "localhost:0",

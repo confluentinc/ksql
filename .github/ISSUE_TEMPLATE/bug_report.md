@@ -4,7 +4,7 @@ about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: ''
-
+milestone: 0.7.0
 ---
 
 **Describe the bug**

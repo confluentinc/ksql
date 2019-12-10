@@ -422,8 +422,6 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.SCALAR),
-        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.SCALAR),
         new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)

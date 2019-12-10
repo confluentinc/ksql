@@ -12,7 +12,54 @@
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
-    },{
+    },
+    {
+      "name": "int column",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY STRING KEY, ID bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM OUTPUT AS SELECT * from TEST partition by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": "10"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY BIGINT KEY, ID BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bigint key field",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM OUTPUT AS select * from TEST partition by ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "0"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY BIGINT KEY, ID BIGINT"
+          }
+        ]
+      }
+    },
+    {
       "name": "partition by - KAFKA",
       "statements": [
         "CREATE STREAM INPUT (ID int) with (kafka_topic='input', value_format = 'KAFKA');",
@@ -22,8 +69,18 @@
         {"topic": "input", "key": "0", "value": 10}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "10", "value": 10}
-      ]
+        {"topic": "OUTPUT", "key": 10, "value": 10}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY INT KEY, ID INT"
+          }
+        ]
+      }
     },
     {
       "name": "partition by with projection select all",
@@ -107,7 +164,7 @@
         "CREATE STREAM OUTPUT AS select ROWKEY AS OLDKEY from INPUT partition by ID;"
       ],
       "inputs": [{"topic": "input", "key": "foo", "value": {"ID":  10}}],
-      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"OLDKEY": "foo"}}]
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"OLDKEY": "foo"}}]
     },
     {
       "name": "partition by ROWKEY",
@@ -130,7 +187,7 @@
         "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWTIME;"
       ],
       "inputs": [{"topic": "input", "value": {"ID":  22}, "timestamp": 10}],
-      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}, "timestamp": 10}]
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"ID":  22}, "timestamp": 10}]
     },
     {
       "name": "partition by ROWKEY in join on ROWKEY",

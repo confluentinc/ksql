@@ -67,6 +67,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -261,17 +262,24 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForStreamSelectKey() {
     // Given:
+    final Expression keyExpression =
+        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ORANGE")));
+
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
         streamSource,
-        mock(ColumnReferenceExp.class)
+        keyExpression
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumns(SCHEMA.value())
+        .build()
+    ));
   }
 
   @Test
@@ -395,6 +403,7 @@ public class StepSchemaResolverTest {
 
   @Test
   public void shouldResolveSchemaForTableSource() {
+    // Given:
     final TableSource step = new TableSource(
         PROPERTIES,
         "foo",
@@ -413,6 +422,7 @@ public class StepSchemaResolverTest {
 
   @Test
   public void shouldResolveSchemaForWindowedTableSource() {
+    // Given:
     final WindowedTableSource step = new WindowedTableSource(
         PROPERTIES,
         "foo",
@@ -430,7 +440,6 @@ public class StepSchemaResolverTest {
     assertThat(result, is(SCHEMA.withAlias(SourceName.of("alias")).withMetaAndKeyColsInValue()));
   }
 
-  @SuppressWarnings("unchecked")
   private void givenTableFunction(final String name, final SqlType returnType) {
     final KsqlTableFunction tableFunction = mock(KsqlTableFunction.class);
     when(functionRegistry.isTableFunction(name)).thenReturn(true);

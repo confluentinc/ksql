@@ -75,7 +75,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -105,7 +105,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -255,19 +255,19 @@
     {
       "name": "stream | initially set | partition by (same) | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": "FOO"}
+          {"name": "OUTPUT", "type": "stream", "keyField": "FOO", "schema": "ROWKEY INT KEY, FOO INT, BAR INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -277,7 +277,7 @@
     {
       "name": "stream | initially set | partition by (same) | key in value | aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo AS aliased, bar FROM INPUT PARTITION BY aliased;"
       ],
       "expectedException": {
@@ -288,19 +288,19 @@
     {
       "name": "stream | initially set | partition by (same) | key not in value | -",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BAR": 2}}
       ],
       "post": {
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": "FOO"},
-          {"name": "OUTPUT", "type": "stream", "keyField": null}
+          {"name": "OUTPUT", "type": "stream", "keyField": null, "schema": "ROWKEY INT KEY, BAR INT"}
         ],
         "topics": {
           "blacklist": ".*-repartition"
@@ -317,7 +317,7 @@
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 2, "value": {"FOO": 1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -347,7 +347,7 @@
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"FOO":1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"FOO":1}}
       ],
       "post": {
         "sources": [
@@ -709,7 +709,7 @@
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "3", "value": {"KSQL_COL_0":  3}}
+        {"topic": "OUTPUT", "key": 3, "value": {"KSQL_COL_0":  3}}
       ],
       "post": {
         "sources": [

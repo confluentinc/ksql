@@ -43,10 +43,12 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
@@ -201,36 +203,46 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
-  private static RepartitionNode buildRepartitionNode(
+  private RepartitionNode buildRepartitionNode(
       final PlanNode sourceNode,
       final Expression partitionBy
   ) {
-    if (!(partitionBy instanceof ColumnReferenceExp)) {
-      return new RepartitionNode(
-          new PlanNodeId("PartitionBy"),
-          sourceNode,
-          partitionBy,
-          KeyField.none());
-    }
-
-    final ColumnRef partitionColumn = ((ColumnReferenceExp) partitionBy).getReference();
-    final LogicalSchema schema = sourceNode.getSchema();
-
     final KeyField keyField;
-    if (schema.isMetaColumn(partitionColumn.name())) {
+
+    if (!(partitionBy instanceof ColumnReferenceExp)) {
       keyField = KeyField.none();
-    } else if (schema.isKeyColumn(partitionColumn.name())) {
-      keyField = sourceNode.getKeyField();
     } else {
-      keyField = KeyField.of(partitionColumn);
+      final ColumnRef columnRef = ((ColumnReferenceExp) partitionBy).getReference();
+      final LogicalSchema sourceSchema = sourceNode.getSchema();
+
+      final Column proposedKey = sourceSchema
+          .findValueColumn(columnRef)
+          .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
+              + columnRef.name().toString(FormatOptions.noEscape()) + "' Only columns from the "
+              + "source schema can be referenced in the PARTITION BY clause."));
+
+      switch (proposedKey.namespace()) {
+        case KEY:
+          keyField = sourceNode.getKeyField();
+          break;
+        case VALUE:
+          keyField = KeyField.of(columnRef);
+          break;
+        default:
+          keyField = KeyField.none();
+          break;
+      }
     }
+
+    final LogicalSchema schema = buildRepartitionedSchema(sourceNode, partitionBy);
 
     return new RepartitionNode(
         new PlanNodeId("PartitionBy"),
         sourceNode,
+        schema,
         partitionBy,
-        keyField);
-
+        keyField
+    );
   }
 
   private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {
@@ -330,5 +342,22 @@ public class LogicalPlanner {
     }
 
     return builder.build();
+  }
+
+  private LogicalSchema buildRepartitionedSchema(
+      final PlanNode sourceNode,
+      final Expression partitionBy
+  ) {
+    final LogicalSchema sourceSchema = sourceNode.getSchema();
+
+    final ExpressionTypeManager typeManager =
+        new ExpressionTypeManager(sourceSchema, functionRegistry);
+
+    final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
+
+    return LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+        .valueColumns(sourceSchema.value())
+        .build();
   }
 }

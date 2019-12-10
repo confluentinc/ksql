@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.execution.util;
 
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.connect.data.ConnectSchema;
+import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -35,11 +39,6 @@ public final class StructKeyUtil {
   private static final org.apache.kafka.connect.data.Field ROWKEY_FIELD =
       ROWKEY_STRUCT_SCHEMA.fields().get(0);
 
-  public static final PersistenceSchema ROWKEY_SERIALIZED_SCHEMA = PersistenceSchema.from(
-      (ConnectSchema) ROWKEY_STRUCT_SCHEMA,
-      false
-  );
-
   private StructKeyUtil() {
   }
 
@@ -47,5 +46,38 @@ public final class StructKeyUtil {
     Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
     keyStruct.put(ROWKEY_FIELD, rowKey);
     return keyStruct;
+  }
+
+  public static KeyBuilder keySchema(final LogicalSchema schema) {
+    final List<Column> keyCols = schema.key();
+    if (keyCols.size() != 1) {
+      throw new UnsupportedOperationException("Only single keys supported");
+    }
+
+    final SqlType sqlType = keyCols.get(0).type();
+    final Schema connectSchema = SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
+
+    return new KeyBuilder(SchemaBuilder
+        .struct()
+        .field(SchemaUtil.ROWKEY_NAME.name(), connectSchema)
+        .build()
+    );
+  }
+
+  public static final class KeyBuilder {
+
+    private final Schema keySchema;
+    private final org.apache.kafka.connect.data.Field keyField;
+
+    private KeyBuilder(final Schema keySchema) {
+      this.keySchema = Objects.requireNonNull(keySchema, "keySchema");
+      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.name());
+    }
+
+    public Struct build(final Object rowKey) {
+      final Struct keyStruct = new Struct(keySchema);
+      keyStruct.put(keyField, rowKey);
+      return keyStruct;
+    }
   }
 }

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -23,12 +25,9 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Objects;
 
 @Immutable
 public class RepartitionNode extends PlanNode {
@@ -36,26 +35,25 @@ public class RepartitionNode extends PlanNode {
   private final PlanNode source;
   private final Expression partitionBy;
   private final KeyField keyField;
+  private final LogicalSchema schema;
 
   public RepartitionNode(
-      PlanNodeId id,
-      PlanNode source,
-      Expression partitionBy,
-      KeyField keyField
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final Expression partitionBy,
+      final KeyField keyField
   ) {
     super(id, source.getNodeOutputType());
-    this.source = Objects.requireNonNull(source, "source");
-    this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
-    this.keyField = Objects.requireNonNull(keyField, "keyField");
-
-    if (source.getSchema().key().get(0).type().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
-    }
+    this.source = requireNonNull(source, "source");
+    this.partitionBy = requireNonNull(partitionBy, "partitionBy");
+    this.keyField = requireNonNull(keyField, "keyField");
+    this.schema = requireNonNull(schema, "schema");
   }
 
   @Override
   public LogicalSchema getSchema() {
-    return source.getSchema();
+    return schema;
   }
 
   @Override

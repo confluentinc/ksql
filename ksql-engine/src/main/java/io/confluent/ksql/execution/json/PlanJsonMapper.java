@@ -19,6 +19,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.confluent.ksql.json.KsqlTypesSerializationModule;
+import io.confluent.ksql.parser.json.KsqlParserSerializationModule;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 
 public final class PlanJsonMapper {
   private PlanJsonMapper() {
@@ -33,7 +36,10 @@ public final class PlanJsonMapper {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModules(
         new Jdk8Module(),
-        new JavaTimeModule()
+        new JavaTimeModule(),
+        new KsqlParserSerializationModule(),
+        new KsqlTypesSerializationModule(),
+        new KsqlTypesDeserializationModule(true)
     );
     mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     mapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);

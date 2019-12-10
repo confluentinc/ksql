@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.json;
+package io.confluent.ksql.parser.json;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -25,6 +25,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.io.IOException;
 
 final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
+  final boolean withImplicitColumns;
+
+  LogicalSchemaDeserializer(final boolean withImplicitColumns) {
+    this.withImplicitColumns = withImplicitColumns;
+  }
 
   @Override
   public LogicalSchema deserialize(
@@ -36,6 +41,6 @@ final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
 
     final TableElements tableElements = SchemaParser.parse(text, TypeRegistry.EMPTY);
 
-    return tableElements.toLogicalSchema(false);
+    return tableElements.toLogicalSchema(withImplicitColumns);
   }
 }

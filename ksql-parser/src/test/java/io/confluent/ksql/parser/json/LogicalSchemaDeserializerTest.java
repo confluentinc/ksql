@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.json;
+package io.confluent.ksql.parser.json;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -32,7 +32,7 @@ public class LogicalSchemaDeserializerTest {
 
   @BeforeClass
   public static void classSetUp() {
-    MAPPER.registerModule(new TestModule());
+    MAPPER.registerModule(new TestModule(false));
   }
 
   @Test
@@ -83,10 +83,29 @@ public class LogicalSchemaDeserializerTest {
         .build()));
   }
 
+  @Test
+  public void shouldAddImplicitColumns() throws Exception {
+    // Given:
+    final ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new TestModule(true));
+    final String json = "\"`v0` INTEGER\"";
+
+    // When:
+    final LogicalSchema schema = mapper.readValue(json, LogicalSchema.class);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()));
+  }
+
   private static class TestModule extends SimpleModule {
 
-    private TestModule() {
-      addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer());
+    private TestModule(boolean withImplicitColumns) {
+      addDeserializer(
+          LogicalSchema.class,
+          new LogicalSchemaDeserializer(withImplicitColumns)
+      );
     }
   }
 }

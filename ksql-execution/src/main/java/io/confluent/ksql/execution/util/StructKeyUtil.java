@@ -42,12 +42,6 @@ public final class StructKeyUtil {
   private StructKeyUtil() {
   }
 
-  public static Struct asStructKey(String rowKey) {
-    Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
-    keyStruct.put(ROWKEY_FIELD, rowKey);
-    return keyStruct;
-  }
-
   public static KeyBuilder keyBuilder(final LogicalSchema schema) {
     final List<Column> keyCols = schema.key();
     if (keyCols.size() != 1) {

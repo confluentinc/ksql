@@ -55,7 +55,7 @@ public class KsMaterializedTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
+  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("x");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

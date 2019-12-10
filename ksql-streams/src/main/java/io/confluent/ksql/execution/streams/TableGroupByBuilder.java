@@ -28,10 +28,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Grouped;
+import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 public final class TableGroupByBuilder {
@@ -47,8 +49,19 @@ public final class TableGroupByBuilder {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
     final Formats formats = step.getInternalFormats();
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+
+    final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
+        step.getGroupByExpressions().stream(),
+        "Group By",
         sourceSchema,
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry()
+    );
+
+    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy);
+
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        params.getSchema(),
         formats.getOptions()
     );
     final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
@@ -66,37 +79,26 @@ public final class TableGroupByBuilder {
         keySerde,
         valSerde
     );
-    final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
-        step.getGroupByExpressions().stream(),
-        "Group By",
-        sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
-    );
-    final GroupByMapper<K> mapper = new GroupByMapper<>(groupBy);
-    return KGroupedTableHolder.of(
-        table.getTable()
-            .filter((key, value) -> value != null)
-            .groupBy(new TableKeyValueMapper<>(mapper), grouped),
-        table.getSchema()
-    );
+
+    final KGroupedTable<Struct, GenericRow> groupedTable = table.getTable()
+        .filter((k, v) -> v != null)
+        .groupBy(new TableKeyValueMapper<>(params.getMapper()), grouped);
+
+    return KGroupedTableHolder.of(groupedTable, params.getSchema());
   }
 
   public static final class TableKeyValueMapper<K>
       implements KeyValueMapper<K, GenericRow, KeyValue<Struct, GenericRow>> {
-    private final GroupByMapper<K> groupByMapper;
 
-    private TableKeyValueMapper(final GroupByMapper<K> groupByMapper) {
+    private final Function<GenericRow, Struct> groupByMapper;
+
+    private TableKeyValueMapper(final Function<GenericRow, Struct> groupByMapper) {
       this.groupByMapper = Objects.requireNonNull(groupByMapper, "groupByMapper");
     }
 
     @Override
     public KeyValue<Struct, GenericRow> apply(final K key, final GenericRow value) {
-      return new KeyValue<>(groupByMapper.apply(key, value), value);
-    }
-
-    GroupByMapper<K> getGroupByMapper() {
-      return groupByMapper;
+      return new KeyValue<>(groupByMapper.apply(value), value);
     }
   }
 }

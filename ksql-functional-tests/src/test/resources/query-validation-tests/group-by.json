@@ -27,7 +27,12 @@
         {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
         {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
         {"topic": "OUTPUT", "key": "d1", "value": "d1,3"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "field (stream->table) - KAFKA",
@@ -65,7 +70,43 @@
         {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}, "timestamp": 3},
         {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}, "timestamp": 4},
         {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}, "timestamp": 5}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "int field (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) FROM TEST GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"ID": 1}, "timestamp": 1},
+        {"topic": "test_topic", "key": "b", "value": {"ID": 2}, "timestamp": 2},
+        {"topic": "test_topic", "key": "c", "value": {"ID": 1}, "timestamp": 3},
+        {"topic": "test_topic", "key": "d", "value": {"ID": 2}, "timestamp": 4},
+        {"topic": "test_topic", "key": "e", "value": {"ID": 1}, "timestamp": 5}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": 1, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": 2, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_1":1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KSQL_COL_1":2}, "timestamp": 4},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1, "KSQL_COL_1":3}, "timestamp": 5}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT KEY, ID INT, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "fields (stream->table)",
@@ -91,7 +132,12 @@
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,2"},
         {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,2"},
         {"topic": "OUTPUT", "key": "a|+|3", "value": "3,a,1"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+        ]
+      }
     },
     {
       "name": "fields (stream->table) - format",
@@ -118,7 +164,12 @@
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 2}},
         {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 2}},
         {"topic": "OUTPUT", "key": "a|+|3", "value": {"F1": 3, "F2": "a", "KSQL_COL_2": 1}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+        ]
+      }
     },
     {
       "name": "with groupings (stream->table)",
@@ -139,7 +190,12 @@
         {"topic": "OUTPUT", "key": "-1|+|a|+|1", "value": "1,a,2"},
         {"topic": "OUTPUT", "key": "-2|+|b|+|2", "value": "2,b,2"},
         {"topic": "OUTPUT", "key": "-3|+|a|+|3", "value": "3,a,1"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+        ]
+      }
     },
     {
       "name": "fields (table->table)",
@@ -169,7 +225,12 @@
         {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,0"},
         {"topic": "OUTPUT", "key": "b|+|1", "value": "1,b,0"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+        ]
+      }
     },
     {
       "name": "fields (table->table) - format",
@@ -200,7 +261,12 @@
         {"topic": "OUTPUT", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "KSQL_COL_2": 0}},
         {"topic": "OUTPUT", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "KSQL_COL_2": 0}},
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "KSQL_COL_2": 1}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, F1 INT, F2 STRING, KSQL_COL_2 BIGINT"}
+        ]
+      }
     },
     {
       "name": "field with re-key (stream->table)",
@@ -231,7 +297,48 @@
         {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
         {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
         {"topic": "OUTPUT", "key": "d1", "value": "d1,3"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "double field with re-key (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (data double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY DATA;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "0.1"},
+        {"topic": "test_topic", "value": "0.2"},
+        {"topic": "test_topic", "value": "0.1"},
+        {"topic": "test_topic", "value": "0.2"},
+        {"topic": "test_topic", "value": "0.1"}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.2, "value": "0.2,0"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.2, "value": "0.2,0"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.2, "value": "0.2,0,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,2"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.2, "value": "0.2,0,2"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,3"},
+        {"topic": "OUTPUT", "key": 0.1, "value": "0.1,1"},
+        {"topic": "OUTPUT", "key": 0.2, "value": "0.2,1"},
+        {"topic": "OUTPUT", "key": 0.1, "value": "0.1,2"},
+        {"topic": "OUTPUT", "key": 0.2, "value": "0.2,2"},
+        {"topic": "OUTPUT", "key": 0.1, "value": "0.1,3"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY DOUBLE KEY, DATA DOUBLE, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "field with re-key (stream->table) - format",
@@ -263,7 +370,12 @@
         {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}},
         {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}},
         {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "field with re-key (table->table)",
@@ -285,7 +397,12 @@
         {"topic": "OUTPUT", "key": "r0", "value": "1"},
         {"topic": "OUTPUT", "key": "r1", "value": "0"},
         {"topic": "OUTPUT", "key": "r0", "value": "2"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, KSQL_COL_0 BIGINT"}
+        ]
+      }
     },
     {
       "name": "with aggregate arithmetic (stream->table)",
@@ -302,7 +419,12 @@
         {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
         {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
         {"topic": "OUTPUT", "key": "d1", "value": "d1,4"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, DATA STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "with aggregate arithmetic (table->table)",
@@ -324,7 +446,12 @@
         {"topic": "OUTPUT", "key": "r0", "value": "2"},
         {"topic": "OUTPUT", "key": "r1", "value": "0"},
         {"topic": "OUTPUT", "key": "r0", "value": "4"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, KSQL_COL_0 BIGINT"}
+        ]
+      }
     },
     {
       "name": "with aggregate arithmetic involving source field (stream->table)",
@@ -358,12 +485,12 @@
         {"topic": "test_topic", "key": "2", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "2", "value": "20"},
-        {"topic": "OUTPUT", "key": "2", "value": "0"},
-        {"topic": "OUTPUT", "key": "2", "value": "40"},
-        {"topic": "OUTPUT", "key": "2", "value": "0"},
-        {"topic": "OUTPUT", "key": "2", "value": "60"},
-        {"topic": "OUTPUT", "key": "2", "value": "0"}
+        {"topic": "OUTPUT", "key": 2, "value": "20"},
+        {"topic": "OUTPUT", "key": 2, "value": "0"},
+        {"topic": "OUTPUT", "key": 2, "value": "40"},
+        {"topic": "OUTPUT", "key": 2, "value": "0"},
+        {"topic": "OUTPUT", "key": 2, "value": "60"},
+        {"topic": "OUTPUT", "key": 2, "value": "0"}
       ]
     },
     {
@@ -398,7 +525,12 @@
         {"topic": "OUTPUT", "key": "an", "value": "an,2"},
         {"topic": "OUTPUT", "key": "so", "value": "so,3"},
         {"topic": "OUTPUT", "key": "th", "value": "th,1"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
     },
     {
       "name": "function (table->table)",
@@ -420,7 +552,39 @@
         {"topic": "OUTPUT", "key": "r0", "value": "r0,1"},
         {"topic": "OUTPUT", "key": "r1", "value": "r1,0"},
         {"topic": "OUTPUT", "key": "r0", "value": "r0,2"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "int function (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY LEN(region);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "usa"},
+        {"topic": "test_topic", "key": "2", "value": "eu"},
+        {"topic": "test_topic", "key": "3", "value": "usa"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "usa"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 2, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": "2"},
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 2, "value": "0"},
+        {"topic": "OUTPUT", "key": 3, "value": "2"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY INT KEY, KSQL_COL_0 BIGINT"}
+        ]
+      }
     },
     {
       "name": "function with select field that is a subset of group by (stream->table)",
@@ -482,9 +646,26 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 1}},
         {"topic": "OUTPUT", "key": "Something Else", "value": {"FIELD": "Something Else", "COUNT": 1}},
-        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 1}},
-        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 2}},
-        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 2}}
+        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 2}}
+      ]
+    },
+    {
+      "name": "int json field (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (data STRUCT<field INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"data": {"field": 1}}},
+        {"topic": "test_topic", "value": {"data": {"field": 2}}},
+        {"topic": "test_topic", "value": {"data": {}}},
+        {"topic": "test_topic", "value": {"data": {"field": 1}}},
+        {"topic": "test_topic", "value": {"data": {}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 2}}
       ]
     },
     {
@@ -544,7 +725,7 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY ROWTIME;"
       ],
       "inputs": [{"topic": "test_topic", "value": "-", "timestamp":  10}],
-      "outputs": [{"topic": "OUTPUT", "key": "10", "value": "1", "timestamp":  10}]
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": "1", "timestamp":  10}]
     },
     {
       "name": "constant (stream->table)",
@@ -560,11 +741,11 @@
         {"topic": "test_topic", "value": "-"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1"},
-        {"topic": "OUTPUT", "key": "1", "value": "2"},
-        {"topic": "OUTPUT", "key": "1", "value": "3"},
-        {"topic": "OUTPUT", "key": "1", "value": "4"},
-        {"topic": "OUTPUT", "key": "1", "value": "5"}
+        {"topic": "OUTPUT", "key": 1, "value": "1"},
+        {"topic": "OUTPUT", "key": 1, "value": "2"},
+        {"topic": "OUTPUT", "key": 1, "value": "3"},
+        {"topic": "OUTPUT", "key": 1, "value": "4"},
+        {"topic": "OUTPUT", "key": 1, "value": "5"}
       ]
     },
     {
@@ -581,12 +762,12 @@
         {"topic": "test_topic", "key": "2", "value": "2,r0"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1"},
-        {"topic": "OUTPUT", "key": "1", "value": "2"},
-        {"topic": "OUTPUT", "key": "1", "value": "3"},
-        {"topic": "OUTPUT", "key": "1", "value": "2"},
-        {"topic": "OUTPUT", "key": "1", "value": "1"},
-        {"topic": "OUTPUT", "key": "1", "value": "2"}
+        {"topic": "OUTPUT", "key": 1, "value": "1"},
+        {"topic": "OUTPUT", "key": 1, "value": "2"},
+        {"topic": "OUTPUT", "key": 1, "value": "3"},
+        {"topic": "OUTPUT", "key": 1, "value": "2"},
+        {"topic": "OUTPUT", "key": 1, "value": "1"},
+        {"topic": "OUTPUT", "key": 1, "value": "2"}
       ]
     },
     {
@@ -737,10 +918,10 @@
         {"topic": "test_topic", "value": "6,8"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,2"}
+        {"topic": "OUTPUT", "key": 1, "value": "1,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,2"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,1"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,2"}
       ]
     },
     {
@@ -757,12 +938,12 @@
         {"topic": "test_topic", "key": "2", "value": "4,2"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,0"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,2"}
+        {"topic": "OUTPUT", "key": 1, "value": "1,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,2"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,0"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,2"}
       ]
     },
     {
@@ -790,22 +971,22 @@
     {
       "name": "with having expression (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) FROM TEST GROUP BY f1 HAVING SUM(f1) > 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1"},
-        {"topic": "test_topic", "key": "2", "value": "2"},
-        {"topic": "test_topic", "key": "1", "value": "1"},
-        {"topic": "test_topic", "key": "2", "value": "2"},
-        {"topic": "test_topic", "key": "3", "value": "3"}
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 3, "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": null},
-        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,2"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,1"}
+        {"topic": "OUTPUT", "key": 1, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": "2,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,2"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,2"},
+        {"topic": "OUTPUT", "key": 3, "value": "3,1"}
       ]
     },
     {
@@ -822,12 +1003,12 @@
         {"topic": "test_topic", "key": "2", "value": "2,0"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0", "value": "0,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
-        {"topic": "OUTPUT", "key": "0", "value": "0,4"},
-        {"topic": "OUTPUT", "key": "0", "value": "0,3"},
-        {"topic": "OUTPUT", "key": "1", "value": null},
-        {"topic": "OUTPUT", "key": "0", "value": "0,5"}
+        {"topic": "OUTPUT", "key": 0, "value": "0,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,2"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,4"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,3"},
+        {"topic": "OUTPUT", "key": 1, "value": null},
+        {"topic": "OUTPUT", "key": 0, "value": "0,5"}
       ]
     },
     {
@@ -845,12 +1026,12 @@
         {"topic": "test_topic", "key": "0", "value": "1,test"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": null},
-        {"topic": "OUTPUT", "key": "2", "value": null},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
-        {"topic": "OUTPUT", "key": "2", "value": null},
-        {"topic": "OUTPUT", "key": "2", "value": null},
-        {"topic": "OUTPUT", "key": "1", "value": "1,3"}
+        {"topic": "OUTPUT", "key": 1, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": null},
+        {"topic": "OUTPUT", "key": 1, "value": "1,2"},
+        {"topic": "OUTPUT", "key": 2, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": null},
+        {"topic": "OUTPUT", "key": 1, "value": "1,3"}
       ]
     },
     {
@@ -900,22 +1081,22 @@
     {
       "name": "with constants in the projection (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, 'some constant' as f3, COUNT(f1) FROM TEST GROUP BY f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1"},
-        {"topic": "test_topic", "key": "2", "value": "2"},
-        {"topic": "test_topic", "key": "1", "value": "1"},
-        {"topic": "test_topic", "key": "2", "value": "2"},
-        {"topic": "test_topic", "key": "3", "value": "3"}
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 3, "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,1"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,1"},
-        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,2"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,2"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,some constant,1"}
+        {"topic": "OUTPUT", "key": 1, "value": "1,some constant,1"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,some constant,1"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,some constant,2"},
+        {"topic": "OUTPUT", "key": 2, "value": "2,some constant,2"},
+        {"topic": "OUTPUT", "key": 3, "value": "3,some constant,1"}
       ]
     },
     {
@@ -1134,6 +1315,64 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Aggregate functions can not be nested: SUM(COUNT())"
       }
+    },
+    {
+      "name": "should exclude any stream row whose single GROUP BY expression resolves to NULL",
+      "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
+      "statements": [
+        "CREATE STREAM TEST (str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT() FROM TEST GROUP BY SUBSTRING(str, pos);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "xx,1"},
+        {"topic": "test_topic", "value": "x,"},
+        {"topic": "test_topic", "value": "xx,1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "xx", "value": "1"},
+        {"topic": "OUTPUT", "key": "xx", "value": "2"}
+      ]
+    },
+    {
+      "name": "should exclude any table row whose single GROUP BY expression resolves to NULL",
+      "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
+      "statements": [
+        "CREATE TABLE TEST (str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT() FROM TEST GROUP BY SUBSTRING(str, pos);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "xx,1"},
+        {"topic": "test_topic", "key": "2", "value": "x,"},
+        {"topic": "test_topic", "key": "3", "value": "xx,1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "xx", "value": "1"},
+        {"topic": "OUTPUT", "key": "xx", "value": "2"}
+      ]
+    },
+    {
+      "name": "should exclude any stream row whose single GROUP BY expression throws",
+      "statements": [
+        "CREATE STREAM TEST (id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT() FROM TEST GROUP BY BAD_UDF(id);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1"}
+      ],
+      "outputs": [
+      ]
+    },
+    {
+      "name": "should exclude any table row whose single GROUP BY expression throws",
+      "statements": [
+        "CREATE TABLE TEST (id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT() FROM TEST GROUP BY BAD_UDF(id);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "2", "value": "1"}
+      ],
+      "outputs": [
+      ]
     }
   ]
 }

@@ -74,52 +74,77 @@ public class AggregateParamsFactory {
       final List<FunctionCall> functionList,
       final boolean table
   ) {
-    final List<KsqlAggregateFunction<?, ?, ?>> functions = ImmutableList.copyOf(
+    final List<KsqlAggregateFunction<?, ?, ?>> functions =
+        resolveAggregateFunctions(schema, functionRegistry, functionList);
+
+    final List<Supplier<?>> initialValueSuppliers = functions.stream()
+        .map(KsqlAggregateFunction::getInitialValueSupplier)
+        .collect(Collectors.toList());
+
+    final Optional<KudafUndoAggregator> undoAggregator =
+        buildUndoAggregators(initialUdafIndex, table, functions);
+
+    final LogicalSchema aggregateSchema = buildSchema(schema, initialUdafIndex, functions, true);
+
+    final LogicalSchema outputSchema = buildSchema(schema, initialUdafIndex, functions, false);
+
+    return new AggregateParams(
+        new KudafInitializer(initialUdafIndex, initialValueSuppliers),
+        aggregatorFactory.create(initialUdafIndex, functions),
+        undoAggregator,
+        new WindowSelectMapper(initialUdafIndex, functions),
+        aggregateSchema,
+        outputSchema
+    );
+  }
+
+  private static Optional<KudafUndoAggregator> buildUndoAggregators(
+      final int initialUdafIndex,
+      final boolean table,
+      final List<KsqlAggregateFunction<?, ?, ?>> functions
+  ) {
+    if (!table) {
+      return Optional.empty();
+    }
+
+    final List<TableAggregationFunction<?, ?, ?>> tableFunctions = new LinkedList<>();
+    for (final KsqlAggregateFunction<?, ?, ?> function : functions) {
+      tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
+    }
+    return Optional.of(new KudafUndoAggregator(initialUdafIndex, tableFunctions));
+  }
+
+  private static List<KsqlAggregateFunction<?, ?, ?>> resolveAggregateFunctions(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final List<FunctionCall> functionList
+  ) {
+    return ImmutableList.copyOf(
         functionList.stream().map(
             funcCall -> UdafUtil.resolveAggregateFunction(
                 functionRegistry,
                 funcCall,
                 schema)
         ).collect(Collectors.toList()));
-    final List<Supplier<?>> initialValueSuppliers = functions.stream()
-        .map(KsqlAggregateFunction::getInitialValueSupplier)
-        .collect(Collectors.toList());
-    final Optional<KudafUndoAggregator> undoAggregator;
-    if (table) {
-      final List<TableAggregationFunction<?, ?, ?>> tableFunctions = new LinkedList<>();
-      for (final KsqlAggregateFunction function : functions) {
-        tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
-      }
-      undoAggregator = Optional.of(new KudafUndoAggregator(initialUdafIndex, tableFunctions));
-    } else {
-      undoAggregator = Optional.empty();
-    }
-    return new AggregateParams(
-        new KudafInitializer(initialUdafIndex, initialValueSuppliers),
-        aggregatorFactory.create(initialUdafIndex, functions),
-        undoAggregator,
-        new WindowSelectMapper(initialUdafIndex, functions),
-        buildSchema(schema, initialUdafIndex, functions, true),
-        buildSchema(schema, initialUdafIndex, functions, false)
-    );
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema schema,
       final int initialUdafIndex,
       final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions,
-      final boolean useAggregate) {
+      final boolean useAggregate
+  ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Column> cols = schema.value();
 
     schemaBuilder.keyColumns(schema.key());
 
+    final List<Column> cols = schema.value();
     for (int i = 0; i < initialUdafIndex; i++) {
       schemaBuilder.valueColumn(cols.get(i));
     }
 
     for (int i = 0; i < aggregateFunctions.size(); i++) {
-      final KsqlAggregateFunction aggregateFunction = aggregateFunctions.get(i);
+      final KsqlAggregateFunction<?, ?, ?> aggregateFunction = aggregateFunctions.get(i);
       final ColumnName colName = ColumnName.aggregateColumn(i);
       final SqlType fieldType = useAggregate
           ? aggregateFunction.getAggregateType()
@@ -131,7 +156,7 @@ public class AggregateParamsFactory {
   }
 
   interface KudafAggregatorFactory {
-    KudafAggregator create(
+    KudafAggregator<?> create(
         int initialUdafIndex,
         List<KsqlAggregateFunction<?, ?, ?>> functions
     );

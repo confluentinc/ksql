@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,6 +41,8 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class TableRowsEntityFactoryTest {
+
+  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.BOOLEAN)
@@ -68,7 +71,7 @@ public class TableRowsEntityFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         Row.of(
             SIMPLE_SCHEMA,
-            StructKeyUtil.asStructKey("x"),
+            STRING_KEY_BUILDER.build("x"),
             new GenericRow(false),
             ROWTIME
         )
@@ -92,14 +95,14 @@ public class TableRowsEntityFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            StructKeyUtil.asStructKey("x"),
+            STRING_KEY_BUILDER.build("x"),
             window0,
             new GenericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            StructKeyUtil.asStructKey("y"),
+            STRING_KEY_BUILDER.build("y"),
             window1,
             new GenericRow(false),
             ROWTIME
@@ -127,7 +130,7 @@ public class TableRowsEntityFactoryTest {
     GenericRow row = new GenericRow(newColumns);
 
     final Builder<Row> builder = ImmutableList.builder();
-    builder.add(Row.of(SCHEMA_NULL, StructKeyUtil.asStructKey("k"), row, ROWTIME));
+    builder.add(Row.of(SCHEMA_NULL, STRING_KEY_BUILDER.build("k"), row, ROWTIME));
 
     // When:
     final List<List<?>> output = TableRowsEntityFactory.createRows(builder.build());

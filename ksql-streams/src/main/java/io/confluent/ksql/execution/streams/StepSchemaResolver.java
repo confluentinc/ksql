@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -46,6 +47,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -62,7 +64,7 @@ public final class StepSchemaResolver {
       .put(StreamWindowedAggregate.class, StepSchemaResolver::handleStreamWindowedAggregate)
       .put(StreamFilter.class, StepSchemaResolver::sameSchema)
       .put(StreamFlatMap.class, StepSchemaResolver::handleStreamFlatMap)
-      .put(StreamGroupBy.class, StepSchemaResolver::sameSchema)
+      .put(StreamGroupBy.class, StepSchemaResolver::handleGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
       .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
@@ -158,6 +160,22 @@ public final class StepSchemaResolver {
         streamFlatMap.getTableFunctions(),
         functionRegistry
     );
+  }
+
+  private LogicalSchema handleGroupBy(
+      final LogicalSchema sourceSchema,
+      final StreamGroupBy<?> streamGroupBy
+  ) {
+    final List<Expression> groupBy = streamGroupBy.getGroupByExpressions();
+
+    if (groupBy.size() != 1) {
+      return GroupByParamsFactory.multiExpressionSchema(sourceSchema);
+    }
+
+    final SqlType rowKeyType = new ExpressionTypeManager(sourceSchema, functionRegistry)
+        .getExpressionSqlType(groupBy.get(0));
+
+    return GroupByParamsFactory.singleExpressionSchema(sourceSchema, rowKeyType);
   }
 
   private LogicalSchema handleStreamSelect(

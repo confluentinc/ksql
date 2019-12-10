@@ -1,7 +1,5 @@
 package io.confluent.ksql.execution.streams;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +25,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -38,6 +37,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -56,15 +56,29 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StreamGroupByBuilderTest {
+
+  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
+
   private static final SourceName ALIAS = SourceName.of("SOURCE");
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
       .withAlias(SourceName.of(ALIAS.name()))
       .withMetaAndKeyColsInValue();
+
+  private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumns(SCHEMA.value())
+      .build();
+
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA, SerdeOption.none());
+
+  private static final PhysicalSchema REKEYED_PHYSICAL_SCHEMA =
+      PhysicalSchema.from(REKEYED_SCHEMA, SerdeOption.none());
+
   private static final List<Expression> GROUP_BY_EXPRESSIONS = ImmutableList.of(
       columnReference("PAC"),
       columnReference("MAN")
@@ -106,8 +120,6 @@ public class StreamGroupByBuilderTest {
   private KStream<Struct, GenericRow> filteredStream;
   @Mock
   private KGroupedStream<Struct, GenericRow> groupedStream;
-  @Captor
-  private ArgumentCaptor<GroupByMapper<Struct>> mapperCaptor;
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
 
@@ -162,18 +174,8 @@ public class StreamGroupByBuilderTest {
     // Then:
     assertThat(result.getGroupedStream(), is(groupedStream));
     verify(sourceStream).filter(any());
-    verify(filteredStream).groupBy(mapperCaptor.capture(), same(grouped));
+    verify(filteredStream).groupBy(any(), same(grouped));
     verifyNoMoreInteractions(filteredStream, sourceStream);
-    final GroupByMapper<?> mapper = mapperCaptor.getValue();
-    assertThat(mapper.getExpressionMetadata(), hasSize(2));
-    assertThat(
-        mapper.getExpressionMetadata().get(0).getExpression(),
-        equalTo(GROUP_BY_EXPRESSIONS.get(0))
-    );
-    assertThat(
-        mapper.getExpressionMetadata().get(1).getExpression(),
-        equalTo(GROUP_BY_EXPRESSIONS.get(1))
-    );
   }
 
   @Test
@@ -184,8 +186,8 @@ public class StreamGroupByBuilderTest {
     // Then:
     verify(sourceStream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
-    assertThat(predicate.test(StructKeyUtil.asStructKey("foo"), new GenericRow()), is(true));
-    assertThat(predicate.test(StructKeyUtil.asStructKey("foo"), null),  is(false));
+    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo"), new GenericRow()), is(true));
+    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo"), null), is(false));
   }
 
   @Test
@@ -203,7 +205,10 @@ public class StreamGroupByBuilderTest {
     final KGroupedStreamHolder result = streamGroupBy.build(planBuilder);
 
     // Then:
-    assertThat(result.getSchema(), is(SCHEMA));
+    assertThat(result.getSchema(), is(LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumns(SCHEMA.value())
+        .build()));
   }
 
   @Test
@@ -214,7 +219,7 @@ public class StreamGroupByBuilderTest {
     // Then:
     verify(queryBuilder).buildKeySerde(
         FORMATS.getKeyFormat(),
-        PHYSICAL_SCHEMA,
+        REKEYED_PHYSICAL_SCHEMA,
         STEP_CTX
     );
   }
@@ -227,7 +232,7 @@ public class StreamGroupByBuilderTest {
     // Then:
     verify(queryBuilder).buildValueSerde(
         FORMATS.getValueFormat(),
-        PHYSICAL_SCHEMA,
+        REKEYED_PHYSICAL_SCHEMA,
         STEP_CTX
     );
   }

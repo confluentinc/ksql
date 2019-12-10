@@ -6,18 +6,18 @@
     {
       "name": "count",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
         "CREATE TABLE S2 as SELECT id, count() FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": "0,zero,0.0"},
-        {"topic": "test_topic", "key": "0", "value": "0,100,0.0"},
-        {"topic": "test_topic", "key": "100", "value": "100,100,0.0"}
+        {"topic": "test_topic", "key": 0,"value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 0,"value": "0,100,0.0"},
+        {"topic": "test_topic", "key": 100,"value": "100,100,0.0"}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": "0,1"},
-        {"topic": "S2", "key": "0", "value": "0,2"},
-        {"topic": "S2", "key": "100", "value": "100,1"}
+        {"topic": "S2", "key": 0,"value": "0,1"},
+        {"topic": "S2", "key": 0,"value": "0,2"},
+        {"topic": "S2", "key": 100,"value": "100,1"}
       ]
     },{
       "name": "count star",

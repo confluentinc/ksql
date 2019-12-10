@@ -21,12 +21,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
@@ -81,6 +83,13 @@ public class QueryAnalyzer {
       pushQueryValidator.validate(analysis);
     } else {
       pullQueryValidator.validate(analysis);
+    }
+
+    if (!analysis.getTableFunctions().isEmpty()) {
+      AliasedDataSource ds = analysis.getFromDataSources().get(0);
+      if (ds.getDataSource().getDataSourceType() == DataSourceType.KTABLE) {
+        throw new KsqlException("Table source is not supported with table functions");
+      }
     }
 
     return analysis;

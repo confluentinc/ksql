@@ -106,6 +106,8 @@ there are benefits in relation to performance, scalability, simplicity of implem
 and threading model. Not to mention reduced dependencies and better resource usage. This will set us up better for the kinds of high
 throughput operations that we will need to implement efficiently now that the project has pivoted to a more active application
 facing server rather than a more passive DDL engine.
+A further advantage of using Vert.x on the server is that Vert.x has support for GraphQL which will make the implementation of
+GraphQL for ksqlDB relatively simple compared to having to implement it from scratch.
 
 ## Public APIS
 

@@ -36,7 +36,6 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
@@ -178,12 +177,6 @@ public final class CreateSourceFactory {
         if (!isRowKey) {
           throw new KsqlException("'" + e.getName().name() + "' is an invalid KEY column name. "
               + "KSQL currently only supports KEY columns named ROWKEY.");
-        }
-
-        if (e.getType().getSqlType().baseType() != SqlBaseType.STRING) {
-          throw new KsqlException("'" + e.getName().name()
-              + "' is a KEY column with an unsupported type. "
-              + "KSQL currently only supports KEY columns of type " + SqlBaseType.STRING + ".");
         }
       } else if (isRowKey) {
         throw new KsqlException("'" + e.getName().name() + "' is a reserved column name. "

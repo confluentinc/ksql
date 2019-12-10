@@ -73,13 +73,57 @@
       ]
     },
     {
-      "name": "explicit non-STRING ROWKEY",
+      "name": "stream explicit non-STRING ROWKEY",
       "statements": [
-        "CREATE STREAM INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+        "CREATE STREAM INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'ROWKEY' is a KEY column with an unsupported type. KSQL currently only supports KEY columns of type STRING."
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": null, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 3, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY INT KEY, ID BIGINT, KEY INT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table explicit non-STRING ROWKEY",
+      "statements": [
+        "CREATE TABLE INPUT (ROWKEY BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": 1, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 3, "KEY": 1}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY BIGINT KEY, ID BIGINT, KEY BIGINT"
+          }
+        ]
       }
     },
     {

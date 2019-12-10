@@ -23,8 +23,10 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,6 +47,10 @@ public class RepartitionNode extends PlanNode {
     this.source = Objects.requireNonNull(source, "source");
     this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
+
+    if (source.getSchema().key().get(0).type().baseType() != SqlBaseType.STRING) {
+      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
+    }
   }
 
   @Override

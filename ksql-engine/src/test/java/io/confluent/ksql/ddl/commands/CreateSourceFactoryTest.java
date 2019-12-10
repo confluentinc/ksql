@@ -20,6 +20,7 @@ import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
+import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.serde.Format.KAFKA;
@@ -765,7 +766,7 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnRowKeyIfNotString() {
+  public void shouldAllowNonStringKeyColumn() {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
@@ -774,13 +775,14 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWKEY' is a KEY column with an unsupported type. "
-        + "KSQL currently only supports KEY columns of type STRING.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final CreateStreamCommand cmd = createSourceFactory
+        .createStreamCommand(statement, ksqlConfig);
+
+    // Then:
+    assertThat(cmd.getSchema().key(), contains(
+       keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
+    ));
   }
 
   @Test

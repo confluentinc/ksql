@@ -96,7 +96,7 @@ public class JoinNode extends PlanNode {
     this.schema = JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
 
     if (schema.key().get(0).type().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
+      throw new KsqlException("JOIN is not supported with non-STRING keys");
     }
   }
 

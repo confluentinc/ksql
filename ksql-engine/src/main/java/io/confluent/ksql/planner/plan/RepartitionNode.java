@@ -49,7 +49,7 @@ public class RepartitionNode extends PlanNode {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
 
     if (source.getSchema().key().get(0).type().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("GROUP BY is not supported with non-STRING keys");
+      throw new KsqlException("PARTITION BY is not supported with non-STRING keys");
     }
   }
 

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;

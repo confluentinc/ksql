@@ -632,7 +632,7 @@ public class TestExecutor implements Closeable {
     private final LogicalSchema schema;
     private final KeyFormat keyFormat;
 
-    public TopicInfo(final LogicalSchema schema, final KeyFormat keyFormat) {
+    TopicInfo(final LogicalSchema schema, final KeyFormat keyFormat) {
       this.schema = requireNonNull(schema, "schema");
       this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     }

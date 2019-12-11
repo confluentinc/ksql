@@ -25,7 +25,6 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -244,8 +243,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
-    } else if (statement.getStatement() instanceof RunScript) {
-      handleLegacyRunScript(command, mode);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",

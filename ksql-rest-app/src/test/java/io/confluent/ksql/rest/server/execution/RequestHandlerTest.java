@@ -196,58 +196,6 @@ public class RequestHandlerTest {
     verify(sync, times(3)).waitFor(any(), any());
   }
 
-  @Test
-  public void shouldInlineRunScriptStatements() {
-    // Given:
-    final Map<String, Object> props = ImmutableMap.of(
-        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        SOME_STREAM_SQL);
-
-    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
-        CreateStream.class,
-        (KsqlEntity) null);
-    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
-
-    // When:
-    final List<ParsedStatement> statements = new DefaultKsqlParser()
-        .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(serviceContext, statements, props);
-
-    // Then:
-    verify(customExecutor, times(1))
-        .execute(
-            argThat(is(configured(preparedStatementText(SOME_STREAM_SQL)))),
-            any(),
-            eq(ksqlEngine),
-            eq(serviceContext)
-        );
-  }
-
-  @Test
-  public void shouldOnlyReturnLastInRunScript() {
-    // Given:
-    final KsqlEntity entity1 = mock(KsqlEntity.class);
-    final KsqlEntity entity2 = mock(KsqlEntity.class);
-
-    final Map<String, Object> props = ImmutableMap.of(
-        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-            SOME_STREAM_SQL
-            + "CREATE STREAM Y WITH (value_format='json', kafka_topic='y');");
-
-    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
-        CreateStream.class, entity1, entity2);
-    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
-
-    final List<ParsedStatement> statements = new DefaultKsqlParser()
-        .parse("RUN SCRIPT '/some/script.sql';" );
-
-    // When:
-    final KsqlEntityList result = handler.execute(serviceContext, statements, props);
-
-    // Then:
-    assertThat(result, contains(entity2));
-  }
-
   private void givenRequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> executors) {
     handler = new RequestHandler(

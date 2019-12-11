@@ -24,14 +24,12 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
@@ -39,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Wraps an execution context and information about how to validate statements
@@ -48,8 +44,6 @@ import org.slf4j.LoggerFactory;
  * worrying about races that may occur.
  */
 public class RequestValidator {
-
-  private static final Logger LOG = LoggerFactory.getLogger(RequestValidator.class);
 
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -108,9 +102,8 @@ public class RequestValidator {
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared, scopedPropertyOverrides, ksqlConfig);
 
-      numPersistentQueries += (prepared.getStatement() instanceof RunScript)
-          ? validateRunScript(serviceContext, configured, scopedPropertyOverrides, ctx)
-          : validate(serviceContext, configured, scopedPropertyOverrides, ctx, injector);
+      numPersistentQueries +=
+          validate(serviceContext, configured, scopedPropertyOverrides, ctx, injector);
     }
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
@@ -154,24 +147,4 @@ public class RequestValidator {
     return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;
   }
 
-  private int validateRunScript(
-      final ServiceContext serviceContext,
-      final ConfiguredStatement<?> statement,
-      final Map<String, Object> mutableScopedProperties,
-      final KsqlExecutionContext executionContext
-  ) {
-    final String sql = (String) statement.getOverrides()
-        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
-
-    if (sql == null) {
-      throw new KsqlStatementException(
-          "Request is missing script content", statement.getStatementText());
-    }
-
-    LOG.warn("RUN SCRIPT statement detected. "
-        + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
-        + "statement: " + statement.getStatementText());
-
-    return validate(serviceContext, executionContext.parse(sql), mutableScopedProperties, sql);
-  }
 }

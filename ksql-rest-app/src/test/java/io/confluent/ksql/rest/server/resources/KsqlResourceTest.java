@@ -1846,34 +1846,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldInlineRunScriptStatements() {
-    // Given:
-    final Map<String, ?> props = ImmutableMap.of(
-        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;");
-
-    // When:
-    makeRequest("RUN SCRIPT '/some/script.sql';", props);
-
-    // Then:
-    verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatement(instanceOf(CreateStreamAsSelect.class))))),
-        any(Producer.class));
-  }
-
-  @Test
-  public void shouldThrowOnRunScriptStatementMissingScriptContent() {
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is(
-        "Request is missing script content"))));
-
-    // When:
-    makeRequest("RUN SCRIPT '/some/script.sql';");
-  }
-
-  @Test
   public void shouldThrowServerErrorOnFailedToDistribute() {
     // Given:
     when(commandStore.enqueueCommand(any(), any(Producer.class)))
@@ -1993,10 +1965,6 @@ public class KsqlResourceTest {
 
   private void makeRequest(final String sql) {
     makeMultipleRequest(sql, KsqlEntity.class);
-  }
-
-  private void makeRequest(final String sql, final Map<String, ?> props) {
-    makeMultipleRequest(sql, props, KsqlEntity.class);
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(

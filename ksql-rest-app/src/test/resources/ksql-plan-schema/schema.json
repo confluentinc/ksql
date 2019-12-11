@@ -274,7 +274,7 @@
         }
       },
       "title" : "streamAggregateV1",
-      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations" ]
+      "required" : [ "@type", "properties", "source", "internalFormats", "nonAggregateColumns", "aggregationFunctions" ]
     },
     "ExecutionStepPropertiesV1" : {
       "type" : "object",
@@ -622,7 +622,7 @@
         }
       },
       "title" : "streamWindowedAggregateV1",
-      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations", "windowExpression" ]
+      "required" : [ "@type", "properties", "source", "internalFormats", "nonAggregateColumns", "aggregationFunctions", "windowExpression" ]
     },
     "TableSource" : {
       "type" : "object",
@@ -721,7 +721,7 @@
         }
       },
       "title" : "tableAggregateV1",
-      "required" : [ "@type", "properties", "source", "formats", "nonAggregateColumns", "aggregations" ]
+      "required" : [ "@type", "properties", "source", "internalFormats", "nonAggregateColumns", "aggregationFunctions" ]
     },
     "TableFilter" : {
       "type" : "object",

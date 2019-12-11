@@ -97,8 +97,8 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)
-        && Objects.equals(aggregationFunctions, that.aggregationFunctions);
-        && Objects.equals(nonAggregateColumns, that.nonAggregateColumns)
+        && Objects.equals(aggregationFunctions, that.aggregationFunctions)
+        && Objects.equals(nonAggregateColumns, that.nonAggregateColumns);
   }
 
   @Override

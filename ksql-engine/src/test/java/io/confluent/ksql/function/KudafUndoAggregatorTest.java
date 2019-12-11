@@ -42,7 +42,7 @@ public class KudafUndoAggregatorTest {
   public void init() {
     final List<TableAggregationFunction<?, ?, ?>> functions =
         ImmutableList.of((TableAggregationFunction)SUM_INFO);
-    aggregator = new KudafUndoAggregator(2, functions);
+    aggregator = new KudafUndoAggregator(ImmutableList.of(0, 1), functions);
   }
 
   @Test

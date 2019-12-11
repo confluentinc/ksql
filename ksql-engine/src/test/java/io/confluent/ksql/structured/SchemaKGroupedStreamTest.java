@@ -46,6 +46,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -71,6 +72,9 @@ public class SchemaKGroupedStreamTest {
   );
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS
+  );
+  private static final List<ColumnRef> NON_AGGREGATE_COLUMNS = ImmutableList.of(
+      ColumnRef.withoutSource(ColumnName.of("IN0"))
   );
 
   @Mock
@@ -115,7 +119,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldReturnKTableWithOutputSchema() {
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
-        1,
+        NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat,
@@ -130,7 +134,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldBuildStepForAggregate() {
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
-        1,
+        NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat,
@@ -145,7 +149,7 @@ public class SchemaKGroupedStreamTest {
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
                 Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-                1,
+                NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG)
             )
         )
@@ -156,7 +160,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldBuildStepForWindowedAggregate() {
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
-        1,
+        NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.of(windowExp),
         valueFormat,
@@ -175,7 +179,7 @@ public class SchemaKGroupedStreamTest {
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
                 Formats.of(expected, valueFormat, SerdeOption.none()),
-                1,
+                NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG),
                 KSQL_WINDOW_EXP
             )

@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -44,6 +43,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,6 +63,9 @@ public class SchemaKGroupedTableTest {
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
+  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
+      ColumnRef.withoutSource(ColumnName.of("IN0"))
+  );
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
   private static final FunctionCall SUM = udaf("SUM");
@@ -91,7 +94,7 @@ public class SchemaKGroupedTableTest {
 
     // When:
     groupedTable.aggregate(
-        1,
+        NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.of(windowExp),
         valueFormat,
@@ -111,7 +114,7 @@ public class SchemaKGroupedTableTest {
 
     // When:
     kGroupedTable.aggregate(
-        1,
+        NON_AGG_COLUMNS,
         ImmutableList.of(MIN, MAX),
         Optional.empty(),
         valueFormat,
@@ -136,7 +139,7 @@ public class SchemaKGroupedTableTest {
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
     final SchemaKTable result = kGroupedTable.aggregate(
-        1,
+        NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat,
@@ -151,7 +154,7 @@ public class SchemaKGroupedTableTest {
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
                 Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-                1,
+                NON_AGG_COLUMNS,
                 ImmutableList.of(SUM, COUNT)
             )
         )
@@ -165,7 +168,7 @@ public class SchemaKGroupedTableTest {
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
-        1,
+        NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat,

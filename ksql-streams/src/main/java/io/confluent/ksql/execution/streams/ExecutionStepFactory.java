@@ -51,6 +51,7 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -310,7 +311,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -318,7 +319,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations
     );
   }
@@ -327,7 +328,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final KsqlWindowExpression window
   ) {
@@ -336,7 +337,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations,
         window
     );
@@ -370,7 +371,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KGroupedTableHolder> sourceStep,
       final Formats formats,
-      final int nonFuncColumnCount,
+      final List<ColumnRef> nonAggregateColumns,
       final List<FunctionCall> aggregations
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -378,7 +379,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         formats,
-        nonFuncColumnCount,
+        nonAggregateColumns,
         aggregations
     );
   }

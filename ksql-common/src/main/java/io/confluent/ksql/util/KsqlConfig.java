@@ -187,6 +187,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
+  public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
+      "ksql.streams.shutdown.timeout.ms";
+  public static final Long KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT = 300_000L;
+  public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
+      + "milliseconds to block waiting for the underlying streams instance to exit";
+
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -499,6 +506,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
             Importance.MEDIUM,
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
+        ).define(
+            KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHUTDOWN_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 

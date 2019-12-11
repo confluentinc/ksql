@@ -15,13 +15,8 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyByte;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +49,7 @@ public class QueryMetadataTest {
       .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();
   private static final Set<SourceName> SOME_SOURCES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
+  private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
   private Topology topoplogy;
@@ -77,8 +73,8 @@ public class QueryMetadataTest {
         topoplogy,
         Collections.emptyMap(),
         Collections.emptyMap(),
-        closeCallback
-    );
+        closeCallback,
+        closeTimeout);
   }
 
   @Test
@@ -136,7 +132,7 @@ public class QueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
-    inOrder.verify(kafkaStreams).close(any(Duration.class));
+    inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
     inOrder.verify(closeCallback).accept(query);
   }
 
@@ -147,7 +143,7 @@ public class QueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
-    inOrder.verify(kafkaStreams).close(any(Duration.class));
+    inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
     inOrder.verify(kafkaStreams).cleanUp();
   }
 

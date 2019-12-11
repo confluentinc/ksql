@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -111,6 +110,7 @@ public class StreamedQueryResourceTest {
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
   ));
+  private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   private static final String TOPIC_NAME = "test_stream";
   private static final String PUSH_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " EMIT CHANGES;";
@@ -379,7 +379,8 @@ public class StreamedQueryResourceTest {
             mock(Topology.class),
             Collections.emptyMap(),
             Collections.emptyMap(),
-            queryCloseCallback);
+            queryCloseCallback,
+            closeTimeout);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
@@ -452,7 +453,7 @@ public class StreamedQueryResourceTest {
     verify(mockKafkaStreams).start();
     verify(mockKafkaStreams).setUncaughtExceptionHandler(any());
     verify(mockKafkaStreams).cleanUp();
-    verify(mockKafkaStreams).close(any(Duration.class));
+    verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 
     // If one of the other threads has somehow managed to throw an exception without breaking things up until this
     // point, we throw that exception now in the main thread and cause the test to fail

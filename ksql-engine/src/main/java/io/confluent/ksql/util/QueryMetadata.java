@@ -45,6 +45,7 @@ public class QueryMetadata {
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
+  private final Long closeTimeout;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -60,8 +61,8 @@ public class QueryMetadata {
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
-  ) {
+      final Consumer<QueryMetadata> closeCallback,
+      final Long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
@@ -77,6 +78,7 @@ public class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
+    this.closeTimeout = Objects.requireNonNull(closeTimeout, "closeTimeout");
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -90,6 +92,7 @@ public class QueryMetadata {
     this.sourceNames = other.sourceNames;
     this.logicalSchema = other.logicalSchema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.closeTimeout = other.closeTimeout;
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
@@ -142,9 +145,7 @@ public class QueryMetadata {
   }
 
   public void close() {
-    int closeWaitDuration = Integer.parseInt(
-        streamsProperties.getOrDefault("close.wait", "60").toString());
-    kafkaStreams.close(Duration.ofSeconds(closeWaitDuration));
+    kafkaStreams.close(Duration.ofMillis(closeTimeout));
 
     kafkaStreams.cleanUp();
 

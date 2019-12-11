@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -179,8 +181,8 @@ public final class QueryExecutor {
         built.topology,
         streamsProperties,
         overrides,
-        queryCloseCallback
-    );
+        queryCloseCallback,
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG));
   }
 
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
@@ -240,8 +242,8 @@ public final class QueryExecutor {
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,
         overrides,
-        queryCloseCallback
-    );
+        queryCloseCallback,
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG));
   }
 
   private TransientQueryQueue buildTransientQueryQueue(

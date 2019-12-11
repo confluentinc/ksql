@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QuerySchemas;
@@ -74,6 +75,7 @@ public class QueryDescriptionFactoryTest {
   private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
   private static final String SQL_TEXT = "test statement";
   private static final String TOPOLOGY_TEXT = "Topology Text";
+  private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
@@ -108,7 +110,8 @@ public class QueryDescriptionFactoryTest {
         topology,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback);
+        queryCloseCallback,
+        closeTimeout);
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
 
@@ -128,7 +131,8 @@ public class QueryDescriptionFactoryTest {
         QuerySchemas.of(new LinkedHashMap<>()),
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback);
+        queryCloseCallback,
+        closeTimeout);
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery);
   }
@@ -221,7 +225,8 @@ public class QueryDescriptionFactoryTest {
         topology,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback);
+        queryCloseCallback,
+        closeTimeout);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
@@ -255,7 +260,8 @@ public class QueryDescriptionFactoryTest {
         topology,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback);
+        queryCloseCallback,
+        closeTimeout);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);

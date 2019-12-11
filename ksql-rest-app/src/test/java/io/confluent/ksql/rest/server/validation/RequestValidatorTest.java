@@ -225,33 +225,6 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void shouldValidateRunScript() {
-    // Given:
-    final Map<String, Object> props = ImmutableMap.of(
-        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        SOME_STREAM_SQL);
-
-    givenRequestValidator(
-        ImmutableMap.of(CreateStream.class, statementValidator)
-    );
-
-    final List<ParsedStatement> statements = givenParsed("RUN SCRIPT '/some/script.sql';");
-
-    // When:
-    validator.validate(serviceContext, statements, props, "sql");
-
-    // Then:
-    verify(statementValidator, times(1)).validate(
-        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
-        any(),
-        eq(executionContext),
-        any()
-    );
-  }
-
-
-
-  @Test
   public void shouldThrowIfServiceContextIsNotSandbox() {
     // Given:
     serviceContext = mock(ServiceContext.class);

@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -27,8 +25,6 @@ import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,29 +75,16 @@ public class RequestHandler {
     final KsqlEntityList entities = new KsqlEntityList();
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      if (prepared.getStatement() instanceof RunScript) {
-        final KsqlEntityList result = executeRunScript(
-            serviceContext,
-            prepared,
-            propertyOverrides
-        );
-        if (!result.isEmpty()) {
-          // This is to maintain backwards compatibility until we deprecate
-          // RunScript in the next major release - the expected behavior was
-          // to return only the last entity
-          entities.add(Iterables.getLast(result));
-        }
-      } else {
-        final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-            prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(
-            serviceContext,
-            configured,
-            parsed,
-            scopedPropertyOverrides,
-            entities
-        ).ifPresent(entities::add);
-      }
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, scopedPropertyOverrides, ksqlConfig);
+
+      executeStatement(
+          serviceContext,
+          configured,
+          parsed,
+          scopedPropertyOverrides,
+          entities
+      ).ifPresent(entities::add);
     }
     return entities;
   }
@@ -131,23 +114,4 @@ public class RequestHandler {
     );
   }
 
-  private KsqlEntityList executeRunScript(
-      final ServiceContext serviceContext,
-      final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides
-  ) {
-    final String sql = (String) propertyOverrides
-        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
-
-    if (sql == null) {
-      throw new KsqlStatementException(
-          "Request is missing script content", statement.getStatementText());
-    }
-
-    return execute(
-        serviceContext,
-        ksqlEngine.parse(sql),
-        propertyOverrides
-    );
-  }
 }

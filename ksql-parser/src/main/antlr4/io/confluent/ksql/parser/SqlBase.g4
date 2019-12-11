@@ -66,7 +66,6 @@ statement
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
     | DROP CONNECTOR identifier                                             #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
-    | RUN SCRIPT STRING                                                     #runScript
     | CREATE TYPE identifier AS type                                        #registerType
     | DROP TYPE identifier                                                  #dropType
     ;

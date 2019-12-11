@@ -109,7 +109,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -569,11 +568,6 @@ public class AstBuilder {
       } else {
         return new SingleColumn(getLocation(context), selectItem, Optional.empty());
       }
-    }
-
-    @Override
-    public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
-      return new RunScript(getLocation(context));
     }
 
     @Override

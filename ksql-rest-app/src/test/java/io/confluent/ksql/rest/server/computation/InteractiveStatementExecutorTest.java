@@ -44,12 +44,9 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -67,7 +64,6 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -461,30 +457,6 @@ public class InteractiveStatementExecutorTest {
         CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
   }
 
-  @SuppressWarnings("unchecked")
-  private PersistentQueryMetadata mockReplayRunScript(
-      final String runScriptStatement,
-      final String queryStatement
-  ) {
-    final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
-    final Statement mockRunScript = mock(RunScript.class);
-    final PreparedStatement<Statement> runScript =
-        PreparedStatement.of(queryStatement, mockRunScript);
-    when(mockParser.parseSingleStatement(runScriptStatement))
-        .thenReturn(runScript);
-    final ImmutableList<ParsedStatement> parsedStatements = ImmutableList
-        .of(ParsedStatement.of(queryStatement, mock(SingleStatementContext.class)));
-    final PreparedStatement<Statement> preparedStatement =
-        PreparedStatement.of(queryStatement, mock(Statement.class));
-    when(mockEngine.parse(eq(queryStatement))).thenReturn(parsedStatements);
-    when(mockEngine.prepare(parsedStatements.get(0)))
-        .thenReturn((PreparedStatement)preparedStatement);
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredStatement(preparedStatement)))
-        .thenReturn(ExecuteResult.of(mockQuery));
-    when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of());
-    return mockQuery;
-  }
-
   @Test
   public void shouldSkipStartWhenReplayingLog() {
     // Given:
@@ -565,55 +537,6 @@ public class InteractiveStatementExecutorTest {
             0L
         )
     );
-  }
-
-  @Test
-  public void shouldHandleLegacyRunScriptCommand() {
-    // Given:
-    final String runScriptStatement = "run script";
-    final String queryStatement = "a query";
-    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
-
-    // When:
-    statementExecutorWithMocks.handleStatement(
-        new QueuedCommand(
-            new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
-            new Command(
-                runScriptStatement,
-                Collections.singletonMap("ksql.run.script.statements", queryStatement),
-                emptyMap()),
-            Optional.empty(),
-            0L
-        )
-    );
-
-    // Then:
-    verify(mockQuery, times(1)).start();
-  }
-
-  @Test
-  public void shouldRestoreLegacyRunScriptCommand() {
-    // Given:
-    final String runScriptStatement = "run script";
-    final String queryStatement = "a persistent query";
-    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
-
-    // When:
-    statementExecutorWithMocks.handleRestore(
-        new QueuedCommand(
-            new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
-            new Command(
-                runScriptStatement,
-                Collections.singletonMap("ksql.run.script.statements", queryStatement),
-                emptyMap()
-            ),
-            Optional.empty(),
-            0L
-        )
-    );
-
-    // Then:
-    verify(mockQuery, times(0)).start();
   }
 
   @Test

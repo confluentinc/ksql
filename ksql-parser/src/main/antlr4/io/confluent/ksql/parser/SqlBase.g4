@@ -256,6 +256,7 @@ primaryExpression
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
+    | '{' (identifier expression (',' identifier expression)*)? '}'                  #structConstructor
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
     | identifier '.' identifier                                                      #columnReference

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -31,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
 
 public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
@@ -57,7 +60,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       case MAP:
         return coerceMap(value, (SqlMap) targetType);
       case STRUCT:
-        throw new KsqlException("Unsupported SQL type: " + targetType.baseType());
+        return coerceStruct(value, (SqlStruct) targetType);
       default:
         break;
     }
@@ -75,6 +78,34 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
     final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
     return Optional.of(result);
+  }
+
+  private static Optional<?> coerceStruct(Object value, SqlStruct targetType) {
+    if (!(value instanceof Struct)) {
+      return Optional.empty();
+    }
+
+    final Struct struct = (Struct) value;
+    final Struct coerced = new Struct(
+        SchemaConverters.sqlToConnectConverter().toConnectSchema(targetType)
+    );
+
+    for (Field field : coerced.schema().fields()) {
+      Optional<io.confluent.ksql.schema.ksql.types.Field> sqlField = targetType.field(field.name());
+      if (!sqlField.isPresent()) {
+        // if there was a field in the struct that wasn't in the schema
+        // we should throw an exception
+        return Optional.empty();
+      } else if (struct.schema().field(field.name()) == null) {
+        // if we cannot find the field in the struct, we can ignore it
+        continue;
+      }
+
+      Optional<?> val = doCoerce(struct.get(field), sqlField.get().type());
+      val.ifPresent(v -> coerced.put(field.name(), v));
+    }
+
+    return Optional.of(coerced);
   }
 
   private static Optional<?> coerceArray(final Object value, final SqlArray targetType) {

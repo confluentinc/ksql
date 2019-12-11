@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -48,6 +49,7 @@ import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -93,11 +95,13 @@ public class SqlToJavaVisitorTest {
   @Before
   public void init() {
     AtomicInteger funCounter = new AtomicInteger();
+    AtomicInteger structCounter = new AtomicInteger();
     sqlToJavaVisitor = new SqlToJavaVisitor(
         SCHEMA,
         functionRegistry,
         ref -> ref.aliasedFieldName().replace(".", "_"),
-        name -> name.name() + "_" + funCounter.getAndIncrement()
+        name -> name.name() + "_" + funCounter.getAndIncrement(),
+        struct -> "schema" + structCounter.getAndIncrement()
     );
   }
 
@@ -138,6 +142,25 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
+  }
+
+  @Test
+  public void shouldProcessStructExpressionCorrectly() {
+    // Given:
+    Expression expression = new StructExpression(
+        ImmutableMap.of(
+            "col1", new StringLiteral("foo"),
+            "col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1"))
+        )
+    );
+
+    // When:
+    String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(
+        javaExpression,
+        equalTo("((Struct)new Struct(schema0).put(\"col1\",\"foo\").put(\"col2\",((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))))"));
   }
 
   @Test

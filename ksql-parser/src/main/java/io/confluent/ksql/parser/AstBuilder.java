@@ -47,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -922,6 +923,23 @@ public class AstBuilder {
           getLocation(context),
           (Expression) visit(context.expression()),
           typeParser.getType(context.type())
+      );
+    }
+
+    @Override
+    public Node visitStructConstructor(SqlBaseParser.StructConstructorContext context) {
+      ImmutableMap.Builder<String, Expression> struct = ImmutableMap.builder();
+
+      for (int i = 0; i < context.identifier().size(); i++) {
+        struct.put(
+            ParserUtil.getIdentifierText(context.identifier(i)),
+            (Expression) visit(context.expression(i))
+        );
+      }
+
+      return new StructExpression(
+          getLocation(context),
+          struct.build()
       );
     }
 

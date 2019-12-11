@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -172,6 +175,17 @@ public class CodeGenRunner {
         process(node.getBase(), context);
       }
       process(node.getIndex(), context);
+      return null;
+    }
+
+    @Override
+    public Void visitStructExpression(StructExpression exp, @Nullable Void context) {
+      exp.getStruct().values().forEach(val -> process(val, context));
+      final Schema schema = SchemaConverters
+          .sqlToConnectConverter()
+          .toConnectSchema(expressionTypeManager.getExpressionSqlType(exp));
+
+      spec.addSchema(exp, schema);
       return null;
     }
 

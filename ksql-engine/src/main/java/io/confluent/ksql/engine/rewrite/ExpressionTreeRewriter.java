@@ -42,12 +42,16 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -183,6 +187,15 @@ public final class ExpressionTreeRewriter<C> {
       final Expression index = rewriter.apply(node.getIndex(), context);
 
       return new SubscriptExpression(node.getLocation(), base, index);
+    }
+
+    @Override
+    public Expression visitStructExpression(StructExpression node, C context) {
+      final Map<String, Expression> struct = new HashMap<>();
+      for (Entry<String, Expression> field : node.getStruct().entrySet()) {
+        struct.put(field.getKey(), rewriter.apply(field.getValue(), context));
+      }
+      return new StructExpression(node.getLocation(), struct);
     }
 
     @Override

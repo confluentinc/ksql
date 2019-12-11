@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -52,6 +53,7 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
 
@@ -98,6 +100,16 @@ public final class ExpressionFormatter {
     public String visitSubscriptExpression(SubscriptExpression node, Context context) {
       return process(node.getBase(), context)
           + "[" + process(node.getIndex(), context) + "]";
+    }
+
+    @Override
+    public String visitStructExpression(StructExpression exp, Context context) {
+      return exp
+          .getStruct()
+          .entrySet()
+          .stream()
+          .map(struct -> struct.getKey() + " " + process(struct.getValue(), context))
+          .collect(Collectors.joining(", ", "{", "}"));
     }
 
     @Override

@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -61,12 +62,14 @@ import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -317,6 +320,19 @@ public class ExpressionTypeManager {
       }
 
       expressionTypeContext.setSqlType(valueType);
+      return null;
+    }
+
+    @Override
+    public Void visitStructExpression(StructExpression exp, ExpressionTypeContext context) {
+      final Builder builder = SqlStruct.builder();
+
+      for (Entry<String, Expression> field : exp.getStruct().entrySet()) {
+        process(field.getValue(), context);
+        builder.field(field.getKey(), context.getSqlType());
+      }
+
+      context.setSqlType(builder.build());
       return null;
     }
 

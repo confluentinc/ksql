@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -49,6 +50,7 @@ import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -314,6 +316,30 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldEvaluateTypeForStructExpression() {
+    // Given:
+    LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(TEST1, COL0, SqlTypes.array(SqlTypes.INTEGER))
+        .build();
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    Expression exp = new StructExpression(ImmutableMap.of(
+        "field1", new StringLiteral("foo"),
+        "field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+    ));
+
+    // When:
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp);
+
+    // Then:
+    assertThat(sqlType,
+        is(SqlTypes.struct()
+            .field("field1", SqlTypes.STRING)
+            .field("field2", SqlTypes.array(SqlTypes.INTEGER))
+            .build()));
   }
 
   @Test

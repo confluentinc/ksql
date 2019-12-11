@@ -50,6 +50,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -80,6 +81,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -87,6 +89,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 public class SqlToJavaVisitor {
 
@@ -104,7 +108,9 @@ public class SqlToJavaVisitor {
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
-      RoundingMode.class.getCanonicalName()
+      RoundingMode.class.getCanonicalName(),
+      SchemaBuilder.class.getCanonicalName(),
+      Struct.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -133,6 +139,7 @@ public class SqlToJavaVisitor {
   private final ExpressionTypeManager expressionTypeManager;
   private final Function<FunctionName, String> funNameToCodeName;
   private final Function<ColumnRef, String> colRefToCodeName;
+  private final Function<StructExpression, String> structToCodeName;
 
   public static SqlToJavaVisitor of(
       LogicalSchema schema, FunctionRegistry functionRegistry, CodeGenSpec spec
@@ -145,14 +152,16 @@ public class SqlToJavaVisitor {
         name -> {
           int index = nameCounts.add(name, 1);
           return spec.getUniqueNameForFunction(name, index);
-        }
-    );
+        },
+        spec::getSchemaName);
   }
 
   @VisibleForTesting
   SqlToJavaVisitor(
       LogicalSchema schema, FunctionRegistry functionRegistry,
-      Function<ColumnRef, String> colRefToCodeName, Function<FunctionName, String> funNameToCodeName
+      Function<ColumnRef, String> colRefToCodeName,
+      Function<FunctionName, String> funNameToCodeName,
+      Function<StructExpression, String> structToCodeName
   ) {
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
@@ -160,6 +169,7 @@ public class SqlToJavaVisitor {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
     this.funNameToCodeName = Objects.requireNonNull(funNameToCodeName, "funNameToCodeName");
+    this.structToCodeName = Objects.requireNonNull(structToCodeName, "structToCodeName");
   }
 
   public String process(Expression expression) {
@@ -710,6 +720,25 @@ public class SqlToJavaVisitor {
         default:
           throw new UnsupportedOperationException();
       }
+    }
+
+    @Override
+    public Pair<String, SqlType> visitStructExpression(StructExpression node, Void context) {
+      final String schemaName = structToCodeName.apply(node);
+      final StringBuilder struct = new StringBuilder("new Struct(").append(schemaName).append(")");
+      for (Entry<String, Expression> field : node.getStruct().entrySet()) {
+        struct.append(".put(")
+            .append('"')
+            .append(field.getKey())
+            .append('"')
+            .append(",")
+            .append(process(field.getValue(), context).getLeft())
+            .append(")");
+      }
+      return new Pair<>(
+          "((Struct)" + struct.toString() + ")",
+          expressionTypeManager.getExpressionSqlType(node)
+      );
     }
 
     @Override

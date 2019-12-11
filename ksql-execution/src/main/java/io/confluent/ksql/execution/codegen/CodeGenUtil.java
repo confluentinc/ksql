@@ -20,12 +20,17 @@ import io.confluent.ksql.name.FunctionName;
 public final class CodeGenUtil {
 
   private static final String PARAM_NAME_PREFIX = "var";
+  private static final String SCHEMA_NAME_PREFIX = "schema";
 
   private CodeGenUtil() {
   }
 
   public static String paramName(int index) {
     return PARAM_NAME_PREFIX + index;
+  }
+
+  public static String schemaName(int index) {
+    return SCHEMA_NAME_PREFIX + index;
   }
 
   public static String functionName(FunctionName fun, int index) {

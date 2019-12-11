@@ -64,6 +64,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TestExecutorTest {
 
   private static final String INTERNAL_TOPIC_0 = "internal";
+  private static final String SINK_TOPIC_NAME = "sink_topic";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
@@ -113,7 +114,7 @@ public class TestExecutorTest {
     );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
-    when(sinkTopic.getName()).thenReturn("sink_topic");
+    when(sinkTopic.getName()).thenReturn(SINK_TOPIC_NAME);
 
     final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(
         topologyTestDriver,
@@ -133,7 +134,7 @@ public class TestExecutorTest {
     when(internalTopicsAccessor.apply(topologyTestDriver))
         .thenReturn(ImmutableSet.of(INTERNAL_TOPIC_0));
 
-    givenDataSourceTopic("sink_topic", SCHEMA);
+    givenDataSourceTopic(SCHEMA);
   }
 
   @Test
@@ -215,7 +216,7 @@ public class TestExecutorTest {
   public void shouldFailOnTwoLittleOutput() {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(actual_0));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     final Record expected_1 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
@@ -236,7 +237,8 @@ public class TestExecutorTest {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME))
+        .thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
@@ -257,7 +259,8 @@ public class TestExecutorTest {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME))
+        .thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
     final Record expected_1 = new Record(sinkTopic, "k2", "different", TextNode.valueOf("different"), Optional.of(123456789L), null);
@@ -277,7 +280,8 @@ public class TestExecutorTest {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
-    when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME))
+        .thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
     final Record expected_1 = new Record(sinkTopic, "k2", "v2", TextNode.valueOf("v2"), Optional.of(123456789L), null);
@@ -294,7 +298,8 @@ public class TestExecutorTest {
     // Given:
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, 1, "v1");
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, 1, "v2");
-    when(kafkaService.readRecords("int_sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME))
+        .thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, 1, "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
     final Record expected_1 = new Record(sinkTopic, 1, "v2", TextNode.valueOf("v2"), Optional.of(123456789L), null);
@@ -305,7 +310,7 @@ public class TestExecutorTest {
         .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
         .build();
 
-    givenDataSourceTopic("int_sink_topic", schema);
+    givenDataSourceTopic(schema);
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -341,18 +346,15 @@ public class TestExecutorTest {
     when(testCase.getGeneratedSchemas()).thenReturn(ImmutableList.of(schemas));
   }
 
-  private void givenDataSourceTopic(
-      final String topicName,
-      final LogicalSchema schema
-  ) {
+  private void givenDataSourceTopic(final LogicalSchema schema) {
     final KsqlTopic topic = mock(KsqlTopic.class);
-    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA), Optional.empty()));
-    when(topic.getKafkaTopicName()).thenReturn(topicName);
+    when(topic.getKeyFormat())
+        .thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA), Optional.empty()));
     final DataSource<?> dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);
-    when(dataSource.getKafkaTopicName()).thenReturn(topicName);
-    allSources.put(SourceName.of(topicName + "_source"), dataSource);
+    when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);
+    allSources.put(SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source"), dataSource);
   }
 
   private static StubKafkaRecord kafkaRecord(

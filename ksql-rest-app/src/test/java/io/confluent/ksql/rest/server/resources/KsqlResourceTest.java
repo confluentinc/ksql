@@ -100,6 +100,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
@@ -1498,7 +1499,9 @@ public class KsqlResourceTest {
         new KsqlRequest("list properties;", overrides, null), PropertiesList.class);
 
     // Then:
-    assertThat(props.getProperties().get("ksql.streams.auto.offset.reset"), is("latest"));
+    assertThat(
+        props.getProperties().get(new Property("ksql.streams.auto.offset.reset", "KSQL")),
+        is("latest"));
     assertThat(props.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
   }
 
@@ -1643,7 +1646,8 @@ public class KsqlResourceTest {
     final PropertiesList props = makeSingleRequest("list properties;", PropertiesList.class);
 
     // Then:
-    assertThat(props.getProperties().keySet(),
+    assertThat(props.getProperties().keySet().stream().map(Property::getProperty).collect(
+        Collectors.toList()),
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 

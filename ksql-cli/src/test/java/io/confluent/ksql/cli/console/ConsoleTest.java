@@ -56,6 +56,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
@@ -233,10 +234,10 @@ public class ConsoleTest {
   @Test
   public void testPrintPropertyList() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("k1", 1);
-    properties.put("k2", "v2");
-    properties.put("k3", true);
+    final Map<Property, Object> properties = new HashMap<>();
+    properties.put(new Property("k1", "KSQL"), 1);
+    properties.put(new Property("k2", "KSQL"), "v2");
+    properties.put(new Property("k3", "KSQL"), true);
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList())
@@ -252,9 +253,9 @@ public class ConsoleTest {
           + "  \"@type\" : \"properties\",\n"
           + "  \"statementText\" : \"e\",\n"
           + "  \"properties\" : {\n"
-          + "    \"k1\" : 1,\n"
-          + "    \"k2\" : \"v2\",\n"
-          + "    \"k3\" : true\n"
+          + "    \"k3-KSQL\" : true,\n"
+          + "    \"k2-KSQL\" : \"v2\",\n"
+          + "    \"k1-KSQL\" : 1\n"
           + "  },\n"
           + "  \"overwrittenProperties\" : [ ],\n"
           + "  \"defaultProperties\" : [ ],\n"
@@ -262,12 +263,12 @@ public class ConsoleTest {
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Property | Default override | Effective Value \n"
-          + "-----------------------------------------------\n"
-          + " k1       | SERVER           | 1               \n"
-          + " k2       | SERVER           | v2              \n"
-          + " k3       | SERVER           | true            \n"
-          + "-----------------------------------------------\n"));
+          + " Property | Scope | Default override | Effective Value \n"
+          + "-------------------------------------------------------\n"
+          + " k1       | KSQL  | SERVER           | 1               \n"
+          + " k2       | KSQL  | SERVER           | v2              \n"
+          + " k3       | KSQL  | SERVER           | true            \n"
+          + "-------------------------------------------------------\n"));
     }
   }
 

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.PrintWriter;
 import java.util.Collections;
@@ -61,7 +62,7 @@ public class PropertiesListTableBuilderTest {
   public void shouldHandleClientOverwrittenProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(SOME_KEY, "earliest"),
+        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
         ImmutableList.of(SOME_KEY),
         Collections.emptyList()
     );
@@ -70,14 +71,14 @@ public class PropertiesListTableBuilderTest {
     final Table table = builder.buildTable(propList);
 
     // Then:
-    assertThat(getRows(table), contains(row(SOME_KEY, "SESSION", "earliest")));
+    assertThat(getRows(table), contains(row(SOME_KEY, "KSQL", "SESSION", "earliest")));
   }
 
   @Test
   public void shouldHandleServerOverwrittenProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(SOME_KEY, "earliest"),
+        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
         Collections.emptyList(),
         Collections.emptyList()
     );
@@ -86,14 +87,14 @@ public class PropertiesListTableBuilderTest {
     final Table table = builder.buildTable(propList);
 
     // Then:
-    assertThat(getRows(table), contains(row(SOME_KEY, "SERVER", "earliest")));
+    assertThat(getRows(table), contains(row(SOME_KEY, "KSQL", "SERVER", "earliest")));
   }
 
   @Test
   public void shouldHandleDefaultProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(SOME_KEY, "earliest"),
+        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
         Collections.emptyList(),
         ImmutableList.of(SOME_KEY)
     );
@@ -102,14 +103,14 @@ public class PropertiesListTableBuilderTest {
     final Table table = builder.buildTable(propList);
 
     // Then:
-    assertThat(getRows(table), contains(row(SOME_KEY, "", "earliest")));
+    assertThat(getRows(table), contains(row(SOME_KEY, "KSQL", "", "earliest")));
   }
 
   @Test
   public void shouldHandlePropertiesWithNullValue() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        Collections.singletonMap(SOME_KEY, null),
+        Collections.singletonMap(new Property(SOME_KEY, "KSQL"), null),
         Collections.emptyList(),
         ImmutableList.of(SOME_KEY)
     );
@@ -118,7 +119,7 @@ public class PropertiesListTableBuilderTest {
     final Table table = builder.buildTable(propList);
 
     // Then:
-    assertThat(getRows(table), contains(row(SOME_KEY, "", "NULL")));
+    assertThat(getRows(table), contains(row(SOME_KEY, "KSQL", "", "NULL")));
   }
 
   private List<List<String>> getRows(final Table table) {
@@ -130,9 +131,10 @@ public class PropertiesListTableBuilderTest {
   @SuppressWarnings("SameParameterValue")
   private static List<String> row(
       final String property,
+      final String scope,
       final String defaultValue,
       final String actualValue
   ) {
-    return ImmutableList.of(property, defaultValue, actualValue);
+    return ImmutableList.of(property, scope, defaultValue, actualValue);
   }
 }

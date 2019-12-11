@@ -18,6 +18,15 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.KeyDeserializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,14 +34,75 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
-  private final Map<String, ?> properties;
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class Property {
+    private final String property;
+    private final String scope;
+
+    @JsonCreator
+    public Property(
+        @JsonProperty("property") final String property,
+        @JsonProperty("scope") final String scope
+    ) {
+      this.property = property;
+      this.scope = scope;
+    }
+
+    public String getProperty() {
+      return property;
+    }
+
+    public String getScope() {
+      return scope;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+      if (this == object) {
+        return true;
+      }
+      if (object == null || getClass() != object.getClass()) {
+        return false;
+      }
+      Property that = (Property) object;
+      return Objects.equals(property, that.property)
+          && Objects.equals(scope, that.scope);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(property, scope);
+    }
+  }
+
+  private static class PropertySerializer extends JsonSerializer<Property> {
+
+    @Override
+    public void serialize(
+        Property value, JsonGenerator generator, SerializerProvider serializers)
+        throws IOException {
+      generator.writeFieldName(value.property + '-' + value.scope);
+    }
+  }
+
+  private static class PropertyDeserializer extends KeyDeserializer {
+    @Override
+    public Property deserializeKey(String key, DeserializationContext ctxt) throws IOException {
+      String[] value = key.split("-");
+      return new Property(value[0], value[1]);
+    }
+  }
+
+  private final Map<Property, ?> properties;
   private final List<String> overwrittenProperties;
   private final List<String> defaultProperties;
 
   @JsonCreator
   public PropertiesList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("properties") final Map<String, ?> properties,
+      @JsonSerialize(keyUsing = PropertySerializer.class)
+      @JsonDeserialize(keyUsing = PropertyDeserializer.class)
+      @JsonProperty("properties") final Map<Property, ?> properties,
       @JsonProperty("overwrittenProperties") final List<String> overwrittenProperties,
       @JsonProperty("defaultProperties") final List<String> defaultProperties
   ) {
@@ -45,7 +115,7 @@ public class PropertiesList extends KsqlEntity {
         ? Collections.emptyList() : defaultProperties;
   }
 
-  public Map<String, ?> getProperties() {
+  public Map<Property, ?> getProperties() {
     return properties;
   }
 

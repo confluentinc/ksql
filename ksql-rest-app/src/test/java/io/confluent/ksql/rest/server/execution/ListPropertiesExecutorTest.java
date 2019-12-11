@@ -34,6 +34,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {
 
@@ -83,7 +86,9 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(), not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
+    assertThat(properties.getProperties().entrySet().stream().collect(
+        Collectors.toMap(e -> e.getKey().getProperty(), Map.Entry::getValue)),
+               not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
   }
 
 

@@ -33,9 +33,11 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowVisitor;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -74,7 +76,7 @@ public final class StreamAggregateBuilder {
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
-    final int nonFuncColumns = aggregate.getNonFuncColumnCount();
+    final List<ColumnRef> nonFuncColumns = aggregate.getNonAggregateColumns();
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,
@@ -146,7 +148,7 @@ public final class StreamAggregateBuilder {
       final AggregateParamsFactory aggregateParamsFactory
   ) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
-    final int nonFuncColumns = aggregate.getNonFuncColumnCount();
+    final List<ColumnRef> nonFuncColumns = aggregate.getNonAggregateColumns();
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,

@@ -131,7 +131,7 @@ public final class StepSchemaResolver {
       final StreamAggregate step) {
     return new AggregateParamsFactory().create(
         schema,
-        step.getNonFuncColumnCount(),
+        step.getNonAggregateColumns(),
         functionRegistry,
         step.getAggregationFunctions()
     ).getSchema();
@@ -143,7 +143,7 @@ public final class StepSchemaResolver {
   ) {
     return new AggregateParamsFactory().create(
         schema,
-        step.getNonFuncColumnCount(),
+        step.getNonAggregateColumns(),
         functionRegistry,
         step.getAggregationFunctions()
     ).getSchema();
@@ -204,7 +204,7 @@ public final class StepSchemaResolver {
   ) {
     return new AggregateParamsFactory().create(
         schema,
-        step.getNonFuncColumnCount(),
+        step.getNonAggregateColumns(),
         functionRegistry,
         step.getAggregationFunctions()
     ).getSchema();

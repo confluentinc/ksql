@@ -228,8 +228,12 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
+    final List<ColumnRef> requiredColumnRefs = requiredColumns.stream()
+        .map(e -> (ColumnReferenceExp) internalSchema.resolveToInternal(e))
+        .map(ColumnReferenceExp::getReference)
+        .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
-        requiredColumns.size(),
+        requiredColumnRefs,
         functionsWithInternalIdentifiers,
         windowExpression,
         valueFormat,

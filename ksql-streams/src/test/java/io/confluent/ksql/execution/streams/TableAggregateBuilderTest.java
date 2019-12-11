@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -89,6 +88,10 @@ public class TableAggregateBuilderTest {
       .valueColumn(ColumnName.of("RESULT0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("RESULT1"), SqlTypes.STRING)
       .build();
+  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
+      INPUT_SCHEMA.value().get(0).ref(),
+      INPUT_SCHEMA.value().get(1).ref()
+  );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
       SerdeOption.none()
@@ -153,7 +156,7 @@ public class TableAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.createUndoable(any(), anyInt(), any(), any()))
+    when(aggregateParamsFactory.createUndoable(any(), any(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator)aggregator);
     when(aggregateParams.getUndoAggregator()).thenReturn(Optional.of(undoAggregator));
@@ -171,7 +174,7 @@ public class TableAggregateBuilderTest {
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        2,
+        NON_AGG_COLUMNS,
         FUNCTIONS
     );
     when(sourceStep.build(any())).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
@@ -257,7 +260,12 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(aggregateParamsFactory).createUndoable(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
+    verify(aggregateParamsFactory).createUndoable(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        FUNCTIONS
+    );
   }
 
   @Test

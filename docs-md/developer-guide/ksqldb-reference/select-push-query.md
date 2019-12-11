@@ -59,7 +59,8 @@ stream that have timestamps between two values.
 ```sql
 SELECT * FROM pageviews
   WHERE ROWTIME >= 1510923225000
-    AND ROWTIME <= 1510923228000;
+    AND ROWTIME <= 1510923228000
+  EMIT CHANGES;
 ```
 
 When writing logical expressions using `ROWTIME`, you can use ISO-8601
@@ -69,7 +70,8 @@ query is equivalent to the following:
 ```sql
 SELECT * FROM pageviews
   WHERE ROWTIME >= '2017-11-17T04:53:45'
-    AND ROWTIME <= '2017-11-17T04:53:48';
+    AND ROWTIME <= '2017-11-17T04:53:48'
+  EMIT CHANGES;
 ```
 
 If the datestring is inexact, the rest of the timestamp is assumed to be

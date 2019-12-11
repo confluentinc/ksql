@@ -1,8 +1,8 @@
 ---
 layout: page
 title: Queries
-tagline: Query materialized views of event streams
-description: Learn how to query materialized views of event streams by using the SELECT statement. 
+tagline: Query event streams
+description: Learn how to query event streams by using the SELECT statement. 
 keywords: ksqldb, query, select, pull, push, materialized view
 ---
 
@@ -18,10 +18,11 @@ Push and pull queries
 Queries enable you to ask questions about materialized views. ksqlDB supports
 two different kinds of client-issued queries: push and pull.
 
-- [Push Queries](push.md) enable you to subscribe to a result as it changes in
-  real-time.
 - [Pull Queries](pull.md) enable you to look up information at a point in time.
- 
+- [Push Queries](push.md) enable you to subscribe to a result as it changes in
+  real-time. Push queries also enable you to access other collections, like
+  streams.
+
 ksqlDB supports both kinds of queries by using SQL over its REST API. Combining
 them enables you to build powerful real-time applications.
 

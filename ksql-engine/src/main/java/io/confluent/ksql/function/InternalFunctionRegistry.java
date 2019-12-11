@@ -16,7 +16,6 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
@@ -25,7 +24,6 @@ import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
 import io.confluent.ksql.function.udf.string.ConcatKudf;
@@ -313,59 +311,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addJsonFunctions() {
-
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           SqlTypes.STRING,
           ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
           JsonExtractStringKudf.FUNCTION_NAME,
           JsonExtractStringKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.BOOLEAN,
-          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
-          FunctionName.of("ARRAYCONTAINS"),
-          ArrayContainsKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.BOOLEAN,
-          ImmutableList.of(
-              ArrayType.of(ParamTypes.STRING),
-              ParamTypes.STRING
-          ),
-          FunctionName.of("ARRAYCONTAINS"),
-          ArrayContainsKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.BOOLEAN,
-          ImmutableList.of(
-              ArrayType.of(ParamTypes.INTEGER),
-              ParamTypes.INTEGER
-          ),
-          FunctionName.of("ARRAYCONTAINS"),
-          ArrayContainsKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.BOOLEAN,
-          ImmutableList.of(
-              ArrayType.of(ParamTypes.LONG),
-              ParamTypes.LONG
-          ),
-          FunctionName.of("ARRAYCONTAINS"),
-          ArrayContainsKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.BOOLEAN,
-          ImmutableList.of(
-              ArrayType.of(ParamTypes.DOUBLE),
-              ParamTypes.DOUBLE
-          ),
-          FunctionName.of("ARRAYCONTAINS"),
-          ArrayContainsKudf.class
       ));
     }
 

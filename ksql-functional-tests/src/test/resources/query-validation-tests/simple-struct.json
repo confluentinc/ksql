@@ -590,7 +590,7 @@
           "topic": "S1",
           "timestamp": 0,
           "value": {
-            "ITEMID": "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}",
+            "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"NAME\":\"Item_6\"}",
             "KSQL_COL_1": "6"
           },
           "key": "0"
@@ -599,7 +599,7 @@
           "topic": "S1",
           "timestamp": 0,
           "value": {
-            "ITEMID": "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}",
+            "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"NAME\":\"Item_6\"}",
             "KSQL_COL_1": "6"
           },
           "key": "100"
@@ -608,7 +608,7 @@
           "topic": "S1",
           "timestamp": 0,
           "value": {
-            "ITEMID": "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}",
+            "ITEMID": "{\"ITEMID\":6,\"CATEGORY\":{\"ID\":2,\"NAME\":\"Produce\"},\"NAME\":\"Item_6\"}",
             "KSQL_COL_1": "6"
           },
           "key": "101"
@@ -617,7 +617,7 @@
           "topic": "S1",
           "timestamp": 0,
           "value": {
-            "ITEMID": "{\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"},\"ITEMID\":2,\"NAME\":\"Item_2\"}",
+            "ITEMID": "{\"ITEMID\":2,\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"},\"NAME\":\"Item_2\"}",
             "KSQL_COL_1": "2"
           },
           "key": "101"
@@ -626,7 +626,7 @@
           "topic": "S1",
           "timestamp": 0,
           "value": {
-            "ITEMID":  "{\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"},\"ITEMID\":5,\"NAME\":\"Item_5\"}",
+            "ITEMID":  "{\"ITEMID\":5,\"CATEGORY\":{\"ID\":1,\"NAME\":\"Produce\"},\"NAME\":\"Item_5\"}",
             "KSQL_COL_1": "5"
           },
           "key": "101"

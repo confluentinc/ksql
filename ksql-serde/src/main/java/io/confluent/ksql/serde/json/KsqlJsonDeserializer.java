@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
@@ -60,8 +59,6 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
-  private static final ObjectMapper SORTED_MAPPER = new ObjectMapper()
-      .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
   private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
@@ -139,12 +136,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private static String processString(final JsonValueContext context) {
     if (context.val instanceof ObjectNode) {
       try {
-        // this ensure sorted order, there's an issue with Jackson where just enabling
-        // SORT_PROPERTIES_ALPHABETICALLY does not work if it is not a POJO-backed
-        // JSON object
-        return SORTED_MAPPER.writeValueAsString(
-            SORTED_MAPPER.treeToValue(context.val, Object.class)
-        );
+        return MAPPER.writeValueAsString(MAPPER.treeToValue(context.val, Object.class));
       } catch (JsonProcessingException e) {
         throw new KsqlException("Unexpected inability to write value as string: " + context.val);
       }

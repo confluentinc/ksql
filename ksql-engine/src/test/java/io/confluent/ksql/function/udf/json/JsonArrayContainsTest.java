@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -67,6 +67,7 @@ public class JsonArrayContainsTest
         assertEquals(false, jsonUdf.contains("[[222222222222222], 33333]", 222222222222222L));
         assertEquals(false, jsonUdf.contains("[{}, \"abc\", null, [1]]", 1L));
         assertEquals(false, jsonUdf.contains("[{}, \"abc\", null, {\"1\":1}]", 1L));
+        assertEquals(false, jsonUdf.contains("[1]", 1.0));
     }
 
     @Test

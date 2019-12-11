@@ -25,61 +25,61 @@ import org.junit.Test;
 
 public class ArrayContainsTest {
 
-  private ArrayContains jsonUdf = new ArrayContains();
+  private ArrayContains udf = new ArrayContains();
 
   @Test
   public void shouldReturnFalseOnEmptyList() {
-    assertFalse(jsonUdf.contains(Collections.emptyList(), true));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), false));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), null));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), 1.0));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), 100));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), "abc"));
-    assertFalse(jsonUdf.contains(Collections.emptyList(), ""));
+    assertFalse(udf.contains(Collections.emptyList(), true));
+    assertFalse(udf.contains(Collections.emptyList(), false));
+    assertFalse(udf.contains(Collections.emptyList(), null));
+    assertFalse(udf.contains(Collections.emptyList(), 1.0));
+    assertFalse(udf.contains(Collections.emptyList(), 100));
+    assertFalse(udf.contains(Collections.emptyList(), "abc"));
+    assertFalse(udf.contains(Collections.emptyList(), ""));
   }
 
   @Test
   public void shouldNotFindValuesInNullListElements() {
-    assertTrue(jsonUdf.contains(Collections.singletonList(null), null));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), "null"));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), true));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), false));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), 1.0));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), 100));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), "abc"));
-    assertFalse(jsonUdf.contains(Collections.singletonList(null), ""));
-    assertFalse(jsonUdf.contains(null, "null"));
+    assertTrue(udf.contains(Collections.singletonList(null), null));
+    assertFalse(udf.contains(Collections.singletonList(null), "null"));
+    assertFalse(udf.contains(Collections.singletonList(null), true));
+    assertFalse(udf.contains(Collections.singletonList(null), false));
+    assertFalse(udf.contains(Collections.singletonList(null), 1.0));
+    assertFalse(udf.contains(Collections.singletonList(null), 100));
+    assertFalse(udf.contains(Collections.singletonList(null), "abc"));
+    assertFalse(udf.contains(Collections.singletonList(null), ""));
+    assertFalse(udf.contains(null, "null"));
   }
 
   @Test
   public void shouldFindStringInList() {
-    assertTrue(jsonUdf.contains(Arrays.asList("abc", "bd", "DC"), "DC"));
-    assertFalse(jsonUdf.contains(Arrays.asList("abc", "bd", "DC"), "dc"));
-    assertFalse(jsonUdf.contains(Arrays.asList("abc", "bd", "1"), 1));
+    assertTrue(udf.contains(Arrays.asList("abc", "bd", "DC"), "DC"));
+    assertFalse(udf.contains(Arrays.asList("abc", "bd", "DC"), "dc"));
+    assertFalse(udf.contains(Arrays.asList("abc", "bd", "1"), 1));
   }
 
   @Test
   public void shouldFindIntegersInList() {
-    assertTrue(jsonUdf.contains(Arrays.asList(1, 2, 3), 2));
-    assertFalse(jsonUdf.contains(Arrays.asList(1, 2, 3), 0));
-    assertFalse(jsonUdf.contains(Arrays.asList(1, 2, 3), "1"));
-    assertFalse(jsonUdf.contains(Arrays.asList(1, 2, 3), "aa"));
+    assertTrue(udf.contains(Arrays.asList(1, 2, 3), 2));
+    assertFalse(udf.contains(Arrays.asList(1, 2, 3), 0));
+    assertFalse(udf.contains(Arrays.asList(1, 2, 3), "1"));
+    assertFalse(udf.contains(Arrays.asList(1, 2, 3), "aa"));
   }
 
   @Test
   public void shouldFindLongInList() {
-    assertTrue(jsonUdf.contains(Arrays.asList(1L, 2L, 3L), 2L));
-    assertFalse(jsonUdf.contains(Arrays.asList(1L, 2L, 3L), 0L));
-    assertFalse(jsonUdf.contains(Arrays.asList(1L, 2L, 3L), "1"));
-    assertFalse(jsonUdf.contains(Arrays.asList(1L, 2L, 3L), "aaa"));
+    assertTrue(udf.contains(Arrays.asList(1L, 2L, 3L), 2L));
+    assertFalse(udf.contains(Arrays.asList(1L, 2L, 3L), 0L));
+    assertFalse(udf.contains(Arrays.asList(1L, 2L, 3L), "1"));
+    assertFalse(udf.contains(Arrays.asList(1L, 2L, 3L), "aaa"));
   }
 
   @Test
   public void shouldFindDoublesInList() {
-    assertTrue(jsonUdf.contains(Arrays.asList(1.0, 2.0, 3.0), 2.0));
-    assertFalse(jsonUdf.contains(Arrays.asList(1.0, 2.0, 3.0), 4.0));
-    assertFalse(jsonUdf.contains(Arrays.asList(1.0, 2.0, 3.0), "1"));
-    assertFalse(jsonUdf.contains(Arrays.asList(1.0, 2.0, 3.0), "aaa"));
+    assertTrue(udf.contains(Arrays.asList(1.0, 2.0, 3.0), 2.0));
+    assertFalse(udf.contains(Arrays.asList(1.0, 2.0, 3.0), 4.0));
+    assertFalse(udf.contains(Arrays.asList(1.0, 2.0, 3.0), "1"));
+    assertFalse(udf.contains(Arrays.asList(1.0, 2.0, 3.0), "aaa"));
   }
 
 }

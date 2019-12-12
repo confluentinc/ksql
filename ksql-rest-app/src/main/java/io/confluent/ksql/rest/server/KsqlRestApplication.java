@@ -39,6 +39,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -381,6 +382,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final StatementParser statementParser = new StatementParser(ksqlEngine);
       final Optional<KsqlAuthorizationValidator> authorizationValidator =
           KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+      final Errors errorHandler = restConfig.getConfiguredInstance(
+          KsqlRestConfig.KSQL_SERVER_ERRORS,
+          Errors.class
+      );
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -403,6 +408,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                       Duration.ofMillis(config.getLong(
                           KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
                       authorizationValidator,
+                      errorHandler,
                       securityExtension,
                       serverState
                   );
@@ -498,6 +504,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
+    final Errors errorHandler = restConfig.getConfiguredInstance(
+        KsqlRestConfig.KSQL_SERVER_ERRORS,
+        Errors.class
+    );
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -505,7 +516,17 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        authorizationValidator
+        authorizationValidator,
+        errorHandler
+    );
+
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator,
+        errorHandler
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -524,14 +545,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Duration.ofMillis(restConfig.getLong(
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix
-    );
-
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(

@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.DefaultErrorsImpl;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -160,7 +161,8 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        new DefaultErrorsImpl()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -185,7 +187,8 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        new DefaultErrorsImpl()
     );
 
     // Then:

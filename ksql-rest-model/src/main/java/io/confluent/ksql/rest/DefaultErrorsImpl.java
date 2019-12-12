@@ -13,28 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.rest;
 
-import io.confluent.ksql.rest.Errors;
 import javax.ws.rs.core.Response;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
 
+public class DefaultErrorsImpl implements Errors {
 
-public final class ErrorResponseUtil {
-
-  private ErrorResponseUtil() {
+  @Override
+  public Response accessDeniedFromKafkaResponse(final Throwable t) {
+    return Errors.accessDeniedFromKafka(t);
   }
 
-  public static Response generateResponse(
-      final Exception e,
-      final Response defaultResponse,
-      final Errors errorHandler
-  ) {
-    if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
-      return errorHandler.accessDeniedFromKafkaResponse(e);
-    } else {
-      return defaultResponse;
-    }
+  @Override
+  public String webSocketAuthorizationErrorMessage(final Throwable t) {
+    return t.getMessage();
   }
 }

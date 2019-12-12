@@ -38,6 +38,8 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.DefaultErrorsImpl;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -220,7 +222,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          Optional.of((sc, metastore, statement) -> { })
+          Optional.of((sc, metastore, statement) -> { }),
+          new DefaultErrorsImpl()
       );
 
       this.statementExecutor.configure(ksqlConfig);

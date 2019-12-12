@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.DefaultErrorsImpl;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -192,6 +193,7 @@ public class WSQueryEndpointTest {
         activenessRegistrar,
         COMMAND_QUEUE_CATCHUP_TIMEOUT,
         Optional.of(authorizationValidator),
+        new DefaultErrorsImpl(),
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,

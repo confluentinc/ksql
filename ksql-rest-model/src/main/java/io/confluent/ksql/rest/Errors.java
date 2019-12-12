@@ -28,45 +28,42 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
-public final class Errors {
-  private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+public interface Errors {
+  int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
-  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
-  public static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
+  int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
+  int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
+  int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
-  public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
+  int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
-  public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
-  public static final int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
+  int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
+  int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
       toErrorCode(FORBIDDEN.getStatusCode()) + 1;
 
-  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+  int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
-  public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
+  int ERROR_CODE_SERVER_SHUTTING_DOWN =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode());
 
-  public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
+  int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
 
-  public static final int ERROR_CODE_SERVER_NOT_READY =
+  int ERROR_CODE_SERVER_NOT_READY =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 2;
 
-  private Errors() {
-  }
-
-  public static final int ERROR_CODE_SERVER_ERROR =
+  int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());
 
-  public static int toStatusCode(final int errorCode) {
+  static int toStatusCode(final int errorCode) {
     return errorCode / HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
-  public static int toErrorCode(final int statusCode) {
+  static int toErrorCode(final int statusCode) {
     return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
-  public static Response notReady() {
+  static Response notReady() {
     return Response
         .status(SERVICE_UNAVAILABLE)
         .header(HttpHeaders.RETRY_AFTER, 10)
@@ -74,35 +71,35 @@ public final class Errors {
         .build();
   }
 
-  public static Response accessDenied(final String msg) {
+  static Response accessDenied(final String msg) {
     return Response
         .status(FORBIDDEN)
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN, msg))
         .build();
   }
 
-  public static Response accessDeniedFromKafka(final Throwable t) {
+  static Response accessDeniedFromKafka(final Throwable t) {
     return Response
         .status(FORBIDDEN)
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, t))
         .build();
   }
 
-  public static Response badRequest(final String msg) {
+  static Response badRequest(final String msg) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, msg))
         .build();
   }
 
-  public static Response badRequest(final Throwable t) {
+  static Response badRequest(final Throwable t) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, t))
         .build();
   }
 
-  public static Response badStatement(final String msg, final String statementText) {
+  static Response badStatement(final String msg, final String statementText) {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
@@ -117,7 +114,7 @@ public final class Errors {
         .build();
   }
 
-  public static Response badStatement(final Throwable t, final String statementText) {
+  static Response badStatement(final Throwable t, final String statementText) {
     return badStatement(t, statementText, new KsqlEntityList());
   }
 
@@ -132,7 +129,7 @@ public final class Errors {
         .build();
   }
 
-  public static Response queryEndpoint(final String statementText) {
+  static Response queryEndpoint(final String statementText) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
@@ -146,18 +143,18 @@ public final class Errors {
         .build();
   }
 
-  public static Response notFound(final String msg) {
+  static Response notFound(final String msg) {
     return Response
         .status(NOT_FOUND)
         .entity(new KsqlErrorMessage(ERROR_CODE_NOT_FOUND, msg))
         .build();
   }
 
-  public static Response serverErrorForStatement(final Throwable t, final String statementText) {
+  static Response serverErrorForStatement(final Throwable t, final String statementText) {
     return serverErrorForStatement(t, statementText, new KsqlEntityList());
   }
 
-  public static Response serverErrorForStatement(
+  static Response serverErrorForStatement(
       final Throwable t, final String statementText, final KsqlEntityList entities) {
     return Response
         .status(INTERNAL_SERVER_ERROR)
@@ -165,7 +162,7 @@ public final class Errors {
         .build();
   }
 
-  public static Response commandQueueCatchUpTimeout(final long cmdSeqNum) {
+  static Response commandQueueCatchUpTimeout(final long cmdSeqNum) {
     final String errorMsg = "Timed out while waiting for a previous command to execute. "
         + "command sequence number: " + cmdSeqNum;
 
@@ -175,7 +172,7 @@ public final class Errors {
         .build();
   }
 
-  public static Response serverShuttingDown() {
+  static Response serverShuttingDown() {
     return Response
         .status(SERVICE_UNAVAILABLE)
         .entity(new KsqlErrorMessage(
@@ -184,10 +181,15 @@ public final class Errors {
         .build();
   }
 
-  public static Response serverNotReady(final KsqlErrorMessage error) {
+  static Response serverNotReady(final KsqlErrorMessage error) {
     return Response
         .status(SERVICE_UNAVAILABLE)
         .entity(error)
         .build();
   }
+
+  Response accessDeniedFromKafkaResponse(Throwable t);
+  
+  String webSocketAuthorizationErrorMessage(Throwable t);
+
 }

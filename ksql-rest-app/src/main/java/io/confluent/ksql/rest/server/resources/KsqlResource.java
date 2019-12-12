@@ -101,6 +101,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
+  private Errors errorHandler;
 
 
   public KsqlResource(
@@ -108,7 +109,8 @@ public class KsqlResource implements KsqlConfigurable {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this(
         ksqlEngine,
@@ -116,7 +118,8 @@ public class KsqlResource implements KsqlConfigurable {
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
-        authorizationValidator
+        authorizationValidator,
+        errorHandler
     );
   }
 
@@ -126,7 +129,8 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -137,6 +141,7 @@ public class KsqlResource implements KsqlConfigurable {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
   }
 
   @Override
@@ -232,10 +237,10 @@ public class KsqlResource implements KsqlConfigurable {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return ErrorResponseUtil.generateResponse(
-          e, Errors.badRequest(e));
+          e, Errors.badRequest(e), errorHandler);
     } catch (final Exception e) {
       return ErrorResponseUtil.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getKsql()));
+          e, Errors.serverErrorForStatement(e, request.getKsql()), errorHandler);
     }
   }
 

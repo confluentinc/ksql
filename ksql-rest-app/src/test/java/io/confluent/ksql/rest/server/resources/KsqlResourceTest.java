@@ -87,6 +87,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.DefaultErrorsImpl;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -267,6 +268,8 @@ public class KsqlResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
+  @Mock
+  private Errors errorsHandler;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -361,7 +364,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler
     );
 
     // Then:
@@ -389,7 +393,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler
     );
 
     // Then:
@@ -2078,7 +2083,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        new DefaultErrorsImpl()
     );
 
     ksqlResource.configure(ksqlConfig);

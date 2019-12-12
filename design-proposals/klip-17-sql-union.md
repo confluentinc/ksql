@@ -49,14 +49,15 @@ and operating KSQL more tiresome, and potentially hurt adoption.
 
 The later drawbacks are stopping other improvements to KSQL. Including, though not limited to:
 
-* KLIP-18: Distributed Metastore: which requires the (1 - 0..1) relationship between data source
- and persistent query that this KLIP will restore.
-* KLIP-19: Introduce Materialized Views: which looks to clarify the semantic difference between
-a view and a table/stream and their associated semantics. This KLIP is related because it removes
-`INSERT INTO` which inserts into an existing stream.
-* KLIP-20: Remove `TERMINATE` statement: which requires the (1 - 0..1) relationship between data
-source and persistent query that this KLIP will restore.
-* KLIP-21: Correct 'INSERT VALUES' semantics: which depends on KLIP-19.
+* [KLIP-18](klip-18-distributed-metastore .md): Distributed Metastore: which requires the (1 - 0..1) 
+relationship between data source and persistent query that this KLIP will restore.
+* [KLIP-19](klip-19-materialize-views.md): Introduce Materialized Views: which looks to clarify the 
+semantic difference between a view and a table/stream and their associated semantics. 
+This KLIP is related because it removes `INSERT INTO` which inserts into an existing stream.
+* [KLIP-20](klip-20_remove_terminate.md): Remove `TERMINATE` statement: which requires the (1 - 0..1)
+relationship between data source and persistent query that this KLIP will restore.
+* [KLIP-21](klip-21_correct_insert_values_semantics.md): Correct 'INSERT VALUES' semantics: which 
+depends on [KLIP-19](klip-19-materialize-views.md).
 
 We propose removing `INSERT INTO` functionality and replacing it with support for the standard SQL 
 `UNION ALL` operator. 
@@ -100,7 +101,8 @@ of `INSERT INTO`:
 * which is a simple conceptual model for users.
 * Under the hood it will use a single KS topology,
 * meaning only a single copy of reference table state-stores
-* and only a single query to terminate before the sink stream can be dropped, (or non at all with KLIP-20).
+* and only a single query to terminate before the sink stream can be dropped, (or non at all with 
+[KLIP-20](klip-20_remove_terminate.md)).
 
 ## What is in scope
 
@@ -117,7 +119,7 @@ We may choose to introduce this later, but is not required in any MVP.
 Support for tables is not required to remove `INSERT INTO` and unblock the other KLIPs, 
 hence it has been de-scoped.
 * And changes to `INSERT VALUES` functionality: this KLIP does not address any issues with `INSERT VALUES`. 
-These will be covered by KLIP-21.
+These will be covered by [KLIP-21](klip-21_correct_insert_values_semantics.md).
 * Type coercion: the SQL standard only requires the matching columns from each `SELECT` in the union
 to have 'similar data types'. Such type coercion is not required for an MVP and may be added later. 
 
@@ -138,6 +140,10 @@ See [UNION docs on w3schools](https://www.w3schools.com/sql/sql_union.asp) for e
 Under the hood this PR will require support for sub-queries to be added to our query planning pipeline.
 Each `SELECT` in the union will be added to the logical plan as a sub-query, and translated into a suitable
 physical plan, and ultimately building built into a single KS topology.
+
+The CLI will be updated to detect `INSERT INTO` statements and inform the user they are no longer supported, 
+and what to do instead, linking to more documentation. This can be done through a general pattern that can 
+be used for other removed statement types.
 
 ## Test plan
 
@@ -171,6 +177,10 @@ later to add to the set of sources being merged. For example, at the moment you 
 need support for updating the running query, which will come in time.
 
 There is no plan to provide automated migration tooling or functionality as the ROI would be extremely low.
+
+The main compatibility implication is existing `INSERT INTO` statements in the command topic. There is 
+no easy way to migrate these to the new union syntax. Our only option is to make this breaking change 
+clear in the release notes and to ignore and log such statement, (we'll need custom code to detect them).
 
 ## Performance Implications
 

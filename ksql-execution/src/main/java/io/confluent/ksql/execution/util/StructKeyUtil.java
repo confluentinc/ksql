@@ -42,19 +42,17 @@ public final class StructKeyUtil {
   private StructKeyUtil() {
   }
 
-  public static Struct asStructKey(String rowKey) {
-    Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
-    keyStruct.put(ROWKEY_FIELD, rowKey);
-    return keyStruct;
-  }
-
-  public static KeyBuilder keySchema(final LogicalSchema schema) {
+  public static KeyBuilder keyBuilder(final LogicalSchema schema) {
     final List<Column> keyCols = schema.key();
     if (keyCols.size() != 1) {
       throw new UnsupportedOperationException("Only single keys supported");
     }
 
     final SqlType sqlType = keyCols.get(0).type();
+    return keyBuilder(sqlType);
+  }
+
+  public static KeyBuilder keyBuilder(final SqlType sqlType) {
     final Schema connectSchema = SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
 
     return new KeyBuilder(SchemaBuilder

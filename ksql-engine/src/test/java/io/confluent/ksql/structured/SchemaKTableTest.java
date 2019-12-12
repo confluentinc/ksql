@@ -65,6 +65,7 @@ import io.confluent.ksql.execution.streams.StreamJoinedFactory;
 import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -120,6 +121,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKTableTest {
+
+  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -584,7 +587,7 @@ public class SchemaKTableTest {
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 
     // Validate that the captured mapper produces the correct key
-    assertThat(keyValue.key, equalTo(StructKeyUtil.asStructKey("bar|+|foo")));
+    assertThat(keyValue.key, equalTo(STRING_KEY_BUILDER.build("bar|+|foo")));
     assertThat(keyValue.value, equalTo(value));
   }
 

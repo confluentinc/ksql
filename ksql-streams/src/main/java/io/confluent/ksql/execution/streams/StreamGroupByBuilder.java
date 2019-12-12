@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
+import org.apache.kafka.streams.kstream.KGroupedStream;
 
 public final class StreamGroupByBuilder {
   private StreamGroupByBuilder() {
@@ -64,13 +65,7 @@ public final class StreamGroupByBuilder {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
     final Formats formats = step.getInternalFormats();
-    final Grouped<Struct, GenericRow> grouped = buildGrouped(
-        formats,
-        sourceSchema,
-        queryContext,
-        queryBuilder,
-        groupedFactory
-    );
+
     final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
         step.getGroupByExpressions().stream(),
         "Group By",
@@ -78,11 +73,22 @@ public final class StreamGroupByBuilder {
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry()
     );
-    final GroupByMapper<K> mapper = new GroupByMapper<>(groupBy);
-    return KGroupedStreamHolder.of(
-        stream.getStream().filter((key, value) -> value != null).groupBy(mapper, grouped),
-        stream.getSchema()
+
+    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy);
+
+    final Grouped<Struct, GenericRow> grouped = buildGrouped(
+        formats,
+        params.getSchema(),
+        queryContext,
+        queryBuilder,
+        groupedFactory
     );
+
+    final KGroupedStream<Struct, GenericRow> groupedStream = stream.getStream()
+        .filter((k, v) -> v != null)
+        .groupBy((k, v) -> params.getMapper().apply(v), grouped);
+
+    return KGroupedStreamHolder.of(groupedStream, params.getSchema());
   }
 
   private static Grouped<Struct, GenericRow> buildGrouped(

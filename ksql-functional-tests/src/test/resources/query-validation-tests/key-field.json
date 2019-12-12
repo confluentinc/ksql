@@ -124,7 +124,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -133,7 +133,7 @@
             "name": "OUTPUT",
             "type": "table",
             "keyField": "FOO",
-            "schema": "ROWKEY STRING KEY, FOO INT, KSQL_COL_1 BIGINT"
+            "schema": "ROWKEY INT KEY, FOO INT, KSQL_COL_1 BIGINT"
           }
         ]
       }
@@ -148,7 +148,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -167,7 +167,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -359,14 +359,14 @@
     {
       "name": "stream | initially set | group by (same) | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -381,14 +381,14 @@
     {
       "name": "stream | initially set | group by (same) | key in value | aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -403,14 +403,14 @@
     {
       "name": "stream | initially set | group by (same) | key not in value | -",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"1", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -424,14 +424,14 @@
     {
       "name": "stream | initially set | group by (different) | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"BAR":2, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -442,14 +442,14 @@
     {
       "name": "stream | initially set | group by (different) | key in value | aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"ALIASED":2, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -460,14 +460,14 @@
     {
       "name": "stream | initially set | group by (different) | key not in value | -",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -504,7 +504,7 @@
         {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -526,7 +526,7 @@
         {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
@@ -538,14 +538,14 @@
     {
       "name": "table | initially set | no key change | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -557,14 +557,14 @@
     {
       "name": "table | initially set | no key change | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, bar FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED": 1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -576,14 +576,14 @@
     {
       "name": "table | initially set | no key change | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -594,14 +594,14 @@
     {
       "name": "table | initially set | group by (same) | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"FOO": 1, "KSQL_COL_1":  1}}
       ],
       "post": {
         "sources": [
@@ -612,14 +612,14 @@
     {
       "name": "table | initially set | group by (same) | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"ALIASED": 1, "KSQL_COL_1":  1}}
       ],
       "post": {
         "sources": [
@@ -630,14 +630,14 @@
     {
       "name": "table | initially set | group by (same) | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1,"value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
+        {"topic": "OUTPUT", "key": 1,"value": {"KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -648,14 +648,14 @@
     {
       "name": "table | initially set | group by (different) | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 2, "value": {"BAR": 2, "KSQL_COL_1":  1}}
       ],
       "post": {
         "sources": [
@@ -666,14 +666,14 @@
     {
       "name": "table | initially set | group by (different) | key in value | aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+        {"topic": "OUTPUT", "key": 2,"value": {"ALIASED": 2, "KSQL_COL_1":  1}}
       ],
       "post": {
         "sources": [
@@ -684,14 +684,14 @@
     {
       "name": "table | initially set | group by (different) | key not in value | -",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
+        {"topic": "OUTPUT", "key": 2,"value": {"KSQL_COL_0":  1}}
       ],
       "post": {
         "sources": [
@@ -702,11 +702,11 @@
     {
       "name": "stream | initially set | partition by expression | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo + bar FROM INPUT PARTITION BY foo + bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 3, "value": {"KSQL_COL_0":  3}}
@@ -720,7 +720,7 @@
     {
       "name": "stream | initially set | partition by multiple | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo, bar;"
       ],
       "comment": [
@@ -734,11 +734,11 @@
     {
       "name": "stream | initially set | group by multiple | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo, bar, COUNT(*) FROM INPUT GROUP BY bar, foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
@@ -752,14 +752,14 @@
     {
       "name": "stream | initially set | group by expression | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo + bar, COUNT(*) FROM INPUT GROUP BY foo + bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key":3, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
       ],
       "post": {
         "issues": [

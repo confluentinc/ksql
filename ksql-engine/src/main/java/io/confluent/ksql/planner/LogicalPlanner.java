@@ -47,6 +47,7 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -147,16 +148,18 @@ public class LogicalPlanner {
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
-    final Expression groupBy = analysis.getGroupByExpressions().size() == 1
-        ? analysis.getGroupByExpressions().get(0)
+    final List<Expression> groupByExps = analysis.getGroupByExpressions();
+
+    final LogicalSchema schema = buildAggregateSchema(sourcePlanNode, groupByExps);
+
+    final Expression groupBy = groupByExps.size() == 1
+        ? groupByExps.get(0)
         : null;
 
-    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
-
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
-        expression.equals(groupBy)
-            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
-            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
+            expression.equals(groupBy)
+                && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
+                && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
         sourcePlanNode);
 
     return new AggregateNode(
@@ -164,7 +167,7 @@ public class LogicalPlanner {
         sourcePlanNode,
         schema,
         keyFieldName.map(ColumnRef::withoutSource),
-        analysis.getGroupByExpressions(),
+        groupByExps,
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
         aggregateAnalysis.getAggregateFunctions(),
@@ -342,6 +345,28 @@ public class LogicalPlanner {
     }
 
     return builder.build();
+  }
+
+  private LogicalSchema buildAggregateSchema(
+      final PlanNode sourcePlanNode,
+      final List<Expression> groupByExps
+  ) {
+    final SqlType keyType;
+    if (groupByExps.size() != 1) {
+      keyType = SqlTypes.STRING;
+    } else {
+      final ExpressionTypeManager typeManager =
+          new ExpressionTypeManager(sourcePlanNode.getSchema(), functionRegistry);
+
+      keyType = typeManager.getExpressionSqlType(groupByExps.get(0));
+    }
+
+    final LogicalSchema sourceSchema = buildProjectionSchema(sourcePlanNode);
+
+    return LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
+        .valueColumns(sourceSchema.value())
+        .build();
   }
 
   private LogicalSchema buildRepartitionedSchema(

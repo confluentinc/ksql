@@ -51,7 +51,7 @@ public final class StreamSelectKeyBuilder {
     final LogicalSchema resultSchema = new StepSchemaResolver(queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry()).resolve(selectKey, sourceSchema);
 
-    final KeyBuilder keyBuilder = StructKeyUtil.keySchema(resultSchema);
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<Struct, GenericRow> rekeyed = kstream

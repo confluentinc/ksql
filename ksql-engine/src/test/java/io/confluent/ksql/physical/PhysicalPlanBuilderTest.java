@@ -203,14 +203,14 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
 
     assertThat(lines[0], startsWith(
-        " > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
+        " > [ PROJECT ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
             + "KSQL_COL_2 BIGINT] |"));
     assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+        "\t\t > [ AGGREGATE ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
             + "KSQL_AGG_VARIABLE_1 BIGINT] |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+        "\t\t\t\t > [ GROUP_BY ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE] |"
     ));
     assertThat(lines[3], startsWith(

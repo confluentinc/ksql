@@ -1,7 +1,5 @@
 package io.confluent.ksql.execution.streams;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +37,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -64,7 +63,17 @@ public class TableGroupByBuilderTest {
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
-  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SCHEMA, SerdeOption.none());
+
+  private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumns(SCHEMA.value())
+      .build();
+
+  private static final PhysicalSchema PHYSICAL_SCHEMA =
+      PhysicalSchema.from(SCHEMA, SerdeOption.none());
+
+  private static final PhysicalSchema REKEYED_PHYSICAL_SCHEMA =
+      PhysicalSchema.from(REKEYED_SCHEMA, SerdeOption.none());
 
   private static final List<Expression> GROUPBY_EXPRESSIONS = ImmutableList.of(
       columnReference("PAC"),
@@ -84,6 +93,8 @@ public class TableGroupByBuilderTest {
       FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
+
+  private static final Struct KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("key");
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -163,16 +174,6 @@ public class TableGroupByBuilderTest {
     verify(sourceTable).filter(any());
     verify(filteredTable).groupBy(mapperCaptor.capture(), same(grouped));
     verifyNoMoreInteractions(filteredTable, sourceTable);
-    final GroupByMapper<Struct> mapper = mapperCaptor.getValue().getGroupByMapper();
-    assertThat(mapper.getExpressionMetadata(), hasSize(2));
-    assertThat(
-        mapper.getExpressionMetadata().get(0).getExpression(),
-        equalTo(GROUPBY_EXPRESSIONS.get(0))
-    );
-    assertThat(
-        mapper.getExpressionMetadata().get(1).getExpression(),
-        equalTo(GROUPBY_EXPRESSIONS.get(1))
-    );
   }
 
   @Test
@@ -181,7 +182,10 @@ public class TableGroupByBuilderTest {
     final KGroupedTableHolder result = groupBy.build(planBuilder);
 
     // Then:
-    assertThat(result.getSchema(), is(SCHEMA));
+    assertThat(result.getSchema(), is(is(LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumns(SCHEMA.value())
+        .build())));
   }
 
   @Test
@@ -192,8 +196,8 @@ public class TableGroupByBuilderTest {
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
-    assertThat(predicate.test(StructKeyUtil.asStructKey("key"), new GenericRow()), is(true));
-    assertThat(predicate.test(StructKeyUtil.asStructKey("key"), null),  is(false));
+    assertThat(predicate.test(KEY, new GenericRow()), is(true));
+    assertThat(predicate.test(KEY, null),  is(false));
   }
 
   @Test
@@ -213,7 +217,7 @@ public class TableGroupByBuilderTest {
     // Then:
     verify(queryBuilder).buildKeySerde(
         FORMATS.getKeyFormat(),
-        PHYSICAL_SCHEMA,
+        REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
     );
   }
@@ -226,7 +230,7 @@ public class TableGroupByBuilderTest {
     // Then:
     verify(queryBuilder).buildValueSerde(
         FORMATS.getValueFormat(),
-        PHYSICAL_SCHEMA,
+        REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
     );
   }

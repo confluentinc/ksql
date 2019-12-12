@@ -68,10 +68,6 @@ public class Topic {
     return replicas;
   }
 
-  public SerdeSupplier getKeySerdeSupplier() {
-    return keySerdeFactory;
-  }
-
   public SerdeSupplier getValueSerdeSupplier() {
     return valueSerdeSupplier;
   }

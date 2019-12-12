@@ -6,20 +6,20 @@
     {
       "name": "sum int",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='AVRO', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='AVRO', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 0}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 0}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 100}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 500}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 0}},
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 100}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 600}}
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 0}},
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 100}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 500}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 600}}
       ]
     },
     {
@@ -39,157 +39,157 @@
         {"topic": "T2", "key": "0", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 5}},
-        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "SUM": 10}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 20}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}},
-        {"topic": "OUTPUT", "key": "0", "value": {"ID": 0, "SUM": 0}}
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 1,"value": {"ID": 1, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 5}},
+        {"topic": "OUTPUT", "key": 1,"value": {"ID": 1, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 1,"value": {"ID": 1, "SUM": 10}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 20}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"ID": 0, "SUM": 0}}
       ]
     },
     {
       "name": "sum long",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(value) as SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 2147483648}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 100}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 2147483648}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 100}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 500}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 2147483648}},
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 2147483748}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 600}}
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 2147483648}},
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 2147483748}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 500}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 600}}
       ]
     },
     {
       "name": "sum double",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 5.4}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": 100.1}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 500.9}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": 300.8}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 5.4}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": 100.1}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 500.9}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": 300.8}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 5.4}},
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": 105.5}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 500.9}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": 801.7}}
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 5.4}},
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": 105.5}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 500.9}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": 801.7}}
       ]
     },
     {
       "name": "sum decimal",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(value) AS SUM FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "5.4"}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "value": "100.1"}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "500.9"}},
-        {"topic": "test_topic", "key": "100", "value": {"id": 100, "value": "300.8"}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": "5.4"}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "value": "100.1"}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": "500.9"}},
+        {"topic": "test_topic", "key": 100,"value": {"id": 100, "value": "300.8"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": "005.4"}},
-        {"topic": "S2", "key": "0", "value": {"ID": 0, "SUM": "105.5"}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": "500.9"}},
-        {"topic": "S2", "key": "100", "value": {"ID": 100, "SUM": "801.7"}}
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": "005.4"}},
+        {"topic": "S2", "key": 0,"value": {"ID": 0, "SUM": "105.5"}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": "500.9"}},
+        {"topic": "S2", "key": 100,"value": {"ID": 100, "SUM": "801.7"}}
       ]
     },
     {
       "name": "sum double map",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(value['key1']) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":20.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":30.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":40.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":50.0}}
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":10.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":20.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":30.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":40.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":50.0}}
       ]
     },
     {
       "name": "sum with constant int arg",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(2) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":6}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":8}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10}}
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
       "name": "sum with constant long arg",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(cast (2 as BIGINT)) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":6}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":8}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":10}}
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
       "name": "sum with constant double arg",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "CREATE TABLE S2 as SELECT id, sum(1.0) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
-        {"topic": "test_topic", "key": "0", "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":1.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":2.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":3.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":4.0}},
-        {"topic": "S2", "key": "0", "value": {"ID":0,"SUM_VAL":5.0}}
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":1.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":2.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":3.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":4.0}},
+        {"topic": "S2", "key": 0,"value": {"ID":0,"SUM_VAL":5.0}}
       ]
     },
     {

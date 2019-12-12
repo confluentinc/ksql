@@ -63,7 +63,7 @@ public class KsMaterializedWindowTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
+  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("x");
 
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
       Instant.now(),

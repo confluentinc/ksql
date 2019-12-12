@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.util.StructKeyUtil.asStructKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,12 +85,14 @@ public class StreamSelectKeyBuilderTest {
       .valueColumn(ALIAS, ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build();
 
-  private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keySchema(RESULT_SCHEMA);
+  private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);
 
 
   private static final long A_BOI = 5000;
   private static final long A_BIG = 3000;
-  private static final Struct SOURCE_KEY = asStructKey("dre");
+
+  private static final Struct SOURCE_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING)
+      .build("dre");
 
   @Mock
   private KStream<Struct, GenericRow> kstream;

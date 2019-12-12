@@ -20,6 +20,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.util.List;
 import java.util.Map;
@@ -105,9 +106,11 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   private final class RowDeserializer implements Deserializer<Object> {
 
     private Deserializer<Object> delegate;
+    private String type;
 
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
+      this.type = isKey ? "key" : "value";
       final SqlType sqlType = getColumnType(isKey);
       delegate = getSerde(sqlType).deserializer();
       delegate.configure(configs, isKey);
@@ -115,7 +118,12 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
     @Override
     public Object deserialize(final String topic, final byte[] bytes) {
-      return delegate.deserialize(topic, bytes);
+      try {
+        return delegate.deserialize(topic, bytes);
+      } catch (final Exception e) {
+        throw new TestFrameworkException("Failed to deserialize " + type + ". "
+            + e.getMessage(), e);
+      }
     }
   }
 }

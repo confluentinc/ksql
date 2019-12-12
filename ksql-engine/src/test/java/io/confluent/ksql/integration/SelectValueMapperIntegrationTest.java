@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -45,7 +46,8 @@ import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperIntegrationTest {
 
-  private static final Struct NON_WINDOWED_KEY = StructKeyUtil.asStructKey("someKey");
+  private static final Struct NON_WINDOWED_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING)
+      .build("someKey");
 
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(TestFunctionRegistry.INSTANCE.get());

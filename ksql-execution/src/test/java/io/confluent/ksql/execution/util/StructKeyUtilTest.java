@@ -39,13 +39,13 @@ public class StructKeyUtilTest {
 
   @Before
   public void setUp() {
-    builder = StructKeyUtil.keySchema(LOGICAL_SCHEMA);
+    builder = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
   }
 
   @Test(expected = UnsupportedOperationException.class)
   public void shouldThrowOnMultipleKeyColumns() {
     // Only single key columns initially supported
-    StructKeyUtil.keySchema(LogicalSchema.builder()
+    StructKeyUtil.keyBuilder(LogicalSchema.builder()
         .keyColumn(ColumnName.of("BOB"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("JOHN"), SqlTypes.STRING)
         .build());

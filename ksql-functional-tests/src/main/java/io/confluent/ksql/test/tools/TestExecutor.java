@@ -27,9 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -39,20 +41,24 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.TestFrameworkException;
+import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -72,6 +78,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -177,19 +184,13 @@ public class TestExecutor implements Closeable {
             .filter(topic -> !inputTopics.contains(topic.getName()))
             .collect(Collectors.toSet());
         if (!topicsFromInput.isEmpty()) {
-          pipeRecordsFromProvidedInput(
-              testCase,
-              stubKafkaService,
-              topologyTestDriverContainer,
-              serviceContext);
+          pipeRecordsFromProvidedInput(testCase, topologyTestDriverContainer);
         }
         for (final Topic kafkaTopic : topicsFromKafka) {
           pipeRecordsFromKafka(
-              testCase,
               kafkaTopic.getName(),
-              stubKafkaService,
-              topologyTestDriverContainer,
-              serviceContext);
+              topologyTestDriverContainer
+          );
         }
 
         allTopicNames.addAll(
@@ -249,7 +250,14 @@ public class TestExecutor implements Closeable {
     final Function<Object, Object> keyCoercer = keyCoercerForTopic(topicName);
 
     for (int i = 0; i < expected.size(); i++) {
-      final Record expectedRecord = expected.get(i).coerceKey(keyCoercer);
+      final Record expectedRecord;
+      try {
+        expectedRecord = expected.get(i).coerceKey(keyCoercer);
+      } catch (final Exception e) {
+        throw new AssertionError(
+            "Topic '" + topicName + "', message " + i
+                + ": Could not coerce key in test case to required type. " + e.getMessage(), e);
+      }
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
 
       validateCreatedMessage(
@@ -263,7 +271,11 @@ public class TestExecutor implements Closeable {
   }
 
   private Function<Object, Object> keyCoercerForTopic(final String topicName) {
-    final SqlType keyType = getKeyType(topicName);
+    final SqlType keyType = getTopicInfo(topicName)
+        .getSchema()
+        .key()
+        .get(0)
+        .type();
 
     return key -> {
       if (key == null) {
@@ -271,13 +283,18 @@ public class TestExecutor implements Closeable {
       }
       return DefaultSqlValueCoercer.INSTANCE
           .coerce(key, keyType)
-          .orElseThrow(() -> new TestFrameworkException("Failed to coerce key to required type. "
-              + "type: " + keyType
-              + ", key: " + key));
+          .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
+              + System.lineSeparator()
+              + "Expected KeyType: " + keyType
+              + System.lineSeparator()
+              + "Actual KeyType: " + SchemaConverters.javaToSqlConverter().toSqlType(key.getClass())
+              + ", key: " + key + "."
+              + System.lineSeparator()
+              + "This is likely caused by the key type in the test-case not matching the schema."));
     };
   }
 
-  private SqlType getKeyType(final String topicName) {
+  private TopicInfo getTopicInfo(final String topicName) {
     try {
       final java.util.regex.Matcher matcher = INTERNAL_TOPIC_PATTERN.matcher(topicName);
       if (matcher.matches()) {
@@ -290,14 +307,14 @@ public class TestExecutor implements Closeable {
 
         final SourceName sinkName = query.getSinkName();
         final DataSource<?> source = ksqlEngine.getMetaStore().getSource(sinkName);
-        return getKeyType(source);
+        return new TopicInfo(source.getSchema(), source.getKsqlTopic().getKeyFormat());
       }
 
       // Source / sink topic:
-      final Set<SqlType> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
+      final Set<TopicInfo> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
           .stream()
           .filter(source -> source.getKafkaTopicName().equals(topicName))
-          .map(TestExecutor::getKeyType)
+          .map(source -> new TopicInfo(source.getSchema(), source.getKsqlTopic().getKeyFormat()))
           .collect(Collectors.toSet());
 
       if (keyTypes.isEmpty()) {
@@ -312,14 +329,37 @@ public class TestExecutor implements Closeable {
     }
   }
 
-  private static SqlType getKeyType(final DataSource<?> source) {
-    final List<Column> keyColumns = source.getSchema().key();
-    if (keyColumns.size() != 1) {
-      throw new UnsupportedOperationException("only single key columns currently supported. "
-          + "got: " + keyColumns);
-    }
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private Serializer<Object> getKeySerializer(final String topicName) {
+    final TopicInfo topicInfo = getTopicInfo(topicName);
 
-    return keyColumns.get(0).type();
+    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
+        .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
+
+    final Serializer<?> serializer = keySerdeSupplier.getSerializer(
+        serviceContext.getSchemaRegistryClient()
+    );
+
+    serializer.configure(ImmutableMap.of(
+        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+    ), true);
+
+    return (Serializer) serializer;
+  }
+
+  private Deserializer<?> getKeyDeserializer(final String topicName) {
+    final TopicInfo topicInfo = getTopicInfo(topicName);
+
+    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
+        .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
+
+    final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
+        serviceContext.getSchemaRegistryClient()
+    );
+
+    deserializer.configure(ImmutableMap.of(), true);
+
+    return deserializer;
   }
 
   private static String getActualsForErrorMessage(final List<StubKafkaRecord> actual) {
@@ -365,9 +405,7 @@ public class TestExecutor implements Closeable {
 
   private void pipeRecordsFromProvidedInput(
       final TestCase testCase,
-      final StubKafkaService stubKafkaService,
-      final TopologyTestDriverContainer topologyTestDriverContainer,
-      final ServiceContext serviceContext
+      final TopologyTestDriverContainer topologyTestDriverContainer
   ) {
 
     for (final Record record : testCase.getInputRecords()) {
@@ -376,48 +414,39 @@ public class TestExecutor implements Closeable {
         final Record coerced = record.coerceKey(keyCoercerForTopic(record.topic.getName()));
 
         processSingleRecord(
-            testCase,
             StubKafkaRecord.of(coerced, null),
-            stubKafkaService,
             topologyTestDriverContainer,
-            serviceContext.getSchemaRegistryClient(),
             ImmutableSet.copyOf(stubKafkaService.getAllTopics())
         );
       }
     }
   }
 
-  private static void pipeRecordsFromKafka(
-      final TestCase testCase,
+  private void pipeRecordsFromKafka(
       final String kafkaTopicName,
-      final StubKafkaService stubKafkaService,
-      final TopologyTestDriverContainer topologyTestDriverContainer,
-      final ServiceContext serviceContext
+      final TopologyTestDriverContainer topologyTestDriverContainer
   ) {
     for (final StubKafkaRecord stubKafkaRecord : stubKafkaService.readRecords(kafkaTopicName)) {
       processSingleRecord(
-          testCase,
           stubKafkaRecord,
-          stubKafkaService,
           topologyTestDriverContainer,
-          serviceContext.getSchemaRegistryClient(),
           Collections.emptySet()
       );
     }
   }
 
   @SuppressWarnings("unchecked")
-  private static void processSingleRecord(
-      final TestCase testCase,
+  private void processSingleRecord(
       final StubKafkaRecord inputRecord,
-      final StubKafkaService stubKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient,
       final Set<Topic> possibleSinkTopics
   ) {
     final Topic recordTopic = stubKafkaService
         .getTopic(inputRecord.getTestRecord().topic.getName());
-    final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
+
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+
+    final Serializer<Object> keySerializer = getKeySerializer(recordTopic.getName());
 
     final Serializer<Object> valueSerializer =
         recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
@@ -427,24 +456,21 @@ public class TestExecutor implements Closeable {
     final Object key = getKey(inputRecord);
     final ConsumerRecord<byte[], byte[]> consumerRecord =
         new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-        keySerializer,
-        valueSerializer
-    ).create(
-        recordTopic.getName(),
-        key,
-        inputRecord.getTestRecord().value(),
-        inputRecord.getTestRecord().timestamp().orElse(0L)
-    );
+            keySerializer,
+            valueSerializer
+        ).create(
+            recordTopic.getName(),
+            key,
+            inputRecord.getTestRecord().value(),
+            inputRecord.getTestRecord().timestamp().orElse(0L)
+        );
     testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
 
     final Topic sinkTopic = testDriver.getSinkTopic();
 
     processRecordsForTopic(
-        testCase,
         testDriver.getTopologyTestDriver(),
-        sinkTopic,
-        stubKafkaService,
-        schemaRegistryClient
+        sinkTopic
     );
 
     for (final Topic possibleSinkTopic : possibleSinkTopics) {
@@ -452,29 +478,19 @@ public class TestExecutor implements Closeable {
         continue;
       }
       processRecordsForTopic(
-          testCase,
           testDriver.getTopologyTestDriver(),
-          possibleSinkTopic,
-          stubKafkaService,
-          schemaRegistryClient
+          possibleSinkTopic
       );
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static void processRecordsForTopic(
-      final TestCase testCase,
+  private void processRecordsForTopic(
       final TopologyTestDriver topologyTestDriver,
-      final Topic sinkTopic,
-      final StubKafkaService stubKafkaService,
-      final SchemaRegistryClient schemaRegistryClient
+      final Topic sinkTopic
   ) {
+    int idx = 0;
     while (true) {
-      final ProducerRecord<?, ?> producerRecord = topologyTestDriver.readOutput(
-          sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(schemaRegistryClient),
-          sinkTopic.getValueDeserializer(schemaRegistryClient)
-      );
+      final ProducerRecord<?, ?> producerRecord = readOutput(topologyTestDriver, sinkTopic, idx);
       if (producerRecord == null) {
         break;
       }
@@ -484,6 +500,27 @@ public class TestExecutor implements Closeable {
           StubKafkaRecord.of(
               sinkTopic,
               producerRecord)
+      );
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private ProducerRecord<?, ?> readOutput(
+      final TopologyTestDriver topologyTestDriver,
+      final Topic sinkTopic,
+      final int idx
+  ) {
+    try {
+      return topologyTestDriver.readOutput(
+          sinkTopic.getName(),
+          getKeyDeserializer(sinkTopic.getName()),
+          sinkTopic.getValueDeserializer(serviceContext.getSchemaRegistryClient())
+      );
+    } catch (final Exception e) {
+      throw new AssertionError("Topic " + sinkTopic.getName()
+          + ": Failed to read record " + idx
+          + ". " + e.getMessage(),
+          e
       );
     }
   }
@@ -587,5 +624,43 @@ public class TestExecutor implements Closeable {
         KsqlConfig ksqlConfig,
         StubKafkaService stubKafkaService
     );
+  }
+
+  @Immutable
+  private static final class TopicInfo {
+
+    private final LogicalSchema schema;
+    private final KeyFormat keyFormat;
+
+    TopicInfo(final LogicalSchema schema, final KeyFormat keyFormat) {
+      this.schema = requireNonNull(schema, "schema");
+      this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    }
+
+    public KeyFormat getKeyFormat() {
+      return keyFormat;
+    }
+
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final TopicInfo topicInfo = (TopicInfo) o;
+      return Objects.equals(schema, topicInfo.schema)
+          && Objects.equals(keyFormat, topicInfo.keyFormat);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(schema, keyFormat);
+    }
   }
 }

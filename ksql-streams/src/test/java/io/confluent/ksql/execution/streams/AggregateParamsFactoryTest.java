@@ -4,7 +4,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,16 +39,19 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateParamsFactoryTest {
+
   private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ARGUMENT0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ARGUMENT1"), SqlTypes.DOUBLE)
       .build();
+
   private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
       INPUT_SCHEMA.value().get(0).ref(),
       INPUT_SCHEMA.value().get(2).ref()
   );
+
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
       ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT0"))))

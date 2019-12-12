@@ -62,7 +62,7 @@ public class KsqlMaterializationTest {
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.asStructKey("k");
+  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("k");
   private static final long A_ROWTIME = 12335L;
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
       Instant.now(),

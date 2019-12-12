@@ -83,6 +83,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -338,6 +339,25 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(ksqlEngine).parse("This statement");
+  }
+
+
+  @Test
+  public void shouldNotThrowIfNullValueInKsqlConfig() {
+    standaloneExecutor = new StandaloneExecutor(
+        serviceContext,
+        processingLogConfig,
+        new KsqlConfig(Collections.singletonMap("test", null)),
+        ksqlEngine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionChecker,
+        injectorFactory
+    );
+
+    // When:
+    standaloneExecutor.startAsync();
   }
 
   @Test

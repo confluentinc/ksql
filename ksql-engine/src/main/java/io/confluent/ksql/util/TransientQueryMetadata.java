@@ -51,7 +51,8 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback) {
+      final Consumer<QueryMetadata> closeCallback,
+      final Long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -63,8 +64,8 @@ public class TransientQueryMetadata extends QueryMetadata {
         topology,
         streamsProperties,
         overriddenProperties,
-        closeCallback
-    );
+        closeCallback,
+        closeTimeout);
     this.limitHandlerSetter = Objects.requireNonNull(limitHandlerSetter, "limitHandlerSetter");
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
 

@@ -23,7 +23,6 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,21 +50,22 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
 
   private static List<PropertyDef> propertiesListWithOverrides(final PropertiesList properties) {
 
-    final Function<Entry<Property, ?>, PropertyDef> toPropertyDef = e -> {
-      final String value = e.getValue() == null ? "NULL" : e.getValue().toString();
-      Property key = e.getKey();
-      if (properties.getOverwrittenProperties().contains(key.getProperty())) {
-        return new PropertyDef(key.getProperty(), key.getScope(), "SESSION", value);
+    final Function<Property, PropertyDef> toPropertyDef = property -> {
+      final String value = property.getValue() == null ? "NULL" : property.getValue();
+      final String name = property.getName();
+      final String scope = property.getScope();
+      if (properties.getOverwrittenProperties().contains(name)) {
+        return new PropertyDef(name, scope, "SESSION", value);
       }
 
-      if (properties.getDefaultProperties().contains(key.getProperty())) {
-        return new PropertyDef(key.getProperty(), key.getScope(), "", value);
+      if (properties.getDefaultProperties().contains(name)) {
+        return new PropertyDef(name, scope, "", value);
       }
 
-      return new PropertyDef(key.getProperty(), key.getScope(), "SERVER", value);
+      return new PropertyDef(name, scope, "SERVER", value);
     };
 
-    return properties.getProperties().entrySet().stream()
+    return properties.getProperties().stream()
         .map(toPropertyDef)
         .collect(Collectors.toList());
   }

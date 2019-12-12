@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -62,7 +61,7 @@ public class PropertiesListTableBuilderTest {
   public void shouldHandleClientOverwrittenProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
+        ImmutableList.of(new Property(SOME_KEY, "KSQL", "earliest")),
         ImmutableList.of(SOME_KEY),
         Collections.emptyList()
     );
@@ -78,7 +77,7 @@ public class PropertiesListTableBuilderTest {
   public void shouldHandleServerOverwrittenProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
+        ImmutableList.of(new Property(SOME_KEY, "KSQL", "earliest")),
         Collections.emptyList(),
         Collections.emptyList()
     );
@@ -94,7 +93,7 @@ public class PropertiesListTableBuilderTest {
   public void shouldHandleDefaultProperties() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        ImmutableMap.of(new Property(SOME_KEY, "KSQL"), "earliest"),
+        ImmutableList.of(new Property(SOME_KEY, "KSQL", "earliest")),
         Collections.emptyList(),
         ImmutableList.of(SOME_KEY)
     );
@@ -110,7 +109,7 @@ public class PropertiesListTableBuilderTest {
   public void shouldHandlePropertiesWithNullValue() {
     // Given:
     final PropertiesList propList = new PropertiesList("list properties;",
-        Collections.singletonMap(new Property(SOME_KEY, "KSQL"), null),
+        Collections.singletonList(new Property(SOME_KEY, "KSQL", null)),
         Collections.emptyList(),
         ImmutableList.of(SOME_KEY)
     );

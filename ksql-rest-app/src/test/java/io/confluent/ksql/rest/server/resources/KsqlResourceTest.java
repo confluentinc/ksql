@@ -1500,8 +1500,8 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(
-        props.getProperties().get(new Property("ksql.streams.auto.offset.reset", "KSQL")),
-        is("latest"));
+        props.getProperties(),
+        hasItem(new Property("ksql.streams.auto.offset.reset", "KSQL", "latest")));
     assertThat(props.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
   }
 
@@ -1646,7 +1646,7 @@ public class KsqlResourceTest {
     final PropertiesList props = makeSingleRequest("list properties;", PropertiesList.class);
 
     // Then:
-    assertThat(props.getProperties().keySet().stream().map(Property::getProperty).collect(
+    assertThat(props.getProperties().stream().map(Property::getName).collect(
         Collectors.toList()),
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }

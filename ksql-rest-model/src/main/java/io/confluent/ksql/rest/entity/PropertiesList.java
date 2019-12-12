@@ -18,42 +18,40 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.KeyDeserializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static class Property {
-    private final String property;
+    private final String name;
     private final String scope;
+    private final String value;
 
     @JsonCreator
     public Property(
-        @JsonProperty("property") final String property,
-        @JsonProperty("scope") final String scope
+        @JsonProperty("name") final String name,
+        @JsonProperty("scope") final String scope,
+        @JsonProperty("value") final String value
     ) {
-      this.property = property;
+      this.name = name;
       this.scope = scope;
+      this.value = value;
     }
 
-    public String getProperty() {
-      return property;
+    public String getName() {
+      return name;
     }
 
     public String getScope() {
       return scope;
+    }
+
+    public String getValue() {
+      return value;
     }
 
     @Override
@@ -65,57 +63,47 @@ public class PropertiesList extends KsqlEntity {
         return false;
       }
       Property that = (Property) object;
-      return Objects.equals(property, that.property)
-          && Objects.equals(scope, that.scope);
+      return Objects.equals(name, that.name)
+          && Objects.equals(scope, that.scope)
+          && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(property, scope);
+      return Objects.hash(name, scope, value);
     }
-  }
-
-  private static class PropertySerializer extends JsonSerializer<Property> {
 
     @Override
-    public void serialize(
-        Property value, JsonGenerator generator, SerializerProvider serializers)
-        throws IOException {
-      generator.writeFieldName(value.property + '-' + value.scope);
+    public String toString() {
+      return "Property{" +
+          "name='" + name + '\'' +
+          ", scope='" + scope + '\'' +
+          ", value='" + value + '\'' +
+          '}';
     }
   }
 
-  private static class PropertyDeserializer extends KeyDeserializer {
-    @Override
-    public Property deserializeKey(String key, DeserializationContext ctxt) throws IOException {
-      String[] value = key.split("-");
-      return new Property(value[0], value[1]);
-    }
-  }
-
-  private final Map<Property, ?> properties;
+  private final List<Property> properties;
   private final List<String> overwrittenProperties;
   private final List<String> defaultProperties;
 
   @JsonCreator
   public PropertiesList(
       @JsonProperty("statementText") final String statementText,
-      @JsonSerialize(keyUsing = PropertySerializer.class)
-      @JsonDeserialize(keyUsing = PropertyDeserializer.class)
-      @JsonProperty("properties") final Map<Property, ?> properties,
+      @JsonProperty("properties") final List<Property> properties,
       @JsonProperty("overwrittenProperties") final List<String> overwrittenProperties,
       @JsonProperty("defaultProperties") final List<String> defaultProperties
   ) {
     super(statementText);
     this.properties = properties == null
-        ? Collections.emptyMap() : properties;
+        ? Collections.emptyList() : properties;
     this.overwrittenProperties = overwrittenProperties == null
         ? Collections.emptyList() : overwrittenProperties;
     this.defaultProperties = defaultProperties == null
         ? Collections.emptyList() : defaultProperties;
   }
 
-  public Map<Property, ?> getProperties() {
+  public List<Property> getProperties() {
     return properties;
   }
 

@@ -26,8 +26,8 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,37 +52,38 @@ public final class ListPropertiesExecutor {
     final Map<String, String> engineProperties
         = statement.getConfig().getAllConfigPropsWithSecretsObfuscated();
 
-    final Map<Property, String> mergedProperties = mergedProperties(statement);
+    final List<Property> mergedProperties = mergedProperties(statement);
 
-    final List<String> overwritten = mergedProperties.entrySet()
+    final List<String> overwritten = mergedProperties
         .stream()
-        .filter(e -> !Objects.equals(engineProperties.get(e.getKey().getProperty()), e.getValue()))
-        .map(e -> e.getKey().getProperty())
+        .filter(property -> !Objects.equals(
+            engineProperties.get(property.getName()), property.getValue()))
+        .map(Property::getName)
         .collect(Collectors.toList());
 
-    final List<String> defaultProps = mergedProperties.entrySet().stream()
-        .filter(e -> resolver.resolve(e.getKey().getProperty(), false)
-            .map(resolved -> resolved.isDefaultValue(e.getValue()))
+    final List<String> defaultProps = mergedProperties.stream()
+        .filter(property -> resolver.resolve(property.getName(), false)
+            .map(resolved -> resolved.isDefaultValue(property.getValue()))
             .orElse(false))
-        .map(e -> e.getKey().getProperty())
+        .map(Property::getName)
         .collect(Collectors.toList());
 
     return Optional.of(new PropertiesList(
         statement.getStatementText(), mergedProperties, overwritten, defaultProps));
   }
 
-  private static Map<Property, String> mergedProperties(
+  private static List<Property> mergedProperties(
       ConfiguredStatement<ListProperties> statement) {
-    Map<Property, String> mergedProperties = new HashMap<>();
+    final List<Property> mergedProperties = new ArrayList<>();
 
     statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides())
         .getAllConfigPropsWithSecretsObfuscated()
-        .forEach((key, value) -> mergedProperties.put(new Property(key, "KSQL"), value));
+        .forEach((key, value) -> mergedProperties.add(new Property(key, "KSQL", value)));
 
     embeddedConnectWorkerProperties(statement)
         .forEach((key, value) ->
-                     mergedProperties.put(new Property(key, "EMBEDDED CONNECT WORKER"), value));
+                     mergedProperties.add(new Property(key, "EMBEDDED CONNECT WORKER", value)));
 
     return mergedProperties;
   }

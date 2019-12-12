@@ -79,9 +79,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -234,10 +232,10 @@ public class ConsoleTest {
   @Test
   public void testPrintPropertyList() {
     // Given:
-    final Map<Property, Object> properties = new HashMap<>();
-    properties.put(new Property("k1", "KSQL"), 1);
-    properties.put(new Property("k2", "KSQL"), "v2");
-    properties.put(new Property("k3", "KSQL"), true);
+    final List<Property> properties = new ArrayList<>();
+    properties.add(new Property("k1", "KSQL", "1"));
+    properties.add(new Property("k2", "KSQL", "v2"));
+    properties.add(new Property("k3", "KSQL", "true"));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList())
@@ -252,11 +250,19 @@ public class ConsoleTest {
       assertThat(output, is("[ {\n"
           + "  \"@type\" : \"properties\",\n"
           + "  \"statementText\" : \"e\",\n"
-          + "  \"properties\" : {\n"
-          + "    \"k3-KSQL\" : true,\n"
-          + "    \"k2-KSQL\" : \"v2\",\n"
-          + "    \"k1-KSQL\" : 1\n"
-          + "  },\n"
+          + "  \"properties\" : [ {\n"
+          + "    \"name\" : \"k1\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"1\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"k2\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"v2\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"k3\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"true\"\n"
+          + "  } ],\n"
           + "  \"overwrittenProperties\" : [ ],\n"
           + "  \"defaultProperties\" : [ ],\n"
           + "  \"warnings\" : [ ]\n"

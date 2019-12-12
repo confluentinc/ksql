@@ -2,7 +2,7 @@
 
 **Author**: @big-andy-coates | 
 **Release Target**: TBD | 
-**Status**: In Discussion | 
+**Status**: Design Approved | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/4026
 
 **tl;dr:**

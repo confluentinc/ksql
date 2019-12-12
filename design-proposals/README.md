@@ -61,3 +61,4 @@ Next KLIP number: **14**
 | [KLIP-18: Distributed Metastore                                                    | Proposal       | N/A     |
 | [KLIP-19: Introduce Materialize Views                                              | Proposal       | N/A     |
 | [KLIP-20: Remove 'TERMINATE' statements                                            | Proposal       | N/A     |
+| [KLIP-21: Correct 'INSERT VALUES' semantics                                        | Proposal       | N/A     |

@@ -39,6 +39,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -382,10 +383,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final StatementParser statementParser = new StatementParser(ksqlEngine);
       final Optional<KsqlAuthorizationValidator> authorizationValidator =
           KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
-      final Errors errorHandler = restConfig.getConfiguredInstance(
+      final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
           KsqlRestConfig.KSQL_SERVER_ERRORS,
-          Errors.class
-      );
+          ErrorMessages.class
+      ));
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -504,10 +505,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
-    final Errors errorHandler = restConfig.getConfiguredInstance(
+    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERRORS,
-        Errors.class
-    );
+        ErrorMessages.class
+    ));
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,

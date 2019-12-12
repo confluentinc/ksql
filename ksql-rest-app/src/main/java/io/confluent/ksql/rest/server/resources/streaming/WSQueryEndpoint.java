@@ -232,7 +232,9 @@ public class WSQueryEndpoint {
     } catch (final TopicAuthorizationException e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(
-          session, CloseCodes.CANNOT_ACCEPT, errorHandler.webSocketAuthorizationErrorMessage(e));
+          session,
+          CloseCodes.CANNOT_ACCEPT,
+          errorHandler.webSocketKafkaAuthorizationErrorMessage(e));
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());

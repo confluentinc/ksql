@@ -229,7 +229,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           "Statement type `%s' not supported for this resource",
           statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
-      return errorHandler.accessDeniedFromKafkaResponse(e);
+      return errorHandler.accessDeniedFromKafka(e);
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {

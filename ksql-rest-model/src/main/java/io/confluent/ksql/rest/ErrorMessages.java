@@ -15,17 +15,7 @@
 
 package io.confluent.ksql.rest;
 
-import javax.ws.rs.core.Response;
-
-public class DefaultErrorsImpl implements Errors {
-
-  @Override
-  public Response accessDeniedFromKafkaResponse(final Throwable t) {
-    return Errors.accessDeniedFromKafka(t);
-  }
-
-  @Override
-  public String webSocketAuthorizationErrorMessage(final Throwable t) {
-    return t.getMessage();
-  }
+public interface ErrorMessages {
+  
+  String kafkaAuthorizationErrorMessage(Exception e);
 }

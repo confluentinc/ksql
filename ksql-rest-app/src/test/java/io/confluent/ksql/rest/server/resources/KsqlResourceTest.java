@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
 import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.EXECUTE;
@@ -31,6 +32,7 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static java.util.Collections.emptyMap;
+import static javax.ws.rs.core.Response.Status.FORBIDDEN;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -87,7 +89,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.rest.DefaultErrorsImpl;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -238,6 +239,11 @@ public class KsqlResourceTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
+  private static Response AUTHORIZATION_ERROR_RESPONSE = Response
+      .status(FORBIDDEN)
+      .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, "some error"))
+      .build();
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -333,6 +339,8 @@ public class KsqlResourceTest {
         .thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
+
+    when(errorsHandler.accessDeniedFromKafka(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
 
     setUpKsqlResource();
   }
@@ -782,9 +790,6 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
-    assertThat(result.getMessage(), is(
-        "Could not delete the corresponding kafka topic: topic\n" +
-              "Caused by: Authorization denied to Delete on topic(s): [topic]"));
   }
 
   @Test
@@ -2084,7 +2089,7 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
-        new DefaultErrorsImpl()
+        errorsHandler
     );
 
     ksqlResource.configure(ksqlConfig);

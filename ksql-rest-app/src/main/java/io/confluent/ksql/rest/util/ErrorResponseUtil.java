@@ -32,7 +32,7 @@ public final class ErrorResponseUtil {
       final Errors errorHandler
   ) {
     if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
-      return errorHandler.accessDeniedFromKafkaResponse(e);
+      return errorHandler.accessDeniedFromKafka(e);
     } else {
       return defaultResponse;
     }

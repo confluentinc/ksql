@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.rest.DefaultErrorsImpl;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.util.Map;
@@ -146,7 +146,7 @@ public class KsqlRestConfig extends RestConfig {
     ).define(
         KSQL_SERVER_ERRORS,
         Type.CLASS,
-        DefaultErrorsImpl.class,
+        DefaultErrorMessages.class,
         Importance.LOW,
         KSQL_SERVER_ERRORS_DOC
     );

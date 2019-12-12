@@ -107,6 +107,7 @@ of `INSERT INTO`:
 * Removal of `INSERT INTO` statements from the syntax and code. (Breaking change).
 * Introduction of `UNION ALL` support to merge multiple streams.
 * Arbitrary `SELECT` statements in the union, as long as they result in a stream, not a table.
+* Support for unions in CSAS and transient push queries.
 
 ## What is not in scope
 
@@ -164,7 +165,10 @@ Removal of `INSERT ALL` is clearly a breaking change. However, we _must_ remove 
 the other planned work. 
 
 It is believed the proposed `UNION ALL` operator will be able to replicate all functionality currently 
-possible with `INSERT ALL`.
+possible with `INSERT ALL`, with the exception that you will no longer be able to run additional statements
+later to add to the set of sources being merged. For example, at the moment you can choose to run additional
+`INSERT INTO` statements at any time to include another source into the merge, where as with unions we'll
+need support for updating the running query, which will come in time.
 
 There is no plan to provide automated migration tooling or functionality as the ROI would be extremely low.
 

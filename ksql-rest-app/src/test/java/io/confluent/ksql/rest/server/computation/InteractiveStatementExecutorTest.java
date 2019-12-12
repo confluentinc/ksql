@@ -56,6 +56,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -93,13 +94,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InteractiveStatementExecutorTest {
-
-  private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
   private static final String CREATE_STREAM_FOO_STATMENT = "CREATE STREAM foo ("
       + "biz bigint,"
       + " baz varchar) "
       + "WITH (kafka_topic = 'foo', "
       + "value_format = 'json');";
+  private static final CommandId COMMAND_ID = new CommandId(Type.STREAM, "foo", Action.CREATE);
+  private static final QueryId QUERY_ID = new QueryId("qid");
 
   private KsqlEngine ksqlEngine;
   private InteractiveStatementExecutor statementExecutor;
@@ -122,6 +123,12 @@ public class InteractiveStatementExecutorTest {
   private PersistentQueryMetadata mockQueryMetadata;
   @Mock
   private QueuedCommand queuedCommand;
+  @Mock
+  private KsqlPlan plan;
+  @Mock
+  private CommandStatusFuture status;
+
+  private Command plannedCommand;
 
   @Before
   public void setUp() {
@@ -160,6 +167,13 @@ public class InteractiveStatementExecutorTest {
 
     statementExecutor.configure(ksqlConfig);
     statementExecutorWithMocks.configure(ksqlConfig);
+
+    plannedCommand = new Command(
+        CREATE_STREAM_FOO_STATMENT,
+        emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
+        Optional.of(plan)
+    );
   }
 
   @After
@@ -301,13 +315,9 @@ public class InteractiveStatementExecutorTest {
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()
     );
-    final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
-        "foo",
-        CommandId.Action.CREATE);
-    final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     // When:
-    handleStatement(command, commandId, Optional.of(status), 0L);
+    handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
 
     // Then:
     InOrder inOrder = Mockito.inOrder(status);
@@ -323,6 +333,98 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldExecutePlannedCommand() {
+    // Given:
+    givenMockPlannedQuery();
+
+    // When:
+    handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockEngine).execute(serviceContext, ConfiguredKsqlPlan.of(plan, emptyMap(), ksqlConfig));
+  }
+
+  @Test
+  public void shouldUpdateStatusOnCompletedPlannedCommand() {
+    // Given:
+    givenMockPlannedQuery();
+
+    // When:
+    handleStatement(
+        statementExecutorWithMocks,
+        plannedCommand,
+        COMMAND_ID,
+        Optional.of(status),
+        0L
+    );
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(status, mockEngine);
+    inOrder.verify(status).setStatus(
+        new CommandStatus(Status.EXECUTING, "Executing statement"));
+    inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class));
+    inOrder.verify(status).setFinalStatus(
+        new CommandStatus(Status.SUCCESS, "Created query with ID qid"));
+  }
+
+  @Test
+  public void shouldSetCorrectFinalStatusOnCompletedPlannedDDLCommand() {
+    // Given:
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+        .thenReturn(ExecuteResult.of("result"));
+
+    // When:
+    handleStatement(
+        statementExecutorWithMocks,
+        plannedCommand,
+        COMMAND_ID,
+        Optional.of(status),
+        0L
+    );
+
+    // Then:
+    verify(status).setFinalStatus(new CommandStatus(Status.SUCCESS, "result"));
+  }
+
+  @Test
+  public void shouldStartQueryForPlannedCommand() {
+    // Given:
+    givenMockPlannedQuery();
+
+    // When:
+    handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockQueryMetadata).start();
+  }
+
+  @Test
+  public void shouldExecutePlannedCommandWithMergedConfig() {
+    // Given:
+    final Map<String, String> savedConfigs = ImmutableMap.of("biz", "baz");
+    plannedCommand = new Command(
+        CREATE_STREAM_FOO_STATMENT,
+        emptyMap(),
+        savedConfigs,
+        Optional.of(plan)
+    );
+    final KsqlConfig mockConfig = mock(KsqlConfig.class);
+    when(mockConfig.getKsqlStreamConfigProps()).thenReturn(
+        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "appid"));
+    final KsqlConfig mergedConfig = mock(KsqlConfig.class);
+    when(mockConfig.overrideBreakingConfigsWithOriginalValues(any())).thenReturn(mergedConfig);
+    givenMockPlannedQuery();
+
+    // When:
+    statementExecutorWithMocks.configure(mockConfig);
+    handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
+    verify(mockEngine).execute(any(), eq(ConfiguredKsqlPlan.of(plan, emptyMap(), mergedConfig)));
+  }
+
+  @Test
   public void shouldThrowExceptionIfCommandFails() {
     // Given:
     shouldCompleteFutureOnSuccess();
@@ -333,14 +435,11 @@ public class InteractiveStatementExecutorTest {
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()
     );
-    final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
-        "foo",
-        CommandId.Action.CREATE);
     final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     // When:
     try {
-      handleStatement(command, commandId, Optional.of(status), 0L);
+      handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
     } catch (KsqlStatementException e) {
       // Then:
       assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
@@ -804,16 +903,9 @@ public class InteractiveStatementExecutorTest {
     return commandStatus.get();
   }
 
-  private static KsqlConfig givenCommandConfig(final String name, final Object value) {
-    return new KsqlConfig(Collections.singletonMap(name, value));
-  }
-
-  private static Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
-    return new Command(
-        statementStr,
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
-    );
+  private void givenMockPlannedQuery() {
+    when(mockQueryMetadata.getQueryId()).thenReturn(QUERY_ID);
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+        .thenReturn(ExecuteResult.of(mockQueryMetadata));
   }
 }

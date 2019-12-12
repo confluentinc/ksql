@@ -35,6 +35,7 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
+   * @param commandId              The id of the command to be distributed
    * @param command                The command to be distributed
    * @param transactionalProducer  The transactional producer used to for enqueue the command
    * @return an asynchronous tracker that can be used to determine the current

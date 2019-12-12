@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -51,8 +52,7 @@ public class RequestValidator {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
-  private final BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
-      distributedStatementValidator;
+  private final ValidatedCommandFactory distributedStatementValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -67,8 +67,7 @@ public class RequestValidator {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
-      final BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
-          distributedStatementValidator
+      final ValidatedCommandFactory distributedStatementValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
@@ -145,7 +144,7 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
         || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
-      distributedStatementValidator.accept(statementInjected, executionContext);
+      distributedStatementValidator.create(statementInjected, serviceContext, executionContext);
     } else {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass

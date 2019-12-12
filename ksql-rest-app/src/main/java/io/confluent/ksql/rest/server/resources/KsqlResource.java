@@ -151,7 +151,7 @@ public class KsqlResource implements KsqlConfigurable {
         injectorFactory,
         ksqlEngine::createSandbox,
         config,
-        (s, c) -> new ValidatedCommandFactory(config).create(s, c)
+        new ValidatedCommandFactory(config)
     );
 
     this.handler = new RequestHandler(

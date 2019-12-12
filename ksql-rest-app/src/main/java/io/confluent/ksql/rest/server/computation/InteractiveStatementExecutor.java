@@ -44,6 +44,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -237,14 +238,27 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         command.getOverwriteProperties(),
         mergedConfig
     );
+    putStatus(
+        commandId,
+        commandStatusFuture,
+        new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
+    );
     final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
     if (mode == Mode.EXECUTE) {
       result.getQuery().ifPresent(QueryMetadata::start);
     }
-    final String successMessage = "TODO";
+    final String successMessage = getSuccessMessage(result);
     final CommandStatus successStatus =
         new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
     putFinalStatus(commandId, commandStatusFuture, successStatus);
+  }
+
+  private String getSuccessMessage(final ExecuteResult result) {
+    if (result.getCommandResult().isPresent()) {
+      return result.getCommandResult().get();
+    }
+    return "Created query with ID "
+        + ((PersistentQueryMetadata) result.getQuery().get()).getQueryId();
   }
 
   @SuppressWarnings("unchecked")
@@ -296,52 +310,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
             ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
         .getCommandResult()
         .get();
-  }
-
-  /**
-   * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
-   */
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated
-  private void handleLegacyRunScript(final Command command, final Mode mode) {
-
-    final String sql = (String) command.getOverwriteProperties()
-        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
-
-    if (sql == null) {
-      throw new KsqlException("No statements received for LOAD FROM FILE.");
-    }
-
-    final Map<String, Object> overriddenProperties = new HashMap<>(
-        command.getOverwriteProperties());
-
-    final KsqlConfig mergedConfig = buildMergedConfig(command);
-
-    final List<QueryMetadata> queries = new ArrayList<>();
-    for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      final ConfiguredStatement<?> configured =
-          ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
-      ksqlEngine.execute(serviceContext, configured)
-          .getQuery()
-          .ifPresent(queries::add);
-    }
-
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-      queries.forEach(QueryMetadata::close);
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, mergedConfig, command.getStatement());
-    }
-
-    if (mode == Mode.EXECUTE) {
-      for (final QueryMetadata queryMetadata : queries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          final PersistentQueryMetadata persistentQueryMd =
-              (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.start();
-        }
-      }
-    }
   }
 
   private PersistentQueryMetadata startQuery(

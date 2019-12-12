@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -50,12 +51,26 @@ public final class ValidatedCommandFactory {
   public Command create(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext context) {
+    return create(statement, context.getServiceContext(), context);
+  }
+
+  /**
+   * Create a validated command using the supplied service context
+   * @param statement The KSQL statement to create the command for.
+   * @param serviceContext The KSQL service context.
+   * @param context The KSQL engine snapshot to validate the command against.
+   * @return A validated command, which is safe to enqueue onto the command topic.
+   */
+  public Command create(
+      final ConfiguredStatement<? extends Statement> statement,
+      final ServiceContext serviceContext,
+      final KsqlExecutionContext context) {
     if (statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       return Command.of(statement);
     } else if (statement.getStatement() instanceof TerminateQuery) {
       return createForTerminateQuery(statement, context);
     }
-    return createForPlannedQuery(statement, context);
+    return createForPlannedQuery(statement, serviceContext, context);
   }
 
   private Command createForTerminateQuery(
@@ -80,11 +95,12 @@ public final class ValidatedCommandFactory {
 
   private Command createForPlannedQuery(
       final ConfiguredStatement<? extends Statement> statement,
+      final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
-    final KsqlPlan plan = context.plan(context.getServiceContext(), statement);
+    final KsqlPlan plan = context.plan(serviceContext, statement);
     context.execute(
-        context.getServiceContext(),
+        serviceContext,
         ConfiguredKsqlPlan.of(
             plan,
             statement.getOverrides(),

@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -82,8 +83,7 @@ public class RequestValidatorTest {
   @Mock
   private Injector topicInjector;
   @Mock
-  private BiConsumer<ConfiguredStatement<? extends Statement>, KsqlExecutionContext>
-      distributedStatementValidator;
+  private ValidatedCommandFactory distributedStatementValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -140,7 +140,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void shouldExecuteOnEngineIfNoCustomExecutor() {
+  public void shouldExecuteOnDistributedStatementValidatorIfNoCustomExecutor() {
     // Given:
     final List<ParsedStatement> statements =
         givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
@@ -149,9 +149,10 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
-    verify(ksqlEngine, times(1)).execute(
+    verify(distributedStatementValidator).create(
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class)))),
         eq(serviceContext),
-        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
+        eq(executionContext)
     );
   }
 

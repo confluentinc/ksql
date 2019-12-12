@@ -157,20 +157,20 @@ public class DistributingExecutorTest {
 
     // Then:
     InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
-    inOrder.verify(transactionalProducer, times(1)).initTransactions();
-    inOrder.verify(transactionalProducer, times(1)).beginTransaction();
-    inOrder.verify(queue, times(1)).waitForCommandConsumer();
+    inOrder.verify(transactionalProducer).initTransactions();
+    inOrder.verify(transactionalProducer).beginTransaction();
+    inOrder.verify(queue).waitForCommandConsumer();
     inOrder.verify(validatedCommandFactory).create(
         CONFIGURED_STATEMENT,
         sandboxContext
     );
-    inOrder.verify(queue, times(1)).enqueueCommand(
+    inOrder.verify(queue).enqueueCommand(
         IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()),
         command,
         transactionalProducer
     );
-    inOrder.verify(transactionalProducer, times(1)).commitTransaction();
-    inOrder.verify(transactionalProducer, times(1)).close();
+    inOrder.verify(transactionalProducer).commitTransaction();
+    inOrder.verify(transactionalProducer).close();
   }
 
   @Test

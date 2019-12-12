@@ -520,7 +520,7 @@ public class KsqlConfig extends AbstractConfig {
             Type.BOOLEAN,
             KSQL_EXECUTION_PLANS_ENABLE_DEFAULT,
             Importance.LOW,
-            "Enable writing KSQL execution plans"
+            "Feature flag to enable writing KSQL execution plans. For testing only."
         )
         .withClientSslSupport();
 

@@ -53,7 +53,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -535,7 +535,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteStructExpression() {
     // Given:
-    final StructExpression parsed = parseExpression("{foo 'foo', bar col4[1]}");
+    final CreateStructExpression parsed = parseExpression("STRUCT('foo' as FOO, col4[1] as BAR)");
     final Expression fooVal = parsed.getStruct().get("FOO");
     final Expression barVal = parsed.getStruct().get("BAR");
     when(processor.apply(fooVal, context)).thenReturn(expr1);
@@ -545,7 +545,7 @@ public class ExpressionTreeRewriterTest {
     final Expression rewritten = expressionRewriter.rewrite(parsed, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new StructExpression(ImmutableMap.of("FOO", expr1, "BAR", expr2))));
+    assertThat(rewritten, equalTo(new CreateStructExpression(ImmutableMap.of("FOO", expr1, "BAR", expr2))));
   }
 
   @Test

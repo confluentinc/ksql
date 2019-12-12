@@ -73,7 +73,7 @@ public interface ExpressionVisitor<R, C> {
 
   R visitSubscriptExpression(SubscriptExpression exp, @Nullable C context);
 
-  R visitStructExpression(StructExpression exp, @Nullable C context);
+  R visitStructExpression(CreateStructExpression exp, @Nullable C context);
 
   R visitTimeLiteral(TimeLiteral exp, @Nullable C context);
 

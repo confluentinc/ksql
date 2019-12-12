@@ -16,11 +16,11 @@
 package io.confluent.ksql.execution.codegen;
 
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -179,7 +179,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitStructExpression(StructExpression exp, @Nullable Void context) {
+    public Void visitStructExpression(CreateStructExpression exp, @Nullable Void context) {
       exp.getStruct().values().forEach(val -> process(val, context));
       final Schema schema = SchemaConverters
           .sqlToConnectConverter()

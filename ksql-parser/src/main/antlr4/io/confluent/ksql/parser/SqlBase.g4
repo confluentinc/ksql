@@ -250,13 +250,13 @@ valueExpression
 primaryExpression
     : literal                                                                        #literalExpression
     | identifier STRING                                                              #typeConstructor
-    | identifier '(' ASTERISK ')'                              		                   #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                 #functionCall
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
-    | '{' (identifier expression (',' identifier expression)*)? '}'                  #structConstructor
+    | STRUCT '(' (expression AS identifier (',' expression AS identifier)*)? ')'     #structConstructor
+    | identifier '(' ASTERISK ')'                              		                   #functionCall
+    | identifier'(' (expression (',' expression)*)? ')' 						                 #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
     | identifier '.' identifier                                                      #columnReference

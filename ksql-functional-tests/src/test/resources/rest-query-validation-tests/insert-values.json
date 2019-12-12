@@ -277,13 +277,23 @@
       "name": "should handle struct expressions",
       "statements": [
         "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (val) VALUES ({foo '2.1', `bar` AS_ARRAY('bar')});",
-        "INSERT INTO TEST (val) VALUES ({});"
+        "INSERT INTO TEST (val) VALUES (STRUCT('2.1' as FOO, AS_ARRAY('bar') AS `bar`));"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": 2.1, "bar": ["bar"]}}},
+        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": 2.1, "bar": ["bar"]}}}
+      ]
+    },
+    {
+      "name": "should handle empty struct expressions",
+      "statements": [
+        "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (val) VALUES (STRUCT());"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
         {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": null, "bar": null}}}
       ]
     }

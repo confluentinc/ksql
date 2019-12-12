@@ -23,17 +23,17 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class StructExpression extends Expression {
+public class CreateStructExpression extends Expression {
 
   private final Map<String, Expression> struct;
 
-  public StructExpression(
+  public CreateStructExpression(
       final Map<String, Expression> struct
   ) {
     this(Optional.empty(), struct);
   }
 
-  public StructExpression(
+  public CreateStructExpression(
       final Optional<NodeLocation> location,
       final Map<String, Expression> struct
   ) {
@@ -58,7 +58,7 @@ public class StructExpression extends Expression {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StructExpression that = (StructExpression) o;
+    CreateStructExpression that = (CreateStructExpression) o;
     return Objects.equals(struct, that.struct);
   }
 

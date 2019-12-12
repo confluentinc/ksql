@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -42,7 +43,6 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -190,12 +190,12 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    public Expression visitStructExpression(StructExpression node, C context) {
+    public Expression visitStructExpression(CreateStructExpression node, C context) {
       final Map<String, Expression> struct = new HashMap<>();
       for (Entry<String, Expression> field : node.getStruct().entrySet()) {
         struct.put(field.getKey(), rewriter.apply(field.getValue(), context));
       }
-      return new StructExpression(node.getLocation(), struct);
+      return new CreateStructExpression(node.getLocation(), struct);
     }
 
     @Override

@@ -94,7 +94,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       Optional<io.confluent.ksql.schema.ksql.types.Field> sqlField = targetType.field(field.name());
       if (!sqlField.isPresent()) {
         // if there was a field in the struct that wasn't in the schema
-        // we should throw an exception
+        // we cannot coerce
         return Optional.empty();
       } else if (struct.schema().field(field.name()) == null) {
         // if we cannot find the field in the struct, we can ignore it

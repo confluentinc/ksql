@@ -45,7 +45,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -89,12 +89,12 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStructExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new StructExpression(
+    assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
         ImmutableMap.of(
             "foo", new StringLiteral("abc"),
             "bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
         )),
-        equalTo("{foo 'abc', bar abc[1]}"));
+        equalTo("STRUCT('abc' AS foo, abc[1] AS bar)"));
   }
 
   @Test

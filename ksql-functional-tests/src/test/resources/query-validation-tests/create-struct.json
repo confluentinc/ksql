@@ -4,16 +4,42 @@
   ],
   "tests": [
     {
-      "name": "entries sorted",
+      "name": "basic struct creation",
       "statements": [
         "CREATE STREAM INPUT (col1 VARCHAR, col2 ARRAY<VARCHAR>) WITH (kafka_topic='test', value_format='JSON');",
-        "CREATE STREAM BIG_STRUCT AS SELECT {f1 COL1, f2 COL2, f3 SUBSTRING(col1, 2)} AS s FROM INPUT;"
+        "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(COL1 as F1, COL2 as F2, SUBSTRING(col1, 2) as F3) AS s FROM INPUT;"
       ],
       "inputs": [
         { "topic": "test", "value": {"col1": "foo", "col2": ["bar"]}}
       ],
       "outputs": [
         { "topic": "BIG_STRUCT", "value": {"S": {"F1": "foo", "F2": ["bar"], "F3": "oo"}}}
+      ]
+    },
+    {
+      "name": "nested struct creation",
+      "statements": [
+        "CREATE STREAM INPUT (col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(STRUCT(col1 as c1) AS f1) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {"F1": {"C1": "foo"}}}}
+      ]
+    },
+    {
+      "name": "empty struct creation",
+      "statements": [
+        "CREATE STREAM INPUT (col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT STRUCT() AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {}}}
       ]
     }
   ]

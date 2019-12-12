@@ -51,7 +51,7 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitStructExpression(StructExpression node, C context) {
+  public Void visitStructExpression(CreateStructExpression node, C context) {
     node.getStruct().values().forEach(exp -> process(exp, context));
     return null;
   }

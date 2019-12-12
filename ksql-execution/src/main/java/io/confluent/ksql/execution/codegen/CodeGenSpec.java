@@ -22,7 +22,8 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -39,13 +40,13 @@ public final class CodeGenSpec {
   private final ImmutableList<ArgumentSpec> arguments;
   private final ImmutableMap<ColumnRef, String> columnToCodeName;
   private final ImmutableListMultimap<FunctionName, String> functionToCodeName;
-  private final ImmutableMap<StructExpression, String> structToCodeName;
+  private final ImmutableMap<CreateStructExpression, String> structToCodeName;
 
   private CodeGenSpec(
       ImmutableList<ArgumentSpec> arguments,
       ImmutableMap<ColumnRef, String> columnToCodeName,
       ImmutableListMultimap<FunctionName, String> functionToCodeName,
-      ImmutableMap<StructExpression, String> structToCodeName
+      ImmutableMap<CreateStructExpression, String> structToCodeName
   ) {
     this.arguments = arguments;
     this.columnToCodeName = columnToCodeName;
@@ -83,8 +84,14 @@ public final class CodeGenSpec {
     }
   }
 
-  public String getSchemaName(StructExpression structExpression) {
-    return structToCodeName.get(structExpression);
+  public String getSchemaName(CreateStructExpression createStructExpression) {
+    final String schemaName = structToCodeName.get(createStructExpression);
+    if (schemaName == null) {
+      throw new KsqlException(
+          "Cannot get name for " + ExpressionFormatter.formatExpression(createStructExpression)
+      );
+    }
+    return schemaName;
   }
 
   static class Builder {
@@ -93,7 +100,8 @@ public final class CodeGenSpec {
     private final Map<ColumnRef, String> columnRefToName = new HashMap<>();
     private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
         ImmutableListMultimap.builder();
-    private final Map<StructExpression, String> structToSchemaName = new HashMap<>();
+    private final ImmutableMap.Builder<CreateStructExpression, String> structToSchemaName =
+        ImmutableMap.builder();
 
     private int argumentCount = 0;
     private int schemaCount = 0;
@@ -114,7 +122,7 @@ public final class CodeGenSpec {
       argumentBuilder.add(new FunctionArgumentSpec(codeName, function.getClass(), function));
     }
 
-    void addSchema(StructExpression struct, Schema schema) {
+    void addSchema(CreateStructExpression struct, Schema schema) {
       final String schemaName = CodeGenUtil.schemaName(schemaCount++);
       structToSchemaName.put(struct, schemaName);
       argumentBuilder.add(new SchemaArgumentSpec(schemaName, schema));
@@ -125,7 +133,7 @@ public final class CodeGenSpec {
           argumentBuilder.build(),
           ImmutableMap.copyOf(columnRefToName),
           functionNameBuilder.build(),
-          ImmutableMap.copyOf(structToSchemaName)
+          structToSchemaName.build()
       );
     }
   }
@@ -238,7 +246,7 @@ public final class CodeGenSpec {
         Schema schema
     ) {
       super(name, Schema.class);
-      this.schema = schema;
+      this.schema = requireNonNull(schema, "schema");
     }
 
     @Override

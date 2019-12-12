@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -43,7 +44,6 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -103,13 +103,13 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitStructExpression(StructExpression exp, Context context) {
+    public String visitStructExpression(CreateStructExpression exp, Context context) {
       return exp
           .getStruct()
           .entrySet()
           .stream()
-          .map(struct -> struct.getKey() + " " + process(struct.getValue(), context))
-          .collect(Collectors.joining(", ", "{", "}"));
+          .map(struct -> process(struct.getValue(), context) + " AS " + struct.getKey())
+          .collect(Collectors.joining(", ", "STRUCT(", ")"));
     }
 
     @Override

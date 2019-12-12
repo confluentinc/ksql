@@ -50,7 +50,7 @@ import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -326,9 +326,10 @@ public class ExpressionTypeManagerTest {
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
 
-    Expression exp = new StructExpression(ImmutableMap.of(
+    Expression exp = new CreateStructExpression(ImmutableMap.of(
         "field1", new StringLiteral("foo"),
-        "field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+        "field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+        "field3", new CreateStructExpression(ImmutableMap.of())
     ));
 
     // When:
@@ -339,6 +340,7 @@ public class ExpressionTypeManagerTest {
         is(SqlTypes.struct()
             .field("field1", SqlTypes.STRING)
             .field("field2", SqlTypes.array(SqlTypes.INTEGER))
+            .field("field3", SqlTypes.struct().build())
             .build()));
   }
 

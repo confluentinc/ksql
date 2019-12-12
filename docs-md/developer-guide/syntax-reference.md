@@ -281,12 +281,6 @@ statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
 example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
 three fields, with the supplied name and type.
 
-You can create a struct in a query by specifying the names of the columns
-and expressions that construct the values, separated by `,` and wrapped with
-curly braces. For example: `SELECT {name col0, ageInDogYears col1*7} AS dogs FROM animals`
-would create a schema `col0 STRUCT<VARCHAR, INTEGER>` (assuming `col0` was a string and
-`col1` was an integer).
-
 Access the fields of a struct by using the `->` operator. For example,
 `SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
 more information, see [Operators](#operators).

@@ -49,7 +49,7 @@ import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.StructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -147,7 +147,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldProcessStructExpressionCorrectly() {
     // Given:
-    Expression expression = new StructExpression(
+    Expression expression = new CreateStructExpression(
         ImmutableMap.of(
             "col1", new StringLiteral("foo"),
             "col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1"))

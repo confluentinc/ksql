@@ -114,13 +114,13 @@ public class KafkaConfigStore implements ConfigStore {
 
     @JsonCreator
     KsqlProperties(
-        @JsonProperty("ksqlProperties") final Map<String, String> ksqlProperties) {
-      this.ksqlProperties = ksqlProperties == null
-          ? Collections.emptyMap()
-          : ksqlProperties.entrySet()
+        @JsonProperty("ksqlProperties") final Optional<Map<String, String>> ksqlProperties) {
+      this.ksqlProperties = ksqlProperties.isPresent()
+          ? ksqlProperties.get().entrySet()
               .stream()
               .filter(kv -> kv.getValue() != null)
-              .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+              .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue))
+          : Collections.emptyMap();
     }
 
     public Map<String, String> getKsqlProperties() {
@@ -128,7 +128,7 @@ public class KafkaConfigStore implements ConfigStore {
     }
 
     static KsqlProperties createFor(final KsqlConfig ksqlConfig) {
-      return new KsqlProperties(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+      return new KsqlProperties(Optional.of(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
     }
 
     @Override

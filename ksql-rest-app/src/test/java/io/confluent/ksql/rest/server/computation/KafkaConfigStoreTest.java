@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -69,13 +70,13 @@ public class KafkaConfigStoreTest {
       ImmutableMap.of(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bad"));
 
   private final KsqlProperties properties = new KsqlProperties(
-      currentConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(currentConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties savedProperties = new KsqlProperties(
-      savedConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(savedConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties badProperties = new KsqlProperties(
-      badConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(badConfig.getAllConfigPropsWithSecretsObfuscated())
   );
 
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
@@ -372,6 +373,20 @@ public class KafkaConfigStoreTest {
 
     // Then:
     assertThat(ksqlProperties.getKsqlProperties(), equalTo(Collections.emptyMap()));
+  }
+
+  @Test
+  public void shouldDeserializeProps() {
+    // When:
+    final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
+        = InternalTopicSerdes.deserializer(KsqlProperties.class);
+    final KafkaConfigStore.KsqlProperties ksqlProperties = deserializer.deserialize(
+        TOPIC_NAME,
+        "{\"ksqlProperties\": {\"foo\": \"bar\"}}".getBytes(StandardCharsets.UTF_8)
+    );
+
+    // Then:
+    assertThat(ksqlProperties.getKsqlProperties(), equalTo(ImmutableMap.of("foo", "bar")));
   }
 
   private static Map<String, String> filterNullValues(final Map<String, String> map) {

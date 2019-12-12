@@ -57,8 +57,8 @@ Next KLIP number: **14**
 | [KLIP-14: ROWTIME as Pseudocolumn](klip-14-rowtime-as-pseudocolumn.md)             | Approved       | N/A     |
 | [KLIP-15: KSQLDB new API and Client(klip-15-new-api-and-client.md                  | Proposal       | N/A     |
 | [KLIP-16: Introduce 'K$' dynamic views                                             | Proposal       | N/A     |
-| [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union                              | Proposal       | N/A     |
-| [KLIP-18: Distributed Metastore                                                    | Proposal       | N/A     |
-| [KLIP-19: Introduce Materialize Views                                              | Proposal       | N/A     |
-| [KLIP-20: Remove 'TERMINATE' statements                                            | Proposal       | N/A     |
-| [KLIP-21: Correct 'INSERT VALUES' semantics                                        | Proposal       | N/A     |
+| [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)       | Proposed [Discussion](https://github.com/confluentinc/ksql/pull/4125)       | N/A     |
+| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore .md)                | Proposal       | N/A     |
+| [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)               | Proposal       | N/A     |
+| [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)              | Proposal       | N/A     |
+| [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)  | Proposal       | N/A     |

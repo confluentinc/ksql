@@ -21,7 +21,7 @@ ksqlDB supports two different kinds of client-issued queries: push and pull.
 - [Pull Queries](pull.md) enable you to look up information at a point in time.
 - [Push Queries](push.md) enable you to subscribe to a result as it changes in
   real-time. You can subscribe to the output of any query, including those that
-  returns a stream or a materialized aggregate table. 
+  return a stream or a materialized aggregate table. 
 
 ksqlDB supports both kinds of queries by using SQL over its REST API. Combining
 them enables you to build powerful real-time applications.

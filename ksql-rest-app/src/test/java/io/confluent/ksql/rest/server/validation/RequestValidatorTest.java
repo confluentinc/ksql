@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -45,17 +46,14 @@ import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,8 +91,6 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.parse(any()))
-        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
@@ -269,9 +265,10 @@ public class RequestValidatorTest {
     validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
-    verify(executionContext, times(1)).execute(
-        argThat(is(otherServiceContext)),
-        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
+    verify(distributedStatementValidator).create(
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class)))),
+        same(otherServiceContext),
+        any()
     );
   }
 

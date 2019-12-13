@@ -46,14 +46,14 @@ Pull query features and limitations
 Example pull query
 ------------------
 
-The following pull query gets all events from `Region_1` that have a timestamp
-that occurs within the specified window. The WHERE clause must contain a single
-value of `ROWKEY` to retrieve and may optionally include bounds on WINDOWSTART
-if the materialized table is windowed.
+The following pull query gets all events for the specified user that have a
+timestamp within the specified time window. The WHERE clause must contain a
+single value of `ROWKEY` to retrieve and may optionally include bounds on
+WINDOWSTART if the materialized table is windowed.
 
 ```sql
-SELECT * FROM pageviews_by_region
-  WHERE ROWKEY = 'Region_1'
+SELECT * FROM user_location
+  WHERE ROWKEY = 'user19r7t33'
     AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
 ```
 

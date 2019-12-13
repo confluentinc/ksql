@@ -8,20 +8,20 @@ keywords: ksqldb, query, select, pull, push, materialized view
 
 ksqlDB has a rich set of constructs for both storing events in collections and
 deriving new ones through stream processing. Sometimes, you need to process
-your events by aggregating them together into a materialized view. In this
-case, you need a way for your applications or microservices to leverage this
-view. That's where queries come in.
+your events in a real-time stream or by aggregating them together into a
+materialized table. In these cases, you need a way for your applications or
+microservices to leverage these collections. That's where queries come in.
 
 Push and pull queries
 ---------------------
 
-Queries enable you to ask questions about materialized views. ksqlDB supports
-two different kinds of client-issued queries: push and pull.
+Queries enable you to ask questions about collections and materialized views.
+ksqlDB supports two different kinds of client-issued queries: push and pull.
 
 - [Pull Queries](pull.md) enable you to look up information at a point in time.
 - [Push Queries](push.md) enable you to subscribe to a result as it changes in
-  real-time. Push queries also enable you to access other collections, like
-  streams.
+  real-time. You can subscribe to the output of any query, including those that
+  returns a stream or a materialized aggregate table. 
 
 ksqlDB supports both kinds of queries by using SQL over its REST API. Combining
 them enables you to build powerful real-time applications.

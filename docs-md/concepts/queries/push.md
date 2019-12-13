@@ -21,15 +21,19 @@ either streams or tables for a particular key. Also, push queries aren't limited
 to key look-ups. They support a full set of SQL, including filters, selects,
 group bys, partition bys, and joins.
 
-Push queries enable you to query a materialized view with a subscription to
-the results. Push queries emit refinements to materialized views, which enable
-reacting to new information in real-time. They’re a good fit for asynchronous
-application flows. For request/response flows, see [Pull Query](pull.md).
+Push queries enable you to query a stream or materialized table with a
+subscription to the results. You can subscribe to the output of any query,
+including one that returns a stream. A push query emits refinements to a stream
+or materialized table, which enables reacting to new information in real-time.
+They’re a good fit for asynchronous application flows. For request/response
+flows, see [Pull Query](pull.md).
 
 Execute a push query by sending an HTTP request to the ksqlDB REST API, and
 the API sends back a chunked response of indefinite length.
 
 The result of a push query isn't persisted to a backing {{ site.ak }} topic.
+If you need to persist the result of a query to a {{ site.ak }} topic, use a
+CREATE TABLE AS SELECT or CREATE STREAM AS SELECT statement.
 
 Example push query
 ==================

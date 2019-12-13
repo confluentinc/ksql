@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -39,6 +38,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -70,23 +70,21 @@ public class KafkaConfigStoreTest {
       ImmutableMap.of(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bad"));
 
   private final KsqlProperties properties = new KsqlProperties(
-      currentConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(currentConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties savedProperties = new KsqlProperties(
-      savedConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(savedConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties badProperties = new KsqlProperties(
-      badConfig.getAllConfigPropsWithSecretsObfuscated()
+      Optional.of(badConfig.getAllConfigPropsWithSecretsObfuscated())
   );
 
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
   private final List<TopicPartition> topicPartitionAsList
       = Collections.singletonList(topicPartition);
   private final List<ConsumerRecords<byte[], byte[]>> log = new LinkedList<>();
-  private final Serializer<StringKey> keySerializer
-      = InternalTopicJsonSerdeUtil.getJsonSerializer(true);
-  private final Serializer<KsqlProperties> serializer
-      = InternalTopicJsonSerdeUtil.getJsonSerializer(false);
+  private final Serializer<StringKey> keySerializer = InternalTopicSerdes.serializer();
+  private final Serializer<KsqlProperties> serializer = InternalTopicSerdes.serializer();
 
   @Mock
   private KafkaConsumer<byte[], byte[]> consumerBefore;
@@ -369,12 +367,26 @@ public class KafkaConfigStoreTest {
   public void shouldDeserializeEmptyContentsToEmptyProps() {
     // When:
     final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
-        = InternalTopicJsonSerdeUtil.getJsonDeserializer(KsqlProperties.class, false);
+        = InternalTopicSerdes.deserializer(KsqlProperties.class);
     final KafkaConfigStore.KsqlProperties ksqlProperties
         = deserializer.deserialize(TOPIC_NAME, "{}".getBytes(StandardCharsets.UTF_8));
 
     // Then:
     assertThat(ksqlProperties.getKsqlProperties(), equalTo(Collections.emptyMap()));
+  }
+
+  @Test
+  public void shouldDeserializeProps() {
+    // When:
+    final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
+        = InternalTopicSerdes.deserializer(KsqlProperties.class);
+    final KafkaConfigStore.KsqlProperties ksqlProperties = deserializer.deserialize(
+        TOPIC_NAME,
+        "{\"ksqlProperties\": {\"foo\": \"bar\"}}".getBytes(StandardCharsets.UTF_8)
+    );
+
+    // Then:
+    assertThat(ksqlProperties.getKsqlProperties(), equalTo(ImmutableMap.of("foo", "bar")));
   }
 
   private static Map<String, String> filterNullValues(final Map<String, String> map) {

@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
 import io.confluent.ksql.rest.server.execution.DefaultCommandQueueSync;
 import io.confluent.ksql.rest.server.execution.RequestHandler;
@@ -149,7 +150,8 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        config
+        config,
+        new ValidatedCommandFactory(config)
     );
 
     this.handler = new RequestHandler(
@@ -159,7 +161,7 @@ public class KsqlResource implements KsqlConfigurable {
             distributedCmdResponseTimeout,
             injectorFactory,
             authorizationValidator,
-            this.validator
+            new ValidatedCommandFactory(config)
         ),
         ksqlEngine,
         config,

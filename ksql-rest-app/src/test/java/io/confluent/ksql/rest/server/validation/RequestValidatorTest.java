@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -41,13 +42,13 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
@@ -79,6 +80,8 @@ public class RequestValidatorTest {
   private Injector schemaInjector;
   @Mock
   private Injector topicInjector;
+  @Mock
+  private ValidatedCommandFactory distributedStatementValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -88,8 +91,6 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.parse(any()))
-        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
@@ -135,7 +136,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void shouldExecuteOnEngineIfNoCustomExecutor() {
+  public void shouldExecuteOnDistributedStatementValidatorIfNoCustomExecutor() {
     // Given:
     final List<ParsedStatement> statements =
         givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
@@ -144,9 +145,10 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
-    verify(ksqlEngine, times(1)).execute(
+    verify(distributedStatementValidator).create(
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class)))),
         eq(serviceContext),
-        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
+        eq(executionContext)
     );
   }
 
@@ -263,9 +265,10 @@ public class RequestValidatorTest {
     validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
-    verify(executionContext, times(1)).execute(
-        argThat(is(otherServiceContext)),
-        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
+    verify(distributedStatementValidator).create(
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class)))),
+        same(otherServiceContext),
+        any()
     );
   }
 
@@ -280,7 +283,8 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
-        ksqlConfig
+        ksqlConfig,
+        distributedStatementValidator
     );
   }
 

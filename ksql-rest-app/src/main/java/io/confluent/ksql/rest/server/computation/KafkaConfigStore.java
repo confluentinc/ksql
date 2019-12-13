@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -61,8 +60,8 @@ public class KafkaConfigStore implements ConfigStore {
       final KsqlConfig ksqlConfig) {
     return new KafkaProducer<>(
         ksqlConfig.getKsqlStreamConfigProps(),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
+        InternalTopicSerdes.serializer(),
+        InternalTopicSerdes.serializer()
     );
   }
 
@@ -96,8 +95,8 @@ public class KafkaConfigStore implements ConfigStore {
     final KsqlProperties savedProperties = new KafkaWriteOnceStore<>(
         topicName,
         new StringKey(CONFIG_MSG_KEY),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(ConfigTopicKey.class, true),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(KsqlProperties.class, false),
+        InternalTopicSerdes.deserializer(ConfigTopicKey.class),
+        InternalTopicSerdes.deserializer(KsqlProperties.class),
         consumer,
         producer
     ).readMaybeWrite(currentProperties);
@@ -115,13 +114,13 @@ public class KafkaConfigStore implements ConfigStore {
 
     @JsonCreator
     KsqlProperties(
-        @JsonProperty("ksqlProperties") final Map<String, String> ksqlProperties) {
-      this.ksqlProperties = ksqlProperties == null
-          ? Collections.emptyMap()
-          : ksqlProperties.entrySet()
+        @JsonProperty("ksqlProperties") final Optional<Map<String, String>> ksqlProperties) {
+      this.ksqlProperties = ksqlProperties.isPresent()
+          ? ksqlProperties.get().entrySet()
               .stream()
               .filter(kv -> kv.getValue() != null)
-              .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+              .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue))
+          : Collections.emptyMap();
     }
 
     public Map<String, String> getKsqlProperties() {
@@ -129,7 +128,7 @@ public class KafkaConfigStore implements ConfigStore {
     }
 
     static KsqlProperties createFor(final KsqlConfig ksqlConfig) {
-      return new KsqlProperties(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+      return new KsqlProperties(Optional.of(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
     }
 
     @Override

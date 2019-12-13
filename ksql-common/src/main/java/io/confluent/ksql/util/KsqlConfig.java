@@ -184,6 +184,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds when waiting for rebalancing of the stream store during a pull query";
 
+  public static final String KSQL_EXECUTION_PLANS_ENABLE = "ksql.execution.plan.enable";
+  public static final boolean KSQL_EXECUTION_PLANS_ENABLE_DEFAULT = false;
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -512,6 +515,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHUTDOWN_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_EXECUTION_PLANS_ENABLE,
+            Type.BOOLEAN,
+            KSQL_EXECUTION_PLANS_ENABLE_DEFAULT,
+            Importance.LOW,
+            "Feature flag to enable writing KSQL execution plans. For testing only."
         )
         .withClientSslSupport();
 

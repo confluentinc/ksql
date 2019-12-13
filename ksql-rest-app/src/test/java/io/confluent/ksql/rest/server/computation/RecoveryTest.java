@@ -116,27 +116,25 @@ public class RecoveryTest {
 
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
-    private final CommandIdAssigner commandIdAssigner;
     private int offset;
     private Producer<CommandId, Command> transactionalProducer;
 
     FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
-      this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
       this.transactionalProducer = transactionalProducer;
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final Producer<CommandId, Command> transactionalProducer) {
-      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+    public QueuedCommandStatus enqueueCommand(
+        final CommandId commandId,
+        final Command command,
+        final Producer<CommandId, Command> transactionalProducer
+    ) {
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
-              new Command(
-                  statement.getStatementText(),
-                  Collections.emptyMap(),
-                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
+              command,
               Optional.empty(),
               commandSequenceNumber));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
@@ -615,7 +613,7 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()),
+            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of(), Optional.empty()),
             Optional.empty(),
             0L
         )
@@ -625,7 +623,7 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldRecoverQueryIDsByOffset() {
+  public void shouldRecoverQueryIDs() {
     commands.addAll(
         ImmutableList.of(
             new QueuedCommand(
@@ -634,7 +632,8 @@ public class RecoveryTest {
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
                     Collections.emptyMap(),
-                    null
+                    null,
+                    Optional.empty()
                 ),
                 Optional.empty(),
                 2L
@@ -644,7 +643,8 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM C AS SELECT * FROM A;",
                     Collections.emptyMap(),
-                    null
+                    null,
+                    Optional.empty()
                 ),
                 Optional.empty(),
                 7L

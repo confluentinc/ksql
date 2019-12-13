@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
@@ -67,6 +66,7 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -81,12 +81,10 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -169,7 +167,10 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -310,7 +311,7 @@ public class KsqlResourceTest {
 
     addTestTopicAndSources();
 
-    when(commandStore.enqueueCommand(any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
@@ -689,29 +690,32 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldDistributePersistentQuery() {
+    // Given:
+    final String sql = "CREATE STREAM S AS SELECT * FROM test_stream;";
+
     // When:
-    makeSingleRequest(
-        "CREATE STREAM S AS SELECT * FROM test_stream;", CommandStatusEntity.class);
+    makeSingleRequest(sql, CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(
-            configured(
-              preparedStatement(
-              "CREATE STREAM S AS SELECT * FROM test_stream;",
-              CreateStreamAsSelect.class)))
-        ), any(Producer.class)
+        any(),
+        argThat(is(commandWithStatement(sql))),
+        any(Producer.class)
     );
   }
 
   @Test
-  public void shouldDistributeWithConfig() {
+  public void shouldDistributeWithStreamsProperties() {
     // When:
     makeSingleRequest(VALID_EXECUTABLE_REQUEST, KsqlEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(configured(VALID_EXECUTABLE_REQUEST.getStreamsProperties(), ksqlConfig)), any(Producer.class));
+        any(),
+        argThat(is(commandWithOverwrittenProperties(
+            VALID_EXECUTABLE_REQUEST.getStreamsProperties()))),
+        any(Producer.class)
+    );
   }
 
   @Test
@@ -809,7 +813,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributeAvoCreateStatementWithColumns() {
+  public void shouldDistributeAvroCreateStatementWithColumns() {
     // When:
     makeSingleRequest(
         "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
@@ -817,10 +821,10 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatement(
-            "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
-            CreateStream.class)
-        ))), any(Producer.class)
+        any(),
+        argThat(is(commandWithStatement(
+            "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"))),
+        any(Producer.class)
     );
   }
 
@@ -845,8 +849,12 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
-    verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))), any(Producer.class));
+    verify(sandbox).plan(any(SandboxedServiceContext.class), eq(configuredStatement));
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(sql))),
+        any(Producer.class)
+    );
   }
 
   @Test
@@ -870,7 +878,11 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(configured), any(Producer.class));
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(sqlWithTopic))),
+        any()
+    );
   }
 
   @Test
@@ -927,8 +939,12 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
-    verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA), any(Producer.class));
+    verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
+        any()
+    );
   }
 
   @Test
@@ -1133,7 +1149,7 @@ public class KsqlResourceTest {
     );
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(Producer.class));
+    verify(commandStore, never()).enqueueCommand(any(), any(), any(Producer.class));
   }
 
   @Test
@@ -1149,10 +1165,11 @@ public class KsqlResourceTest {
     final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore)
-        .enqueueCommand(
-            argThat(is(configured(preparedStatement(terminateSql, TerminateQuery.class)))),
-            any(Producer.class));
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(terminateSql))),
+        any()
+    );
 
     assertThat(result.getStatementText(), is(terminateSql));
   }
@@ -1170,13 +1187,11 @@ public class KsqlResourceTest {
     final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore)
-        .enqueueCommand(
-            argThat(is(configured(preparedStatement(
-                is(terminateSql),
-                is(TerminateQuery.all(Optional.empty()))))
-            )),
-            any(Producer.class));
+    verify(commandStore).enqueueCommand(
+        any(),
+        argThat(is(commandWithStatement(terminateSql))),
+        any()
+    );
 
     assertThat(result.getStatementText(), is(terminateSql));
   }
@@ -1307,7 +1322,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any(), any(ConfiguredStatement.class)))
+    when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1332,11 +1347,11 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(
-            preparedStatementText(csas),
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-            ksqlConfig))),
-        any(Producer.class));
+        any(),
+        argThat(is(commandWithOverwrittenProperties(
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))),
+        any()
+    );
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));
@@ -1355,11 +1370,10 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(
-            preparedStatementText(csas),
-            ImmutableMap.of(),
-            ksqlConfig))),
-        any(Producer.class));
+        any(),
+        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
+        any()
+    );
   }
 
   @Test
@@ -1406,8 +1420,10 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))),
-        any(Producer.class));
+        any(),
+        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
+        any(Producer.class)
+    );
 
     assertThat(result.getStatementText(), is(csas));
   }
@@ -1438,8 +1454,10 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))),
-        any(Producer.class));
+        any(),
+        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
+        any()
+    );
   }
 
   @Test
@@ -1485,7 +1503,7 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
-    verify(commandStore, never()).enqueueCommand(any(), any(Producer.class));
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test
@@ -1712,18 +1730,16 @@ public class KsqlResourceTest {
         equalTo(CommandStatus.Status.QUEUED));
     verify(transactionalProducer, times(1)).initTransactions();
     verify(commandStore).enqueueCommand(
-        argThat(is(configured(
-            preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT),
-            Collections.singletonMap(
-                ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo")),
-            ksqlConfig))),
-        any(Producer.class));
+        any(),
+        argThat(is(commandWithStatement(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))),
+        any()
+    );
   }
 
   @Test
   public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
         .thenThrow(new KsqlException(""));
 
     // When:
@@ -1767,7 +1783,7 @@ public class KsqlResourceTest {
         Code.BAD_REQUEST);
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(Producer.class));
+    verify(commandStore, never()).enqueueCommand(any(), any(), any(Producer.class));
   }
 
   @Test
@@ -1848,7 +1864,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldThrowServerErrorOnFailedToDistribute() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
         .thenThrow(new KsqlException("blah"));
     final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
@@ -1900,6 +1916,7 @@ public class KsqlResourceTest {
         .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
+    when(sandbox.plan(any(), any())).thenReturn(mock(KsqlPlan.class));
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -2184,6 +2201,36 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
         avroSchema);
+  }
+
+  private static Matcher<Command> commandWithStatement(final String statement) {
+    return new TypeSafeMatcher<Command>() {
+      @Override
+      protected boolean matchesSafely(final Command command) {
+        return command.getStatement().equals(statement);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(statement);
+      }
+    };
+  }
+
+  private static Matcher<Command> commandWithOverwrittenProperties(
+      final Map<String, Object> properties
+  ) {
+    return new TypeSafeMatcher<Command>() {
+      @Override
+      protected boolean matchesSafely(final Command command) {
+        return command.getOverwriteProperties().equals(properties);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(properties.toString());
+      }
+    };
   }
 
   @SuppressWarnings("SameParameterValue")

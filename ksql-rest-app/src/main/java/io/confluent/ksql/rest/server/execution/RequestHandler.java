@@ -81,7 +81,6 @@ public class RequestHandler {
       executeStatement(
           serviceContext,
           configured,
-          parsed,
           scopedPropertyOverrides,
           entities
       ).ifPresent(entities::add);
@@ -93,7 +92,6 @@ public class RequestHandler {
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
-      final ParsedStatement parsed,
       final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities
   ) {
@@ -101,10 +99,10 @@ public class RequestHandler {
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
-    final StatementExecutor<T> executor = (StatementExecutor<T>)
-        customExecutors.getOrDefault(statementClass, 
-            (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, ctx, svcCtx));
+    final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
+        statementClass,
+        (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, svcCtx)
+    );
 
     return executor.execute(
         configured,

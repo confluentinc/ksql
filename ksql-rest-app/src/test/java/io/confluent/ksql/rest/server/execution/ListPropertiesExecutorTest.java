@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
@@ -35,7 +34,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {
@@ -53,9 +53,18 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(),
+    assertThat(
+        toMap(properties),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
+  }
+
+  private Map<String, String> toMap(PropertiesList properties) {
+    Map<String, String> map = new HashMap<>();
+    for (Property property : properties.getProperties()) {
+      map.put(property.getName(), property.getValue());
+    }
+    return map;
   }
 
   @Test
@@ -70,8 +79,9 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(),
-        contains(new Property("ksql.streams.auto.offset.reset", "KSQL", "latest")));
+    assertThat(
+        properties.getProperties(),
+        hasItem(new Property("ksql.streams.auto.offset.reset", "KSQL", "latest")));
     assertThat(properties.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
   }
 
@@ -86,10 +96,8 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties().stream().collect(
-        Collectors.toMap(Property::getName, Property::getValue)),
-               not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
+    assertThat(
+        toMap(properties),
+        not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
   }
-
-
 }

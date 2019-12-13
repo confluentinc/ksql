@@ -443,17 +443,20 @@ public class CliTest {
         // SERVER OVERRIDES:
         row(
             KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG,
+            "KSQL",
             SERVER_OVERRIDE,
             "4"
         ),
         row(
             KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
+            "KSQL",
             SERVER_OVERRIDE,
             "" + (KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
         ),
         // SESSION OVERRIDES:
         row(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+            "KSQL",
             SESSION_OVERRIDE,
             "latest"
         )

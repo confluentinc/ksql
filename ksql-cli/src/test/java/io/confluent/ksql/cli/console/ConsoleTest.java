@@ -122,7 +122,8 @@ public class ConsoleTest {
       "avro",
       "kadka-topic",
       2,
-      1
+      1,
+      "statement"
   );
 
   @Parameterized.Parameters(name = "{0}")
@@ -349,7 +350,8 @@ public class ConsoleTest {
                 "avro",
                 "kadka-topic",
                 1,
-                1
+                1,
+                "sql statement"
             ),
             Collections.emptyList()
         )
@@ -471,7 +473,8 @@ public class ConsoleTest {
           + "    \"format\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 1,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"sql statement\"\n"
           + "  },\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
@@ -613,7 +616,8 @@ public class ConsoleTest {
           + "    \"format\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"statement\"\n"
           + "  } ],\n"
           + "  \"topics\" : [ \"a-jdbc-topic\" ],\n"
           + "  \"warnings\" : [ ]\n"
@@ -990,7 +994,8 @@ public class ConsoleTest {
                 true,
                 "avro",
                 "kadka-topic",
-                2, 1
+                2, 1,
+                "sql statement text"
             ),
             Collections.emptyList()
         ))
@@ -1048,7 +1053,8 @@ public class ConsoleTest {
           + "    \"format\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"sql statement text\"\n"
           + "  },\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
@@ -1061,6 +1067,7 @@ public class ConsoleTest {
           + "Timestamp field      : 2000-01-01\n"
           + "Value format         : avro\n"
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)\n"
+          + "Statement            : sql statement text\n"
           + "\n"
           + " Field   | Type                      \n"
           + "-------------------------------------\n"

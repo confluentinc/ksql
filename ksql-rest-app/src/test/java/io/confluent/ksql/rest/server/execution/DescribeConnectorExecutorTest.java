@@ -76,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DescribeConnectorExecutorTest {
 
   private static final String TOPIC = "kafka-topic";
+  private static final String STATEMENT = "statement";
   private static final String CONNECTOR_NAME = "connector";
   private static final String CONNECTOR_CLASS = "io.confluent.ConnectorClazz";
 
@@ -122,6 +123,7 @@ public class DescribeConnectorExecutorTest {
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
+    when(source.getSqlExpression()).thenReturn(STATEMENT);
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
             TOPIC,

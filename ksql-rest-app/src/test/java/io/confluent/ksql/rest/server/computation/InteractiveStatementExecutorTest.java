@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -399,6 +400,7 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   public void shouldExecutePlannedCommandWithMergedConfig() {
     // Given:
     final Map<String, String> savedConfigs = ImmutableMap.of("biz", "baz");

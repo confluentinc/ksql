@@ -75,11 +75,11 @@ public class PropertiesList extends KsqlEntity {
 
     @Override
     public String toString() {
-      return "Property{" +
-          "name='" + name + '\'' +
-          ", scope='" + scope + '\'' +
-          ", value='" + value + '\'' +
-          '}';
+      return "Property{"
+          + "name='" + name + '\''
+          + ", scope='" + scope + '\''
+          + ", value='" + value + '\''
+          + '}';
     }
   }
 

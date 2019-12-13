@@ -68,19 +68,19 @@ public class PhysicalPlanBuilderTest {
       + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 VARCHAR, COL1 BIGINT) "
       + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
@@ -316,7 +316,7 @@ public class PhysicalPlanBuilderTest {
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY DOUBLE KEY, TEST2."));
+    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST2."));
   }
 
   @Test
@@ -332,7 +332,7 @@ public class PhysicalPlanBuilderTest {
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY STRING KEY, TEST3."));
+    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST3."));
   }
 
   @Test

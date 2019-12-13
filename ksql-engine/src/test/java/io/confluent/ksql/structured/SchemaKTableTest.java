@@ -29,7 +29,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -77,7 +76,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -140,7 +138,6 @@ public class SchemaKTableTest {
   private KeyField validKeyField;
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
-  private LogicalSchema joinSchema;
   private StepSchemaResolver schemaResolver;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
@@ -186,7 +183,6 @@ public class SchemaKTableTest {
         .of(Optional.of(ColumnRef.of(ksqlTable.getName(), ColumnName.of("COL1"))));
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
-    joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
 
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
@@ -384,7 +380,7 @@ public class SchemaKTableTest {
     final SourceName test2 = SourceName.of("TEST2");
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
         valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.STRING),
+        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.BIGINT),
         valueColumn(test2, ColumnName.of("COL0"), SqlTypes.BIGINT),
         valueColumn(test2, ColumnName.of("COL1"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL2"), SqlTypes.STRING),
@@ -609,7 +605,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -630,7 +625,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -651,7 +645,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -838,23 +831,6 @@ public class SchemaKTableTest {
     // Then:
     assertThat(result.getKeyField(),
         is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL1")))));
-  }
-
-  private LogicalSchema getJoinSchema(
-      final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema
-  ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final SourceName leftAlias = ksqlTable.getName();
-    final SourceName rightAlias = secondKsqlTable.getName();
-    for (final Column field : leftSchema.value()) {
-      schemaBuilder.valueColumn(leftAlias, field.name(), field.type());
-    }
-
-    for (final Column field : rightSchema.value()) {
-      schemaBuilder.valueColumn(rightAlias, field.name(), field.type());
-    }
-    return schemaBuilder.build();
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

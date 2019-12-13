@@ -87,7 +87,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinLogicalPlan() {
-    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 EMIT CHANGES;";
+    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
@@ -106,13 +106,13 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-        + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
+        + "t1.col0 = t2.col0 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("T1_COL1")))));
+    assertThat(projectNode.getKeyField().ref(), is(Optional.empty()));
     assertThat(projectNode.getSchema().value().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
@@ -183,7 +183,7 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-            + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
+            + "t1.col0 = t2.col0 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }

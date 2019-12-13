@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 
 public final class JoinParamsFactory {
   private JoinParamsFactory() {
@@ -36,15 +37,31 @@ public final class JoinParamsFactory {
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
-    final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
+    throwOnKeyMismatch(leftSchema, rightSchema);
 
-    // Hard-wire for now, until we support custom type/name of key fields:
-    joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+    return LogicalSchema.builder()
+        .keyColumns(leftSchema.withoutAlias().key())
+        .valueColumns(leftSchema.value())
+        .valueColumns(rightSchema.value())
+        .build();
+  }
 
-    joinSchema.valueColumns(leftSchema.value());
+  private static void throwOnKeyMismatch(
+      final LogicalSchema leftSchema,
+      final LogicalSchema rightSchema
+  ) {
+    final List<Column> leftCols = leftSchema.key();
+    final List<Column> rightCols = rightSchema.key();
+    if (leftCols.size() != 1 || rightCols.size() != 1) {
+      throw new UnsupportedOperationException("Multi-key joins not supported");
+    }
 
-    joinSchema.valueColumns(rightSchema.value());
+    final Column left = leftCols.get(0);
+    final Column right = rightCols.get(0);
 
-    return joinSchema.build();
+    if (!left.type().equals(right.type())) {
+      throw new KsqlException("Invalid join. Key types differ: "
+          + left.type() + " vs " + right.type());
+    }
   }
 }

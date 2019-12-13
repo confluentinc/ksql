@@ -66,6 +66,7 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -848,7 +849,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
+    verify(sandbox).plan(any(SandboxedServiceContext.class), eq(configuredStatement));
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithStatement(sql))),
@@ -938,7 +939,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
+    verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
@@ -1321,7 +1322,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any(), any(ConfiguredStatement.class)))
+    when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1915,6 +1916,7 @@ public class KsqlResourceTest {
         .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
+    when(sandbox.plan(any(), any())).thenReturn(mock(KsqlPlan.class));
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);

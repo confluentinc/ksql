@@ -191,7 +191,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     try {
       if (command.getPlan().isPresent()) {
-        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode);
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset);
         return;
       }
       final String statementString = command.getStatement();
@@ -224,7 +224,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
       final KsqlPlan plan,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
@@ -238,8 +239,11 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
     );
     final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
-    if (mode == Mode.EXECUTE) {
-      result.getQuery().ifPresent(QueryMetadata::start);
+    if (result.getQuery().isPresent()) {
+      queryIdGenerator.setNextId(offset + 1);
+      if (mode == Mode.EXECUTE) {
+        result.getQuery().get().start();
+      }
     }
     final String successMessage = getSuccessMessage(result);
     final CommandStatus successStatus =
@@ -317,8 +321,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         statement, command.getOverwriteProperties(), mergedConfig);
 
-    queryIdGenerator.setNextId(offset);
-
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     final QueryMetadata queryMetadata =
         ksqlEngine
@@ -327,6 +329,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
                 ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
             .getQuery()
             .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
+
+    queryIdGenerator.setNextId(offset + 1);
 
     if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(

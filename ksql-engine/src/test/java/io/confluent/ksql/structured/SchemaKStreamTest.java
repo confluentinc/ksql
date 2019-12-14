@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -93,7 +92,6 @@ public class SchemaKStreamTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
 
   private SchemaKStream initialSchemaKStream;
-  private SchemaKStream secondSchemaKStream;
   private SchemaKTable schemaKTable;
   private KsqlStream<?> ksqlStream;
   private InternalFunctionRegistry functionRegistry;
@@ -112,10 +110,6 @@ public class SchemaKStreamTest {
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlStream = (KsqlStream) metaStore.getSource(SourceName.of("TEST1"));
     final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource(SourceName.of("ORDERS"));
-    secondSchemaKStream = buildSchemaKStreamForJoin(
-        secondKsqlStream,
-        mock(ExecutionStep.class)
-    );
     final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     schemaKTable = new SchemaKTable(
         tableSourceStep,

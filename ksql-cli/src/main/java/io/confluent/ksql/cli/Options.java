@@ -158,6 +158,18 @@ public class Options {
     return OutputFormat.valueOf(outputFormat);
   }
 
+  public String getUserName() {
+    return userName;
+  }
+
+  public void setPassword(String password) {
+    this.password = password;
+  }
+
+  public boolean isPasswordSet() {
+    return (password != null && !password.trim().isEmpty());
+  }
+
   public Optional<BasicCredentials> getUserNameAndPassword() {
     if ((userName == null && password != null) || (password == null && userName != null)) {
       throw new ConfigException(

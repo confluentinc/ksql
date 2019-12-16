@@ -57,7 +57,8 @@ public final class SourceDescriptionFactory {
         format,
         dataSource.getKafkaTopicName(),
         topicDescription.map(td -> td.partitions().size()).orElse(0),
-        topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0)
+        topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
+        dataSource.getSqlExpression()
     );
   }
 }

@@ -570,6 +570,7 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Type", source.getType()));
 
     printTopicInfo(source);
+    writer().println(String.format("%-20s : %s", "Statement", source.getStatement()));
     writer().println("");
 
     printSchema(source.getFields(), source.getKey());

@@ -81,13 +81,13 @@
     {
       "name": "rowkey should be set when stream has int key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (10);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "10", "value": {"ID": 10}}
+        {"topic": "test_topic", "key": 10, "value": {"ID": 10}}
       ]
     },
     {
@@ -105,37 +105,25 @@
     {
       "name": "rowkey should be set when stream has double key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (1.23);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "1.23", "value": {"ID": 1.23}}
+        {"topic": "test_topic", "key": 1.23, "value": {"ID": 1.23}}
       ]
     },
     {
       "name": "rowkey should be set when stream has bigint key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (10);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "10", "value": {"ID": 10}}
-      ]
-    },
-    {
-      "name": "rowkey should be set when stream has boolean key and only key specified in insert",
-      "statements": [
-        "CREATE STREAM TEST (ID BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ID) VALUES (TRUE);"
-      ],
-      "inputs": [
-      ],
-      "outputs": [
-        {"topic": "test_topic", "key": "true", "value": {"ID": true}}
+        {"topic": "test_topic", "key": 10, "value": {"ID": 10}}
       ]
     },
     {
@@ -153,13 +141,13 @@
     {
       "name": "rowkey and key should match when stream has int key",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('10', 10);"
+        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 10);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "10", "value": {"ID": 10}}
+        {"topic": "test_topic", "key": 10, "value": {"ID": 10}}
       ]
     },
     {
@@ -177,37 +165,25 @@
     {
       "name": "rowkey and key should match when stream has double key",
       "statements": [
-        "CREATE STREAM TEST (ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('1.23', 1.23);"
+        "CREATE STREAM TEST (ROWKEY DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES (1.23, 1.23);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "1.23", "value": {"ID": 1.23}}
+        {"topic": "test_topic", "key": 1.23, "value": {"ID": 1.23}}
       ]
     },
     {
       "name": "rowkey and key should match when stream has bigint key",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('10', 10);"
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 10);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "10", "value": {"ID": 10}}
-      ]
-    },
-    {
-      "name": "rowkey and key should match when stream has boolean key",
-      "statements": [
-        "CREATE STREAM TEST (ID BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('true', true);"
-      ],
-      "inputs": [
-      ],
-      "outputs": [
-        {"topic": "test_topic", "key": "true", "value": {"ID": true}}
+        {"topic": "test_topic", "key": 10, "value": {"ID": 10}}
       ]
     },
     {
@@ -225,8 +201,8 @@
     {
       "name": "should fail on mismatch between rowkey and key values when stream has key",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('10', 5);"
+        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 5);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",

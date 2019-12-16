@@ -167,7 +167,7 @@
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1,"value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
@@ -179,14 +179,14 @@
     {
       "name": "stream | initially set | no key change | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -198,14 +198,14 @@
     {
       "name": "stream | initially set | no key change | key in value | aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"ALIASED":1, "BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -217,14 +217,14 @@
     {
       "name": "stream | initially set | no key change | key in value | aliasing + duplicate",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"ALIASED":1, "FOO": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ALIASED":1, "FOO": 2}}
       ],
       "post": {
         "sources": [
@@ -236,14 +236,14 @@
     {
       "name": "stream | initially set | no key change | key not in value | -",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"BAR": 2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BAR": 2}}
       ],
       "post": {
         "sources": [
@@ -310,11 +310,11 @@
     {
       "name": "stream | initially set | partition by (different) | key in value | no aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 2, "value": {"FOO": 1, "BAR": 2}}
@@ -329,7 +329,7 @@
     {
       "name": "stream | initially set | partition by (different) | key in value | aliasing",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo, bar AS aliased FROM INPUT PARTITION BY aliased;"
       ],
       "expectedException": {
@@ -340,11 +340,11 @@
     {
       "name": "stream | initially set | partition by (different) | key not in value | -",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT PARTITION BY bar;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 2, "value": {"FOO":1}}
@@ -773,14 +773,14 @@
     {
       "name": "where clause",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT WHERE bar < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1}}
       ],
       "post": {
         "sources": [
@@ -791,14 +791,14 @@
     {
       "name": "where clause with alias",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo as boo FROM INPUT WHERE bar < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"BOO": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"BOO": 1}}
       ],
       "post": {
         "sources": [
@@ -809,14 +809,14 @@
     {
       "name": "using source alias in projection",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT i.foo FROM INPUT i WHERE bar < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1}}
       ],
       "post": {
         "sources": [
@@ -825,16 +825,26 @@
       }
     },
     {
+      "name": "different type to ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY STRING KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON', KEY='Foo');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The KEY field (FOO) identified in the WITH clause is of a different type to the actual key column.\nEither change the type of the KEY field to match ROWKEY, or explicitly set ROWKEY to the type of the KEY field by adding 'ROWKEY INTEGER KEY' in the schema.\nKEY field type: INTEGER\nROWKEY type: STRING"
+      }
+    },
+    {
       "name": "using full source name in projection",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT input.foo FROM INPUT WHERE bar < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 1}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO": 1}}
       ],
       "post": {
         "sources": [
@@ -845,14 +855,14 @@
     {
       "name": "where only rowkey is in projection",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ROWKEY AS ID FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"ID": "1"}}
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1}}
       ],
       "post": {
         "issues": [
@@ -866,14 +876,14 @@
     {
       "name": "multiple copies of key field in projection",
       "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo as foo0, foo as foo1, rowkey as foo2, rowkey as foo3 FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": 1, "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"FOO0": 1, "FOO1": 1, "FOO2": "1", "FOO3": "1"}}
+        {"topic": "OUTPUT", "key": 1, "value": {"FOO0": 1, "FOO1": 1, "FOO2": 1, "FOO3": 1}}
       ],
       "post": {
         "issues": [

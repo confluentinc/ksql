@@ -3,7 +3,7 @@
     {
       "name": "update-delete",
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE T1 as SELECT NAME, VALUE FROM test;"
       ],
       "inputs": [

@@ -111,15 +111,15 @@
     {
       "name": "fields (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,a"},
-        {"topic": "test_topic", "key": "2", "value": "2,b"},
-        {"topic": "test_topic", "key": "1", "value": "1,a"},
-        {"topic": "test_topic", "key": "2", "value": "2,b"},
-        {"topic": "test_topic", "key": "3", "value": "3,a"}
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 3, "value": "3,a"}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
@@ -142,16 +142,16 @@
     {
       "name": "fields (stream->table) - format",
       "statements": [
-        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "format": ["AVRO", "JSON"],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": "3", "value": {"F1": 3, "F2": "a"}}
+        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": 3, "value": {"F1": 3, "F2": "a"}}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
@@ -174,15 +174,15 @@
     {
       "name": "with groupings (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f3, (f2, f1);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
-        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
-        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
-        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
-        {"topic": "test_topic", "key": "3", "value": "3,a,-3"}
+        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
+        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
+        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
+        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
+        {"topic": "test_topic", "key": 3, "value": "3,a,-3"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "-1|+|a|+|1", "value": "1,a,1"},
@@ -200,15 +200,15 @@
     {
       "name": "fields (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,a"},
-        {"topic": "test_topic", "key": "2", "value": "2,b"},
-        {"topic": "test_topic", "key": "1", "value": "1,b"},
-        {"topic": "test_topic", "key": "2", "value": null},
-        {"topic": "test_topic", "key": "1", "value": "1,a"}
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 1, "value": "1,b"},
+        {"topic": "test_topic", "key": 2, "value": null},
+        {"topic": "test_topic", "key": 1, "value": "1,a"}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
@@ -235,16 +235,16 @@
     {
       "name": "fields (table->table) - format",
       "statements": [
-        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "format": ["AVRO", "JSON"],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}},
-        {"topic": "test_topic", "key": "2", "value": {"F1": 2, "F2": "b"}},
-        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "b"}},
-        {"topic": "test_topic", "key": "2", "value": null},
-        {"topic": "test_topic", "key": "1", "value": {"F1": 1, "F2": "a"}}
+        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
+        {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
+        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "b"}},
+        {"topic": "test_topic", "key": 2, "value": null},
+        {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}}
       ],
       "outputs": [
         {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "a", "KSQL_INTERNAL_COL_2": 0, "KSQL_AGG_VARIABLE_0": 1}},
@@ -380,15 +380,15 @@
     {
       "name": "field with re-key (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY region;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,r0"},
-        {"topic": "test_topic", "key": "2", "value": "2,r1"},
-        {"topic": "test_topic", "key": "3", "value": "3,r0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+        {"topic": "test_topic", "key": 1, "value": "1,r0"},
+        {"topic": "test_topic", "key": 2, "value": "2,r1"},
+        {"topic": "test_topic", "key": 3, "value": "3,r0"},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "2,r0"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "r0", "value": "1"},
@@ -429,15 +429,15 @@
     {
       "name": "with aggregate arithmetic (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) * 2 FROM TEST GROUP BY region;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,r0"},
-        {"topic": "test_topic", "key": "2", "value": "2,r1"},
-        {"topic": "test_topic", "key": "3", "value": "3,r0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+        {"topic": "test_topic", "key": 1, "value": "1,r0"},
+        {"topic": "test_topic", "key": 2, "value": "2,r1"},
+        {"topic": "test_topic", "key": 3, "value": "3,r0"},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "2,r0"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "r0", "value": "2"},
@@ -475,14 +475,14 @@
     {
       "name": "with aggregate arithmetic involving source field (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f0 * SUM(f1) FROM TEST GROUP BY f0;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "2", "value": "2,10"},
-        {"topic": "test_topic", "key": "2", "value": "2,20"},
-        {"topic": "test_topic", "key": "2", "value": "2,30"},
-        {"topic": "test_topic", "key": "2", "value": null}
+        {"topic": "test_topic", "key": 2, "value": "2,10"},
+        {"topic": "test_topic", "key": 2, "value": "2,20"},
+        {"topic": "test_topic", "key": 2, "value": "2,30"},
+        {"topic": "test_topic", "key": 2, "value": null}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 2, "value": "20"},
@@ -496,7 +496,7 @@
     {
       "name": "with aggregate arithmetic involving source field not in group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f0 INT, f1 INT, f2 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, f0 INT, f1 INT, f2 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 * SUM(f2) FROM TEST GROUP BY f0;"
       ],
       "expectedException": {
@@ -535,15 +535,15 @@
     {
       "name": "function (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 2), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,prefixr0"},
-        {"topic": "test_topic", "key": "2", "value": "2,prefixr1"},
-        {"topic": "test_topic", "key": "3", "value": "3,prefixr0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,prefixr0"}
+        {"topic": "test_topic", "key": 1, "value": "1,prefixr0"},
+        {"topic": "test_topic", "key": 2, "value": "2,prefixr1"},
+        {"topic": "test_topic", "key": 3, "value": "3,prefixr0"},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "2,prefixr0"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "r0", "value": "r0,1"},
@@ -600,7 +600,7 @@
     {
       "name": "function with select field that is a subset of group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 1), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
       ],
       "expectedException": {
@@ -622,7 +622,7 @@
     {
       "name": "function with select field that is a superset of group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 3), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
       ],
       "expectedException": {
@@ -751,15 +751,15 @@
     {
       "name": "constant (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,r0"},
-        {"topic": "test_topic", "key": "2", "value": "2,r1"},
-        {"topic": "test_topic", "key": "3", "value": "3,r0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+        {"topic": "test_topic", "key": 1, "value": "1,r0"},
+        {"topic": "test_topic", "key": 2, "value": "2,r1"},
+        {"topic": "test_topic", "key": 3, "value": "3,r0"},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "2,r0"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": "1"},
@@ -794,15 +794,15 @@
     {
       "name": "field with field used in function in projection (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ROWKEY INT KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 2, 1), COUNT(*) FROM TEST GROUP BY region;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,r0"},
-        {"topic": "test_topic", "key": "2", "value": "2,r1"},
-        {"topic": "test_topic", "key": "3", "value": "3,r0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+        {"topic": "test_topic", "key": 1, "value": "1,r0"},
+        {"topic": "test_topic", "key": 2, "value": "2,r1"},
+        {"topic": "test_topic", "key": 3, "value": "3,r0"},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "2,r0"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "r0", "value": "0,1"},
@@ -837,7 +837,7 @@
     {
       "name": "string concat using + op (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY region + subregion;"
       ],
       "inputs": [
@@ -875,7 +875,7 @@
     {
       "name": "string concat using + op with projection field in wrong order (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT subregion + region, COUNT(*) FROM TEST GROUP BY region + subregion;"
       ],
       "expectedException": {
@@ -886,7 +886,7 @@
     {
       "name": "string concat with separate fields in projection (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2 + f1;"
       ],
       "expectedException": {
@@ -897,7 +897,7 @@
     {
       "name": "string concat with separate fields in projection (table->table)",
       "statements": [
-        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT subregion, region, COUNT(*) FROM TEST GROUP BY region + subregion;"
       ],
       "expectedException": {
@@ -927,7 +927,7 @@
     {
       "name": "arithmetic binary expression with projection in-order & non-commutative group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f0 - f1, COUNT(*) FROM TEST GROUP BY f0 - f1;"
       ],
       "inputs": [
@@ -960,7 +960,7 @@
     {
       "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 - f0, COUNT(*) FROM TEST GROUP BY f0 - f1;"
       ],
       "expectedException": {
@@ -992,7 +992,7 @@
     {
       "name": "with having expression (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, SUM(f0) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 0;"
       ],
       "inputs": [
@@ -1122,7 +1122,7 @@
     {
       "name": "missing matching projection field (table->table)",
       "statements": [
-        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY f2;"
       ],
       "inputs": [
@@ -1176,7 +1176,7 @@
     {
       "name": "with non-aggregate projection field not in group by (table->table)",
       "statements": [
-        "CREATE TABLE TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', key='d1', value_format='DELIMITED');",
+        "CREATE TABLE TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) FROM TEST GROUP BY d2;"
       ],
       "expectedException": {
@@ -1263,7 +1263,7 @@
     {
       "name": "UDAF nested in UDF in select expression (table->table)",
       "statements": [
-        "CREATE TABLE TEST (d0 INT, d1 VARCHAR) WITH (kafka_topic='test_topic', key='d0', value_format='DELIMITED');",
+        "CREATE TABLE TEST (d0 INT, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;"
       ],
       "inputs": [

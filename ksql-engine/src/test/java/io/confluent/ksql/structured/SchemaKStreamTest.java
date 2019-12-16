@@ -109,7 +109,6 @@ public class SchemaKStreamTest {
     functionRegistry = new InternalFunctionRegistry();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlStream = (KsqlStream) metaStore.getSource(SourceName.of("TEST1"));
-    final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource(SourceName.of("ORDERS"));
     final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     schemaKTable = new SchemaKTable(
         tableSourceStep,
@@ -797,16 +796,6 @@ public class SchemaKStreamTest {
   }
 
   private SchemaKStream buildSchemaKStreamForJoin(final KsqlStream ksqlStream) {
-    return buildSchemaKStream(
-        ksqlStream.getSchema().withAlias(SourceName.of("left")),
-        ksqlStream.getKeyField().withAlias(SourceName.of("left")),
-        sourceStep
-    );
-  }
-
-  private SchemaKStream buildSchemaKStreamForJoin(
-      final KsqlStream ksqlStream,
-      final ExecutionStep sourceStep) {
     return buildSchemaKStream(
         ksqlStream.getSchema().withAlias(SourceName.of("left")),
         ksqlStream.getKeyField().withAlias(SourceName.of("left")),

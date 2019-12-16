@@ -1,0 +1,34 @@
+{
+  "@type" : "tableSinkV1",
+  "properties" : {
+    "queryContext" : "foo"
+  },
+  "source" : {
+    "@type" : "tableSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  },
+  "formats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "AVRO"
+    },
+    "options" : [ ]
+  },
+  "topicName" : "foo"
+}

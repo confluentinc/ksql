@@ -1,0 +1,23 @@
+{
+  "@type" : "createStreamV1",
+  "sourceName" : "stream",
+  "schema" : "schema",
+  "keyField" : "keyfield",
+  "timestampColumn" : {
+    "column" : "col"
+  },
+  "topicName" : "topic",
+  "formats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "AVRO"
+    },
+    "options" : [ ]
+  },
+  "windowInfo" : {
+    "type" : "TUMBLING",
+    "size" : 30.000000000
+  }
+}

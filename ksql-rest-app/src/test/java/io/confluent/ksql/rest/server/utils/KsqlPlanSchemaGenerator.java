@@ -28,7 +28,7 @@ import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.execution.json.ParsedTypesPlanJsonMapper;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class KsqlPlanSchemaGenerator {
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper MAPPER = ParsedTypesPlanJsonMapper.create();
 
   private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES = ImmutableMap.of(
       ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)

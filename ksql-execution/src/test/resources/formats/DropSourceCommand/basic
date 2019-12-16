@@ -1,0 +1,4 @@
+{
+  "@type" : "dropSourceV1",
+  "sourceName" : "foo"
+}

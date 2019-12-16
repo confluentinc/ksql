@@ -15,16 +15,13 @@
 
 package io.confluent.ksql.execution.json;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.parser.json.KsqlParserSerializationModule;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 
-public final class PlanJsonMapper {
-  private PlanJsonMapper() {
+public final class ParsedTypesPlanJsonMapper {
+  private ParsedTypesPlanJsonMapper() {
   }
 
   /**
@@ -33,18 +30,12 @@ public final class PlanJsonMapper {
    * @return ObjectMapper instance
    */
   public static ObjectMapper create() {
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper = PlanJsonMapper.create();
     mapper.registerModules(
-        new Jdk8Module(),
-        new JavaTimeModule(),
         new KsqlParserSerializationModule(),
         new KsqlTypesSerializationModule(),
         new KsqlTypesDeserializationModule(true)
     );
-    mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    mapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
-    mapper.enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES);
-    mapper.enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
     return mapper;
   }
 }

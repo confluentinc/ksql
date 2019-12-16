@@ -1,0 +1,63 @@
+{
+  "@type" : "streamStreamJoinV1",
+  "properties" : {
+    "queryContext" : "foo"
+  },
+  "joinType" : "INNER",
+  "leftInternalFormats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "AVRO"
+    },
+    "options" : [ ]
+  },
+  "rightInternalFormats" : {
+    "keyFormat" : {
+      "format" : "KAFKA"
+    },
+    "valueFormat" : {
+      "format" : "JSON"
+    },
+    "options" : [ ]
+  },
+  "left" : {
+    "@type" : "streamSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  },
+  "right" : {
+    "@type" : "streamSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  },
+  "beforeMillis" : 30.000000000,
+  "afterMillis" : 60.000000000
+}

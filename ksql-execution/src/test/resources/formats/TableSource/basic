@@ -1,0 +1,21 @@
+{
+  "@type" : "tableSourceV1",
+  "properties" : {
+    "queryContext" : "foo"
+  },
+  "topicName" : "topic",
+  "formats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "AVRO"
+    },
+    "options" : [ ]
+  },
+  "timestampColumn" : {
+    "column" : "col"
+  },
+  "sourceSchema" : "schema",
+  "alias" : "source"
+}

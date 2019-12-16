@@ -35,4 +35,21 @@ public class DropTypeCommand implements DdlCommand {
   public String getTypeName() {
     return typeName;
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final DropTypeCommand that = (DropTypeCommand) o;
+    return Objects.equals(typeName, that.typeName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(typeName);
+  }
 }

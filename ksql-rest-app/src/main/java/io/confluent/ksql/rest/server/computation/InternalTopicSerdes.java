@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.execution.json.ParsedTypesPlanJsonMapper;
 import java.io.IOException;
 import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
@@ -24,7 +24,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
 public final class InternalTopicSerdes {
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper MAPPER = ParsedTypesPlanJsonMapper.create();
 
   private InternalTopicSerdes() {
   }

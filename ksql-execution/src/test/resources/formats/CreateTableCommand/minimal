@@ -1,0 +1,15 @@
+{
+  "@type" : "createTableV1",
+  "sourceName" : "table",
+  "schema" : "schema",
+  "topicName" : "topic",
+  "formats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "AVRO"
+    },
+    "options" : [ ]
+  }
+}

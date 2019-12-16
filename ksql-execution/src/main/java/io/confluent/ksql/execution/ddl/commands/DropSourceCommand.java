@@ -37,4 +37,21 @@ public class DropSourceCommand implements DdlCommand {
   public SourceName getSourceName() {
     return sourceName;
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final DropSourceCommand that = (DropSourceCommand) o;
+    return Objects.equals(sourceName, that.sourceName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sourceName);
+  }
 }

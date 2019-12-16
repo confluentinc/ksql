@@ -30,7 +30,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.execution.json.ParsedTypesPlanJsonMapper;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -77,7 +77,7 @@ import org.apache.kafka.streams.TopologyTestDriver;
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
+  private static final ObjectMapper PLAN_MAPPER = ParsedTypesPlanJsonMapper.create();
 
   private TestExecutorUtil() {
   }

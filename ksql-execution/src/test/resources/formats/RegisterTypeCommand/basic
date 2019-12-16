@@ -1,0 +1,5 @@
+{
+  "@type" : "registerTypeV1",
+  "type" : "type",
+  "typeName" : "foo"
+}

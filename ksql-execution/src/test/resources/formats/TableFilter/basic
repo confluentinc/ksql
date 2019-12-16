@@ -1,0 +1,25 @@
+{
+  "@type" : "tableFilterV1",
+  "properties" : {
+    "queryContext" : "foo"
+  },
+  "source" : {
+    "@type" : "tableSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  },
+  "filterExpression" : "filter_expression"
+}

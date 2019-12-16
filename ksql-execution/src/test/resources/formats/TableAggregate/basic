@@ -1,0 +1,51 @@
+{
+  "@type" : "tableAggregateV1",
+  "properties" : {
+    "queryContext" : "foo/bar"
+  },
+  "source" : {
+    "@type" : "tableGroupByV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "source" : {
+      "@type" : "tableSourceV1",
+      "properties" : {
+        "queryContext" : "ctx"
+      },
+      "topicName" : "topic",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        },
+        "options" : [ ]
+      },
+      "sourceSchema" : "src_schema",
+      "alias" : "source"
+    },
+    "internalFormats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "groupByExpressions" : [ ]
+  },
+  "internalFormats" : {
+    "keyFormat" : {
+      "format" : "JSON"
+    },
+    "valueFormat" : {
+      "format" : "JSON"
+    },
+    "options" : [ ]
+  },
+  "nonAggregateColumns" : [ "col1", "col2" ],
+  "aggregationFunctions" : [ "agg1", "agg2" ]
+}

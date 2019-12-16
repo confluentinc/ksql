@@ -1,0 +1,43 @@
+{
+  "@type" : "tableTableJoinV1",
+  "properties" : {
+    "queryContext" : "foo"
+  },
+  "joinType" : "INNER",
+  "left" : {
+    "@type" : "tableSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  },
+  "right" : {
+    "@type" : "tableSourceV1",
+    "properties" : {
+      "queryContext" : "ctx"
+    },
+    "topicName" : "topic",
+    "formats" : {
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      },
+      "options" : [ ]
+    },
+    "sourceSchema" : "src_schema",
+    "alias" : "source"
+  }
+}

@@ -27,20 +27,22 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
   private final Formats internalFormats;
-  private final ExecutionStep<KStreamHolder<K>> left;
-  private final ExecutionStep<KTableHolder<K>> right;
+  private final ExecutionStep<KStreamHolder<K>> leftSource;
+  private final ExecutionStep<KTableHolder<K>> rightSource;
 
   public StreamTableJoin(
       @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "joinType", required = true) JoinType joinType,
       @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "left", required = true) ExecutionStep<KStreamHolder<K>> left,
-      @JsonProperty(value = "right", required = true) ExecutionStep<KTableHolder<K>> right) {
+      @JsonProperty(value = "leftSource", required = true)
+      ExecutionStep<KStreamHolder<K>> leftSource,
+      @JsonProperty(value = "rightSource", required = true)
+      ExecutionStep<KTableHolder<K>> rightSource) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
-    this.left = Objects.requireNonNull(left, "left");
-    this.right = Objects.requireNonNull(right, "right");
+    this.leftSource = Objects.requireNonNull(leftSource, "leftSource");
+    this.rightSource = Objects.requireNonNull(rightSource, "rightSource");
   }
 
   @Override
@@ -51,19 +53,19 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   @Override
   @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
-    return ImmutableList.of(left, right);
+    return ImmutableList.of(leftSource, rightSource);
   }
 
   public Formats getInternalFormats() {
     return internalFormats;
   }
 
-  public ExecutionStep<KStreamHolder<K>> getLeft() {
-    return left;
+  public ExecutionStep<KStreamHolder<K>> getLeftSource() {
+    return leftSource;
   }
 
-  public ExecutionStep<KTableHolder<K>> getRight() {
-    return right;
+  public ExecutionStep<KTableHolder<K>> getRightSource() {
+    return rightSource;
   }
 
   public JoinType getJoinType() {
@@ -87,13 +89,13 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(internalFormats, that.internalFormats)
-        && Objects.equals(left, that.left)
-        && Objects.equals(right, that.right);
+        && Objects.equals(leftSource, that.leftSource)
+        && Objects.equals(rightSource, that.rightSource);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, joinType, internalFormats, left, right);
+    return Objects.hash(properties, joinType, internalFormats, leftSource, rightSource);
   }
 }

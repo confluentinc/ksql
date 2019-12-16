@@ -25,10 +25,14 @@ import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import java.util.Objects;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 
-public class Errors {
+
+public final class Errors {
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
   public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
@@ -192,14 +196,25 @@ public class Errors {
   
   
   public Errors(final ErrorMessages errorMessages) {
-    this.errorMessages = errorMessages;
+    this.errorMessages = Objects.requireNonNull(errorMessages, "errorMessages");
   }
 
-  public Response accessDeniedFromKafka(final Exception e) {
+  public Response accessDeniedFromKafkaResponse(final Exception e) {
     return constructAccessDeniedFromKafkaResponse(errorMessages.kafkaAuthorizationErrorMessage(e));
   }
 
-  public String webSocketKafkaAuthorizationErrorMessage(final Exception e) {
+  public String kafkaAuthorizationErrorMessage(final Exception e) {
     return errorMessages.kafkaAuthorizationErrorMessage(e);
+  }
+
+  public Response generateResponse(
+      final Exception e,
+      final Response defaultResponse
+  ) {
+    if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
+      return accessDeniedFromKafkaResponse(e);
+    } else {
+      return defaultResponse;
+    }
   }
 }

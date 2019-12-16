@@ -61,7 +61,6 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 import javax.ws.rs.core.Response;
-
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +233,7 @@ public class WSQueryEndpoint {
       SessionUtil.closeSilently(
           session,
           CloseCodes.CANNOT_ACCEPT,
-          errorHandler.webSocketKafkaAuthorizationErrorMessage(e));
+          errorHandler.kafkaAuthorizationErrorMessage(e));
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());

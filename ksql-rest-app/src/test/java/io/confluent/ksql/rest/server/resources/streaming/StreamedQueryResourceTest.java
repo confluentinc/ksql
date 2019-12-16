@@ -62,7 +62,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -161,7 +160,7 @@ public class StreamedQueryResourceTest {
     when(pullQuery.isPullQuery()).thenReturn(true);
     final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
     when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
-    when(errorsHandler.accessDeniedFromKafka(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
+    when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -554,28 +553,6 @@ public class StreamedQueryResourceTest {
         .thenReturn(query);
     doThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)))
-        .when(authorizationValidator).checkAuthorization(any(), any(), any());
-
-    // When:
-    final Response response = testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) AUTHORIZATION_ERROR_RESPONSE.getEntity();
-    assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
-    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
-  }
-
-  @Test
-  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
-    // Given:
-    when(mockStatementParser.<Query>parseSingleStatement(PUSH_QUERY_STRING))
-        .thenReturn(query);
-    doThrow(new KsqlException(
-        "",
-        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME))))
         .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:

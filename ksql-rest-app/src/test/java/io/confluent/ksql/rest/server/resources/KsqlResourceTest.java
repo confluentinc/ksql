@@ -179,6 +179,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
@@ -237,11 +238,6 @@ public class KsqlResourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
-      .build();
-
-  private static Response AUTHORIZATION_ERROR_RESPONSE = Response
-      .status(FORBIDDEN)
-      .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, "some error"))
       .build();
 
   @Rule
@@ -340,7 +336,13 @@ public class KsqlResourceTest {
     when(topicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
 
-    when(errorsHandler.accessDeniedFromKafka(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
+    when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<Response>() {
+      @Override
+      public Response answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        return (Response) args[1];
+      }
+    });
 
     setUpKsqlResource();
   }
@@ -758,6 +760,11 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
+    final String errorMsg = "some error";
+    when(errorsHandler.generateResponse(any(), any())).thenReturn(Response
+        .status(FORBIDDEN)
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
     doThrow(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
         Collections.singleton("topic"))).when(authorizationValidator).checkAuthorization(any(), any(), any());
@@ -770,26 +777,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
-  }
-
-  @Test
-  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
-    // Given:
-    doThrow(new KsqlException("Could not delete the corresponding kafka topic: topic",
-        new KsqlTopicAuthorizationException(
-          AclOperation.DELETE,
-          Collections.singleton("topic"))))
-        .when(authorizationValidator).checkAuthorization(any(), any(), any());
-
-
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-            "DROP STREAM TEST_STREAM DELETE TOPIC;",
-            Code.FORBIDDEN);
-
-    // Then:
-    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
   }
 
   @Test

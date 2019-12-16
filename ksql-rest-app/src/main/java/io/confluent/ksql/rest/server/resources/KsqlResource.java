@@ -42,7 +42,6 @@ import io.confluent.ksql.rest.server.execution.RequestHandler;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -236,11 +235,10 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      return ErrorResponseUtil.generateResponse(
-          e, Errors.badRequest(e), errorHandler);
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      return ErrorResponseUtil.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getKsql()), errorHandler);
+      return errorHandler.generateResponse(
+          e, Errors.serverErrorForStatement(e, request.getKsql()));
     }
   }
 

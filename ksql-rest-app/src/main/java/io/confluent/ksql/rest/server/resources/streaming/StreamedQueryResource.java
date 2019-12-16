@@ -35,7 +35,6 @@ import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -229,12 +228,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
           "Statement type `%s' not supported for this resource",
           statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
-      return errorHandler.accessDeniedFromKafka(e);
+      return errorHandler.accessDeniedFromKafkaResponse(e);
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      return ErrorResponseUtil.generateResponse(
-          e, Errors.badRequest(e), errorHandler);
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
     }
   }
 

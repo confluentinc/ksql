@@ -384,7 +384,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Optional<KsqlAuthorizationValidator> authorizationValidator =
           KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
       final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-          KsqlRestConfig.KSQL_SERVER_ERRORS,
+          KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
           ErrorMessages.class
       ));
 
@@ -506,7 +506,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-        KsqlRestConfig.KSQL_SERVER_ERRORS,
+        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
         ErrorMessages.class
     ));
 

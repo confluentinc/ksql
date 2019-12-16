@@ -399,7 +399,7 @@ public class WSQueryEndpointTest {
     // Given:
     final String errorMessage = "authorization error";
     givenRequestIs(query);
-    when(errorsHandler.webSocketKafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
+    when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
         .thenReturn(errorMessage);
     doThrow(new KsqlTopicAuthorizationException(AclOperation.CREATE, Collections.singleton("topic")))
         .when(authorizationValidator).checkAuthorization(serviceContext, metaStore, query);

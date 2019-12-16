@@ -1818,8 +1818,7 @@ public class KsqlResourceTest {
 
     // When:
     final String createSql =
-        "CREATE TABLE SOURCE (val int) "
-            + "WITH (kafka_topic='topic2', value_format='json', key='val');";
+        "CREATE TABLE SOURCE (val int) WITH (kafka_topic='topic2', value_format='json');";
     makeSingleRequest(createSql, CommandStatusEntity.class);
   }
 
@@ -2148,7 +2147,7 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.value().get(0).ref()),
+              KeyField.none(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2161,7 +2160,7 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.value().get(0).ref()),
+              KeyField.none(),
               Optional.empty(),
               false,
               ksqlTopic

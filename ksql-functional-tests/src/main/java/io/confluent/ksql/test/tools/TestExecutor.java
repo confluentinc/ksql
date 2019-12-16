@@ -37,8 +37,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -71,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -82,6 +82,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
@@ -101,6 +102,12 @@ public class TestExecutor implements Closeable {
 
   private static final Pattern INTERNAL_TOPIC_PATTERN = Pattern
       .compile("_confluent.*query_(.*_\\d+)-.*-(changelog|repartition)");
+
+  private static final Pattern WINDOWED_JOIN_PATTERN = Pattern
+      .compile(
+          "CREATE .* JOIN .* WITHIN (\\d+ \\w+) ON .*",
+          Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+      );
 
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
@@ -250,14 +257,7 @@ public class TestExecutor implements Closeable {
     final Function<Object, Object> keyCoercer = keyCoercerForTopic(topicName);
 
     for (int i = 0; i < expected.size(); i++) {
-      final Record expectedRecord;
-      try {
-        expectedRecord = expected.get(i).coerceKey(keyCoercer);
-      } catch (final Exception e) {
-        throw new AssertionError(
-            "Topic '" + topicName + "', message " + i
-                + ": Could not coerce key in test case to required type. " + e.getMessage(), e);
-      }
+      final Record expectedRecord = coerceRecordKey(expected.get(i), i, keyCoercer);
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
 
       validateCreatedMessage(
@@ -270,8 +270,39 @@ public class TestExecutor implements Closeable {
     }
   }
 
+  /**
+   * Coerce the key value to the correct type.
+   *
+   * <p>The type of the key loaded from the JSON test case file may not be the exact match on type,
+   * e.g. JSON will load a small number as an integer, but the key type of the source might be a
+   * long.
+   *
+   * @param record the record to coerce
+   * @param msgIndex the index of the message, displayed in the error message
+   * @param keyCoercer keyCoercer to use
+   * @return a new Record with the correct key type.
+   */
+  private static Record coerceRecordKey(
+      final Record record,
+      final int msgIndex,
+      final Function<Object, Object> keyCoercer
+  ) {
+    try {
+      final Object coerced = keyCoercer.apply(record.rawKey());
+      return record.withKey(coerced);
+    } catch (final Exception e) {
+      throw new AssertionError(
+          "Topic '" + record.topic.getName() + "', message " + msgIndex
+              + ": Invalid test-case: could not coerce key in test case to required type. "
+              + e.getMessage(),
+          e);
+    }
+  }
+
   private Function<Object, Object> keyCoercerForTopic(final String topicName) {
-    final SqlType keyType = getTopicInfo(topicName)
+    final TopicInfo topicInfo = getTopicInfo(topicName);
+
+    final SqlType keyType = topicInfo
         .getSchema()
         .key()
         .get(0)
@@ -281,6 +312,7 @@ public class TestExecutor implements Closeable {
       if (key == null) {
         return null;
       }
+
       return DefaultSqlValueCoercer.INSTANCE
           .coerce(key, keyType)
           .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
@@ -305,16 +337,30 @@ public class TestExecutor implements Closeable {
             .orElseThrow(() -> new TestFrameworkException("Unknown queryId for internal topic: "
                 + queryId));
 
-        final SourceName sinkName = query.getSinkName();
-        final DataSource<?> source = ksqlEngine.getMetaStore().getSource(sinkName);
-        return new TopicInfo(source.getSchema(), source.getKsqlTopic().getKeyFormat());
+        final java.util.regex.Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
+            .matcher(query.getStatementString());
+
+        final OptionalLong changeLogWindowSize = topicName.endsWith("-changelog")
+            && windowedJoinMatcher.matches()
+            ? OptionalLong.of(DurationParser.parse(windowedJoinMatcher.group(1)).toMillis())
+            : OptionalLong.empty();
+
+        return new TopicInfo(
+            query.getLogicalSchema(),
+            query.getResultTopic().getKeyFormat(),
+            changeLogWindowSize
+        );
       }
 
       // Source / sink topic:
       final Set<TopicInfo> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
           .stream()
           .filter(source -> source.getKafkaTopicName().equals(topicName))
-          .map(source -> new TopicInfo(source.getSchema(), source.getKsqlTopic().getKeyFormat()))
+          .map(source -> new TopicInfo(
+              source.getSchema(),
+              source.getKsqlTopic().getKeyFormat(),
+              OptionalLong.empty()
+          ))
           .collect(Collectors.toSet());
 
       if (keyTypes.isEmpty()) {
@@ -353,13 +399,22 @@ public class TestExecutor implements Closeable {
     final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
         .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
 
-    final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
+    Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
         serviceContext.getSchemaRegistryClient()
     );
 
     deserializer.configure(ImmutableMap.of(), true);
 
-    return deserializer;
+    if (!topicInfo.getChangeLogWindowSize().isPresent()) {
+      return deserializer;
+    }
+
+    final TimeWindowedDeserializer<?> changeLogDeserializer = new TimeWindowedDeserializer<>(
+        deserializer, topicInfo.getChangeLogWindowSize().getAsLong());
+
+    changeLogDeserializer.setIsChangelogTopic(true);
+
+    return changeLogDeserializer;
   }
 
   private static String getActualsForErrorMessage(final List<StubKafkaRecord> actual) {
@@ -408,10 +463,15 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriverContainer topologyTestDriverContainer
   ) {
 
+    int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
       if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
 
-        final Record coerced = record.coerceKey(keyCoercerForTopic(record.topic.getName()));
+        final Record coerced = coerceRecordKey(
+            record,
+            inputRecordIndex,
+            keyCoercerForTopic(record.topic.getName())
+        );
 
         processSingleRecord(
             StubKafkaRecord.of(coerced, null),
@@ -419,6 +479,7 @@ public class TestExecutor implements Closeable {
             ImmutableSet.copyOf(stubKafkaService.getAllTopics())
         );
       }
+      ++inputRecordIndex;
     }
   }
 
@@ -631,10 +692,16 @@ public class TestExecutor implements Closeable {
 
     private final LogicalSchema schema;
     private final KeyFormat keyFormat;
+    private final OptionalLong changeLogWindowSize;
 
-    TopicInfo(final LogicalSchema schema, final KeyFormat keyFormat) {
+    TopicInfo(
+        final LogicalSchema schema,
+        final KeyFormat keyFormat,
+        final OptionalLong changeLogWindowSize
+    ) {
       this.schema = requireNonNull(schema, "schema");
       this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+      this.changeLogWindowSize = requireNonNull(changeLogWindowSize, "changeLogWindowSize");
     }
 
     public KeyFormat getKeyFormat() {
@@ -643,6 +710,10 @@ public class TestExecutor implements Closeable {
 
     public LogicalSchema getSchema() {
       return schema;
+    }
+
+    public OptionalLong getChangeLogWindowSize() {
+      return changeLogWindowSize;
     }
 
     @Override

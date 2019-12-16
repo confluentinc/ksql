@@ -279,15 +279,15 @@ public class KsqlEngineTest {
     expectedException.expect(rawMessage(containsString(
         "Incompatible key fields for sink and results. "
             + "Sink key field is ORDERTIME (type: BIGINT) "
-            + "while result key field is ITEMID (type: STRING)")));
+            + "while result key field is ORDERID (type: BIGINT)")));
     expectedException.expect(statementText(
-        is("insert into bar select * from orders partition by itemid;")));
+        is("insert into bar select * from orders partition by orderid;")));
 
     // When:
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "insert into bar select * from orders partition by itemid;",
+        "insert into bar select * from orders partition by orderid;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -767,7 +767,7 @@ public class KsqlEngineTest {
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
         + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
         + "\n"
-        + "CREATE TABLE T1 (f0 BIGINT, f1 DOUBLE) "
+        + "CREATE TABLE T1 (ROWKEY BIGINT KEY, f0 BIGINT, f1 DOUBLE) "
         + "     WITH (kafka_topic='t1_topic', value_format='JSON', key = 'f0');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"

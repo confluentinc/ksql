@@ -21,7 +21,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -30,6 +29,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.MatcherAssert;
@@ -47,8 +47,9 @@ public class DdlCommandExecTest {
   private static final SourceName TABLE_NAME = SourceName.of("t1");
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueColumn(ColumnName.of("F1"), SqlPrimitiveType.of("INTEGER"))
-      .valueColumn(ColumnName.of("F2"), SqlPrimitiveType.of("VARCHAR"))
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));

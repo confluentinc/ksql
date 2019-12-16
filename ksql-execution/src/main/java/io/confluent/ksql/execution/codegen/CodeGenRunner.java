@@ -180,12 +180,12 @@ public class CodeGenRunner {
 
     @Override
     public Void visitStructExpression(CreateStructExpression exp, @Nullable Void context) {
-      exp.getStruct().values().forEach(val -> process(val, context));
+      exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
           .sqlToConnectConverter()
           .toConnectSchema(expressionTypeManager.getExpressionSqlType(exp));
 
-      spec.addSchema(exp, schema);
+      spec.addStructSchema(exp, schema);
       return null;
     }
 

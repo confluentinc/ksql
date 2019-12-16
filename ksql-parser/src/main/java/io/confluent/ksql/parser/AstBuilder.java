@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -928,18 +929,18 @@ public class AstBuilder {
 
     @Override
     public Node visitStructConstructor(SqlBaseParser.StructConstructorContext context) {
-      ImmutableMap.Builder<String, Expression> struct = ImmutableMap.builder();
+      ImmutableList.Builder<Field> fields = ImmutableList.builder();
 
       for (int i = 0; i < context.identifier().size(); i++) {
-        struct.put(
+        fields.add(new Field(
             ParserUtil.getIdentifierText(context.identifier(i)),
             (Expression) visit(context.expression(i))
-        );
+        ));
       }
 
       return new CreateStructExpression(
           getLocation(context),
-          struct.build()
+          fields.build()
       );
     }
 

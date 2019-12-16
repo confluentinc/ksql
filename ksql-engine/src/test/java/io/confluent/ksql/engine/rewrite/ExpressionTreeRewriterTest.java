@@ -26,7 +26,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -35,6 +34,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -53,7 +54,6 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -536,8 +536,8 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteStructExpression() {
     // Given:
     final CreateStructExpression parsed = parseExpression("STRUCT('foo' as FOO, col4[1] as BAR)");
-    final Expression fooVal = parsed.getStruct().get("FOO");
-    final Expression barVal = parsed.getStruct().get("BAR");
+    final Expression fooVal = parsed.getFields().stream().filter(f -> f.getName().equals("FOO")).findFirst().get().getValue();
+    final Expression barVal = parsed.getFields().stream().filter(f -> f.getName().equals("BAR")).findFirst().get().getValue();
     when(processor.apply(fooVal, context)).thenReturn(expr1);
     when(processor.apply(barVal, context)).thenReturn(expr2);
 
@@ -545,7 +545,7 @@ public class ExpressionTreeRewriterTest {
     final Expression rewritten = expressionRewriter.rewrite(parsed, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new CreateStructExpression(ImmutableMap.of("FOO", expr1, "BAR", expr2))));
+    assertThat(rewritten, equalTo(new CreateStructExpression(ImmutableList.of(new Field("FOO", expr1), new Field("BAR", expr2)))));
   }
 
   @Test

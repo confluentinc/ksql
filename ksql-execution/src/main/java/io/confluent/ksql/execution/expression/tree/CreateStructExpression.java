@@ -15,30 +15,30 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class CreateStructExpression extends Expression {
 
-  private final Map<String, Expression> struct;
+  private final ImmutableList<Field> fields;
 
   public CreateStructExpression(
-      final Map<String, Expression> struct
+      final List<Field> fields
   ) {
-    this(Optional.empty(), struct);
+    this(Optional.empty(), fields);
   }
 
   public CreateStructExpression(
       final Optional<NodeLocation> location,
-      final Map<String, Expression> struct
+      final List<Field> fields
   ) {
     super(location);
-    this.struct = ImmutableMap.copyOf(struct);
+    this.fields = ImmutableList.copyOf(fields);
   }
 
   @Override
@@ -46,8 +46,8 @@ public class CreateStructExpression extends Expression {
     return visitor.visitStructExpression(this, context);
   }
 
-  public Map<String, Expression> getStruct() {
-    return struct;
+  public ImmutableList<Field> getFields() {
+    return fields;
   }
 
   @Override
@@ -59,12 +59,56 @@ public class CreateStructExpression extends Expression {
       return false;
     }
     CreateStructExpression that = (CreateStructExpression) o;
-    return Objects.equals(struct, that.struct);
+    return Objects.equals(fields, that.fields);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(struct);
+    return Objects.hash(fields);
+  }
+
+  public static class Field {
+    private final String name;
+    private final Expression value;
+
+    public Field(String name, Expression value) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.value = Objects.requireNonNull(value, "value");
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Expression getValue() {
+      return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Field field = (Field) o;
+      return Objects.equals(name, field.name)
+          && Objects.equals(value, field.value);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, value);
+    }
+
+    @Override
+    public String toString() {
+      return "Field{"
+          + "name='" + name + '\''
+          + ", value=" + value
+          + '}';
+    }
   }
 
 }

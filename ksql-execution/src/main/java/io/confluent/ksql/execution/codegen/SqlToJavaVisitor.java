@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -81,7 +82,6 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -153,7 +153,7 @@ public class SqlToJavaVisitor {
           int index = nameCounts.add(name, 1);
           return spec.getUniqueNameForFunction(name, index);
         },
-        spec::getSchemaName);
+        spec::getStructSchemaName);
   }
 
   @VisibleForTesting
@@ -726,10 +726,10 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitStructExpression(CreateStructExpression node, Void context) {
       final String schemaName = structToCodeName.apply(node);
       final StringBuilder struct = new StringBuilder("new Struct(").append(schemaName).append(")");
-      for (Entry<String, Expression> field : node.getStruct().entrySet()) {
+      for (Field field : node.getFields()) {
         struct.append(".put(")
             .append('"')
-            .append(field.getKey())
+            .append(field.getName())
             .append('"')
             .append(",")
             .append(process(field.getValue(), context).getLeft())

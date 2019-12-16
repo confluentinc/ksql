@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -24,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -48,10 +50,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -191,11 +190,11 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitStructExpression(CreateStructExpression node, C context) {
-      final Map<String, Expression> struct = new HashMap<>();
-      for (Entry<String, Expression> field : node.getStruct().entrySet()) {
-        struct.put(field.getKey(), rewriter.apply(field.getValue(), context));
+      final Builder<Field> fields = ImmutableList.builder();
+      for (Field field : node.getFields()) {
+        fields.add(new Field(field.getName(), rewriter.apply(field.getValue(), context)));
       }
-      return new CreateStructExpression(node.getLocation(), struct);
+      return new CreateStructExpression(node.getLocation(), fields.build());
     }
 
     @Override

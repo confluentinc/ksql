@@ -69,7 +69,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -327,9 +326,9 @@ public class ExpressionTypeManager {
     public Void visitStructExpression(CreateStructExpression exp, ExpressionTypeContext context) {
       final Builder builder = SqlStruct.builder();
 
-      for (Entry<String, Expression> field : exp.getStruct().entrySet()) {
+      for (CreateStructExpression.Field field : exp.getFields()) {
         process(field.getValue(), context);
-        builder.field(field.getKey(), context.getSqlType());
+        builder.field(field.getName(), context.getSqlType());
       }
 
       context.setSqlType(builder.build());

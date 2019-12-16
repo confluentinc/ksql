@@ -84,7 +84,7 @@ public final class CodeGenSpec {
     }
   }
 
-  public String getSchemaName(CreateStructExpression createStructExpression) {
+  public String getStructSchemaName(CreateStructExpression createStructExpression) {
     final String schemaName = structToCodeName.get(createStructExpression);
     if (schemaName == null) {
       throw new KsqlException(
@@ -104,7 +104,7 @@ public final class CodeGenSpec {
         ImmutableMap.builder();
 
     private int argumentCount = 0;
-    private int schemaCount = 0;
+    private int structSchemaCount = 0;
 
     void addParameter(
         final ColumnRef columnRef,
@@ -122,10 +122,10 @@ public final class CodeGenSpec {
       argumentBuilder.add(new FunctionArgumentSpec(codeName, function.getClass(), function));
     }
 
-    void addSchema(CreateStructExpression struct, Schema schema) {
-      final String schemaName = CodeGenUtil.schemaName(schemaCount++);
-      structToSchemaName.put(struct, schemaName);
-      argumentBuilder.add(new SchemaArgumentSpec(schemaName, schema));
+    void addStructSchema(CreateStructExpression struct, Schema schema) {
+      final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
+      structToSchemaName.put(struct, structSchemaName);
+      argumentBuilder.add(new SchemaArgumentSpec(structSchemaName, schema));
     }
 
     CodeGenSpec build() {

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -28,6 +27,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -45,7 +46,6 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -90,9 +90,9 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatStructExpression() {
     assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
-        ImmutableMap.of(
-            "foo", new StringLiteral("abc"),
-            "bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
+        ImmutableList.of(
+            new Field("foo", new StringLiteral("abc")),
+            new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1))))
         )),
         equalTo("STRUCT('abc' AS foo, abc[1] AS bar)"));
   }

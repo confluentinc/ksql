@@ -105,10 +105,9 @@ public final class ExpressionFormatter {
     @Override
     public String visitStructExpression(CreateStructExpression exp, Context context) {
       return exp
-          .getStruct()
-          .entrySet()
+          .getFields()
           .stream()
-          .map(struct -> process(struct.getValue(), context) + " AS " + struct.getKey())
+          .map(struct -> process(struct.getValue(), context) + " AS " + struct.getName())
           .collect(Collectors.joining(", ", "STRUCT(", ")"));
     }
 

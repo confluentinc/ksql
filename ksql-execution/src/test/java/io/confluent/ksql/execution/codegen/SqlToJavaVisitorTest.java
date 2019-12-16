@@ -32,13 +32,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -49,7 +50,6 @@ import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -148,9 +148,9 @@ public class SqlToJavaVisitorTest {
   public void shouldProcessStructExpressionCorrectly() {
     // Given:
     Expression expression = new CreateStructExpression(
-        ImmutableMap.of(
-            "col1", new StringLiteral("foo"),
-            "col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1"))
+        ImmutableList.of(
+            new Field("col1", new StringLiteral("foo")),
+            new Field("col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1")))
         )
     );
 

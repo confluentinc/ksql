@@ -14,7 +14,12 @@
       ],
       "outputs": [
         { "topic": "BIG_STRUCT", "value": {"S": {"F1": "foo", "F2": ["bar"], "F3": "oo"}}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream", "schema": "ROWKEY STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"}
+        ]
+      }
     },
     {
       "name": "nested struct creation",
@@ -27,7 +32,12 @@
       ],
       "outputs": [
         { "topic": "BIG_STRUCT", "value": {"S": {"F1": {"C1": "foo"}}}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream","schema": "ROWKEY STRING KEY, S STRUCT<F1 STRUCT<C1 STRING>>"}
+        ]
+      }
     },
     {
       "name": "empty struct creation",
@@ -40,7 +50,12 @@
       ],
       "outputs": [
         { "topic": "BIG_STRUCT", "value": {"S": {}}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream", "schema": "ROWKEY STRING KEY, S STRUCT< >"}
+        ]
+      }
     }
   ]
 }

@@ -286,6 +286,18 @@
       ]
     },
     {
+      "name": "should handle struct coercion",
+      "statements": [
+        "CREATE STREAM TEST (val STRUCT<foo BIGINT, bar ARRAY<BIGINT>, baz DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (val) VALUES (STRUCT(2 as FOO, AS_ARRAY(2) as BAR, 2 as BAZ));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": 2, "BAR": [2], "BAZ": 2.0}}}
+      ]
+    },
+    {
       "name": "should handle empty struct expressions",
       "statements": [
         "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",

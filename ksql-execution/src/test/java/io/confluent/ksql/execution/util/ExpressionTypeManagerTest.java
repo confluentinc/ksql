@@ -33,12 +33,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -50,7 +51,6 @@ import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
@@ -326,10 +326,10 @@ public class ExpressionTypeManagerTest {
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
 
-    Expression exp = new CreateStructExpression(ImmutableMap.of(
-        "field1", new StringLiteral("foo"),
-        "field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
-        "field3", new CreateStructExpression(ImmutableMap.of())
+    Expression exp = new CreateStructExpression(ImmutableList.of(
+        new Field("field1", new StringLiteral("foo")),
+        new Field("field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))),
+        new Field("field3", new CreateStructExpression(ImmutableList.of()))
     ));
 
     // When:

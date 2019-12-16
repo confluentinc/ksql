@@ -432,13 +432,13 @@ public class StreamsSelectAndProjectIntTest {
         + " KEYVALUEMAP map<varchar, double>";
 
     ksqlContext.sql("CREATE STREAM " + JSON_STREAM_NAME + " (" + columns + ") WITH "
-        + "(kafka_topic='" + jsonTopicName + "', value_format='JSON', key='ordertime');");
+        + "(kafka_topic='" + jsonTopicName + "', value_format='JSON');");
 
     ksqlContext.sql("CREATE STREAM " + AVRO_STREAM_NAME + " (" + columns + ") WITH "
-        + "(kafka_topic='" + avroTopicName + "', value_format='AVRO', key='ordertime');");
+        + "(kafka_topic='" + avroTopicName + "', value_format='AVRO');");
 
     ksqlContext.sql("CREATE STREAM " + AVRO_TIMESTAMP_STREAM_NAME + " (" + columns + ") WITH "
-        + "(kafka_topic='" + avroTopicName + "', value_format='AVRO', key='ordertime', "
+        + "(kafka_topic='" + avroTopicName + "', value_format='AVRO', "
         + "timestamp='timestamp', timestamp_format='yyyy-MM-dd');");
   }
 

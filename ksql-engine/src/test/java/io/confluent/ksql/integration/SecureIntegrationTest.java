@@ -320,7 +320,7 @@ public class SecureIntegrationTest {
     return configs;
   }
 
-  private void produceInitData() throws Exception {
+  private void produceInitData() {
     if (topicClient.isTopicExists(INPUT_TOPIC)) {
       return;
     }
@@ -340,11 +340,11 @@ public class SecureIntegrationTest {
   }
 
   private void execInitCreateStreamQueries() {
-    final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
-                                           + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-                                           + "map<varchar, double>) WITH (value_format = 'json', "
-                                           + "kafka_topic='%s' , "
-                                           + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
+    final String ordersStreamStr =
+        "CREATE STREAM " + INPUT_STREAM + " (ORDERTIME bigint, ORDERID varchar, "
+            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+            + "map<varchar, double>) WITH (value_format = 'json', "
+            + "kafka_topic='" + INPUT_TOPIC + "');";
 
     KsqlEngineTestUtil.execute(
         serviceContext,

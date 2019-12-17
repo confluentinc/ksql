@@ -256,7 +256,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_PARTITIONS_PROPERTY,
               Type.INT,
-              4,
+              null,
               null,
               Importance.LOW,
               Optional.empty(),
@@ -266,7 +266,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_REPLICAS_PROPERTY,
               ConfigDef.Type.SHORT,
-              (short) 1,
+              null,
               null,
               ConfigDef.Importance.LOW,
               Optional.empty(),

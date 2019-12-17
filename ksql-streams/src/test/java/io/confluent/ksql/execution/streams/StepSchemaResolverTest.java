@@ -82,12 +82,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StepSchemaResolverTest {
+
   private static final KsqlConfig CONFIG = new KsqlConfig(Collections.emptyMap());
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
       .build();
+
+  private static final ColumnRef ORANGE_COL_REF = ColumnRef.withoutSource(ColumnName.of("ORANGE"));
+
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       new QueryContext.Stacker().getQueryContext()
   );
@@ -233,14 +238,17 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        Collections.emptyList()
+        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumns(SCHEMA.value())
+        .build()));
   }
 
   @Test

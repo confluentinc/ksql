@@ -480,7 +480,7 @@ public class JoinNode extends PlanNode {
       if (!keyColumn.isPresent()) {
         throw new KsqlException(
             "Invalid join criteria: Source table (" + sourceName + ") has no key column "
-                + "defined. Only 'ROWKEY' is supported in the join criteria."
+                + "defined. Only 'ROWKEY' is supported in the join criteria for a TABLE."
         );
       }
 
@@ -490,7 +490,8 @@ public class JoinNode extends PlanNode {
               + "(" + keyColumn.get().ref().toString(FormatOptions.noEscape()) + ") "
               + "is not the column used in the join criteria ("
               + joinCol.ref().toString(FormatOptions.noEscape()) + "). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+              + "Only the table's key column or 'ROWKEY' is supported in the join criteria "
+              + "for a TABLE."
       );
     }
 

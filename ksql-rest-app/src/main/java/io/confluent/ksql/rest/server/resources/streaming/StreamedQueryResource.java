@@ -35,7 +35,6 @@ import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -80,6 +79,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
+  private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
 
   public StreamedQueryResource(
@@ -88,7 +88,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this(
         ksqlEngine,
@@ -97,7 +98,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         disconnectCheckInterval,
         commandQueueCatchupTimeout,
         activenessRegistrar,
-        authorizationValidator
+        authorizationValidator,
+        errorHandler
     );
   }
 
@@ -109,7 +111,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -122,6 +125,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
   }
 
   @Override
@@ -224,12 +228,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
           "Statement type `%s' not supported for this resource",
           statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
-      return Errors.accessDeniedFromKafka(e);
+      return errorHandler.accessDeniedFromKafkaResponse(e);
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      return ErrorResponseUtil.generateResponse(
-          e, Errors.badRequest(e));
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
     }
   }
 

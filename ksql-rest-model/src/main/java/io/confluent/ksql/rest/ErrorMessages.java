@@ -13,24 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.rest;
 
-import io.confluent.ksql.rest.Errors;
-import javax.ws.rs.core.Response;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
-
-
-public final class ErrorResponseUtil {
-
-  private ErrorResponseUtil() {
-  }
-
-  public static Response generateResponse(final Exception e, final Response defaultResponse) {
-    if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
-      return Errors.accessDeniedFromKafka(e);
-    } else {
-      return defaultResponse;
-    }
-  }
+public interface ErrorMessages {
+  
+  String kafkaAuthorizationErrorMessage(Exception e);
 }

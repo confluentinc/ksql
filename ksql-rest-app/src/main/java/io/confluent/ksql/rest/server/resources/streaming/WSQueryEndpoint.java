@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -60,6 +61,7 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +95,7 @@ public class WSQueryEndpoint {
   private final UserServiceContextFactory serviceContextFactory;
   private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final ServerState serverState;
+  private final Errors errorHandler;
 
   private WebSocketSubscriber<?> subscriber;
   private ServiceContext serviceContext;
@@ -109,6 +112,7 @@ public class WSQueryEndpoint {
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState
   ) {
@@ -124,6 +128,7 @@ public class WSQueryEndpoint {
         activenessRegistrar,
         commandQueueCatchupTimeout,
         authorizationValidator,
+        errorHandler,
         securityExtension,
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
@@ -145,6 +150,7 @@ public class WSQueryEndpoint {
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
@@ -172,6 +178,7 @@ public class WSQueryEndpoint {
     this.defaultServiceContextFactory =
         Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
   }
 
   @SuppressWarnings("unused")
@@ -221,6 +228,12 @@ public class WSQueryEndpoint {
       HANDLER_MAP
           .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new RequestContext(session, request, serviceContext), statement);
+    } catch (final TopicAuthorizationException e) {
+      log.debug("Error processing request", e);
+      SessionUtil.closeSilently(
+          session,
+          CloseCodes.CANNOT_ACCEPT,
+          errorHandler.kafkaAuthorizationErrorMessage(e));
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());

@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,7 +80,7 @@ public class TopicStreamTest {
     final GenericData.Record avroRecord = new GenericData.Record(schema);
     avroRecord.put("str1", "My first string");
 
-    expect(schemaRegistryClient.register(anyString(), anyObject())).andReturn(1);
+    expect(schemaRegistryClient.register(anyString(), any(Schema.class))).andReturn(1);
     expect(schemaRegistryClient.getById(anyInt())).andReturn(schema).times(2);
 
     replay(schemaRegistryClient);

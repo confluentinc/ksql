@@ -118,10 +118,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.into(any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
-    when(sourceStream.selectKey(any(), any()))
-        .thenReturn((SchemaKStream) resultWithKeySelected);
-    when(resultWithKeySelected.into(any(), any(), any(), any()))
-        .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()

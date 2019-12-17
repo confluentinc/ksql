@@ -35,7 +35,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 public final class MetaStoreFixture {
 
   private MetaStoreFixture() {
@@ -54,6 +53,7 @@ public final class MetaStoreFixture {
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -102,6 +102,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -178,6 +179,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)

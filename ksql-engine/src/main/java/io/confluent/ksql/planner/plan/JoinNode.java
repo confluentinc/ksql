@@ -25,13 +25,12 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -93,11 +92,7 @@ public class JoinNode extends PlanNode {
             ? left.getKeyField()
             : KeyField.of(leftKeyCol.ref());
 
-    this.schema = JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
-
-    if (schema.key().get(0).type().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("JOIN is not supported with non-STRING keys");
-    }
+    this.schema = buildJoinSchema(left, leftJoinFieldName, right, rightJoinFieldName);
   }
 
   @Override
@@ -237,11 +232,7 @@ public class JoinNode extends PlanNode {
     }
 
     @SuppressWarnings("unchecked")
-    SchemaKTable<K> buildTable(
-        final PlanNode node,
-        final ColumnRef joinFieldName,
-        final SourceName tableName
-    ) {
+    SchemaKTable<K> buildTable(final PlanNode node) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
           builder.withKsqlConfig(builder.getKsqlConfig()
               .cloneWithPropertyOverwrite(Collections.singletonMap(
@@ -252,37 +243,7 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      final Optional<Column> keyColumn = schemaKStream
-          .getKeyField()
-          .resolve(schemaKStream.getSchema());
-
-      final ColumnRef rowKey = ColumnRef.of(
-          tableName,
-          SchemaUtil.ROWKEY_NAME
-      );
-
-      final boolean namesMatch = keyColumn
-          .map(field -> field.ref().equals(joinFieldName))
-          .orElse(false);
-
-      if (namesMatch || joinFieldName.equals(rowKey)) {
-        return (SchemaKTable) schemaKStream;
-      }
-
-      if (!keyColumn.isPresent()) {
-        throw new KsqlException(
-            "Source table (" + tableName.name() + ") has no key column defined. "
-                + "Only 'ROWKEY' is supported in the join criteria."
-        );
-      }
-
-      throw new KsqlException(
-          "Source table (" + tableName.toString(FormatOptions.noEscape()) + ") key column ("
-              + keyColumn.get().ref().toString(FormatOptions.noEscape()) + ") "
-              + "is not the column used in the join criteria ("
-              + joinFieldName.toString(FormatOptions.noEscape()) + "). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
-      );
+      return (SchemaKTable<K>) schemaKStream;
     }
 
     @SuppressWarnings("unchecked")
@@ -378,8 +339,7 @@ public class JoinNode extends PlanNode {
             + " the WITHIN clause) and try to execute your join again.");
       }
 
-      final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
+      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight());
 
       final SchemaKStream<K> leftStream = buildStream(
           joinNode.getLeft(), joinNode.leftJoinFieldName);
@@ -428,10 +388,8 @@ public class JoinNode extends PlanNode {
             + "join again.");
       }
 
-      final SchemaKTable<K> leftTable = buildTable(
-          joinNode.getLeft(), joinNode.leftJoinFieldName, joinNode.left.getAlias());
-      final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
+      final SchemaKTable<K> leftTable = buildTable(joinNode.getLeft());
+      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -464,5 +422,82 @@ public class JoinNode extends PlanNode {
     return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
+  }
+
+  private static LogicalSchema buildJoinSchema(
+      final DataSourceNode left,
+      final ColumnRef leftJoinFieldName,
+      final DataSourceNode right,
+      final ColumnRef rightJoinFieldName
+  ) {
+    final LogicalSchema leftSchema = selectKey(left, leftJoinFieldName);
+    final LogicalSchema rightSchema = selectKey(right, rightJoinFieldName);
+
+    return JoinParamsFactory.createSchema(leftSchema, rightSchema);
+  }
+
+  /**
+   * Adjust the schema to take into account any change in key columns.
+   *
+   * @param source the source node
+   * @param joinColumnRef the join column
+   * @return the true source schema after any change of key columns.
+   */
+  private static LogicalSchema selectKey(
+      final DataSourceNode source,
+      final ColumnRef joinColumnRef
+  ) {
+    final LogicalSchema sourceSchema = source.getSchema();
+
+    final Column joinCol = sourceSchema.findColumn(joinColumnRef)
+        .orElseThrow(() -> new KsqlException("Unknown join column: " + joinColumnRef));
+
+    if (sourceSchema.key().size() != 1) {
+      throw new UnsupportedOperationException("Only single key columns supported");
+    }
+
+    if (joinCol.namespace() == Namespace.KEY) {
+      // Join column is only key column, so no change of key columns required:
+      return sourceSchema;
+    }
+
+    final Optional<Column> keyColumn = source
+        .getKeyField()
+        .resolve(sourceSchema);
+
+    if (keyColumn.isPresent() && keyColumn.get().equals(joinCol)) {
+      // Join column is KEY field, which is an alias for the only key column, so no change of key
+      // columns required:
+      return sourceSchema;
+    }
+
+    // Change of key columns required
+
+    if (source.getDataSourceType() == DataSourceType.KTABLE) {
+      // Tables do not support rekey:
+      final String sourceName = source.getDataSource().getName().toString(FormatOptions.noEscape());
+
+      if (!keyColumn.isPresent()) {
+        throw new KsqlException(
+            "Invalid join criteria: Source table (" + sourceName + ") has no key column "
+                + "defined. Only 'ROWKEY' is supported in the join criteria for a TABLE."
+        );
+      }
+
+      throw new KsqlException(
+          "Invalid join criteria: Source table "
+              + "(" + sourceName + ") key column "
+              + "(" + keyColumn.get().ref().toString(FormatOptions.noEscape()) + ") "
+              + "is not the column used in the join criteria ("
+              + joinCol.ref().toString(FormatOptions.noEscape()) + "). "
+              + "Only the table's key column or 'ROWKEY' is supported in the join criteria "
+              + "for a TABLE."
+      );
+    }
+
+    return LogicalSchema.builder()
+        .keyColumn(source.getAlias(), SchemaUtil.ROWKEY_NAME, joinCol.type())
+        .valueColumns(sourceSchema.value())
+        .build();
   }
 }

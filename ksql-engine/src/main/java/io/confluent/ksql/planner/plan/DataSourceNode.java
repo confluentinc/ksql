@@ -95,7 +95,7 @@ public class DataSourceNode extends PlanNode {
     return dataSource;
   }
 
-  SourceName getAlias() {
+  public SourceName getAlias() {
     return alias;
   }
 

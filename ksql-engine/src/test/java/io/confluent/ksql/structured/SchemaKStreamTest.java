@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -63,7 +62,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -85,7 +83,7 @@ public class SchemaKStreamTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KeyField validJoinKeyField = KeyField
-      .of(Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))));
+      .of(Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL0"))));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
@@ -94,7 +92,6 @@ public class SchemaKStreamTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
 
   private SchemaKStream initialSchemaKStream;
-  private SchemaKStream secondSchemaKStream;
   private SchemaKTable schemaKTable;
   private KsqlStream<?> ksqlStream;
   private InternalFunctionRegistry functionRegistry;
@@ -112,11 +109,6 @@ public class SchemaKStreamTest {
     functionRegistry = new InternalFunctionRegistry();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlStream = (KsqlStream) metaStore.getSource(SourceName.of("TEST1"));
-    final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource(SourceName.of("ORDERS"));
-    secondSchemaKStream = buildSchemaKStreamForJoin(
-        secondKsqlStream,
-        mock(ExecutionStep.class)
-    );
     final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     schemaKTable = new SchemaKTable(
         tableSourceStep,
@@ -422,33 +414,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void shouldReturnSchemaKStreamWithCorrectSchemaForFilter() {
-    // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
-    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
-
-    // When:
-    final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
-        filterNode.getPredicate(),
-        childContextStacker
-    );
-
-    // Then:
-    assertThat(filteredSchemaKStream.getSchema().value(), contains(
-        valueColumn(TEST1, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        valueColumn(TEST1, ColumnName.of("ROWKEY"), SqlTypes.STRING),
-        valueColumn(TEST1, ColumnName.of("COL0"), SqlTypes.BIGINT),
-        valueColumn(TEST1, ColumnName.of("COL1"), SqlTypes.STRING),
-        valueColumn(TEST1, ColumnName.of("COL2"), SqlTypes.STRING),
-        valueColumn(TEST1, ColumnName.of("COL3"), SqlTypes.DOUBLE),
-        valueColumn(TEST1, ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE)),
-        valueColumn(TEST1, ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
-    ));
-
-  }
-
-  @Test
   public void shouldRewriteTimeComparisonInFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
@@ -745,77 +710,6 @@ public class SchemaKStreamTest {
     );
   }
 
-  @Test
-  public void shouldBuildStepForStreamStreamJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
-    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
-
-    final List<Pair<JoinType, StreamStreamJoin>> cases = ImmutableList.of(
-        Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
-        Pair.of(JoinType.INNER, initialSchemaKStream::join),
-        Pair.of(JoinType.OUTER, initialSchemaKStream::outerJoin)
-    );
-
-    for (final Pair<JoinType, StreamStreamJoin> testcase : cases) {
-      final SchemaKStream joinedKStream = testcase.right.join(
-          secondSchemaKStream,
-          validJoinKeyField,
-          joinWindow,
-          valueFormat,
-          rightFormat,
-          childContextStacker
-      );
-
-      // Then:
-      assertThat(
-          joinedKStream.getSourceStep(),
-          equalTo(
-              ExecutionStepFactory.streamStreamJoin(
-                  childContextStacker,
-                  testcase.left,
-                  Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-                  Formats.of(keyFormat, rightFormat, SerdeOption.none()),
-                  initialSchemaKStream.getSourceStep(),
-                  secondSchemaKStream.getSourceStep(),
-                  joinWindow
-              )
-          )
-      );
-    }
-  }
-
-  @Test
-  public void shouldBuildSchemaForStreamStreamJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
-    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
-
-    final List<Pair<JoinType, StreamStreamJoin>> cases = ImmutableList.of(
-        Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
-        Pair.of(JoinType.INNER, initialSchemaKStream::join),
-        Pair.of(JoinType.OUTER, initialSchemaKStream::outerJoin)
-    );
-
-    for (final Pair<JoinType, StreamStreamJoin> testcase : cases) {
-      final SchemaKStream joinedKStream = testcase.right.join(
-          secondSchemaKStream,
-          validJoinKeyField,
-          joinWindow,
-          valueFormat,
-          rightFormat,
-          childContextStacker
-      );
-
-      // Then:
-      assertThat(joinedKStream.getSchema(), is(schemaResolver.resolve(
-          joinedKStream.getSourceStep(),
-          initialSchemaKStream.getSchema(),
-          secondSchemaKStream.getSchema()))
-      );
-    }
-  }
-
   @FunctionalInterface
   private interface StreamTableJoin {
     SchemaKStream join(
@@ -902,16 +796,6 @@ public class SchemaKStreamTest {
   }
 
   private SchemaKStream buildSchemaKStreamForJoin(final KsqlStream ksqlStream) {
-    return buildSchemaKStream(
-        ksqlStream.getSchema().withAlias(SourceName.of("left")),
-        ksqlStream.getKeyField().withAlias(SourceName.of("left")),
-        sourceStep
-    );
-  }
-
-  private SchemaKStream buildSchemaKStreamForJoin(
-      final KsqlStream ksqlStream,
-      final ExecutionStep sourceStep) {
     return buildSchemaKStream(
         ksqlStream.getSchema().withAlias(SourceName.of("left")),
         ksqlStream.getKeyField().withAlias(SourceName.of("left")),

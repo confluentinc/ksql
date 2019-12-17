@@ -20,6 +20,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.util.DecimalUtil;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +50,7 @@ public class StructSerializationModuleTest {
       .field("ITEMID", Schema.INT64_SCHEMA)
       .field("NAME", Schema.STRING_SCHEMA)
       .field("CATEGORY", categorySchema)
+      .field("COST", DecimalUtil.builder(4, 2).build())
       .optional().build();
 
   private ObjectMapper objectMapper;
@@ -82,9 +85,10 @@ public class StructSerializationModuleTest {
     item.put("ITEMID", 1L);
     item.put("NAME", "ICE CREAM");
     item.put("CATEGORY", category);
+    item.put("COST", new BigDecimal("10.01"));
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(item);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"}}"));
+    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":{\"ID\":1,\"NAME\":\"Food\"},\"COST\":10.01}"));
   }
 
   @Test
@@ -99,7 +103,7 @@ public class StructSerializationModuleTest {
     item.put("CATEGORY", null);
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(item);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}"));
+    assertThat(jsonString, equalTo("{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null,\"COST\":null}"));
   }
 
   @Test
@@ -122,6 +126,6 @@ public class StructSerializationModuleTest {
 
     final byte[] serializedBytes = objectMapper.writeValueAsBytes(list);
     final String jsonString = new String(serializedBytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo("[\"Hello\",1,1,1.0,{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null}]"));
+    assertThat(jsonString, equalTo("[\"Hello\",1,1,1.0,{\"ITEMID\":1,\"NAME\":\"ICE CREAM\",\"CATEGORY\":null,\"COST\":null}]"));
   }
 }

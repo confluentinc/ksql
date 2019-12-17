@@ -446,7 +446,7 @@ public class JoinNodeTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Source table (Foobar2) key column (right.R1) is not the column used in the join criteria (right.C0). "
-            + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria for a TABLE."
     );
 
     // When:
@@ -472,7 +472,7 @@ public class JoinNodeTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Source table (Foobar2) has no key column defined. "
-            + "Only 'ROWKEY' is supported in the join criteria."
+            + "Only 'ROWKEY' is supported in the join criteria for a TABLE."
     );
 
     // When:
@@ -644,7 +644,7 @@ public class JoinNodeTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Source table (Foobar1) key column (left.C0) is not the column used in the join criteria (left.L1). "
-            + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria for a TABLE."
     );
 
     // When:
@@ -673,7 +673,7 @@ public class JoinNodeTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Source table (Foobar2) key column (right.R1) is not the column used in the join criteria (right.C0). "
-            + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria for a TABLE."
     );
 
     // When:

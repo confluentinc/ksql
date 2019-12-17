@@ -196,7 +196,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds to block waiting for the underlying streams instance to exit";
 
-
   private enum ConfigGeneration {
     LEGACY,
     CURRENT

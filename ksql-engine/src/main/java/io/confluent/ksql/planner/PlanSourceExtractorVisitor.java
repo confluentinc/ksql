@@ -25,6 +25,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanVisitor;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.RepartitionNode;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -76,6 +77,12 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
 
   @Override
   protected R visitFlatMap(final FlatMapNode node, final C context) {
+    process(node.getSources().get(0), context);
+    return null;
+  }
+
+  @Override
+  protected R visitRepartition(final RepartitionNode node, final C context) {
     process(node.getSources().get(0), context);
     return null;
   }

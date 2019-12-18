@@ -55,4 +55,25 @@ public final class QueryPlan  {
   public QueryId getQueryId() {
     return queryId;
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final QueryPlan queryPlan = (QueryPlan) o;
+    return Objects.equals(sources, queryPlan.sources)
+        && Objects.equals(sink, queryPlan.sink)
+        && Objects.equals(physicalPlan, queryPlan.physicalPlan)
+        && Objects.equals(queryId, queryPlan.queryId);
+  }
+
+  @Override
+  public int hashCode() {
+
+    return Objects.hash(sources, sink, physicalPlan, queryId);
+  }
 }

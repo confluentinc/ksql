@@ -42,9 +42,12 @@ public class TestCase implements VersionedTest {
   private final List<String> statements;
   private final Optional<Matcher<Throwable>> expectedException;
   private List<String> generatedTopologies;
-  private List<String> generatedSchemas;
+  private Map<String, String> generatedSchemas;
+  // private boolean current; // meaning, check that the topology matches
+  // private final Optional<KsqlPlan> expectedPlan;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
+  // note: add the topology check as a pre/post condition?
 
   public TestCase(
       final Path testPath,
@@ -160,11 +163,11 @@ public class TestCase implements VersionedTest {
     return expectedTopology;
   }
 
-  public void setGeneratedSchemas(final List<String> generatedSchemas) {
+  public void setGeneratedSchemas(final Map<String, String> generatedSchemas) {
     this.generatedSchemas = Objects.requireNonNull(generatedSchemas, "generatedSchemas");
   }
 
-  public List<String> getGeneratedSchemas() {
+  public Map<String, String> getGeneratedSchemas() {
     return generatedSchemas;
   }
 

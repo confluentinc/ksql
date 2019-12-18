@@ -15,24 +15,14 @@
 
 package io.confluent.ksql.test;
 
-import org.apache.kafka.test.IntegrationTest;
-import org.junit.ClassRule;
+import io.confluent.ksql.test.planned.PlannedTestGenerator;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TemporaryFolder;
 
-/**
- * Do not combine this with `TopologyFileGenerator` as mvn will ignore the tests as the class
- * does not end in `Test`.
- */
-@Category(IntegrationTest.class)
-public final class TopologyFileGeneratorTest {
-
-    @ClassRule
-    public static final TemporaryFolder TMP = new TemporaryFolder();
-
-    @Test
-    public void shouldGenerateTopologies() throws Exception {
-        TopologyFileGenerator.generateTopologies(TMP.newFolder().toPath());
-    }
+public class PlannedTestGeneratorTest {
+  @Test
+  @Ignore
+  public void manuallyGeneratePlans() {
+    PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases());
+  }
 }

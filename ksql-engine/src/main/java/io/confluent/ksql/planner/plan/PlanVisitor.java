@@ -49,4 +49,7 @@ public class PlanVisitor<C, R> {
     return visitPlan(node, context);
   }
 
+  protected R visitRepartition(final RepartitionNode node, final C context) {
+    return visitPlan(node, context);
+  }
 }

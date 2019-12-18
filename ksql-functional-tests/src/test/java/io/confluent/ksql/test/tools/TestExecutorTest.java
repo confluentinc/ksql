@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -166,8 +167,8 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", "matching-schemas");
-    givenActualTopology("a-topology", "matching-schemas");
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", "schemas"));
+    givenActualTopology("a-topology", ImmutableMap.of("matching", "schemas"));
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -198,8 +199,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", "expected-schemas");
-    givenActualTopology("the-topology", "actual-schemas");
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
+    givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
 
     // Then:
     expectedException.expect(AssertionError.class);
@@ -332,7 +333,7 @@ public class TestExecutorTest {
     when(expectedTopologyAndConfig.getTopology()).thenReturn(topology);
   }
 
-  private void givenExpectedTopology(final String topology, final String schemas) {
+  private void givenExpectedTopology(final String topology, final Map<String, String> schemas) {
     givenExpectedTopology(topology);
     when(expectedTopologyAndConfig.getSchemas()).thenReturn(Optional.of(schemas));
   }
@@ -341,9 +342,9 @@ public class TestExecutorTest {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final String schemas) {
+  private void givenActualTopology(final String topology, final Map<String, String> schemas) {
     givenActualTopology(topology);
-    when(testCase.getGeneratedSchemas()).thenReturn(ImmutableList.of(schemas));
+    when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }
 
   private void givenDataSourceTopic(final LogicalSchema schema) {

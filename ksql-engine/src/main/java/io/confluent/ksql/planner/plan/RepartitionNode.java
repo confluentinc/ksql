@@ -86,4 +86,9 @@ public class RepartitionNode extends PlanNode {
   public Expression getPartitionBy() {
     return partitionBy;
   }
+
+  @Override
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
+    return visitor.visitRepartition(this, context);
+  }
 }

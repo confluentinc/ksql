@@ -7,16 +7,34 @@ topology, executed, and verified.
 
 The test cases are run by the `QueryTranslationTest` test class.
 
+## Test Case Plans
+
+Most of the test cases (except those that validate exceptions) work by generating a plan, building
+a streams topology from the plan, and then running the topology against the inputs. Over time, the
+plan for a given query may evolve. However KSQL still needs to be able to execute older plans
+correctly. To test this, most Query Validation Tests work by loading and executing saved plans
+from the local tree.
+
+Each time a query plan changes, it's saved under the file
+`src/test/resources/historical_plans/<Test Name>/<Version Number>_<Timestamp>`.
+`QueryTranslationTest` runs by iterating over the saved plans, building them, and verifying that
+queries execute correctly.
+
+### Generating new topology files
+
+Plans evolve over time, and we need to make sure that KSQL tests the latest way of executing
+queries. To ensure this, we run a test (called `PlannedTestGeneratorTest`) that ensures that the
+latest plan for each test case is saved to the local tree. If it's not, you will need to run the
+generator to do so.
+
+To generate new plans, just run `PlannedTestGeneratorTest.manuallyGeneratePlans`
+
 ## Topology comparision
 These tests also validate the generated topology matches the expected topology,
 i.e. a test will fail if the topology has changed from previous runs.
 This is needed to detect potentially non-backwards compatible changes to the generated topology.
 
-The expected topology files, and the configuration used to generated them are found in
-`src/test/resources/expected_topology/<Version Number>`
-
-By default, the test will check topology compatibility against all previously released versions
-of KSQL (for which expected topology files exist).
+The expected topologies are stored alongside the query plans described above.
 
 ### Running a subset of tests:
 
@@ -32,33 +50,6 @@ mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files
 ```
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
-
-### Running against different previous versions:
-
-To run this test against specific previously released versions, set the system property
-"topology.versions" to the desired version(s). The property value should be a comma-delimited list of
-version number(s) found under the `src/test/resources/expected_topology` directory, 
-for example, `"5_0,5_3_0"`, or `latest-only` if only the current version is required.
-
-The are two places system properties may be set:
-  * Within Intellij
-    1. Click Run/Edit configurations
-    1. Select the QueryTranslationTest
-    1. Enter `-Dtopology.versions=X` in the "VM options:" form entry
-       where X is a comma-delimited list of the desired previously released version number(s),
-       or `latest-only` if only the current version is required.
-  * From the command line
-    1. run `mvn clean package -DskipTests=true` from the base of the KSQL project
-    1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-functional-tests`.
-       Again X is a list of the versions you want to run the tests against, 
-       or `latest-only` if only the current version is required.
-
-  Note that for both options above the version(s) must exist
-  under the `src/test/resources/expected_topology` directory.
-
-### Generating new topology files
-
-For instructions on how to generate new topologies, see `TopologyFileGenerator.java`
 
 ## Adding new tests
 

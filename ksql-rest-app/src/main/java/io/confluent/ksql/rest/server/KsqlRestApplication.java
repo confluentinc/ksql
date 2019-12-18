@@ -87,11 +87,18 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -323,6 +330,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   List<URL> getListeners() {
+    Enumeration<NetworkInterface> nets = getNetworkInterfaces();
     return Arrays.stream(server.getConnectors())
         .filter(connector -> connector instanceof ServerConnector)
         .map(ServerConnector.class::cast)
@@ -334,13 +342,59 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                 .anyMatch(s -> s.equals("ssl")) ? "https" : "http";
 
             final int localPort = connector.getLocalPort();
-
-            return new URL(protocol, "localhost", localPort, "");
+            final String host = getListenerHostName(connector.getHost(), nets);
+            return new URL(protocol, host, localPort, "");
           } catch (final Exception e) {
             throw new RuntimeException("Malformed listener", e);
           }
         })
         .collect(Collectors.toList());
+  }
+
+  private Enumeration<NetworkInterface> getNetworkInterfaces() {
+    Enumeration<NetworkInterface> nets;
+    try {
+      nets = NetworkInterface.getNetworkInterfaces();
+    } catch (SocketException e) {
+      throw new RuntimeException("Can't get network interfaces", e);
+    }
+    return nets;
+  }
+
+  /**
+   * Get a host address that will be broadcast to other instances and used to query the rest api.
+   * @param connectorHost The host as gotten from the jetty connector
+   * @return The host to broadcast to clients
+   */
+  @VisibleForTesting
+  String getListenerHostName(String connectorHost, Enumeration<NetworkInterface> nets)
+      throws UnknownHostException {
+    // If an explicit address is provided, use that
+    InetAddress connectorHostAddress = InetAddress.getByName(connectorHost);
+    if (!connectorHostAddress.isAnyLocalAddress()) {
+      return connectorHost;
+    }
+
+    // This is a very simple heuristic at the moment that finds the first non loopback address
+    // across network interfaces.
+    for (NetworkInterface networkInterface : Collections.list(nets)) {
+      Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+      InetAddress ipv6Address = null;
+      for (InetAddress address : Collections.list(addresses)) {
+        if (!address.isLoopbackAddress()) {
+          if (address instanceof Inet6Address) {
+            ipv6Address = address;
+          } else {
+            return address.getHostName();
+          }
+        }
+      }
+      if (ipv6Address != null) {
+        return ipv6Address.getHostName();
+      }
+    }
+    // Fallback on the loopback address
+    return InetAddress.getLoopbackAddress().getHostName();
   }
 
   @Override

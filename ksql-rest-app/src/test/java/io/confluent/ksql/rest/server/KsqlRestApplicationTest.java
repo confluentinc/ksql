@@ -57,7 +57,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
@@ -71,6 +75,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
@@ -133,6 +138,11 @@ public class KsqlRestApplicationTest {
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
+  @Mock
+  private NetworkInterface net0;
+  @Mock
+  private NetworkInterface net1;
+
   private String logCreateStatement;
   private KsqlRestApplication app;
 
@@ -377,5 +387,54 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
+  }
+
+  @Test
+  public void getListenerHostName_notBindAll() throws UnknownHostException {
+    assertEquals("1.2.3.4", app.getListenerHostName("1.2.3.4", null));
+  }
+
+  @Test
+  public void getListenerHostName_goodAddress() throws UnknownHostException {
+    Enumeration<NetworkInterface> nets = Collections.enumeration(ImmutableList.of(net0, net1));
+    when(net0.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getLoopbackAddress())));
+    when(net1.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getByName("2001:db8:85a3:0:0:8a2e:370:7334"),
+            InetAddress.getByName("1.2.3.4"))));
+    assertEquals("1.2.3.4", app.getListenerHostName(
+        "0.0.0.0", nets));
+  }
+
+  @Test
+  public void getListenerHostName_goodAddress_v6() throws UnknownHostException {
+    Enumeration<NetworkInterface> nets = Collections.enumeration(ImmutableList.of(net0, net1));
+    when(net0.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getLoopbackAddress())));
+    when(net1.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getByName("2001:db8:85a3:0:0:8a2e:370:7334"),
+            InetAddress.getByName("1.2.3.4"))));
+    assertEquals("1.2.3.4", app.getListenerHostName(
+        "[::]", nets));
+  }
+
+  @Test
+  public void getListenerHostName_onlyIpv6() throws UnknownHostException {
+    Enumeration<NetworkInterface> nets = Collections.enumeration(ImmutableList.of(net0, net1));
+    when(net0.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getLoopbackAddress())));
+    when(net1.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getByName("2001:db8:85a3:0:0:8a2e:370:7334"))));
+    assertEquals("2001:db8:85a3:0:0:8a2e:370:7334", app.getListenerHostName(
+        "0.0.0.0", nets));
+  }
+
+  @Test
+  public void getListenerHostName_loopback() throws UnknownHostException {
+    Enumeration<NetworkInterface> nets = Collections.enumeration(ImmutableList.of(net0));
+    when(net0.getInetAddresses()).thenReturn(Collections.enumeration(
+        ImmutableList.of(InetAddress.getLoopbackAddress())));
+    assertEquals("localhost", app.getListenerHostName(
+        "0.0.0.0", nets));
   }
 }

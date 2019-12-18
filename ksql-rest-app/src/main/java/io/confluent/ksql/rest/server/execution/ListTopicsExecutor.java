@@ -125,7 +125,7 @@ public final class ListTopicsExecutor {
     for (final Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
       if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix)
           && !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
-        filteredKafkaTopics.put(entry.getKey().toLowerCase(), entry.getValue());
+        filteredKafkaTopics.put(entry.getKey(), entry.getValue());
       }
     }
     return filteredKafkaTopics;

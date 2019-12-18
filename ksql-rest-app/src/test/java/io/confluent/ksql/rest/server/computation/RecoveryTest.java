@@ -38,6 +38,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -50,7 +51,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
@@ -218,7 +218,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          Optional.of((sc, metastore, statement) -> { })
+          Optional.of((sc, metastore, statement) -> { }),
+          mock(Errors.class)
       );
 
       this.statementExecutor.configure(ksqlConfig);

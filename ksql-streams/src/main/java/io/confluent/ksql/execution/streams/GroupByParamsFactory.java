@@ -56,13 +56,13 @@ final class GroupByParamsFactory {
     return new GroupByParams(schema, mapper);
   }
 
-  static LogicalSchema multiExpressionSchema(
+  private static LogicalSchema multiExpressionSchema(
       final LogicalSchema sourceSchema
   ) {
     return buildSchema(sourceSchema, SqlTypes.STRING);
   }
 
-  static LogicalSchema singleExpressionSchema(
+  private static LogicalSchema singleExpressionSchema(
       final LogicalSchema sourceSchema,
       final SqlType rowKeyType
   ) {

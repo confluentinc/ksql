@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -54,6 +55,7 @@ import java.util.Optional;
 /**
  * Computes the schema produced by an execution step, given the schema(s) going into the step.
  */
+@SuppressWarnings("MethodMayBeStatic") // Methods can not be used in HANDLERS is static.
 public final class StepSchemaResolver {
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, LogicalSchema, LogicalSchema> HANDLERS
@@ -166,16 +168,15 @@ public final class StepSchemaResolver {
       final LogicalSchema sourceSchema,
       final StreamGroupBy<?> streamGroupBy
   ) {
-    final List<Expression> groupBy = streamGroupBy.getGroupByExpressions();
+    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+        streamGroupBy.getGroupByExpressions().stream(),
+        "Group By",
+        sourceSchema,
+        ksqlConfig,
+        functionRegistry
+    );
 
-    if (groupBy.size() != 1) {
-      return GroupByParamsFactory.multiExpressionSchema(sourceSchema);
-    }
-
-    final SqlType rowKeyType = new ExpressionTypeManager(sourceSchema, functionRegistry)
-        .getExpressionSqlType(groupBy.get(0));
-
-    return GroupByParamsFactory.singleExpressionSchema(sourceSchema, rowKeyType);
+    return GroupByParamsFactory.build(sourceSchema, compiledGroupBy).getSchema();
   }
 
   private LogicalSchema handleStreamSelect(

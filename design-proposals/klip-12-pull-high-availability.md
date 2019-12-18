@@ -13,13 +13,18 @@ which allow serving stale data from standby replicas to achieve high availabilit
 eventual consistency. 
 
 ## Motivation and background
+Stateful persistent queries persist their state in state stores. These state stores are partitioned
+and replicated across a number of standbys for faster recovery in case of 
+[failures](https://docs.confluent.io/current/streams/architecture.html#fault-tolerance).
+A KSQL server may host partitions from multiple state stores serving as the active host for some partitions
+and the standby for others. Without loss of generality, we will focus on one partition and one state 
+store for the remainder of this document. The active KSQL server is the server that hosts the 
+active partition whereas the standby servers are the ones that host the replicas.  
 
 Assume we have a load balancer (LB) and a cluster of three KSQL servers (`A`, `B`, `C`) where `A` 
-is the active server and `B`, `C` are the standbys. `A` receives updates from the source topic 
+is the active server and `B`, `C` are the standby replicas. `A` receives updates from the source topic 
 partition and writes these updates to its state store and changelog topic. The changelog topic is 
-replicated into the state store of servers `B` and `C`. Note, every Ksql server is the active for 
-some partitions and standby for others. Without loss of generality, we will focus on one partition 
-for now.
+replicated into the state stores of servers `B` and `C`. 
 
 Now assume  LB receives a pull query (1) and sends the query to `B` (2). `B` determines that `A` 
 is the active server and forwards the request to `A` (3). `A` executes the query successfully and 
@@ -43,7 +48,7 @@ new active is ready to serve requests?
 has laid the groundwork to allow us to serve requests from standbys, even if they are still in 
 rebalancing state or have not caught up to the last committed offset of the active. 
 
-Every ksql server now has the information of:
+Every KSQL server now has the information of:
 
 1. Local offset lag: The lag of all partitions the server hosts (whether active or standby)
 2. Routing Metadata for a key: The partition, active host and standy hosts per key
@@ -93,6 +98,15 @@ the initial implementation, we will use the REST API to send heartbeats leveragi
 already exists between KSQL servers. Hence, we will implement a new REST endpoint, `/heartbeat` that 
 will register the heartbeats a server receives from other servers. 
 
+Cluster membership is determined using the information provided from the 
+[Kafka Streams](https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/KafkaStreams.html)
+instance and specifically [`StreamsMetadata`](https://kafka.apache.org/20/javadoc/org/apache/kafka/streams/state/StreamsMetadata.html) 
+from which we can obtain the information of the host and port of the instance. A server periodically
+polls for all currently running KS instances (local and remote) and updates the list of remote servers
+it has seen. If no KS streams are currently running, cluster membership is not performed. Moreover,
+this policy depends on the current design where a new KSQL server replays every command in the 
+command topic and hence runs every query.
+
 We want to guarantee 99% uptime. This means that in a 5 minute window, it must take no longer than 
 2 seconds to determine the active server is down and to forward the request to one of the standbys. 
 The heartbeats must be light-weight so that we can send multiple heartbeats per second which will 
@@ -118,11 +132,27 @@ public Response receiveHeartbeat(Request heartbeat)
 
 private HeartbeatResponse processRequest() {
   KsqlServer server = request.getServer();
-  receivedHeartbeats.get(server).add(System.currentTimeMillis());
+  receivedHeartbeats.get(server).add(request.getTimestamp());
 }
 ```
 
+Additionaly, we will implement a REST endpoint `/clusterStatus` that provides the current status of the cluster
+i.e. which servers are up and which are down (from the viewpoint of the server that receives the
+request).
 
+Pseudocode for REST endpoint for `/clusterStatus`:
+```java
+Map<KsqlServer, Boolean> hostStatus;
+
+@GET
+public Response checkClusterStatus(Request heartbeat) 
+  return Response.ok(processRequest()).build();
+}
+
+private ClusterStatusResponse processRequest() {
+  return hostStatus;
+}
+```
 ### Lag reporting
 
 Every server neeeds to periodically broadcast their local lag information. We will implement a new 
@@ -177,7 +207,7 @@ if (aliveNodes.get(active)) {
 // add standbys
 nodesToQuery.addAll(queryMetadata.getStandbyHosts().stream()
     // filter out all the standbys that are down
-    .filter(standbyHost -> aliveNodes.get(standByHost) == null)
+    .filter(standbyHost -> aliveNodes.get(standByHost) != null)
     // get the lag at each standby host for the key's store partition
     .map(standbyHost -> new Pair(standbyHostInfo, globalLagMap.get(standbyHost).get(storeName).get(queryMetadata.partition())))
     // Sort by offset lag, i.e smallest lag first
@@ -206,9 +236,11 @@ if (result == null) {
 return result;
 ```
 
-We will also introduce a configuration `ksql.query.pull.acceptable.offset.lag`, that will provide 
-applications the ability to control how much stale data it is willing to tolerate, for sake of availability. 
-If a standby lags behind by more than the tolerable limit, pull queries will fail. This is a very 
+We will also introduce a per-table configuration parameter `acceptable.offset.lag`, that will provide 
+applications the ability to control how much stale data they are willing to tolerate on a per table
+basis. If a standby lags behind by more than the tolerable limit, pull queries will fail. 
+This parameter can be configured either as part of the `WITH` clause of CTAS queries or be given as
+arguments to the request's JSON payload. This is a very 
 useful knob to handle the scenario of cold start explained above. In such a case, a newly added KSQL 
 server could be lagging by a lot as it rebuilds the entire state and thus the usefulness of the data 
 returned by pull queries may diminish significantly.
@@ -268,10 +300,11 @@ be extended to more advanced schemes like these down the line.
 ## Test plan
 
 We will do unit tests and integration tests with failure scenarios where we cover the cases:
-1. Request is forwarded to a stanby.
+1. Request is forwarded to a standby.
 2. Request is forward to the most caught-up standby.
-3. Request fails if lag of stanbys is more than acceptable lag configuration.
+3. Request fails if lag of standbys is more than acceptable lag configuration.
 
+We will look into muckrake or cc-system-tests.
 ## Documentation Updates
 
 Need to add documentation about the configuration parameters regarding the failure detection policy, 

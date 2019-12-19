@@ -43,21 +43,20 @@ public class KsqlRestConfig extends RestConfig {
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
-  private static final String COMMAND_CONSUMER_PREFIX  =
+  private static final String COMMAND_CONSUMER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.consumer.";
-  private static final String COMMAND_PRODUCER_PREFIX  =
+  private static final String COMMAND_PRODUCER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.producer.";
 
-  public static final String INTER_NODE_LISTENER_CONFIG =
-      KSQL_CONFIG_PREFIX + "inter.node.listener";
-  private static final String INTER_NODE_LISTENER_DOC =
+  public static final String ADVERTISED_LISTENER_CONFIG =
+      KSQL_CONFIG_PREFIX + "advertised.listener";
+  private static final String ADVERTISED_LISTENER_DOC =
       "The listener used for communication between KSQL nodes in the cluster, if different to the '"
           + LISTENERS_CONFIG + "' config property. "
           + "In IaaS environments, this may need to be different from the interface to which "
           + "the server binds. If this is not set, the first value from listeners will be used. "
           + "Unlike listeners, it is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) "
           + "wildcard addresses.";
-  private static final String USE_FIRST_LISTENER = "http://use.first.listener";
 
   static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";
@@ -122,12 +121,12 @@ public class KsqlRestConfig extends RestConfig {
 
   static {
     CONFIG_DEF = baseConfigDef().define(
-        INTER_NODE_LISTENER_CONFIG,
+        ADVERTISED_LISTENER_CONFIG,
         Type.STRING,
-        USE_FIRST_LISTENER,
-        ConfigValidators.validUrl(),
+        null,
+        ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
         Importance.HIGH,
-        INTER_NODE_LISTENER_DOC
+        ADVERTISED_LISTENER_DOC
     ).define(
         STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
         Type.LONG,
@@ -247,7 +246,7 @@ public class KsqlRestConfig extends RestConfig {
       final Function<URL, Integer> portResolver,
       final Logger logger
   ) {
-    return getString(INTER_NODE_LISTENER_CONFIG).equals(USE_FIRST_LISTENER)
+    return getString(ADVERTISED_LISTENER_CONFIG) == null
         ? getInterNodeListenerFromFirstListener(portResolver, logger)
         : getInterNodeListenerFromExplicitConfig(logger);
   }
@@ -284,12 +283,12 @@ public class KsqlRestConfig extends RestConfig {
   }
 
   private URL getInterNodeListenerFromExplicitConfig(final Logger logger) {
-    final String configValue = getString(INTER_NODE_LISTENER_CONFIG);
+    final String configValue = getString(ADVERTISED_LISTENER_CONFIG);
 
-    final URL listener = parseUrl(configValue, INTER_NODE_LISTENER_CONFIG);
+    final URL listener = parseUrl(configValue, ADVERTISED_LISTENER_CONFIG);
 
     if (listener.getPort() <= 0) {
-      throw new ConfigException(INTER_NODE_LISTENER_CONFIG, configValue, "Must have valid port");
+      throw new ConfigException(ADVERTISED_LISTENER_CONFIG, configValue, "Must have valid port");
     }
 
     // Valid for address to not be resolvable, as may be _externally_ resolvable:
@@ -297,7 +296,7 @@ public class KsqlRestConfig extends RestConfig {
 
     address.ifPresent(a -> {
       if (a.isAnyLocalAddress()) {
-        throw new ConfigException(INTER_NODE_LISTENER_CONFIG, configValue, "Can not be wildcard");
+        throw new ConfigException(ADVERTISED_LISTENER_CONFIG, configValue, "Can not be wildcard");
       }
     });
 
@@ -305,7 +304,7 @@ public class KsqlRestConfig extends RestConfig {
         logger,
         listener,
         address,
-        "'" + INTER_NODE_LISTENER_CONFIG + "'"
+        "'" + ADVERTISED_LISTENER_CONFIG + "'"
     );
 
     return listener;
@@ -338,6 +337,21 @@ public class KsqlRestConfig extends RestConfig {
     logger.info("Using {} config for intra-node communication: {}", sourceConfigName, listener);
   }
 
+  /**
+   * Used to sanitize the first `listener` config.
+   *
+   * <p>It will:
+   * <ul>
+   *    <li>resolve any auto-port assignment to the actual port the server is listening on</li>
+   *    <li>potentially, replace the host with localhost. This can be useful where the first
+   *    listener is a wildcard address, e.g. {@code 0.0.0.0}/li>
+   * </ul>
+   *
+   * @param listener the URL to sanitize
+   * @param portResolver the function to call to resolve the port.
+   * @param replaceHost flag indicating if the host in the URL should be replaced with localhost.
+   * @return the sanitized URL.
+   */
   private static URL sanitizeInterNodeListener(
       final URL listener,
       final Function<URL, Integer> portResolver,

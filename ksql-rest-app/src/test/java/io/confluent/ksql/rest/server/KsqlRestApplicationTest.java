@@ -356,7 +356,7 @@ public class KsqlRestApplicationTest {
     // Given:
     givenAppWithRestConfig(ImmutableMap.of(
         RestConfig.LISTENERS_CONFIG,  "http://localhost:0",
-        KsqlRestConfig.INTER_NODE_LISTENER_CONFIG, "https://some.host:12345"
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
     ));
 
     // When:

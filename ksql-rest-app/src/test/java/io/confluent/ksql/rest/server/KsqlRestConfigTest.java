@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.INTER_NODE_LISTENER_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.ADVERTISED_LISTENER_CONFIG;
 import static io.confluent.rest.RestConfig.LISTENERS_CONFIG;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -51,7 +51,7 @@ public class KsqlRestConfigTest {
       .build();
 
   private static final String QUOTED_INTER_NODE_LISTENER_CONFIG =
-      "'" + INTER_NODE_LISTENER_CONFIG + "'";
+      "'" + ADVERTISED_LISTENER_CONFIG + "'";
 
   private static final String QUOTED_FIRST_LISTENER_CONFIG =
       "first '" + LISTENERS_CONFIG + "'";
@@ -129,14 +129,14 @@ public class KsqlRestConfigTest {
     // Expect:
     expectedException.expect(ConfigException.class);
     expectedException.expectMessage("Invalid value INVALID for configuration "
-        + INTER_NODE_LISTENER_CONFIG
+        + ADVERTISED_LISTENER_CONFIG
         + ": Not valid URL: no protocol: INVALID"
     );
 
     // Given:
     new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, "INVALID")
+        .put(ADVERTISED_LISTENER_CONFIG, "INVALID")
         .build()
     );
   }
@@ -148,7 +148,7 @@ public class KsqlRestConfigTest {
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, expected.toString())
+        .put(ADVERTISED_LISTENER_CONFIG, expected.toString())
         .build()
     );
 
@@ -168,7 +168,7 @@ public class KsqlRestConfigTest {
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, expected.toString())
+        .put(ADVERTISED_LISTENER_CONFIG, expected.toString())
         .build()
     );
 
@@ -188,7 +188,7 @@ public class KsqlRestConfigTest {
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, expected.toString())
+        .put(ADVERTISED_LISTENER_CONFIG, expected.toString())
         .build()
     );
 
@@ -209,7 +209,7 @@ public class KsqlRestConfigTest {
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, expected.toString())
+        .put(ADVERTISED_LISTENER_CONFIG, expected.toString())
         .build()
     );
 
@@ -230,7 +230,7 @@ public class KsqlRestConfigTest {
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, expected.toString())
+        .put(ADVERTISED_LISTENER_CONFIG, expected.toString())
         .build()
     );
 
@@ -249,14 +249,14 @@ public class KsqlRestConfigTest {
     // Given:
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, "https://unresolvable.host:0")
+        .put(ADVERTISED_LISTENER_CONFIG, "https://unresolvable.host:0")
         .build()
     );
 
     // Expect:
     expectedException.expect(ConfigException.class);
     expectedException.expectMessage("Invalid value https://unresolvable.host:0 for configuration "
-        + INTER_NODE_LISTENER_CONFIG
+        + ADVERTISED_LISTENER_CONFIG
         + ": Must have valid port"
     );
 
@@ -270,14 +270,14 @@ public class KsqlRestConfigTest {
     // Given:
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, "https://0.0.0.0:12589")
+        .put(ADVERTISED_LISTENER_CONFIG, "https://0.0.0.0:12589")
         .build()
     );
 
     // Expect:
     expectedException.expect(ConfigException.class);
     expectedException.expectMessage("Invalid value https://0.0.0.0:12589 for configuration "
-        + INTER_NODE_LISTENER_CONFIG
+        + ADVERTISED_LISTENER_CONFIG
         + ": Can not be wildcard"
     );
 
@@ -290,14 +290,14 @@ public class KsqlRestConfigTest {
     // Given:
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
-        .put(INTER_NODE_LISTENER_CONFIG, "https://[::]:1236")
+        .put(ADVERTISED_LISTENER_CONFIG, "https://[::]:1236")
         .build()
     );
 
     // Expect:
     expectedException.expect(ConfigException.class);
     expectedException.expectMessage("Invalid value https://[::]:1236 for configuration "
-        + INTER_NODE_LISTENER_CONFIG
+        + ADVERTISED_LISTENER_CONFIG
         + ": Can not be wildcard"
     );
 

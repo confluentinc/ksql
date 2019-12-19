@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -52,6 +53,7 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
 
@@ -98,6 +100,18 @@ public final class ExpressionFormatter {
     public String visitSubscriptExpression(SubscriptExpression node, Context context) {
       return process(node.getBase(), context)
           + "[" + process(node.getIndex(), context) + "]";
+    }
+
+    @Override
+    public String visitStructExpression(CreateStructExpression exp, Context context) {
+      return exp
+          .getFields()
+          .stream()
+          .map(struct ->
+              context.formatOptions.escape(struct.getName())
+                  + ":="
+                  + process(struct.getValue(), context))
+          .collect(Collectors.joining(", ", "STRUCT(", ")"));
     }
 
     @Override

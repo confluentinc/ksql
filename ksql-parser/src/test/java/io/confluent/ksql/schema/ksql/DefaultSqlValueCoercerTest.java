@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +28,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -35,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -82,12 +85,6 @@ public class DefaultSqlValueCoercerTest {
   @Before
   public void setUp() {
     coercer = DefaultSqlValueCoercer.INSTANCE;
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowOnStruct() {
-    coercer.coerce(new Struct(SchemaBuilder.struct()),
-        SqlTypes.struct().field("foo", SqlTypes.STRING).build());
   }
 
   @Test
@@ -195,6 +192,42 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce(1L, mapType), is(Optional.empty()));
     assertThat(coercer.coerce("foo", mapType), is(Optional.empty()));
     assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Optional.empty()));
+  }
+
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldCoerceToStruct() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("foo", Schema.STRING_SCHEMA);
+    final Struct struct = new Struct(schema).put("foo", "2.1");
+    final SqlType structType = SqlTypes.struct().field("foo", SqlTypes.decimal(2, 1)).build();
+
+    // When:
+    final Optional<Struct> coerced = (Optional<Struct>) coercer.coerce(struct, structType);
+
+    // Then:
+    assertThat("", coerced.isPresent());
+    assertThat(coerced.get().get("foo"), is(new BigDecimal("2.1")));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldSubsetCoerceToStruct() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("foo", Schema.STRING_SCHEMA);
+    final Struct struct = new Struct(schema).put("foo", "val1");
+    final SqlType structType = SqlTypes.struct()
+        .field("foo", SqlTypes.STRING)
+        .field("bar", SqlTypes.STRING).build();
+
+    // When:
+    final Optional<Struct> coerced = (Optional<Struct>) coercer.coerce(struct, structType);
+
+    // Then:
+    assertThat("", coerced.isPresent());
+    assertThat(coerced.get().get("foo"), is("val1"));
+    assertThat(coerced.get().get("bar"), nullValue());
   }
 
   @Test

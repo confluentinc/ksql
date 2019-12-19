@@ -27,12 +27,15 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -82,6 +85,16 @@ public class ExpressionFormatterTest {
             new StringLiteral("abc"),
             new DoubleLiteral(3.0))),
         equalTo("'abc'[3.0]"));
+  }
+
+  @Test
+  public void shouldFormatStructExpression() {
+    assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
+        ImmutableList.of(
+            new Field("foo", new StringLiteral("abc")),
+            new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1))))
+        ), FormatOptions.of(exp -> exp.equals("foo"))),
+        equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
   }
 
   @Test

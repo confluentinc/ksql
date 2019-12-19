@@ -38,6 +38,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -314,6 +316,32 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldEvaluateTypeForStructExpression() {
+    // Given:
+    LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(TEST1, COL0, SqlTypes.array(SqlTypes.INTEGER))
+        .build();
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    Expression exp = new CreateStructExpression(ImmutableList.of(
+        new Field("field1", new StringLiteral("foo")),
+        new Field("field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))),
+        new Field("field3", new CreateStructExpression(ImmutableList.of()))
+    ));
+
+    // When:
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp);
+
+    // Then:
+    assertThat(sqlType,
+        is(SqlTypes.struct()
+            .field("field1", SqlTypes.STRING)
+            .field("field2", SqlTypes.array(SqlTypes.INTEGER))
+            .field("field3", SqlTypes.struct().build())
+            .build()));
   }
 
   @Test

@@ -248,19 +248,20 @@ valueExpression
     ;
 
 primaryExpression
-    : literal                                                                        #literalExpression
-    | identifier STRING                                                              #typeConstructor
-    | identifier '(' ASTERISK ')'                              		                   #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                 #functionCall
-    | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
-    | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
-    | CAST '(' expression AS type ')'                                                #cast
-    | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
-    | value=primaryExpression '[' index=valueExpression ']'                          #subscript
-    | identifier                                                                     #columnReference
-    | identifier '.' identifier                                                      #columnReference
-    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                   #dereference
-    | '(' expression ')'                                                             #parenthesizedExpression
+    : literal                                                                             #literalExpression
+    | identifier STRING                                                                   #typeConstructor
+    | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END              #simpleCase
+    | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
+    | CAST '(' expression AS type ')'                                                     #cast
+    | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
+    | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
+    | identifier '(' ASTERISK ')'                              		                        #functionCall
+    | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
+    | value=primaryExpression '[' index=valueExpression ']'                               #subscript
+    | identifier                                                                          #columnReference
+    | identifier '.' identifier                                                           #columnReference
+    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
+    | '(' expression ')'                                                                  #parenthesizedExpression
     ;
 
 timeZoneSpecifier
@@ -472,6 +473,7 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 
+ASSIGN: ':=';
 STRUCT_FIELD_REF: '->';
 
 STRING

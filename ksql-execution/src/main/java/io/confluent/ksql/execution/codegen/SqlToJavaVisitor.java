@@ -31,6 +31,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -87,6 +89,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 public class SqlToJavaVisitor {
 
@@ -104,7 +108,9 @@ public class SqlToJavaVisitor {
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
-      RoundingMode.class.getCanonicalName()
+      RoundingMode.class.getCanonicalName(),
+      SchemaBuilder.class.getCanonicalName(),
+      Struct.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -133,6 +139,7 @@ public class SqlToJavaVisitor {
   private final ExpressionTypeManager expressionTypeManager;
   private final Function<FunctionName, String> funNameToCodeName;
   private final Function<ColumnRef, String> colRefToCodeName;
+  private final Function<CreateStructExpression, String> structToCodeName;
 
   public static SqlToJavaVisitor of(
       LogicalSchema schema, FunctionRegistry functionRegistry, CodeGenSpec spec
@@ -145,14 +152,16 @@ public class SqlToJavaVisitor {
         name -> {
           int index = nameCounts.add(name, 1);
           return spec.getUniqueNameForFunction(name, index);
-        }
-    );
+        },
+        spec::getStructSchemaName);
   }
 
   @VisibleForTesting
   SqlToJavaVisitor(
       LogicalSchema schema, FunctionRegistry functionRegistry,
-      Function<ColumnRef, String> colRefToCodeName, Function<FunctionName, String> funNameToCodeName
+      Function<ColumnRef, String> colRefToCodeName,
+      Function<FunctionName, String> funNameToCodeName,
+      Function<CreateStructExpression, String> structToCodeName
   ) {
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
@@ -160,6 +169,7 @@ public class SqlToJavaVisitor {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
     this.funNameToCodeName = Objects.requireNonNull(funNameToCodeName, "funNameToCodeName");
+    this.structToCodeName = Objects.requireNonNull(structToCodeName, "structToCodeName");
   }
 
   public String process(Expression expression) {
@@ -710,6 +720,25 @@ public class SqlToJavaVisitor {
         default:
           throw new UnsupportedOperationException();
       }
+    }
+
+    @Override
+    public Pair<String, SqlType> visitStructExpression(CreateStructExpression node, Void context) {
+      final String schemaName = structToCodeName.apply(node);
+      final StringBuilder struct = new StringBuilder("new Struct(").append(schemaName).append(")");
+      for (Field field : node.getFields()) {
+        struct.append(".put(")
+            .append('"')
+            .append(field.getName())
+            .append('"')
+            .append(",")
+            .append(process(field.getValue(), context).getLeft())
+            .append(")");
+      }
+      return new Pair<>(
+          "((Struct)" + struct.toString() + ")",
+          expressionTypeManager.getExpressionSqlType(node)
+      );
     }
 
     @Override

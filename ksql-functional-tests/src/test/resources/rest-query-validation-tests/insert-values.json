@@ -248,6 +248,42 @@
       "responses": [
         {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
       ]
+    },
+    {
+      "name": "should handle struct expressions",
+      "statements": [
+        "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (val) VALUES (STRUCT(FOO := '2.1', `bar` := AS_ARRAY('bar')));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": 2.1, "bar": ["bar"]}}}
+      ]
+    },
+    {
+      "name": "should handle struct coercion",
+      "statements": [
+        "CREATE STREAM TEST (val STRUCT<foo BIGINT, bar ARRAY<BIGINT>, baz DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (val) VALUES (STRUCT(FOO := 2, BAR := AS_ARRAY(2), BAZ := 2));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": 2, "BAR": [2], "BAZ": 2.0}}}
+      ]
+    },
+    {
+      "name": "should handle empty struct expressions",
+      "statements": [
+        "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (val) VALUES (STRUCT());"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": null, "bar": null}}}
+      ]
     }
   ]
 }

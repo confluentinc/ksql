@@ -38,6 +38,8 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sig
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -93,11 +95,13 @@ public class SqlToJavaVisitorTest {
   @Before
   public void init() {
     AtomicInteger funCounter = new AtomicInteger();
+    AtomicInteger structCounter = new AtomicInteger();
     sqlToJavaVisitor = new SqlToJavaVisitor(
         SCHEMA,
         functionRegistry,
         ref -> ref.aliasedFieldName().replace(".", "_"),
-        name -> name.name() + "_" + funCounter.getAndIncrement()
+        name -> name.name() + "_" + funCounter.getAndIncrement(),
+        struct -> "schema" + structCounter.getAndIncrement()
     );
   }
 
@@ -138,6 +142,25 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
+  }
+
+  @Test
+  public void shouldProcessStructExpressionCorrectly() {
+    // Given:
+    Expression expression = new CreateStructExpression(
+        ImmutableList.of(
+            new Field("col1", new StringLiteral("foo")),
+            new Field("col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1")))
+        )
+    );
+
+    // When:
+    String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(
+        javaExpression,
+        equalTo("((Struct)new Struct(schema0).put(\"col1\",\"foo\").put(\"col2\",((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))))"));
   }
 
   @Test

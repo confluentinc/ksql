@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -61,6 +62,7 @@ import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -317,6 +319,19 @@ public class ExpressionTypeManager {
       }
 
       expressionTypeContext.setSqlType(valueType);
+      return null;
+    }
+
+    @Override
+    public Void visitStructExpression(CreateStructExpression exp, ExpressionTypeContext context) {
+      final Builder builder = SqlStruct.builder();
+
+      for (CreateStructExpression.Field field : exp.getFields()) {
+        process(field.getValue(), context);
+        builder.field(field.getName(), context.getSqlType());
+      }
+
+      context.setSqlType(builder.build());
       return null;
     }
 

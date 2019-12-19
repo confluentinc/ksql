@@ -32,7 +32,10 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -48,9 +51,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -61,11 +61,13 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -528,6 +530,22 @@ public class ExpressionTreeRewriterTest {
 
     // Then:
     assertThat(rewritten, equalTo(new SubscriptExpression(parsed.getLocation(), expr1, expr2)));
+  }
+
+  @Test
+  public void shouldRewriteStructExpression() {
+    // Given:
+    final CreateStructExpression parsed = parseExpression("STRUCT(FOO := 'foo', BAR := col4[1])");
+    final Expression fooVal = parsed.getFields().stream().filter(f -> f.getName().equals("FOO")).findFirst().get().getValue();
+    final Expression barVal = parsed.getFields().stream().filter(f -> f.getName().equals("BAR")).findFirst().get().getValue();
+    when(processor.apply(fooVal, context)).thenReturn(expr1);
+    when(processor.apply(barVal, context)).thenReturn(expr2);
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(parsed, context);
+
+    // Then:
+    assertThat(rewritten, equalTo(new CreateStructExpression(ImmutableList.of(new Field("FOO", expr1), new Field("BAR", expr2)))));
   }
 
   @Test

@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -23,6 +24,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -183,6 +186,15 @@ public final class ExpressionTreeRewriter<C> {
       final Expression index = rewriter.apply(node.getIndex(), context);
 
       return new SubscriptExpression(node.getLocation(), base, index);
+    }
+
+    @Override
+    public Expression visitStructExpression(CreateStructExpression node, C context) {
+      final Builder<Field> fields = ImmutableList.builder();
+      for (Field field : node.getFields()) {
+        fields.add(new Field(field.getName(), rewriter.apply(field.getValue(), context)));
+      }
+      return new CreateStructExpression(node.getLocation(), fields.build());
     }
 
     @Override

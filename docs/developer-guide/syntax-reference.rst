@@ -74,7 +74,7 @@ encapsulate a street address and a postal code:
 
 You can create a struct in a query by specifying the names of the columns
 and expressions that construct the values, separated by ``,`` and wrapped with
-curly braces. For example: ``SELECT STRUCT(col0 AS name, col1*7 as ageInDogYears) AS dogs FROM animals``
+curly braces. For example: ``SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals``
 creates a schema ``col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>``, assuming ``col0`` was a string and
 ``col1`` was an integer.
 

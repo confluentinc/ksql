@@ -94,7 +94,7 @@ public class ExpressionFormatterTest {
             new Field("foo", new StringLiteral("abc")),
             new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1))))
         )),
-        equalTo("STRUCT('abc' AS foo, abc[1] AS bar)"));
+        equalTo("STRUCT(foo:='abc', bar:=abc[1])"));
   }
 
   @Test

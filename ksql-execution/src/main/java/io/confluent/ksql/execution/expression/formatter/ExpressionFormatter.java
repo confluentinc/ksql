@@ -107,7 +107,7 @@ public final class ExpressionFormatter {
       return exp
           .getFields()
           .stream()
-          .map(struct -> process(struct.getValue(), context) + " AS " + struct.getName())
+          .map(struct -> struct.getName() + ":=" + process(struct.getValue(), context))
           .collect(Collectors.joining(", ", "STRUCT(", ")"));
     }
 

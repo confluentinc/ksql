@@ -535,7 +535,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteStructExpression() {
     // Given:
-    final CreateStructExpression parsed = parseExpression("STRUCT('foo' as FOO, col4[1] as BAR)");
+    final CreateStructExpression parsed = parseExpression("STRUCT(FOO := 'foo', BAR := col4[1])");
     final Expression fooVal = parsed.getFields().stream().filter(f -> f.getName().equals("FOO")).findFirst().get().getValue();
     final Expression barVal = parsed.getFields().stream().filter(f -> f.getName().equals("BAR")).findFirst().get().getValue();
     when(processor.apply(fooVal, context)).thenReturn(expr1);

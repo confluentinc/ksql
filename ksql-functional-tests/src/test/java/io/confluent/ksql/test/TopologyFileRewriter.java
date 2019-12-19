@@ -191,6 +191,24 @@ public final class TopologyFileRewriter {
     return contents.substring(start, end);
   }
 
+  private static Map<String, ?> parseConfigs(final String configs) {
+    try {
+      final ObjectReader objectReader = OBJECT_MAPPER.readerFor(Map.class);
+      final Map<String, ?> parsed = objectReader.readValue(configs);
+
+      final Set<String> toRemove = parsed.entrySet().stream()
+          .filter(e -> e.getValue() == null)
+          .map(Entry::getKey)
+          .collect(Collectors.toSet());
+
+      parsed.remove("ksql.streams.state.dir");
+      parsed.keySet().removeAll(toRemove);
+      return parsed;
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to parse configs: " + configs, e);
+    }
+  }
+
   private interface Rewriter {
 
     String rewrite(final TestCase testCase, final Path path) throws Exception;
@@ -321,7 +339,7 @@ public final class TopologyFileRewriter {
     }
   }
 
-  private static final class RewriteSchemasOnly implements StructuredRewriter {
+  private static final class CustomRewriter implements StructuredRewriter {
 
     @Override
     public String rewriteSchemas(final TestCase testCase, final Path path, final String schemas) {
@@ -332,6 +350,10 @@ public final class TopologyFileRewriter {
     }
   }
 
+  /**
+   * Uses the standard topology generation code to rewrite expected topology, i.e. it updates
+   * the topology to match what the current code would output, taking into account any config
+   */
   private static final class RewriteTopologyOnly implements StructuredRewriter {
 
     private Map<String, ?> configs;
@@ -363,23 +385,40 @@ public final class TopologyFileRewriter {
 
       return grabContent(newContent, topologyStart, Optional.empty());
     }
+  }
 
-    private static Map<String, ?> parseConfigs(final String configs) {
-      try {
-        final ObjectReader objectReader = OBJECT_MAPPER.readerFor(Map.class);
-        final Map<String, ?> parsed = objectReader.readValue(configs);
+  /**
+   * Uses the standard topology generation code to rewrite expected schemas, i.e. it updates
+   * the schemes to match what the current code would output, taking into account any config
+   */
+  private static final class RewriteSchemasOnly implements StructuredRewriter {
 
-        final Set<String> toRemove = parsed.entrySet().stream()
-            .filter(e -> e.getValue() == null)
-            .map(Entry::getKey)
-            .collect(Collectors.toSet());
+    private Map<String, ?> configs;
 
-        parsed.remove("ksql.streams.state.dir");
-        parsed.keySet().removeAll(toRemove);
-        return parsed;
-      } catch (final Exception e) {
-        throw new RuntimeException("Failed to parse configs: " + configs, e);
-      }
+    @Override
+    public String rewriteConfig(
+        final TestCase testCase,
+        final Path path,
+        final String configs
+    ) {
+      this.configs = parseConfigs(configs);
+      return configs;
+    }
+
+    @Override
+    public String rewriteSchemas(
+        final TestCase testCase,
+        final Path path,
+        final String schemas
+    ) {
+      final String newContent = TopologyFileGenerator
+          .buildExpectedTopologyContent(testCase, Optional.of(configs));
+
+      return grabContent(
+          newContent,
+          Optional.of(CONFIG_END_MARKER),
+          Optional.of(SCHEMAS_END_MARKER)
+      );
     }
   }
 }

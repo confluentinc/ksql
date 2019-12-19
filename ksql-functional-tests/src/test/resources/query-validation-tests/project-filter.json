@@ -11,7 +11,7 @@
     {
       "name": "project and filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
       ],
       "inputs": [
@@ -26,7 +26,7 @@
     {
       "name": "project string with embedded code",
       "statements": [
-        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S1 as SELECT '\" + new java.util.function.Supplier<String>(){public String get() {return \"boom\";}}.get() + \"' as x  FROM test;"
       ],
       "inputs": [
@@ -69,7 +69,7 @@
     {
       "name": "project and negative filter",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S2 as SELECT name, id FROM test where id < -100;"
       ],
       "inputs": [

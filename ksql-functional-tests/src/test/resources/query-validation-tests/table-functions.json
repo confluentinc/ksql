@@ -6,7 +6,7 @@
     {
       "name": "table function as last select",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, EXPLODE(MY_ARR) VAL FROM TEST;"
       ],
       "inputs": [
@@ -23,7 +23,7 @@
     {
       "name": "table function as first select",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL, ID FROM TEST;"
       ],
       "inputs": [
@@ -40,7 +40,7 @@
     {
       "name": "table function with non selected columns",
       "statements": [
-        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL, ID FROM TEST;"
       ],
       "inputs": [
@@ -57,7 +57,7 @@
     {
       "name": "table function with no other selected columns",
       "statements": [
-        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL FROM TEST;"
       ],
       "inputs": [
@@ -74,7 +74,7 @@
     {
       "name": "table function with no alias",
       "statements": [
-        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) FROM TEST;"
       ],
       "inputs": [
@@ -91,7 +91,7 @@
     {
       "name": "table function shouldn't be in FROM clause",
       "statements": [
-        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM EXPLODE(MY_ARR);"
       ],
       "expectedException": {
@@ -241,7 +241,7 @@
     {
       "name": "table functions don't support table sources",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE TABLE TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, EXPLODE(MY_ARR) VAL FROM TEST;"
       ],
       "expectedException": {

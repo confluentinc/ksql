@@ -24,7 +24,6 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.common.utils.Utils;
 
 public final class ListPropertiesExecutor {

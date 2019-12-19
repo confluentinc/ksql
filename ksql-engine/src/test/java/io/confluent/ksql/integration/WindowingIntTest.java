@@ -269,9 +269,9 @@ public class WindowingIntTest {
     return names;
   }
 
-  private static Deserializer getKeyDeserializerFor(final Object key) {
+  private static Deserializer<?> getKeyDeserializerFor(final Object key) {
     if (key instanceof Windowed) {
-      if (((Windowed) key).window() instanceof SessionWindow) {
+      if (((Windowed<?>) key).window() instanceof SessionWindow) {
         return SESSION_WINDOWED_DESERIALIZER;
       }
       return TIME_WINDOWED_DESERIALIZER;
@@ -288,6 +288,6 @@ public class WindowingIntTest {
         + "ORDERUNITS double, "
         + "PRICEARRAY array<double>, "
         + "KEYVALUEMAP map<varchar, double>) "
-        + "WITH (kafka_topic='" + sourceTopicName + "', value_format='JSON', key='ordertime');");
+        + "WITH (kafka_topic='" + sourceTopicName + "', value_format='JSON');");
   }
 }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest;
 
 import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -25,14 +24,13 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.util.KsqlException;
+import javax.ws.rs.core.Response;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import javax.ws.rs.core.Response;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ErrorsTest {

@@ -34,7 +34,7 @@
       "name": "histogram on a table",
       "format": ["AVRO","JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE TABLE TEST (ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE COUNT_BY_REGION AS SELECT region, histogram(name) AS COUNTS FROM TEST GROUP BY region;"
       ],
       "inputs": [

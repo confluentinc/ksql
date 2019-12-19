@@ -29,13 +29,12 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {

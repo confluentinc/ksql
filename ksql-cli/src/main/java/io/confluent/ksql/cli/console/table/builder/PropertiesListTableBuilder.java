@@ -20,7 +20,6 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;

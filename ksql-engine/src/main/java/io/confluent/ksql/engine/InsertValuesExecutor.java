@@ -350,9 +350,9 @@ public class InsertValuesExecutor {
         if (keyValue == null) {
           values.put(key.name(), rowKeyValue);
         } else {
-          values.put(SchemaUtil.ROWKEY_NAME, keyValue.toString());
+          values.put(SchemaUtil.ROWKEY_NAME, keyValue);
         }
-      } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
+      } else if (keyValue != null && !Objects.equals(keyValue, rowKeyValue)) {
         throw new KsqlException(String.format(
             "Expected ROWKEY and %s to match but got %s and %s respectively.",
             key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));

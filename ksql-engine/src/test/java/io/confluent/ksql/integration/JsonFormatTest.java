@@ -144,7 +144,8 @@ public class JsonFormatTest {
   }
 
   private void execInitCreateStreamQueries() {
-    final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+    final String ordersStreamStr = String.format("CREATE STREAM %s ("
+        + "ROWKEY BIGINT KEY, ORDERTIME bigint, ORDERID varchar, "
         + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
         + "map<varchar, double>) WITH (value_format = 'json', "
         + "kafka_topic='%s' , "

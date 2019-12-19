@@ -103,13 +103,12 @@ public class SslFunctionalTest {
   private SslContextFactory sslContextFactory;
 
   @BeforeClass
-  public static void classSetUp() throws Exception {
+  public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
     CLUSTER.createTopic(TOPIC_NAME);
     new TopicProducer(CLUSTER).produceInputData(dataProvider);
   }
 
-  @SuppressWarnings("deprecation")
   @Before
   public void setUp() {
     clientProps = Collections.emptyMap();

@@ -113,7 +113,7 @@ import org.mockito.junit.MockitoJUnitRunner;
  */
 @SuppressWarnings("SameParameterValue")
 @RunWith(MockitoJUnitRunner.class)
-@Category({IntegrationTest.class})
+@Category(IntegrationTest.class)
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
@@ -171,7 +171,7 @@ public class CliTest {
   private String tableName;
 
   @BeforeClass
-  public static void classSetUp() throws Exception {
+  public static void classSetUp() {
     restClient = KsqlRestClient.create(
         REST_APP.getHttpListener().toString(),
         ImmutableMap.of(),
@@ -236,15 +236,14 @@ public class CliTest {
     }
   }
 
-  private static void produceInputStream(final TestDataProvider dataProvider) throws Exception {
+  private static void produceInputStream(final TestDataProvider dataProvider) {
     topicProducer.produceInputData(dataProvider);
   }
 
   private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
     run(String.format(
-        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s');",
-        dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(),
-        dataProvider.key()),
+        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s');",
+        dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName()),
         cli);
   }
 
@@ -1206,7 +1205,7 @@ public class CliTest {
   }
 
   @SafeVarargs
-  @SuppressWarnings({"varargs", "unchecked"})
+  @SuppressWarnings({"varargs", "unchecked", "rawtypes"})
   private static Matcher<Iterable<? extends Iterable<? extends String>>> hasRow(
       final Matcher<String>... expected
   ) {

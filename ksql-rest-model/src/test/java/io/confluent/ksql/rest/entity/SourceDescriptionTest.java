@@ -16,12 +16,11 @@
 package io.confluent.ksql.rest.entity;
 
 import com.google.common.testing.EqualsTester;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SourceDescriptionTest {

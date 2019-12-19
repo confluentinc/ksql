@@ -149,6 +149,7 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema ordersSchema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -265,6 +266,7 @@ public final class MetaStoreFixture {
 
 
     final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("SENSOR_NAME"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARR1"), SqlTypes.array(SqlTypes.BIGINT))

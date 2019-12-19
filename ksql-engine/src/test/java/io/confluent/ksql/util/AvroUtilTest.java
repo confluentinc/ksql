@@ -48,7 +48,6 @@ import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
-
 import org.apache.avro.Schema;
 import org.junit.Before;
 import org.junit.Rule;

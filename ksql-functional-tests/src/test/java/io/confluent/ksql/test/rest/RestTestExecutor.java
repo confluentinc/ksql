@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
@@ -361,7 +362,7 @@ public class RestTestExecutor implements Closeable {
     final Object actualKey = actual.key();
     final Object actualValue = actual.value();
 
-    final Object expectedKey = expected.key();
+    final Object expectedKey = coerceExpectedKey(expected.key(), actualKey);
     final JsonNode expectedValue = expected.getJsonValue()
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expected));
@@ -384,6 +385,32 @@ public class RestTestExecutor implements Closeable {
     if (actualTimestamp != expectedTimestamp) {
       throw error;
     }
+  }
+
+  /**
+   * The expected key loaded from the JSON file may need a little coercing to the right type, e.g
+   * a double value of {@code 1.23} will be deserialized as a {@code BigDecimal}.
+   * @param expectedKey the key to coerce
+   * @param actualKey the type to coerce to.
+   * @return the coerced key.
+   */
+  private static Object coerceExpectedKey(
+      final Object expectedKey,
+      final Object actualKey
+  ) {
+    if (actualKey == null || expectedKey == null) {
+      return expectedKey;
+    }
+
+    if (actualKey instanceof Double && expectedKey instanceof BigDecimal) {
+      return ((BigDecimal) expectedKey).doubleValue();
+    }
+
+    if (actualKey instanceof Long && expectedKey instanceof Integer) {
+      return ((Integer)expectedKey).longValue();
+    }
+
+    return expectedKey;
   }
 
   private static <T> T asJson(final Object response, final TypeReference<T> type) {

@@ -22,7 +22,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
@@ -67,7 +67,7 @@ public class RequestHandler {
   }
 
   public KsqlEntityList execute(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides
   ) {
@@ -79,7 +79,7 @@ public class RequestHandler {
           prepared, scopedPropertyOverrides, ksqlConfig);
 
       executeStatement(
-          serviceContext,
+          securityContext,
           configured,
           scopedPropertyOverrides,
           entities
@@ -90,7 +90,7 @@ public class RequestHandler {
 
   @SuppressWarnings("unchecked")
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final ConfiguredStatement<T> configured,
       final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities
@@ -101,14 +101,14 @@ public class RequestHandler {
 
     final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
         statementClass,
-        (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, svcCtx)
+        (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, securityContext)
     );
 
     return executor.execute(
         configured,
         mutableScopedProperties,
         ksqlEngine,
-        serviceContext
+        securityContext.getServiceContext()
     );
   }
 

@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -82,13 +83,13 @@ public class DistributingExecutor {
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final KsqlSecurityContext securityContext
   ) {
     final ConfiguredStatement<?> injected = injectorFactory
-        .apply(executionContext, serviceContext)
+        .apply(executionContext, securityContext.getServiceContext())
         .inject(statement);
 
-    checkAuthorization(injected, serviceContext, executionContext);
+    checkAuthorization(injected, securityContext, executionContext);
 
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
@@ -136,7 +137,7 @@ public class DistributingExecutor {
 
   private void checkAuthorization(
       final ConfiguredStatement<?> configured,
-      final ServiceContext userServiceContext,
+      final KsqlSecurityContext userSecurityContext,
       final KsqlExecutionContext serverExecutionContext
   ) {
     final Statement statement = configured.getStatement();
@@ -145,13 +146,13 @@ public class DistributingExecutor {
     // Check the User will be permitted to execute this statement
     authorizationValidator.ifPresent(
         validator ->
-            validator.checkAuthorization(userServiceContext, metaStore, statement));
+            validator.checkAuthorization(userSecurityContext, metaStore, statement));
 
     try {
       // Check the KSQL service principal will be permitted too
       authorizationValidator.ifPresent(
           validator -> validator.checkAuthorization(
-              serverExecutionContext.getServiceContext(),
+              new KsqlSecurityContext(Optional.empty(), serverExecutionContext.getServiceContext()),
               metaStore,
               statement));
     } catch (final Exception e) {

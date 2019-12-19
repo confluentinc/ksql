@@ -48,7 +48,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
@@ -468,7 +468,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         versionCheckerFactory,
         Integer.MAX_VALUE,
         serviceContext,
-        KsqlRestServiceContextBinder::new);
+        KsqlSecurityContextBinder::new);
   }
 
   static KsqlRestApplication buildApplication(

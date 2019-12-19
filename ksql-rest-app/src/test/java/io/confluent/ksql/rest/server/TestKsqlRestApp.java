@@ -36,8 +36,9 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -431,8 +432,8 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
-    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinder
-        = KsqlRestServiceContextBinder::new;
+    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder
+        = KsqlSecurityContextBinder::new;
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
@@ -456,23 +457,23 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
-      this.serviceContextBinder = (config, extension) -> new AbstractBinder() {
+      this.securityContextBinder = (config, extension) -> new AbstractBinder() {
         @Override
         protected void configure() {
-          final Factory<ServiceContext> factory = new Factory<ServiceContext>() {
+          final Factory<KsqlSecurityContext> factory = new Factory<KsqlSecurityContext>() {
             @Override
-            public ServiceContext provide() {
-              return serviceContext.get();
+            public KsqlSecurityContext provide() {
+              return new KsqlSecurityContext(Optional.empty(), serviceContext.get());
             }
 
             @Override
-            public void dispose(final ServiceContext serviceContext) {
+            public void dispose(final KsqlSecurityContext securityContext) {
               // do nothing because context is shared
             }
           };
 
           bindFactory(factory)
-              .to(ServiceContext.class)
+              .to(KsqlSecurityContext.class)
               .in(RequestScoped.class);
         }
       };
@@ -501,7 +502,7 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          serviceContextBinder,
+          securityContextBinder,
           credentials
       );
     }

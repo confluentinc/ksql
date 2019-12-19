@@ -40,7 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -402,7 +402,7 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
-        KsqlRestServiceContextBinder::new,
+        KsqlSecurityContextBinder::new,
         securityExtension,
         serverState,
         processingLogContext,

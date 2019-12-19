@@ -21,8 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Optional;
@@ -34,9 +34,9 @@ import org.glassfish.hk2.api.Factory;
 
 /**
  * This class implements {@link Factory}, which allows a REST application to create
- * a new {@link ServiceContext} during REST requests.
+ * a new {@link KsqlSecurityContext} during REST requests.
  */
-public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
+public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityContext> {
   private static KsqlConfig ksqlConfig;
   private static KsqlSecurityExtension securityExtension;
 
@@ -44,8 +44,8 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension
   ) {
-    KsqlRestServiceContextFactory.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    KsqlRestServiceContextFactory.securityExtension
+    KsqlSecurityContextBinderFactory.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    KsqlSecurityContextBinderFactory.securityExtension
         = requireNonNull(securityExtension, "securityExtension");
   }
 
@@ -55,7 +55,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   private final HttpServletRequest request;
 
   @Inject
-  public KsqlRestServiceContextFactory(
+  public KsqlSecurityContextBinderFactory(
       final SecurityContext securityContext,
       final HttpServletRequest request
   ) {
@@ -68,7 +68,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   }
 
   @VisibleForTesting
-  KsqlRestServiceContextFactory(
+  KsqlSecurityContextBinderFactory(
       final SecurityContext securityContext,
       final HttpServletRequest request,
       final DefaultServiceContextFactory defaultServiceContextFactory,
@@ -83,27 +83,31 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   }
 
   @Override
-  public ServiceContext provide() {
+  public KsqlSecurityContext provide() {
+    final Principal principal = securityContext.getUserPrincipal();
     final Optional<String> authHeader =
         Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION));
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return defaultServiceContextFactory.create(ksqlConfig, authHeader);
+      return new KsqlSecurityContext(
+          Optional.ofNullable(principal),
+          defaultServiceContextFactory.create(ksqlConfig, authHeader)
+      );
     }
 
-    final Principal principal = securityContext.getUserPrincipal();
     return securityExtension.getUserContextProvider()
-        .map(provider ->
+        .map(provider -> new KsqlSecurityContext(
+            Optional.ofNullable(principal),
             userServiceContextFactory.create(
                 ksqlConfig,
                 authHeader,
                 provider.getKafkaClientSupplier(principal),
-                provider.getSchemaRegistryClientFactory(principal)))
+                provider.getSchemaRegistryClientFactory(principal))))
         .get();
   }
 
   @Override
-  public void dispose(final ServiceContext serviceContext) {
-    serviceContext.close();
+  public void dispose(final KsqlSecurityContext ksqlSecurityContext) {
+    ksqlSecurityContext.getServiceContext().close();
   }
 }

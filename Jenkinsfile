@@ -223,6 +223,31 @@ def job = {
         }
     }
 
+    if (!config.isPrJob && config.release) {
+        stage('Publish Maven Artifacts') {
+            writeFile file: settingsFile, text: settings
+            dir('ksql-db') {
+                withCredentials([usernamePassword(credentialsId: 'Jenkins Nexus Account', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
+                    withDockerServer([uri: dockerHost()]) {
+                        withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
+                            writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            sh '''
+                                bash extract-iam-credential.sh
+                            '''
+                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                                cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
+                                cmd += " -DaltDeploymentRepository=confluent-nexus-central::default::s3://staging-ksqldb-maven/maven"
+                                cmd += " -DrepositoryId=confluent-nexus-central"
+                                cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
+                                sh cmd
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (!config.isPrJob) {
             stage('Rename Maven Docker Images') {
                 withDockerServer([uri: dockerHost()]) {

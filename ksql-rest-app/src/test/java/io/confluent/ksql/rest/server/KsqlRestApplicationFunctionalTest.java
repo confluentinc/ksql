@@ -62,7 +62,7 @@ public class KsqlRestApplicationFunctionalTest {
     assertThat(listeners.get(0).getHost(), is("127.0.0.1"));
     assertThat(listeners.get(0).getPort(), is(not(0)));
     assertThat(listeners.get(1).getProtocol(), is("https"));
-    assertThat(listeners.get(1).getHost(), is("localhost"));
+    assertThat(listeners.get(1).getHost(), is("localHost"));
     assertThat(listeners.get(1).getPort(), is(8088));
   }
 

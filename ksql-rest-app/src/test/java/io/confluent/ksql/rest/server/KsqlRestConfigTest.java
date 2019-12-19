@@ -27,8 +27,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -450,7 +452,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://localhost:12589");
+    final URL expected = url("https://" + getLocalHostName() + ":12589");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
@@ -473,7 +475,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://localhost:12345");
+    final URL expected = url("https://" + getLocalHostName() + ":12345");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
@@ -512,6 +514,14 @@ public class KsqlRestConfigTest {
       return new URL(address);
     } catch (final MalformedURLException e) {
       throw new AssertionError("Invalid URL in test: " + address, e);
+    }
+  }
+
+  private static String getLocalHostName() {
+    try {
+      return InetAddress.getLocalHost().getCanonicalHostName();
+    } catch (UnknownHostException e) {
+      throw new AssertionError("Failed to obtain local host info", e);
     }
   }
 }

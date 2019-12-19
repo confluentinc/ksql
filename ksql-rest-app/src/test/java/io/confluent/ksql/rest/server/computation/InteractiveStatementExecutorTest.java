@@ -346,6 +346,18 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldSetNextQueryIdToNextOffsetWhenExecutingPlannedCommand() {
+    // Given:
+    givenMockPlannedQuery();
+
+    // When:
+    handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 2L);
+
+    // Then:
+    verify(mockQueryIdGenerator).setNextId(3L);
+  }
+
+  @Test
   public void shouldUpdateStatusOnCompletedPlannedCommand() {
     // Given:
     givenMockPlannedQuery();
@@ -568,6 +580,25 @@ public class InteractiveStatementExecutorTest {
         statementExecutor.getStatus(dropStreamCommandId3);
     assertThat(dropStreamCommandStatus3.get().getStatus(),
         CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
+  }
+
+  @Test
+  public void shouldSetNextQueryIdToNextOffsetWhenExecutingRestoreCommand() {
+    // Given:
+    mockReplayCSAS(new QueryId("csas-query-id"));
+
+    // When:
+    statementExecutorWithMocks.handleRestore(
+        new QueuedCommand(
+            new CommandId(Type.STREAM, "foo", Action.CREATE),
+            new Command("CSAS", emptyMap(), emptyMap(), Optional.empty()),
+            Optional.empty(),
+            2L
+        )
+    );
+
+    // Then:
+    verify(mockQueryIdGenerator).setNextId(3L);
   }
 
   @Test

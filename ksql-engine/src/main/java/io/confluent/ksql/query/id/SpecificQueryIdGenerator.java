@@ -30,7 +30,7 @@ public class SpecificQueryIdGenerator implements QueryIdGenerator {
 
   public SpecificQueryIdGenerator() {
     this.nextId = 0L;
-    this.alreadyUsed = true;
+    this.alreadyUsed = false;
   }
 
   public void setNextId(final long nextId) {
@@ -50,6 +50,6 @@ public class SpecificQueryIdGenerator implements QueryIdGenerator {
 
   @Override
   public QueryIdGenerator createSandbox() {
-    return new SequentialQueryIdGenerator(nextId + 1);
+    return new SequentialQueryIdGenerator(nextId);
   }
 }

@@ -37,6 +37,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -105,7 +106,7 @@ public class RecoveryTest {
     serviceContext.close();
   }
 
-  private KsqlEngine createKsqlEngine() {
+  private KsqlEngine createKsqlEngine(final QueryIdGenerator queryIdGenerator) {
     final KsqlEngineMetrics engineMetrics = mock(KsqlEngineMetrics.class);
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
@@ -190,7 +191,8 @@ public class RecoveryTest {
     final ServerState serverState;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
-      this.ksqlEngine = createKsqlEngine();
+      final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
+      this.ksqlEngine = createKsqlEngine(queryIdGenerator);
       this.fakeCommandQueue = new FakeCommandQueue(commandLog, transactionalProducer);
       serverState = new ServerState();
       serverState.setReady();
@@ -561,7 +563,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );
@@ -573,7 +575,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;"
+        "TERMINATE CSAS_B_0;"
     );
     shouldRecover(commands);
   }
@@ -583,7 +585,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -595,7 +597,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -657,7 +659,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_7")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
   }
 
 }

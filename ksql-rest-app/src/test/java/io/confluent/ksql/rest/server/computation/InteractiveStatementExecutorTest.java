@@ -583,7 +583,7 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
-  public void shouldSetNextQueryIdToNextOffsetWhenExecutingStatementCommand() {
+  public void shouldSetNextQueryIdToNextOffsetWhenExecutingRestoreCommand() {
     // Given:
     mockReplayCSAS(new QueryId("csas-query-id"));
 

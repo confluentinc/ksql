@@ -80,6 +80,7 @@ public class KsqlAuthorizationValidatorImplTest {
   private KsqlAuthorizationValidator authorizationValidator;
   private KsqlEngine ksqlEngine;
   private MutableMetaStore metaStore;
+  private KsqlSecurityContext securityContext;
 
   @Before
   public void setUp() {
@@ -88,6 +89,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     authorizationValidator = new KsqlAuthorizationValidatorImpl();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     givenTopic(TOPIC_NAME_1, TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
@@ -112,7 +114,7 @@ public class KsqlAuthorizationValidatorImplTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -125,7 +127,7 @@ public class KsqlAuthorizationValidatorImplTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -146,7 +148,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -159,7 +161,7 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -181,7 +183,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -200,7 +202,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -219,7 +221,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -232,7 +234,7 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -254,7 +256,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -273,7 +275,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -291,7 +293,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -304,7 +306,7 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -327,7 +329,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -341,7 +343,7 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -354,7 +356,7 @@ public class KsqlAuthorizationValidatorImplTest {
     final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -373,7 +375,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -385,7 +387,7 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -406,7 +408,7 @@ public class KsqlAuthorizationValidatorImplTest {
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
@@ -420,7 +422,7 @@ public class KsqlAuthorizationValidatorImplTest {
     expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

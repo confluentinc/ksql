@@ -20,14 +20,20 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.utils.Utils;
 
 public final class ListPropertiesExecutor {
 
@@ -44,25 +50,56 @@ public final class ListPropertiesExecutor {
     final Map<String, String> engineProperties
         = statement.getConfig().getAllConfigPropsWithSecretsObfuscated();
 
-    final Map<String, String> mergedProperties = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides())
-        .getAllConfigPropsWithSecretsObfuscated();
+    final List<Property> mergedProperties = mergedProperties(statement);
 
-    final List<String> overwritten = mergedProperties.entrySet()
+    final List<String> overwritten = mergedProperties
         .stream()
-        .filter(e -> !Objects.equals(engineProperties.get(e.getKey()), e.getValue()))
-        .map(Entry::getKey)
+        .filter(property -> !Objects.equals(
+            engineProperties.get(property.getName()), property.getValue()))
+        .map(Property::getName)
         .collect(Collectors.toList());
 
-    final List<String> defaultProps = mergedProperties.entrySet().stream()
-        .filter(e -> resolver.resolve(e.getKey(), false)
-            .map(resolved -> resolved.isDefaultValue(e.getValue()))
+    final List<String> defaultProps = mergedProperties.stream()
+        .filter(property -> resolver.resolve(property.getName(), false)
+            .map(resolved -> resolved.isDefaultValue(property.getValue()))
             .orElse(false))
-        .map(Entry::getKey)
+        .map(Property::getName)
         .collect(Collectors.toList());
 
     return Optional.of(new PropertiesList(
         statement.getStatementText(), mergedProperties, overwritten, defaultProps));
   }
 
+  private static List<Property> mergedProperties(
+      ConfiguredStatement<ListProperties> statement) {
+    final List<Property> mergedProperties = new ArrayList<>();
+
+    statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides())
+        .getAllConfigPropsWithSecretsObfuscated()
+        .forEach((key, value) -> mergedProperties.add(new Property(key, "KSQL", value)));
+
+    embeddedConnectWorkerProperties(statement)
+        .forEach((key, value) ->
+                     mergedProperties.add(new Property(key, "EMBEDDED CONNECT WORKER", value)));
+
+    return mergedProperties;
+  }
+
+  private static Map<String, String> embeddedConnectWorkerProperties(
+      ConfiguredStatement<ListProperties> statement) {
+    String configFile = statement.getConfig()
+        .getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
+    return !configFile.isEmpty()
+        ? Utils.propsToStringMap(getWorkerProps(configFile))
+        : Collections.emptyMap();
+  }
+
+  private static Properties getWorkerProps(String configFile) {
+    try {
+      return Utils.loadProps(configFile);
+    } catch (IOException e) {
+      return new Properties();
+    }
+  }
 }

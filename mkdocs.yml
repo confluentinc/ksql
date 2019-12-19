@@ -100,7 +100,7 @@ nav:
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
-      - Functions Index: developer-guide/ksqldb-reference/index.md 
+      - Functions Index: developer-guide/ksqldb-reference/functions.md
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md

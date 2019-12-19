@@ -25,15 +25,19 @@ import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import java.util.Objects;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
+
 
 public final class Errors {
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
   public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
   public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
-  public static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
+  private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
@@ -52,11 +56,10 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_NOT_READY =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 2;
 
-  private Errors() {
-  }
-
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.getStatusCode());
+
+  private final ErrorMessages errorMessages;
 
   public static int toStatusCode(final int errorCode) {
     return errorCode / HTTP_TO_ERROR_CODE_MULTIPLIER;
@@ -81,10 +84,10 @@ public final class Errors {
         .build();
   }
 
-  public static Response accessDeniedFromKafka(final Throwable t) {
+  private Response constructAccessDeniedFromKafkaResponse(final String errorMessage) {
     return Response
         .status(FORBIDDEN)
-        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, t))
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMessage))
         .build();
   }
 
@@ -106,7 +109,7 @@ public final class Errors {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
-  static Response badStatement(
+  public static Response badStatement(
       final String msg,
       final String statementText,
       final KsqlEntityList entities) {
@@ -121,7 +124,7 @@ public final class Errors {
     return badStatement(t, statementText, new KsqlEntityList());
   }
 
-  static Response badStatement(
+  public static Response badStatement(
       final Throwable t,
       final String statementText,
       final KsqlEntityList entities) {
@@ -189,5 +192,29 @@ public final class Errors {
         .status(SERVICE_UNAVAILABLE)
         .entity(error)
         .build();
+  }
+  
+  
+  public Errors(final ErrorMessages errorMessages) {
+    this.errorMessages = Objects.requireNonNull(errorMessages, "errorMessages");
+  }
+
+  public Response accessDeniedFromKafkaResponse(final Exception e) {
+    return constructAccessDeniedFromKafkaResponse(errorMessages.kafkaAuthorizationErrorMessage(e));
+  }
+
+  public String kafkaAuthorizationErrorMessage(final Exception e) {
+    return errorMessages.kafkaAuthorizationErrorMessage(e);
+  }
+
+  public Response generateResponse(
+      final Exception e,
+      final Response defaultResponse
+  ) {
+    if (ExceptionUtils.indexOfType(e, TopicAuthorizationException.class) >= 0) {
+      return accessDeniedFromKafkaResponse(e);
+    } else {
+      return defaultResponse;
+    }
   }
 }

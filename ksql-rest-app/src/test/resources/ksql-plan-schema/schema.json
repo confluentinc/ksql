@@ -542,10 +542,10 @@
         "rightInternalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
-        "left" : {
+        "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
-        "right" : {
+        "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
         "beforeMillis" : {
@@ -556,7 +556,7 @@
         }
       },
       "title" : "streamStreamJoinV1",
-      "required" : [ "@type", "properties", "joinType", "leftInternalFormats", "rightInternalFormats", "left", "right", "beforeMillis", "afterMillis" ]
+      "required" : [ "@type", "properties", "joinType", "leftInternalFormats", "rightInternalFormats", "leftSource", "rightSource", "beforeMillis", "afterMillis" ]
     },
     "StreamTableJoin" : {
       "type" : "object",
@@ -577,15 +577,15 @@
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         },
-        "left" : {
+        "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
-        "right" : {
+        "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         }
       },
       "title" : "streamTableJoinV1",
-      "required" : [ "@type", "properties", "joinType", "internalFormats", "left", "right" ]
+      "required" : [ "@type", "properties", "joinType", "internalFormats", "leftSource", "rightSource" ]
     },
     "StreamWindowedAggregate" : {
       "type" : "object",
@@ -839,15 +839,15 @@
           "type" : "string",
           "enum" : [ "INNER", "LEFT", "OUTER" ]
         },
-        "left" : {
+        "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
-        "right" : {
+        "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         }
       },
       "title" : "tableTableJoinV1",
-      "required" : [ "@type", "properties", "joinType", "left", "right" ]
+      "required" : [ "@type", "properties", "joinType", "leftSource", "rightSource" ]
     },
     "ExecutionStep" : {
       "oneOf" : [ {

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
 import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.EXECUTE;
@@ -30,6 +31,7 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static java.util.Collections.emptyMap;
+import static javax.ws.rs.core.Response.Status.FORBIDDEN;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -98,6 +100,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
@@ -178,6 +181,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
@@ -268,6 +272,8 @@ public class KsqlResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
+  @Mock
+  private Errors errorsHandler;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -332,6 +338,14 @@ public class KsqlResourceTest {
     when(topicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
 
+    when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<Response>() {
+      @Override
+      public Response answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        return (Response) args[1];
+      }
+    });
+
     setUpKsqlResource();
   }
 
@@ -362,7 +376,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler
     );
 
     // Then:
@@ -390,7 +405,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler
     );
 
     // Then:
@@ -749,6 +765,11 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
+    final String errorMsg = "some error";
+    when(errorsHandler.generateResponse(any(), any())).thenReturn(Response
+        .status(FORBIDDEN)
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
     doThrow(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
         Collections.singleton("topic"))).when(authorizationValidator).checkAuthorization(any(), any(), any());
@@ -761,29 +782,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
-  }
-
-  @Test
-  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
-    // Given:
-    doThrow(new KsqlException("Could not delete the corresponding kafka topic: topic",
-        new KsqlTopicAuthorizationException(
-          AclOperation.DELETE,
-          Collections.singleton("topic"))))
-        .when(authorizationValidator).checkAuthorization(any(), any(), any());
-
-
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-            "DROP STREAM TEST_STREAM DELETE TOPIC;",
-            Code.FORBIDDEN);
-
-    // Then:
-    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
-    assertThat(result.getMessage(), is(
-        "Could not delete the corresponding kafka topic: topic\n" +
-              "Caused by: Authorization denied to Delete on topic(s): [topic]"));
+    assertThat(result.getMessage(), is(errorMsg));
   }
 
   @Test
@@ -1516,7 +1515,9 @@ public class KsqlResourceTest {
         new KsqlRequest("list properties;", overrides, null), PropertiesList.class);
 
     // Then:
-    assertThat(props.getProperties().get("ksql.streams.auto.offset.reset"), is("latest"));
+    assertThat(
+        props.getProperties(),
+        hasItem(new Property("ksql.streams.auto.offset.reset", "KSQL", "latest")));
     assertThat(props.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
   }
 
@@ -1661,7 +1662,8 @@ public class KsqlResourceTest {
     final PropertiesList props = makeSingleRequest("list properties;", PropertiesList.class);
 
     // Then:
-    assertThat(props.getProperties().keySet(),
+    assertThat(props.getProperties().stream().map(Property::getName).collect(
+        Collectors.toList()),
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
@@ -2094,7 +2096,8 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler
     );
 
     ksqlResource.configure(ksqlConfig);

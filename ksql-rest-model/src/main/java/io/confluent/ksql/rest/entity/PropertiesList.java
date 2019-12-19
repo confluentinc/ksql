@@ -20,32 +20,89 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
-  private final Map<String, ?> properties;
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class Property {
+    private final String name;
+    private final String scope;
+    private final String value;
+
+    @JsonCreator
+    public Property(
+        @JsonProperty("name") final String name,
+        @JsonProperty("scope") final String scope,
+        @JsonProperty("value") final String value
+    ) {
+      this.name = name;
+      this.scope = scope;
+      this.value = value;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getScope() {
+      return scope;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+      if (this == object) {
+        return true;
+      }
+      if (object == null || getClass() != object.getClass()) {
+        return false;
+      }
+      Property that = (Property) object;
+      return Objects.equals(name, that.name)
+          && Objects.equals(scope, that.scope)
+          && Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, scope, value);
+    }
+
+    @Override
+    public String toString() {
+      return "Property{"
+          + "name='" + name + '\''
+          + ", scope='" + scope + '\''
+          + ", value='" + value + '\''
+          + '}';
+    }
+  }
+
+  private final List<Property> properties;
   private final List<String> overwrittenProperties;
   private final List<String> defaultProperties;
 
   @JsonCreator
   public PropertiesList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("properties") final Map<String, ?> properties,
+      @JsonProperty("properties") final List<Property> properties,
       @JsonProperty("overwrittenProperties") final List<String> overwrittenProperties,
       @JsonProperty("defaultProperties") final List<String> defaultProperties
   ) {
     super(statementText);
     this.properties = properties == null
-        ? Collections.emptyMap() : properties;
+        ? Collections.emptyList() : properties;
     this.overwrittenProperties = overwrittenProperties == null
         ? Collections.emptyList() : overwrittenProperties;
     this.defaultProperties = defaultProperties == null
         ? Collections.emptyList() : defaultProperties;
   }
 
-  public Map<String, ?> getProperties() {
+  public List<Property> getProperties() {
     return properties;
   }
 

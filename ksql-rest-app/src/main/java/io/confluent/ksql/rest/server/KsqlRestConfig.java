@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.ksql.rest.DefaultErrorMessages;
+import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.util.Map;
@@ -63,6 +65,12 @@ public class KsqlRestConfig extends RestConfig {
       "A comma separated list of classes implementing KsqlServerPrecondition. The KSQL server "
       + "will not start serving requests until all preconditions are satisfied. Until that time, "
       + "requests will return a 503 error";
+
+  static final String KSQL_SERVER_ERROR_MESSAGES =
+          KSQL_CONFIG_PREFIX + "server.error.messages";
+  private static final String KSQL_SERVER_ERRORS_DOC =
+      "A class the implementing " + ErrorMessages.class.getSimpleName() + " interface."
+      + "This allows the KSQL server to return pluggable error messages.";
 
   static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
       KSQL_CONFIG_PREFIX + "server.exception.uncaught.handler.enable";
@@ -136,6 +144,12 @@ public class KsqlRestConfig extends RestConfig {
         15000L,
         Importance.LOW,
         KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC
+    ).define(
+        KSQL_SERVER_ERROR_MESSAGES,
+        Type.CLASS,
+        DefaultErrorMessages.class,
+        Importance.LOW,
+        KSQL_SERVER_ERRORS_DOC
     );
   }
 

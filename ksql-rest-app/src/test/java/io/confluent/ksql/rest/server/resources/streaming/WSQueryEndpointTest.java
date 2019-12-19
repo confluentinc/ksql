@@ -36,13 +36,16 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -80,6 +83,8 @@ import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -147,11 +152,15 @@ public class WSQueryEndpointTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
+  private MetaStore metaStore;
+  @Mock
   private UserServiceContextFactory serviceContextFactory;
   @Mock
   private ServerState serverState;
   @Mock
   private KsqlUserContextProvider userContextProvider;
+  @Mock
+  private Errors errorsHandler;
   @Mock
   private DefaultServiceContextFactory defaultServiceContextProvider;
   @Captor
@@ -177,6 +186,7 @@ public class WSQueryEndpointTest {
     when(defaultServiceContextProvider.create(any(), any())).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
+    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
@@ -192,6 +202,7 @@ public class WSQueryEndpointTest {
         activenessRegistrar,
         COMMAND_QUEUE_CATCHUP_TIMEOUT,
         Optional.of(authorizationValidator),
+        errorsHandler,
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,
@@ -381,6 +392,26 @@ public class WSQueryEndpointTest {
         eq(exec),
         eq(configuredStatement),
         any());
+  }
+
+  @Test
+  public void shouldReturnErrorMessageWhenTopicAuthorizationException() throws Exception {
+    // Given:
+    final String errorMessage = "authorization error";
+    givenRequestIs(query);
+    when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
+        .thenReturn(errorMessage);
+    doThrow(new KsqlTopicAuthorizationException(AclOperation.CREATE, Collections.singleton("topic")))
+        .when(authorizationValidator).checkAuthorization(serviceContext, metaStore, query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedContainingReason(
+        errorMessage,
+        CloseCodes.CANNOT_ACCEPT
+    );
   }
 
   @Test

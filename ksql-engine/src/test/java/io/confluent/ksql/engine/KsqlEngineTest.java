@@ -1131,7 +1131,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    verify(schemaRegistryClient, never()).register(any(), any());
+    verify(schemaRegistryClient, never()).register(any(), any(Schema.class));
   }
 
   @Test

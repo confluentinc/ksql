@@ -43,6 +43,7 @@ public class SourceDescription {
   private final String topic;
   private final int partitions;
   private final int replication;
+  private final String statement;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -60,23 +61,32 @@ public class SourceDescription {
       @JsonProperty("format") final String format,
       @JsonProperty("topic") final String topic,
       @JsonProperty("partitions") final int partitions,
-      @JsonProperty("replication") final int replication
+      @JsonProperty("replication") final int replication,
+      @JsonProperty("statement") final String statement
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.name = name;
-    this.readQueries = Collections.unmodifiableList(readQueries);
-    this.writeQueries = Collections.unmodifiableList(writeQueries);
-    this.fields = Collections.unmodifiableList(fields);
-    this.type = type;
-    this.key = key;
-    this.timestamp = timestamp;
-    this.statistics = statistics;
-    this.errorStats = errorStats;
-    this.extended = extended;
-    this.format = format;
-    this.topic = topic;
+    this.name = Objects.requireNonNull(name, "name");
+    this.readQueries =
+        Collections.unmodifiableList(Objects.requireNonNull(readQueries, "readQueries"));
+    this.writeQueries =
+        Collections.unmodifiableList(Objects.requireNonNull(writeQueries, "writeQueries"));
+    this.fields =
+        Collections.unmodifiableList(Objects.requireNonNull(fields, "fields"));
+    this.type = Objects.requireNonNull(type, "type");
+    this.key = Objects.requireNonNull(key, "key");
+    this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
+    this.statistics = Objects.requireNonNull(statistics, "statistics");
+    this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
+    this.extended = Objects.requireNonNull(extended, "extended");
+    this.format = Objects.requireNonNull(format, "format");
+    this.topic = Objects.requireNonNull(topic, "topic");
     this.partitions = partitions;
     this.replication = replication;
+    this.statement = Objects.requireNonNull(statement, "statement");
+  }
+
+  public String getStatement() {
+    return statement;
   }
 
   public int getPartitions() {
@@ -157,7 +167,7 @@ public class SourceDescription {
     if (!Objects.equals(errorStats, that.errorStats)) {
       return false;
     }
-    return true;
+    return Objects.equals(statement, that.statement);
   }
 
   @Override
@@ -189,6 +199,22 @@ public class SourceDescription {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, fields, type, key, timestamp);
+    return Objects.hash(
+        name,
+        readQueries,
+        writeQueries,
+        fields,
+        type,
+        key,
+        timestamp,
+        statistics,
+        errorStats,
+        extended,
+        format,
+        topic,
+        partitions,
+        replication,
+        statement
+    );
   }
 }

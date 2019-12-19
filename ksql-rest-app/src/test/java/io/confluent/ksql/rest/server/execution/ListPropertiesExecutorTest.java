@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
@@ -27,8 +26,11 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,9 +52,18 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(),
+    assertThat(
+        toMap(properties),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
+  }
+
+  private Map<String, String> toMap(PropertiesList properties) {
+    Map<String, String> map = new HashMap<>();
+    for (Property property : properties.getProperties()) {
+      map.put(property.getName(), property.getValue());
+    }
+    return map;
   }
 
   @Test
@@ -67,8 +78,9 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(),
-        hasEntry("ksql.streams.auto.offset.reset", "latest"));
+    assertThat(
+        properties.getProperties(),
+        hasItem(new Property("ksql.streams.auto.offset.reset", "KSQL", "latest")));
     assertThat(properties.getOverwrittenProperties(), hasItem("ksql.streams.auto.offset.reset"));
   }
 
@@ -83,8 +95,8 @@ public class ListPropertiesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(properties.getProperties(), not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
+    assertThat(
+        toMap(properties),
+        not(hasKey(isIn(KsqlConfig.SSL_CONFIG_NAMES))));
   }
-
-
 }

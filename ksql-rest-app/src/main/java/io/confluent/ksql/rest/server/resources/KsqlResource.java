@@ -43,7 +43,6 @@ import io.confluent.ksql.rest.server.execution.RequestHandler;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -102,6 +101,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
+  private Errors errorHandler;
 
 
   public KsqlResource(
@@ -109,7 +109,8 @@ public class KsqlResource implements KsqlConfigurable {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this(
         ksqlEngine,
@@ -117,7 +118,8 @@ public class KsqlResource implements KsqlConfigurable {
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
-        authorizationValidator
+        authorizationValidator,
+        errorHandler
     );
   }
 
@@ -127,7 +129,8 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
+      final Errors errorHandler
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -138,6 +141,7 @@ public class KsqlResource implements KsqlConfigurable {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
   }
 
   @Override
@@ -233,10 +237,9 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      return ErrorResponseUtil.generateResponse(
-          e, Errors.badRequest(e));
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      return ErrorResponseUtil.generateResponse(
+      return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }
   }

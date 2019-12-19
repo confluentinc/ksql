@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -139,7 +140,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   @POST
   public Response streamQuery(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     throwIfNotConfigured();
@@ -151,7 +152,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(serviceContext, request, statement);
+    return handleStatement(securityContext, request, statement);
   }
 
   private void throwIfNotConfigured() {
@@ -175,14 +176,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   @SuppressWarnings("unchecked")
   private Response handleStatement(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement
   )  {
     try {
       final Consumer<KsqlAuthorizationValidator> authValidationConsumer =
           ksqlAuthorizationValidator -> ksqlAuthorizationValidator.checkAuthorization(
-              serviceContext,
+              securityContext.getServiceContext(),
               ksqlEngine.getMetaStore(),
               statement.getStatement()
           );
@@ -202,7 +203,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           }
 
           return handlePullQuery(
-              serviceContext,
+              securityContext.getServiceContext(),
               queryStmt,
               request.getStreamsProperties()
           );
@@ -210,7 +211,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
         authorizationValidator.ifPresent(authValidationConsumer);
         return handlePushQuery(
-            serviceContext,
+            securityContext.getServiceContext(),
             queryStmt,
             request.getStreamsProperties()
         );
@@ -219,7 +220,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       if (statement.getStatement() instanceof PrintTopic) {
         authorizationValidator.ifPresent(authValidationConsumer);
         return handlePrintTopic(
-            serviceContext,
+            securityContext.getServiceContext(),
             request.getStreamsProperties(),
             (PreparedStatement<PrintTopic>) statement);
       }

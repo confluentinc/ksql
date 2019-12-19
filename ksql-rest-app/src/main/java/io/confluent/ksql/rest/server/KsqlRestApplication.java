@@ -72,6 +72,7 @@ import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -688,7 +689,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     
     try {
       final SimpleKsqlClient internalClient =
-          new ServerInternalKsqlClient(ksqlResource, serviceContext);
+          new ServerInternalKsqlClient(ksqlResource, new KsqlSecurityContext(
+              Optional.empty(), serviceContext));
       final URI serverEndpoint = ServerUtil.getServerAddress(restConfig);
 
       final RestResponse<KsqlEntityList> response = internalClient.makeKsqlRequest(

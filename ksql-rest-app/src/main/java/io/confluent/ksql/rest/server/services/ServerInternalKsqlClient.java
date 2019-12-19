@@ -23,7 +23,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.net.URI;
 import java.util.Collections;
@@ -40,14 +40,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   private static final String KSQL_PATH = "/ksql";
 
   private final KsqlResource ksqlResource;
-  private final ServiceContext serviceContext;
+  private final KsqlSecurityContext securityContext;
 
   public ServerInternalKsqlClient(
       final KsqlResource ksqlResource,
-      final ServiceContext serviceContext
+      final KsqlSecurityContext securityContext
   ) {
     this.ksqlResource = requireNonNull(ksqlResource, "ksqlResource");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.securityContext = requireNonNull(securityContext, "securityContext");
   }
 
   @Override
@@ -56,7 +56,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql
   ) {
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
-    final Response response = ksqlResource.handleKsqlStatements(serviceContext, request);
+    final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
     return KsqlClientUtil.toRestResponse(
         response,
         KSQL_PATH,

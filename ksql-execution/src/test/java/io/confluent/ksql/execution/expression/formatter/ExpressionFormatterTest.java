@@ -93,8 +93,8 @@ public class ExpressionFormatterTest {
         ImmutableList.of(
             new Field("foo", new StringLiteral("abc")),
             new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1))))
-        )),
-        equalTo("STRUCT(foo:='abc', bar:=abc[1])"));
+        ), FormatOptions.of(exp -> exp.equals("foo"))),
+        equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
   }
 
   @Test

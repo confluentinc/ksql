@@ -40,6 +40,24 @@
       }
     },
     {
+      "name": "quoted identifiers",
+      "statements": [
+        "CREATE STREAM INPUT (col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(FOO := col1, `foo` := col1) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {"FOO": "foo", "foo": "foo"}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream","schema": "ROWKEY STRING KEY, S STRUCT<FOO VARCHAR, `foo` VARCHAR>"}
+        ]
+      }
+    },
+    {
       "name": "empty struct creation",
       "statements": [
         "CREATE STREAM INPUT (col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
@@ -55,6 +73,17 @@
         "sources": [
           {"name": "BIG_STRUCT", "type": "stream", "schema": "ROWKEY STRING KEY, S STRUCT< >"}
         ]
+      }
+    },
+    {
+      "name": "duplicate fields",
+      "statements": [
+        "CREATE STREAM INPUT (col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT STRUCT(foo := col1, foo := col1) AS s FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Duplicate field names found in STRUCT"
       }
     }
   ]

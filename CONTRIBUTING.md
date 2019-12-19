@@ -32,6 +32,10 @@ To build and test changes locally, run the following commands:
 $ mvn clean install checkstyle:check integration-test
 ```
 
+### Testing docker image
+
+See comments at the top of the [docker compose file in the root of the project](docker-compose.yml) for instructions
+on how to build and run docker images.
 
 ## How to Contribute
 

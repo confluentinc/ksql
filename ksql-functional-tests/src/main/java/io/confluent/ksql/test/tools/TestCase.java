@@ -161,7 +161,8 @@ public class TestCase implements VersionedTest {
   }
 
   public void setGeneratedSchemas(final Map<String, String> generatedSchemas) {
-    this.generatedSchemas = Objects.requireNonNull(generatedSchemas, "generatedSchemas");
+    this.generatedSchemas = ImmutableMap.copyOf(
+        Objects.requireNonNull(generatedSchemas, "generatedSchemas"));
   }
 
   public Map<String, String> getGeneratedSchemas() {

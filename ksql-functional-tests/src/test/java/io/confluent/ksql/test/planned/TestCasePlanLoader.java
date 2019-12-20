@@ -51,9 +51,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
 /**
- * Creates test case plans from disk or from building a TestCase
+ * Loads saved test case plans or builds them from a TestCase
  */
-public class TestCasePlanLoader {
+public final class TestCasePlanLoader {
 
   private static final StubKafkaService KAFKA_STUB = StubKafkaService.create();
   private static final ObjectMapper MAPPER = PlanJsonMapper.create();

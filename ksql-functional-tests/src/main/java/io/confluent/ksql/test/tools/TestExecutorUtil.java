@@ -96,9 +96,8 @@ public final class TestExecutorUtil {
         maybeUpdatedConfigs,
         stubKafkaService);
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
-    for (final PersistentQueryAndSources persistentQueryAndSortedSources:
-        queryMetadataList) {
-      final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSortedSources
+    for (final PersistentQueryAndSources persistentQueryAndSources: queryMetadataList) {
+      final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
       streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
@@ -107,7 +106,7 @@ public final class TestExecutorUtil {
           topology,
           streamsProperties,
           0);
-      final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
+      final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()
           .map(dataSource -> {
             stubKafkaService.requireTopicExists(dataSource.getKafkaTopicName());

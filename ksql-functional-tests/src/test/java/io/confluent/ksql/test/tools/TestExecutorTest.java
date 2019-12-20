@@ -335,7 +335,7 @@ public class TestExecutorTest {
 
   private void givenExpectedTopology(final String topology, final Map<String, String> schemas) {
     givenExpectedTopology(topology);
-    when(expectedTopologyAndConfig.getSchemas()).thenReturn(Optional.of(schemas));
+    when(expectedTopologyAndConfig.getSchemas()).thenReturn(schemas);
   }
 
   private void givenActualTopology(final String topology) {

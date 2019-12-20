@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
@@ -444,17 +443,15 @@ public class TestExecutor implements Closeable {
               + "THIS IS BAD!",
           actualTopology, is(expectedTopology));
 
-      expected.getSchemas().ifPresent(schemas -> {
-        final Map<String, String> generated = testCase.getGeneratedSchemas();
-        for (final Map.Entry<String, String> e : schemas.entrySet()) {
-          assertThat("Schemas used by topology differ "
-                  + "from those used by previous versions"
-                  + " of KSQL - this is likely to mean there is a non-backwards compatible change."
-                  + "\n"
-                  + "THIS IS BAD!",
-              generated, hasEntry(e.getKey(), e.getValue()));
-        }
-      });
+      final Map<String, String> generated = testCase.getGeneratedSchemas();
+      for (final Map.Entry<String, String> e : expected.getSchemas().entrySet()) {
+        assertThat("Schemas used by topology differ "
+                + "from those used by previous versions"
+                + " of KSQL - this is likely to mean there is a non-backwards compatible change."
+                + "\n"
+                + "THIS IS BAD!",
+            generated, hasEntry(e.getKey(), e.getValue()));
+      }
     });
   }
 

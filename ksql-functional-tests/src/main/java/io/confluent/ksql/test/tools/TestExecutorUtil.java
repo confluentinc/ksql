@@ -139,9 +139,8 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService
   ) {
     initializeTopics(testCase, engine.getServiceContext(), stubKafkaService);
-    if (testCase.getExpectedTopology().isPresent()
-        && testCase.getExpectedTopology().get().getPlan().isPresent()) {
-      return testCase.getExpectedTopology().get().getPlan().get()
+    if (testCase.getExpectedTopology().isPresent()) {
+      return testCase.getExpectedTopology().get().getPlan()
           .stream()
           .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
           .collect(Collectors.toList());
@@ -306,7 +305,7 @@ public final class TestExecutorUtil {
     return sourceBuilder.build();
   }
 
-  private static class PlannedStatementIterator implements
+  private static final class PlannedStatementIterator implements
       Iterable<ConfiguredKsqlPlan>, Iterator<ConfiguredKsqlPlan> {
     private final Iterator<ParsedStatement> statements;
     private final KsqlExecutionContext executionContext;

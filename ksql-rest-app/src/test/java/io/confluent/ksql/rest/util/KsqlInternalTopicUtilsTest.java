@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +78,11 @@ public class KsqlInternalTopicUtilsTest {
     when(topicClient.isTopicExists(TOPIC_NAME)).thenReturn(false);
   }
 
-  private void whenTopicExistsWith(final int nPartitions, final int nReplicas) {
+  private void whenTopicExistsWith(
+      final int nPartitions, 
+      final int nReplicas, 
+      final Map<String, String> configs
+  ) {
     when(topicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
     final List<TopicPartitionInfo> partitions = new LinkedList<>();
     for (int p = 0; p < nPartitions; p++) {
@@ -89,6 +95,7 @@ public class KsqlInternalTopicUtilsTest {
     }
     final TopicDescription description = new TopicDescription(TOPIC_NAME, false, partitions);
     when(topicClient.describeTopic(TOPIC_NAME)).thenReturn(description);
+    when(topicClient.getTopicConfig(TOPIC_NAME)).thenReturn(configs);
   }
 
   @Test
@@ -103,7 +110,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldNotAttemptToCreateInternalTopicIfItExists() {
     // Given:
-    whenTopicExistsWith(1, NREPLICAS);
+    whenTopicExistsWith(1, NREPLICAS, Collections.emptyMap());
 
     // When:
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
@@ -119,13 +126,30 @@ public class KsqlInternalTopicUtilsTest {
     final Map<String, Object> retentionConfig = ImmutableMap.of(
         TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE
     );
-    whenTopicExistsWith(1, NREPLICAS);
+    whenTopicExistsWith(1, NREPLICAS, Collections.emptyMap());
 
     // When:
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
 
     // Then:
     verify(topicClient).addTopicConfig(TOPIC_NAME, retentionConfig);
+  }
+
+  @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  public void shouldOnlySetTopicRetentionValueIfNotInfinite() {
+    // Given:
+    final Map<String, String> mockTopicConfig = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, Long.toString(Long.MAX_VALUE)
+    );
+
+    whenTopicExistsWith(1, NREPLICAS, mockTopicConfig);
+
+    // When:
+    KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
+
+    // Then:
+    verify(topicClient, times(0)).addTopicConfig(any(), any());
   }
 
   @SuppressWarnings("unchecked")
@@ -156,7 +180,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldFailIfTopicExistsWithInvalidNPartitions() {
     // Given:
-    whenTopicExistsWith(2, NREPLICAS);
+    whenTopicExistsWith(2, NREPLICAS, Collections.emptyMap());
 
     // When/Then:
     expectedException.expect(IllegalStateException.class);
@@ -166,7 +190,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldFailIfTopicExistsWithInvalidNReplicas() {
     // Given:
-    whenTopicExistsWith(1, 1);
+    whenTopicExistsWith(1, 1, Collections.emptyMap());
 
     // When/Then:
     expectedException.expect(IllegalStateException.class);
@@ -176,7 +200,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldNotFailIfTopicIsOverreplicated() {
     // Given:
-    whenTopicExistsWith(1, NREPLICAS + 1);
+    whenTopicExistsWith(1, NREPLICAS + 1, Collections.emptyMap());
 
     // When/Then (no error):
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);

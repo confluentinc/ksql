@@ -97,11 +97,14 @@ public final class KsqlInternalTopicUtils {
       final ImmutableMap<String, Object> requiredConfig =
           ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
 
-      if (topicClient.addTopicConfig(name, requiredConfig)) {
-        log.info(
-            "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
-            name,
-            requiredTopicRetention);
+      if (!topicClient.getTopicConfig(name).getOrDefault(TopicConfig.RETENTION_MS_CONFIG, "0")
+          .equals(Long.toString(requiredTopicRetention))) {
+        if (topicClient.addTopicConfig(name, requiredConfig)) {
+          log.info(
+              "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
+              name,
+              requiredTopicRetention);
+        }
       }
 
       return;

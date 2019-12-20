@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
@@ -239,14 +240,14 @@ public final class CodeGenSpec {
   @Immutable
   public static final class SchemaArgumentSpec extends BaseArgumentSpec {
 
-    private final Schema schema;
+    private final ConnectSchema schema;
 
     SchemaArgumentSpec(
         String name,
         Schema schema
     ) {
       super(name, Schema.class);
-      this.schema = requireNonNull(schema, "schema");
+      this.schema = (ConnectSchema) requireNonNull(schema, "schema").schema();
     }
 
     @Override

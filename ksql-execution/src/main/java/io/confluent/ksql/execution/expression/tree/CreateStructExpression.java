@@ -67,6 +67,7 @@ public class CreateStructExpression extends Expression {
     return Objects.hash(fields);
   }
 
+  @Immutable
   public static class Field {
     private final String name;
     private final Expression value;

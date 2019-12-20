@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
+import static io.confluent.rest.RestConfig.LISTENERS_CONFIG;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
@@ -77,6 +78,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -87,6 +89,7 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -106,6 +109,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
@@ -213,7 +217,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   @Override
-  public void startAsync() throws Exception {
+  public void startAsync() {
     log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
@@ -323,23 +327,46 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   List<URL> getListeners() {
-    return Arrays.stream(server.getConnectors())
-        .filter(connector -> connector instanceof ServerConnector)
-        .map(ServerConnector.class::cast)
-        .map(connector -> {
-          try {
-            final String protocol = new HashSet<>(connector.getProtocols())
-                .stream()
-                .map(String::toLowerCase)
-                .anyMatch(s -> s.equals("ssl")) ? "https" : "http";
+    final Function<URL, Set<Integer>> resolvePort = url ->
+        Arrays.stream(server.getConnectors())
+            .filter(connector -> connector instanceof ServerConnector)
+            .map(ServerConnector.class::cast)
+            .filter(connector -> {
+              final String connectorProtocol = connector.getProtocols().stream()
+                  .map(String::toLowerCase)
+                  .anyMatch(p -> p.equals("ssl")) ? "https" : "http";
 
-            final int localPort = connector.getLocalPort();
+              return connectorProtocol.equalsIgnoreCase(url.getProtocol());
+            })
+            .map(ServerConnector::getLocalPort)
+            .collect(Collectors.toSet());
 
-            return new URL(protocol, "localhost", localPort, "");
-          } catch (final Exception e) {
-            throw new RuntimeException("Malformed listener", e);
-          }
-        })
+    final Function<String, Stream<URL>> resolveUrl = listener -> {
+      try {
+        final URL url = new URL(listener);
+        if (url.getPort() != 0) {
+          return Stream.of(url);
+        }
+
+        // Need to resolve port using actual listeners:
+        return resolvePort.apply(url).stream()
+            .map(port -> {
+              try {
+                return new URL(url.getProtocol(), url.getHost(), port, url.getFile());
+              } catch (MalformedURLException e) {
+                throw new KsqlServerException("Malformed URL specified in '"
+                    + LISTENERS_CONFIG + "' config: " + listener, e);
+              }
+            });
+      } catch (MalformedURLException e) {
+        throw new KsqlServerException("Malformed URL specified in '"
+            + LISTENERS_CONFIG + "' config: " + listener, e);
+      }
+    };
+
+    return restConfig.getList(LISTENERS_CONFIG).stream()
+        .flatMap(resolveUrl)
+        .distinct()
         .collect(Collectors.toList());
   }
 
@@ -681,19 +708,29 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
    *
    * @return true server config.
    */
-  private KsqlConfig buildConfigWithPort() {
+  @VisibleForTesting
+  KsqlConfig buildConfigWithPort() {
     final Map<String, Object> props = ksqlConfigNoPort.originals();
 
-    // Wire up KS IQ endpoint discovery to the FIRST listener:
-    final URL firstListener = getListeners().get(0);
+    // Wire up KS IQ so that pull queries work across KSQL nodes:
     props.put(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_SERVER_CONFIG,
-        firstListener.toString()
+        restConfig.getInterNodeListener(this::resolvePort).toString()
     );
 
-    log.info("Using first listener URL for intra-node communication: {}", firstListener);
-
     return new KsqlConfig(props);
+  }
+
+  private int resolvePort(final URL listener) {
+    return getListeners().stream()
+        .filter(l ->
+            l.getProtocol().equals(listener.getProtocol())
+                && l.getHost().equals(listener.getHost())
+        )
+        .map(URL::getPort)
+        .findFirst()
+        .orElseThrow(() ->
+            new IllegalStateException("Failed resolve port for listener: " + listener));
   }
 
   private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {

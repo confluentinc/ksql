@@ -17,6 +17,7 @@ package io.confluent.ksql.configdef;
 
 import static java.util.Objects.requireNonNull;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -76,6 +77,19 @@ public final class ConfigValidators {
     validValues[enumValues.length] = null;
 
     return ValidCaseInsensitiveString.in(validValues);
+  }
+
+  public static Validator validUrl() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      }
+      try {
+        new URL((String)val);
+      } catch (Exception e) {
+        throw new ConfigException(name, val, "Not valid URL: " + e.getMessage());
+      }
+    };
   }
 
   public static final class ValidCaseInsensitiveString implements Validator {

@@ -4,6 +4,19 @@
   ],
   "tests": [
     {
+      "name": "create map from named tuples",
+      "statements": [
+        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:=v1*2) as M FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"k1": "foo", "k2": "bar", "v1": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"M":  {"foo":  10, "bar": 20}}}
+      ]
+    },
+    {
       "name": "create map from key/value lists",
       "statements": [
         "CREATE STREAM TEST (ks ARRAY<VARCHAR>, vals ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",

@@ -17,9 +17,11 @@ package io.confluent.ksql.execution.expression.formatter;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -27,11 +29,14 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
@@ -85,6 +90,29 @@ public class ExpressionFormatterTest {
             new StringLiteral("abc"),
             new DoubleLiteral(3.0))),
         equalTo("'abc'[3.0]"));
+  }
+
+  @Test
+  public void shouldFormatCreateArrayExpression() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new CreateArrayExpression(ImmutableList.of(
+            new StringLiteral("foo"),
+            new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
+        )),
+        equalTo("ARRAY['foo', abc[1]]")
+    );
+  }
+
+  @Test
+  public void shouldFormatCreateMapExpression() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new CreateMapExpression(ImmutableMap.<Expression, Expression>builder()
+            .put(new StringLiteral("foo"), new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            .put(new StringLiteral("bar"), new StringLiteral("val"))
+            .build()
+        )),
+        equalTo("MAP('foo':=abc[1], 'bar':='val')")
+    );
   }
 
   @Test

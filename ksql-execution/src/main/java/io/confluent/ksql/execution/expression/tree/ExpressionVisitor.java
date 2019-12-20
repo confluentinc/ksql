@@ -73,6 +73,10 @@ public interface ExpressionVisitor<R, C> {
 
   R visitSubscriptExpression(SubscriptExpression exp, @Nullable C context);
 
+  R visitCreateArrayExpression(CreateArrayExpression exp, @Nullable C context);
+
+  R visitCreateMapExpression(CreateMapExpression exp, @Nullable C context);
+
   R visitStructExpression(CreateStructExpression exp, @Nullable C context);
 
   R visitTimeLiteral(TimeLiteral exp, @Nullable C context);

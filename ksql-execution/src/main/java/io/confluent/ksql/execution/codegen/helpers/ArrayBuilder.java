@@ -13,22 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.list;
+package io.confluent.ksql.execution.codegen.helpers;
 
-import io.confluent.ksql.function.udf.Udf;
-import io.confluent.ksql.function.udf.UdfDescription;
-import io.confluent.ksql.function.udf.UdfParameter;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
-@UdfDescription(name = "AS_ARRAY", description = "Construct a list based on some inputs")
-public class AsArray {
+/**
+ * Used to construct arrays using the builder pattern. Note that we
+ * cannot use {@link com.google.common.collect.ImmutableList} because
+ * it does not accept null values.
+ */
+public class ArrayBuilder {
 
-  @SuppressWarnings("varargs")
-  @SafeVarargs
-  @Udf
-  public final <T> List<T> asArray(@UdfParameter final T... elements) {
-    return Arrays.asList(elements);
+  private final ArrayList<Object> list;
+
+  public ArrayBuilder(final int size) {
+    list = new ArrayList<>(size);
+  }
+
+  public ArrayBuilder add(final Object value) {
+    list.add(value);
+    return this;
+  }
+
+  public List<Object> build() {
+    return list;
   }
 
 }

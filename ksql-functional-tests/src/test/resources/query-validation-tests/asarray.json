@@ -7,7 +7,7 @@
       "name": "construct a list from two elements",
       "statements": [
         "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT as_array(a, b, 3) as l FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[a, b, 3] as l FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"a":  1, "b":  2}},

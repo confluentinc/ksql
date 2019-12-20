@@ -672,6 +672,42 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void shouldHandleCreateArray() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT ARRAY['foo', COL" + STRING_INDEX1 + "] FROM codegen_test EMIT CHANGES;", metaStore)
+            .getSelectExpressions()
+            .get(0)
+            .getExpression();
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Array")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(ImmutableList.of("foo", "S1")));
+    }
+
+    @Test
+    public void shouldHandleCreateMap() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT MAP('foo' := 'foo', 'bar' := COL" + STRING_INDEX1 + ") FROM codegen_test EMIT CHANGES;", metaStore)
+            .getSelectExpressions()
+            .get(0)
+            .getExpression();
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Map")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(ImmutableMap.of("foo", "foo", "bar", "S1")));
+    }
+
+    @Test
     public void shouldHandleInvalidJavaIdentifiers() {
         // Given:
         final Expression expression = analyzeQuery(

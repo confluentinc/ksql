@@ -31,6 +31,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -60,10 +62,12 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
@@ -924,6 +928,38 @@ public class AstBuilder {
           getLocation(context),
           (Expression) visit(context.expression()),
           typeParser.getType(context.type())
+      );
+    }
+
+    @Override
+    public Node visitArrayConstructor(final ArrayConstructorContext context) {
+      final ImmutableList.Builder<Expression> values = ImmutableList.builder();
+
+      for (ExpressionContext exp : context.expression()) {
+        values.add((Expression) visit(exp));
+      }
+
+      return new CreateArrayExpression(
+          getLocation(context),
+          values.build()
+      );
+    }
+
+    @Override
+    public Node visitMapConstructor(final SqlBaseParser.MapConstructorContext context) {
+      final ImmutableMap.Builder<Expression, Expression> values = ImmutableMap.builder();
+
+      final List<ExpressionContext> expression = context.expression();
+      for (int i = 0; i < expression.size(); i += 2) {
+        values.put(
+            (Expression) visit(expression.get(i)),
+            (Expression) visit(expression.get(i + 1))
+        );
+      }
+
+      return new CreateMapExpression(
+          getLocation(context),
+          values.build()
       );
     }
 

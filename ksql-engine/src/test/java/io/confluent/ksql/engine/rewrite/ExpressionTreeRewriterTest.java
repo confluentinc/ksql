@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -34,6 +35,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -530,6 +533,42 @@ public class ExpressionTreeRewriterTest {
 
     // Then:
     assertThat(rewritten, equalTo(new SubscriptExpression(parsed.getLocation(), expr1, expr2)));
+  }
+
+  @Test
+  public void shouldRewriteCreateArrayExpression() {
+    // Given:
+    final CreateArrayExpression parsed = parseExpression("ARRAY['foo', col4[1]]");
+    final Expression firstVal = parsed.getValues().get(0);
+    final Expression secondVal = parsed.getValues().get(1);
+    when(processor.apply(firstVal, context)).thenReturn(expr1);
+    when(processor.apply(secondVal, context)).thenReturn(expr2);
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(parsed, context);
+
+    // Then:
+    assertThat(rewritten, equalTo(new CreateArrayExpression(ImmutableList.of(expr1, expr2))));
+  }
+
+  @Test
+  public void shouldRewriteCreateMapExpression() {
+    // Given:
+    final CreateMapExpression parsed = parseExpression("MAP('foo' := SUBSTRING('foo',0), 'bar' := col4[1])");
+    final Expression firstVal = parsed.getMap().get(new StringLiteral("foo"));
+    final Expression secondVal = parsed.getMap().get(new StringLiteral("bar"));
+    when(processor.apply(firstVal, context)).thenReturn(expr1);
+    when(processor.apply(secondVal, context)).thenReturn(expr2);
+    when(processor.apply(new StringLiteral("foo"), context)).thenReturn(new StringLiteral("foo"));
+    when(processor.apply(new StringLiteral("bar"), context)).thenReturn(new StringLiteral("bar"));
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(parsed, context);
+
+    // Then:
+    assertThat(rewritten,
+        equalTo(new CreateMapExpression(
+            ImmutableMap.of(new StringLiteral("foo"), expr1, new StringLiteral("bar"), expr2))));
   }
 
   @Test

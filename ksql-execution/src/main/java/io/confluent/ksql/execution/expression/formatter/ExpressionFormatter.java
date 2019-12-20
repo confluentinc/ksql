@@ -24,6 +24,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -100,6 +102,31 @@ public final class ExpressionFormatter {
     public String visitSubscriptExpression(final SubscriptExpression node, final Context context) {
       return process(node.getBase(), context)
           + "[" + process(node.getIndex(), context) + "]";
+    }
+
+    @Override
+    public String visitCreateArrayExpression(
+        final CreateArrayExpression exp,
+        final Context context
+    ) {
+      return exp
+          .getValues()
+          .stream()
+          .map(val -> process(val, context))
+          .collect(Collectors.joining(", ", "ARRAY[", "]"));
+    }
+
+    @Override
+    public String visitCreateMapExpression(final CreateMapExpression exp, final Context context) {
+      return exp
+          .getMap()
+          .entrySet()
+          .stream()
+          .map(entry ->
+              process(entry.getKey(), context)
+                  + ":="
+                  + process(entry.getValue(), context))
+          .collect(Collectors.joining(", ", "MAP(", ")"));
     }
 
     @Override

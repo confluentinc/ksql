@@ -23,6 +23,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -328,6 +330,83 @@ public class ExpressionTypeManager {
       }
 
       expressionTypeContext.setSqlType(valueType);
+      return null;
+    }
+
+    @Override
+    public Void visitCreateArrayExpression(
+        final CreateArrayExpression exp,
+        final ExpressionTypeContext context
+    ) {
+      if (exp.getValues().isEmpty()) {
+        throw new KsqlException("Cannot extract type from empty array!");
+      }
+
+      final List<SqlType> sqlTypes = exp
+          .getValues()
+          .stream()
+          .map(val -> {
+            process(val, context);
+            return context.getSqlType();
+          })
+          .filter(Objects::nonNull)
+          .distinct()
+          .collect(Collectors.toList());
+
+      if (sqlTypes.size() == 0) {
+        throw new KsqlException("Cannot extract type from array of nulls!");
+      }
+
+      if (sqlTypes.size() != 1) {
+        throw new KsqlException(
+            "Invalid array expression! All values must be of the same type." + exp);
+      }
+
+      context.setSqlType(SqlArray.of(sqlTypes.get(0)));
+      return null;
+    }
+
+    @Override
+    public Void visitCreateMapExpression(
+        final CreateMapExpression exp,
+        final ExpressionTypeContext context
+    ) {
+      if (exp.getMap().isEmpty()) {
+        throw new KsqlException("Cannot extract type from empty map!");
+      }
+
+      final boolean anyNonStringKeys = exp.getMap()
+          .keySet()
+          .stream()
+          .map(key -> {
+            process(key, context);
+            return context.getSqlType();
+          })
+          .anyMatch(type -> !SqlTypes.STRING.equals(type));
+      if (anyNonStringKeys) {
+        throw new KsqlException("Cannot support non-string keys on maps:" + exp);
+      }
+
+      final List<SqlType> sqlTypes = exp.getMap()
+          .values()
+          .stream()
+          .map(val -> {
+            process(val, context);
+            return context.getSqlType();
+          })
+          .distinct()
+          .collect(Collectors.toList());
+
+      if (sqlTypes.size() != 1) {
+        throw new KsqlException(
+            "Invalid map expression! All values must be of the same type. " + exp);
+      }
+
+      if (sqlTypes.get(0) == null) {
+        throw new KsqlException("Maps do not accept null values!");
+      }
+
+      context.setSqlType(SqlMap.of(sqlTypes.get(0)));
       return null;
     }
 

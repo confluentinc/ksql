@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -40,7 +43,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -59,12 +61,16 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -77,10 +83,8 @@ public class KsqlRestApplicationTest {
   private static final String LOG_TOPIC_NAME = "log_topic";
   private static final String CMD_TOPIC_NAME = "command_topic";
 
-  private final KsqlRestConfig restConfig =
-      new KsqlRestConfig(
-          Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
-          "http://localhost:8088"));
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private ServiceContext serviceContext;
@@ -107,8 +111,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private CommandStore commandQueue;
   @Mock
-  private QueuedCommandStatus queuedCommandStatus;
-  @Mock
   private KsqlSecurityExtension securityExtension;
   @Mock
   private ProcessingLogContext processingLogContext;
@@ -126,8 +128,10 @@ public class KsqlRestApplicationTest {
   private PreparedStatement<?> preparedStatement;
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+
   private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
+  private KsqlRestConfig restConfig;
 
   @SuppressWarnings("unchecked")
   @Before
@@ -147,8 +151,7 @@ public class KsqlRestApplicationTest {
     when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement)preparedStatement);
 
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any()))
-        .thenReturn(queuedCommandStatus);
+
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
@@ -160,26 +163,7 @@ public class KsqlRestApplicationTest {
         ksqlConfig
     );
 
-    app = new KsqlRestApplication(
-        serviceContext,
-        ksqlEngine,
-        ksqlConfig,
-        restConfig,
-        commandRunner,
-        commandQueue,
-        rootDocument,
-        statusResource,
-        streamedQueryResource,
-        ksqlResource,
-        versionCheckerAgent,
-        KsqlRestServiceContextBinder::new,
-        securityExtension,
-        serverState,
-        processingLogContext,
-        ImmutableList.of(precondition1, precondition2),
-        ImmutableList.of(ksqlResource, streamedQueryResource),
-        rocksDBConfigSetterHandler
-    );
+    givenAppWithRestConfig(ImmutableMap.of(RestConfig.LISTENERS_CONFIG,  "http://localhost:0"));
   }
 
   @Test
@@ -386,5 +370,66 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
+  }
+
+  @Test
+  public void shouldConfigureIQWithInterNodeListenerIfSet() {
+    // Given:
+    givenAppWithRestConfig(ImmutableMap.of(
+        RestConfig.LISTENERS_CONFIG,  "http://localhost:0",
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
+    ));
+
+    // When:
+    final KsqlConfig ksqlConfig = app.buildConfigWithPort();
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG),
+        is("https://some.host:12345")
+    );
+  }
+
+  @Test
+  public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
+    // Given:
+    givenAppWithRestConfig(ImmutableMap.of(
+        RestConfig.LISTENERS_CONFIG,  "http://some.host:1244,https://some.other.host:1258"
+    ));
+
+    // When:
+    final KsqlConfig ksqlConfig = app.buildConfigWithPort();
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG),
+        is("http://some.host:1244")
+    );
+  }
+
+  private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
+
+    restConfig = new KsqlRestConfig(restConfigMap);
+
+    app = new KsqlRestApplication(
+        serviceContext,
+        ksqlEngine,
+        ksqlConfig,
+        restConfig,
+        commandRunner,
+        commandQueue,
+        rootDocument,
+        statusResource,
+        streamedQueryResource,
+        ksqlResource,
+        versionCheckerAgent,
+        KsqlRestServiceContextBinder::new,
+        securityExtension,
+        serverState,
+        processingLogContext,
+        ImmutableList.of(precondition1, precondition2),
+        ImmutableList.of(ksqlResource, streamedQueryResource),
+        rocksDBConfigSetterHandler
+    );
   }
 }

@@ -68,6 +68,7 @@ import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -283,7 +284,11 @@ public final class PullQueryExecutor {
       throw invalidWhereClauseException("WHERE clause missing ROWKEY", windowed);
     }
 
-    final Object rowKey = extractRowKeyWhereClause(rowKeyComparison, windowed);
+    final Object rowKey = extractRowKeyWhereClause(
+        rowKeyComparison,
+        windowed,
+        query.getLogicalSchema()
+    );
 
     if (!windowed) {
       if (comparisons.size() > 1) {
@@ -303,26 +308,37 @@ public final class PullQueryExecutor {
 
   private static Object extractRowKeyWhereClause(
       final List<ComparisonExpression> comparisons,
-      final boolean windowed
+      final boolean windowed,
+      final LogicalSchema schema
   ) {
     if (comparisons.size() != 1) {
       throw invalidWhereClauseException("Multiple bounds on ROWKEY", windowed);
     }
 
     final ComparisonExpression comparison = comparisons.get(0);
+    if (comparison.getType() != Type.EQUAL) {
+      throw invalidWhereClauseException("ROWKEY bound must currently be '='", windowed);
+    }
 
     final Expression other = getNonColumnRefSide(comparison);
+    final Object right = ((Literal) other).getValue();
 
-    if (!(other instanceof StringLiteral)) {
-      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal", false);
+    return coerceRowKey(schema, right, windowed);
+  }
+
+  private static Object coerceRowKey(
+      final LogicalSchema schema,
+      final Object right,
+      final boolean windowed
+  ) {
+    if (schema.key().size() != 1) {
+      throw invalidWhereClauseException("Only single KEY column supported", windowed);
     }
 
-    if (comparison.getType() != Type.EQUAL) {
-      throw invalidWhereClauseException("ROWKEY bound must currently be '='", false);
-    }
+    final SqlType sqlType = schema.key().get(0).type();
 
-    final Literal right = (Literal) other;
-    return right.getValue();
+    return DefaultSqlValueCoercer.INSTANCE.coerce(right, sqlType)
+        .orElseThrow(() -> new KsqlException("ROWKEY not " + sqlType));
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(

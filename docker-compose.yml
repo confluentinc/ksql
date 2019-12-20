@@ -1,10 +1,17 @@
 # Docker compose from bringing up a local KSQL cluster and dependencies.
 #
-# You can scale the number of KSQL nodes in the cluster by using the docker `--scale` command line arg.
-# The default is one primary node and 1 secondary node. The only difference is that the primary node
-# has a well-known port exposed so clients can connect, where as the secondary nodes use auto-port
-# assignment so that ports don't clash.  You can scale out the secondary nodes, e.g. to start a three node cluster run:
-# > docker-compose up --scale ksql-server=2
+# By default, the cluster has two KSQL servers. You can scale the number of KSQL nodes in the
+# cluster by using the docker `--scale` command line arg.
+#
+# e.g. for a 4 node cluster run:
+# > docker-compose up --scale additional-ksqldb-server=3
+#
+# or a 1 node cluster run:
+# > docker-compose up --scale additional-ksqldb-server=0
+#
+# The default is one `primary-ksqldb-server` and one `additional-ksqdb-server`. The only
+# difference is that the primary node has a well-known port exposed so clients can connect, where
+# as the additional nodes use auto-port assignment so that ports don't clash.
 #
 # If you wish to run with locally built KSQL docker images then build then:
 #
@@ -59,10 +66,10 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:32181
 
-  ksqldb-server-primary:
+  primary-ksqldb-server:
     image: confluentinc/ksqldb-server:latest
-    hostname: ksqldb-server-primary
-    container_name: ksqldb-server-primary
+    hostname: primary-ksqldb-server
+    container_name: primary-ksqldb-server
     depends_on:
       - kafka
       - schema-registry
@@ -75,12 +82,12 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
 
-  ksqldb-server:
+  additional-ksqldb-server:
     image: confluentinc/ksqldb-server:latest
-    hostname: ksqldb-server
-    container_name: ksqldb-server
+    hostname: additional-ksqldb-server
+    container_name: additional-ksqldb-server
     depends_on:
-      - ksqldb-server-primary
+      - primary-ksqldb-server
     ports:
       - "8090"
     environment:
@@ -89,12 +96,12 @@ services:
       KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
   # Access the cli by running:
-  # > docker-compose exec ksqldb-cli  ksql http://ksqldb-server-primary:8088
+  # > docker-compose exec ksqldb-cli  ksql http://primary-ksqldb-server:8088
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:latest
     container_name: ksqldb-cli
     depends_on:
-      - ksqldb-server-primary
+      - primary-ksqldb-server
     entrypoint: /bin/sh
     tty: true
 

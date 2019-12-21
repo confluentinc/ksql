@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "non-windowed single key lookup",
+      "name": "non-windowed single key lookup - STRING",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -26,6 +26,43 @@
           {"header":{"schema":"`ROWKEY` STRING KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
+    },
+    {
+      "name": "non-windowed single key lookup - INT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "lookup on wrong type type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "ROWKEY not INTEGER",
+        "status": 400
+      }
     },
     {
       "name": "tumbling windowed single key lookup with exact window start",
@@ -716,19 +753,6 @@
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
         "message": "ROWKEY bound must currently be '='.",
-        "status": 400
-      }
-    },
-    {
-      "name": "fail on unsupported query feature: where rowkey not string",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY = 100;"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY must be compared to STRING literal.",
         "status": 400
       }
     },

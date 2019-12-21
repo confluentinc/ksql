@@ -20,7 +20,7 @@ the problem as possible._
 
 ## What is in scope
 
-_What we do want to cover in this proposal._
+_What requirements are you addressing. This should cover both functional and non-functional requirements. The non-functional requirements include things like expected performance profile of the feature, impact on efficiency, impact on scalability, etc._
 
 ## What is not in scope
 
@@ -43,13 +43,17 @@ support for data formats? Are we adding / removing configurations? Etc._
 
 ## Design
 
-_How does your solution work?_
+_How does your solution work? This should cover the main data and control flows that are changing._
 
 ## Test plan
 
-_What tests do you plan to write?  What are the failure scenarios that we do / do not cover? It goes 
-without saying that most classes should have unit tests. This section is more focussed on the 
-integration and system tests that you need to write to test the changes you are making._
+_What are the failure scenarios you are going to cover in your testing? What scale testing do you plan to run? What about peformance and load testing? It goes 
+without saying that most classes should have unit tests._
+
+## LOEs and Delivery Milestones
+_Break the work down into more granular tasks. Make sure to include tasks for testing, documentation, etc., in addition to the core development tasks. Each task should be scoped to at most 1 person-week, where a person-week includes buffer time for things like code reviews, design reviews, interviews, etc.._
+
+_Also describe the delivery milestones, preferably in terms of the task break down above. Each milestone should be defined in terms of the user facing value they deliver. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
 
 ## Documentation Updates
 
@@ -75,9 +79,6 @@ _Are we deprecating existing APIs with these changes? If so, when do we plan to 
 
 _If we are removing old functionality, what is the migration plan?_
 
-## Performance Implications
-
-_Will the proposed changes affect performance, (either positively or negatively)._
 
 ## Security Implications
 

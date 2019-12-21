@@ -53,7 +53,7 @@ without saying that most classes should have unit tests._
 ## LOEs and Delivery Milestones
 _Break the work down into more granular tasks. Make sure to include tasks for testing, documentation, etc., in addition to the core development tasks. Each task should be scoped to at most 1 person-week, where a person-week includes buffer time for things like code reviews, design reviews, interviews, etc.._
 
-_Also describe the delivery milestones, preferably in terms of the task break down above. Each milestone should be defined in terms of the user facing value they deliver. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
+_Also describe the delivery milestones, preferably in terms of the task break down above. Each milestone should be defined in terms of the user facing value it delivers. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
 
 ## Documentation Updates
 

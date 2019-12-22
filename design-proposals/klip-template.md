@@ -51,9 +51,14 @@ _What are the failure scenarios you are going to cover in your testing? What sca
 without saying that most classes should have unit tests._
 
 ## LOEs and Delivery Milestones
-_Break the work down into more granular tasks. Make sure to include tasks for testing, documentation, etc., in addition to the core development tasks. Each task should be scoped to at most 1 person-week, where a person-week includes buffer time for things like code reviews, design reviews, interviews, etc.._
 
-_Also describe the delivery milestones, preferably in terms of the task break down above. Each milestone should be defined in terms of the user facing value it delivers. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
+_Large features should be built such that incremental value can be delivered along the way. For the feature you are building, outline the delivery milestones which result in concrete user facing value. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
+
+_Small features--say those which can complete in two or three weeks--may have only one delivery milestone._
+
+_Additionally, for each milestone, try to break the work down into more granular tasks. Make sure to include tasks for testing, documentation, etc., in addition to the core development tasks. Ideally, tasks should be scoped such that each task is at most 1 person-week, where a person-week is calendar time and accounts for time not spent actually developing the proposed feature._
+
+_Breaking a feature into milestones and tasks need not be done when first proposing a KLIP, since the scope, functionality, and design may change through the discussion. However, these breakdowns would ideally be provided as the KLIP is getting finalized and before execution begins._
 
 ## Documentation Updates
 

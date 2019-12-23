@@ -1,0 +1,20 @@
+{
+  "comments": [
+    "External usage of FETCH_FIELD_FROM_STRUCT"
+  ],
+  "tests": [
+    {
+      "name": "Fetch Field",
+      "statements": [
+        "CREATE STREAM TEST (s STRUCT<val VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT FETCH_FIELD_FROM_STRUCT(s, 'VAL') AS value FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "foo", "value": {"s": {"val": "foo"}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"VALUE": "foo"}}
+      ]
+    }
+  ]
+}

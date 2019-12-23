@@ -48,6 +48,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
+import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -404,6 +405,20 @@ public class ExpressionTypeManager {
             .getTableFunction(node.getName().name(), argumentTypes);
 
         expressionTypeContext.setSchema(tableFunction.getReturnType(argumentTypes));
+        return null;
+      }
+
+      if (node.getName().equals(FetchFieldFromStruct.FUNCTION_NAME)) {
+        process(node.getArguments().get(0), expressionTypeContext);
+        final Schema firstArgSchema = expressionTypeContext.getSchema();
+        final String fieldName = ((StringLiteral) node.getArguments().get(1)).getValue();
+        if (firstArgSchema.field(fieldName) == null) {
+          throw new KsqlException(String.format("Could not find field %s in %s.",
+              fieldName,
+              node.getArguments().get(0).toString()));
+        }
+        final Schema returnSchema = firstArgSchema.field(fieldName).schema();
+        expressionTypeContext.setSchema(returnSchema);
         return null;
       }
 

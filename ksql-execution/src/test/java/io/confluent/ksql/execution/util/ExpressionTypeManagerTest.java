@@ -297,19 +297,18 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnFetchFieldFromStructFunctionCall() {
+  public void shouldHandleFetchFieldFromStructFunctionCall() {
     // Given:
     final Expression expression = new FunctionCall(
         FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'");
-
     // When:
-    expressionTypeManager.getExpressionSqlType(expression);
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(sqlType, is(SqlTypes.BIGINT));
   }
 
   @Test

@@ -1,0 +1,204 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1576794350087,
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "TEST",
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyField" : "ID",
+      "timestampColumn" : null,
+      "topicName" : "test_topic",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "fullSchemaName" : null,
+          "delimiter" : null
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED",
+          "fullSchemaName" : null,
+          "delimiter" : null
+        },
+        "options" : [ ]
+      },
+      "windowInfo" : null
+    },
+    "queryPlan" : null
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE AVG AS SELECT\n  TEST.ID ID,\n  (ABS((SUM(TEST.VALUE) / COUNT(TEST.ID))) * 10) AVG\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "AVG",
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT",
+      "keyField" : "ID",
+      "timestampColumn" : null,
+      "topicName" : "AVG",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "fullSchemaName" : null,
+          "delimiter" : null
+        },
+        "valueFormat" : {
+          "format" : "DELIMITED",
+          "fullSchemaName" : null,
+          "delimiter" : null
+        },
+        "options" : [ ]
+      },
+      "windowInfo" : null
+    },
+    "queryPlan" : {
+      "sources" : [ "TEST" ],
+      "sink" : "AVG",
+      "physicalPlan" : {
+        "@type" : "tableSinkV1",
+        "properties" : {
+          "queryContext" : "AVG"
+        },
+        "source" : {
+          "@type" : "tableSelectV1",
+          "properties" : {
+            "queryContext" : "Aggregate/Project"
+          },
+          "source" : {
+            "@type" : "streamAggregateV1",
+            "properties" : {
+              "queryContext" : "Aggregate/Aggregate"
+            },
+            "source" : {
+              "@type" : "streamGroupByKeyV1",
+              "properties" : {
+                "queryContext" : "Aggregate/GroupBy"
+              },
+              "source" : {
+                "@type" : "streamSelectV1",
+                "properties" : {
+                  "queryContext" : "Aggregate/Prepare"
+                },
+                "source" : {
+                  "@type" : "streamSourceV1",
+                  "properties" : {
+                    "queryContext" : "KsqlTopic/Source"
+                  },
+                  "topicName" : "test_topic",
+                  "formats" : {
+                    "keyFormat" : {
+                      "format" : "KAFKA",
+                      "fullSchemaName" : null,
+                      "delimiter" : null
+                    },
+                    "valueFormat" : {
+                      "format" : "DELIMITED",
+                      "fullSchemaName" : null,
+                      "delimiter" : null
+                    },
+                    "options" : [ ]
+                  },
+                  "timestampColumn" : null,
+                  "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+                  "alias" : "TEST"
+                },
+                "selectExpressions" : [ "TEST.ID AS KSQL_INTERNAL_COL_0", "TEST.VALUE AS KSQL_INTERNAL_COL_1" ]
+              },
+              "internalFormats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA",
+                  "fullSchemaName" : null,
+                  "delimiter" : null
+                },
+                "valueFormat" : {
+                  "format" : "DELIMITED",
+                  "fullSchemaName" : null,
+                  "delimiter" : null
+                },
+                "options" : [ ]
+              }
+            },
+            "internalFormats" : {
+              "keyFormat" : {
+                "format" : "KAFKA",
+                "fullSchemaName" : null,
+                "delimiter" : null
+              },
+              "valueFormat" : {
+                "format" : "DELIMITED",
+                "fullSchemaName" : null,
+                "delimiter" : null
+              },
+              "options" : [ ]
+            },
+            "nonAggregateColumns" : [ "KSQL_INTERNAL_COL_0", "KSQL_INTERNAL_COL_1" ],
+            "aggregationFunctions" : [ "SUM(KSQL_INTERNAL_COL_1)", "COUNT(KSQL_INTERNAL_COL_0)" ]
+          },
+          "selectExpressions" : [ "KSQL_INTERNAL_COL_0 AS ID", "(ABS((KSQL_AGG_VARIABLE_0 / KSQL_AGG_VARIABLE_1)) * 10) AS AVG" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "fullSchemaName" : null,
+            "delimiter" : null
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "fullSchemaName" : null,
+            "delimiter" : null
+          },
+          "options" : [ ]
+        },
+        "topicName" : "AVG"
+      },
+      "queryId" : "CTAS_AVG_0"
+    }
+  } ],
+  "schemas" : {
+    "CTAS_AVG_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CTAS_AVG_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
+    "CTAS_AVG_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
+    "CTAS_AVG_0.AVG" : "STRUCT<ID BIGINT, AVG BIGINT> NOT NULL"
+  },
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.schema.registry.url" : "http://localhost:8081",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent8507459536865147930",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.execution.plan.enable" : "false",
+    "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.query.pull.skip.access.validator" : "false",
+    "ksql.connect.worker.config" : "",
+    "ksql.query.pull.routing.timeout.ms" : "30000",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647"
+  }
+}

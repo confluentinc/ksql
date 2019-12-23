@@ -13,45 +13,52 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.planned;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.engine.KsqlPlan;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class TopologyAndConfigs {
-
+class TestCasePlanNode {
+  private final String version;
+  private final long timestamp;
   private final List<KsqlPlan> plan;
-  private final String topology;
   private final Map<String, String> schemas;
   private final Map<String, String> configs;
 
-  public TopologyAndConfigs(
-      final List<KsqlPlan> plan,
-      final String topology,
-      final Map<String, String> schemas,
-      final Map<String, String> configs
+  public TestCasePlanNode(
+      @JsonProperty("version") final String version,
+      @JsonProperty("timestamp") final long timestamp,
+      @JsonProperty("plan") final List<KsqlPlan> plan,
+      @JsonProperty("schemas") final Map<String, String> schemas,
+      @JsonProperty("configs") final Map<String, String> configs
   ) {
+    this.version = Objects.requireNonNull(version, "version");
+    this.timestamp = timestamp;
     this.plan = Objects.requireNonNull(plan, "plan");
-    this.topology = Objects.requireNonNull(topology, "topology");
     this.schemas = Objects.requireNonNull(schemas, "schemas");
     this.configs = Objects.requireNonNull(configs, "configs");
   }
 
-  public String getTopology() {
-    return topology;
+  public List<KsqlPlan> getPlan() {
+    return plan;
   }
 
-  public Map<String, String> getSchemas() {
-    return schemas;
+  public long getTimestamp() {
+    return timestamp;
   }
 
   public Map<String, String> getConfigs() {
     return configs;
   }
 
-  public List<KsqlPlan> getPlan() {
-    return plan;
+  public Map<String, String> getSchemas() {
+    return schemas;
+  }
+
+  public String getVersion() {
+    return version;
   }
 }

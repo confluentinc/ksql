@@ -16,7 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
-import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
@@ -63,7 +63,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.Closeable;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -151,9 +150,7 @@ public class TestExecutor implements Closeable {
   public void buildAndExecuteQuery(final TestCase testCase) {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
-
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
-
     final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
@@ -446,15 +443,15 @@ public class TestExecutor implements Closeable {
               + "THIS IS BAD!",
           actualTopology, is(expectedTopology));
 
-      expected.getSchemas().ifPresent(schemas -> {
-        final List<String> generated = Arrays.asList(
-            testCase.getGeneratedSchemas().get(0).split(System.lineSeparator()));
+      final Map<String, String> generated = testCase.getGeneratedSchemas();
+      for (final Map.Entry<String, String> e : expected.getSchemas().entrySet()) {
         assertThat("Schemas used by topology differ "
                 + "from those used by previous versions"
-                + " of KSQL - this is likely to mean there is a non-backwards compatible change.\n"
+                + " of KSQL - this is likely to mean there is a non-backwards compatible change."
+                + "\n"
                 + "THIS IS BAD!",
-            generated, hasItems(schemas.split(System.lineSeparator())));
-      });
+            generated, hasEntry(e.getKey(), e.getValue()));
+      }
     });
   }
 

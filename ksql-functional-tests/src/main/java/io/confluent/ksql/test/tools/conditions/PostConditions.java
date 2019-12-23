@@ -56,7 +56,7 @@ public class PostConditions {
       final Collection<String> topicNames
   ) {
     verifyMetaStore(metaStore);
-    veriftyTopics(topicNames);
+    verifyTopics(topicNames);
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {
@@ -74,7 +74,7 @@ public class PostConditions {
         + System.lineSeparator() + text, values, sourcesMatcher);
   }
 
-  private void veriftyTopics(final Collection<String> topicNames) {
+  private void verifyTopics(final Collection<String> topicNames) {
     final Set<String> blackListed = topicNames.stream()
         .filter(topicBlackList.asPredicate())
         .collect(Collectors.toSet());

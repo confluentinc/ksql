@@ -124,4 +124,28 @@ public abstract class CreateSourceCommand implements DdlCommand {
       }
     }
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateSourceCommand that = (CreateSourceCommand) o;
+    return Objects.equals(sourceName, that.sourceName)
+        && Objects.equals(schema, that.schema)
+        && Objects.equals(keyField, that.keyField)
+        && Objects.equals(timestampColumn, that.timestampColumn)
+        && Objects.equals(topicName, that.topicName)
+        && Objects.equals(formats, that.formats)
+        && Objects.equals(windowInfo, that.windowInfo);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects
+        .hash(sourceName, schema, keyField, timestampColumn, topicName, formats, windowInfo);
+  }
 }

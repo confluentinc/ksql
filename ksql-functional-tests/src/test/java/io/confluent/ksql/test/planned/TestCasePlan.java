@@ -13,45 +13,58 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.planned;
 
 import io.confluent.ksql.engine.KsqlPlan;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class TopologyAndConfigs {
-
-  private final List<KsqlPlan> plan;
+public final class TestCasePlan {
+  private final TestCasePlanNode node;
   private final String topology;
-  private final Map<String, String> schemas;
-  private final Map<String, String> configs;
 
-  public TopologyAndConfigs(
+  TestCasePlan(
+      final String version,
+      final long timestamp,
       final List<KsqlPlan> plan,
       final String topology,
       final Map<String, String> schemas,
       final Map<String, String> configs
   ) {
-    this.plan = Objects.requireNonNull(plan, "plan");
+    this(new TestCasePlanNode(version, timestamp, plan, schemas, configs), topology);
+  }
+
+  TestCasePlan(final TestCasePlanNode node, final String topology) {
+    this.node = Objects.requireNonNull(node, "node");
     this.topology = Objects.requireNonNull(topology, "topology");
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
-    this.configs = Objects.requireNonNull(configs, "configs");
+  }
+
+  public List<KsqlPlan> getPlan() {
+    return node.getPlan();
+  }
+
+  public long getTimestamp() {
+    return node.getTimestamp();
+  }
+
+  public Map<String, String> getConfigs() {
+    return node.getConfigs();
+  }
+
+  public Map<String, String> getSchemas() {
+    return node.getSchemas();
   }
 
   public String getTopology() {
     return topology;
   }
 
-  public Map<String, String> getSchemas() {
-    return schemas;
+  public String getVersion() {
+    return node.getVersion();
   }
 
-  public Map<String, String> getConfigs() {
-    return configs;
-  }
-
-  public List<KsqlPlan> getPlan() {
-    return plan;
+  TestCasePlanNode getNode() {
+    return node;
   }
 }

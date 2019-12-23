@@ -22,12 +22,14 @@ import static org.hamcrest.Matchers.not;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.engine.QueryPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
@@ -36,14 +38,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
@@ -51,7 +46,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.SerdeUtil;
@@ -61,10 +55,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -82,19 +79,6 @@ public final class TestExecutorUtil {
   private TestExecutorUtil() {
   }
 
-  public static List<PersistentQueryMetadata> buildQueries(
-      final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
-      final StubKafkaService stubKafkaService
-  ) {
-    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService)
-        .stream()
-        .map(q -> q.persistentQueryMetadata)
-        .collect(Collectors.toList());
-  }
-
   static List<TopologyTestDriverContainer> buildStreamsTopologyTestDrivers(
       final TestCase testCase,
       final ServiceContext serviceContext,
@@ -105,16 +89,15 @@ public final class TestExecutorUtil {
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final List<PersistentQueryAndSortedSources> queryMetadataList = doBuildQueries(
+    final List<PersistentQueryAndSources> queryMetadataList = doBuildQueries(
         testCase,
         serviceContext,
         ksqlEngine,
         maybeUpdatedConfigs,
         stubKafkaService);
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
-    for (final PersistentQueryAndSortedSources persistentQueryAndSortedSources:
-        queryMetadataList) {
-      final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSortedSources
+    for (final PersistentQueryAndSources persistentQueryAndSources: queryMetadataList) {
+      final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
       streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
@@ -123,7 +106,7 @@ public final class TestExecutorUtil {
           topology,
           streamsProperties,
           0);
-      final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
+      final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()
           .map(dataSource -> {
             stubKafkaService.requireTopicExists(dataSource.getKafkaTopicName());
@@ -137,8 +120,7 @@ public final class TestExecutorUtil {
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(
           ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
-      testCase.setGeneratedSchemas(
-          ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
+      testCase.setGeneratedSchemas(persistentQueryMetadata.getSchemasDescription());
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           sourceTopics,
@@ -146,6 +128,23 @@ public final class TestExecutorUtil {
       ));
     }
     return topologyTestDrivers;
+  }
+
+  public static Iterable<ConfiguredKsqlPlan> planTestCase(
+      final KsqlEngine engine,
+      final TestCase testCase,
+      final KsqlConfig ksqlConfig,
+      final Optional<SchemaRegistryClient> srClient,
+      final StubKafkaService stubKafkaService
+  ) {
+    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService);
+    if (testCase.getExpectedTopology().isPresent()) {
+      return testCase.getExpectedTopology().get().getPlan()
+          .stream()
+          .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
+          .collect(Collectors.toList());
+    }
+    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient, stubKafkaService);
   }
 
   private static Topic buildSinkTopic(
@@ -200,23 +199,17 @@ public final class TestExecutorUtil {
     return Optional.empty();
   }
 
-  private static List<PersistentQueryAndSortedSources> doBuildQueries(
+  private static List<PersistentQueryAndSources> doBuildQueries(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, serviceContext, stubKafkaService);
-
-    final String sql = testCase.statements().stream()
-        .collect(Collectors.joining(System.lineSeparator()));
-
-    final List<PersistentQueryAndSortedSources> queries = execute(
+    final List<PersistentQueryAndSources> queries = execute(
         ksqlEngine,
-        sql,
+        testCase,
         ksqlConfig,
-        testCase.properties(),
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -254,174 +247,192 @@ public final class TestExecutorUtil {
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
-  private static List<PersistentQueryAndSortedSources> execute(
+  private static List<PersistentQueryAndSources> execute(
       final KsqlEngine engine,
-      final String sql,
+      final TestCase testCase,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
-    final List<ParsedStatement> statements = engine.parse(sql);
-
-    final Optional<DefaultSchemaInjector> schemaInjector = srClient
-        .map(SchemaRegistryTopicSchemaSupplier::new)
-        .map(DefaultSchemaInjector::new);
-
-    return statements.stream()
-        .map(stmt -> execute(
-            engine, stmt, ksqlConfig, overriddenProperties, schemaInjector, stubKafkaService))
-        .filter(executeResultAndSortedSources ->
-            executeResultAndSortedSources.getSources() != null)
-        .map(
-            executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
-                (PersistentQueryMetadata) executeResultAndSortedSources
-                    .getExecuteResult().getQuery().get(),
-                executeResultAndSortedSources.getSources(),
-                executeResultAndSortedSources.getWindowSize()
-            ))
-        .collect(Collectors.toList());
+    final ImmutableList.Builder<PersistentQueryAndSources> queriesBuilder = new Builder<>();
+    for (final ConfiguredKsqlPlan plan
+        : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
+      final ExecuteResultAndSources result = executePlan(engine, plan);
+      if (result.getSources() == null) {
+        continue;
+      }
+      queriesBuilder.add(new PersistentQueryAndSources(
+          (PersistentQueryMetadata) result.getExecuteResult().getQuery().get(),
+          result.getSources()
+      ));
+    }
+    return queriesBuilder.build();
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  private static ExecuteResultAndSortedSources execute(
+  private static ExecuteResultAndSources executePlan(
       final KsqlExecutionContext executionContext,
-      final ParsedStatement stmt,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final Optional<DefaultSchemaInjector> schemaInjector,
-      final StubKafkaService stubKafkaService
+      final ConfiguredKsqlPlan plan
   ) {
-    final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        prepared, overriddenProperties, ksqlConfig);
-
-    if (prepared.getStatement() instanceof InsertValues) {
-      StubInsertValuesExecutor.of(stubKafkaService).execute(
-          (ConfiguredStatement<InsertValues>) configured,
-          overriddenProperties,
-          executionContext,
-          executionContext.getServiceContext()
-      );
-      return new ExecuteResultAndSortedSources(null, null, null);
-    }
-
-    final ConfiguredStatement<?> withSchema =
-        schemaInjector
-            .map(injector -> injector.inject(configured))
-            .orElse((ConfiguredStatement) configured);
-    final ConfiguredStatement<?> reformatted =
-        new SqlFormatInjector(executionContext).inject(withSchema);
-
-    final ExecuteResult executeResult;
-    try {
-      executeResult = executeConfiguredStatement(executionContext, reformatted);
-    } catch (final KsqlStatementException statementException) {
-      // use the original statement text in the exception so that tests
-      // can easily check that the failed statement is the input statement
-      throw new KsqlStatementException(
-          statementException.getMessage(),
-          withSchema.getStatementText(),
-          statementException.getCause());
-    }
-    if (prepared.getStatement() instanceof CreateAsSelect) {
-      return new ExecuteResultAndSortedSources(
+    final ExecuteResult executeResult = executionContext.execute(
+        executionContext.getServiceContext(),
+        plan
+    );
+    final Optional<QueryPlan> maybeQueryPlan = plan.getPlan().getQueryPlan();
+    if (maybeQueryPlan.isPresent()) {
+      return new ExecuteResultAndSources(
           executeResult,
-          getSortedSources(
-              ((CreateAsSelect) prepared.getStatement()).getQuery(),
-              executionContext.getMetaStore()),
-          getWindowSize(((CreateAsSelect) prepared.getStatement()).getQuery()));
-    }
-    if (prepared.getStatement() instanceof InsertInto) {
-      return new ExecuteResultAndSortedSources(
-          executeResult,
-          getSortedSources(((InsertInto) prepared.getStatement()).getQuery(),
-              executionContext.getMetaStore()),
-          getWindowSize(((InsertInto) prepared.getStatement()).getQuery())
+          getSources(maybeQueryPlan.get().getSources(), executionContext.getMetaStore())
       );
     }
-    return new ExecuteResultAndSortedSources(
+    return new ExecuteResultAndSources(
         executeResult,
-        null,
-        Optional.empty());
+        null
+    );
   }
 
-  @SuppressWarnings("unchecked")
-  private static ExecuteResult executeConfiguredStatement(
-      final KsqlExecutionContext executionContext,
-      final ConfiguredStatement<?> stmt) {
-    final ConfiguredKsqlPlan configuredPlan;
-    try {
-      configuredPlan = buildConfiguredPlan(executionContext, stmt);
-    } catch (final IOException e) {
-      throw new TestFrameworkException("Error (de)serializing plan: " + e.getMessage(), e);
-    }
-    return executionContext.execute(executionContext.getServiceContext(), configuredPlan);
-  }
-
-  private static ConfiguredKsqlPlan buildConfiguredPlan(
-      final KsqlExecutionContext executionContext,
-      final ConfiguredStatement<?> stmt
-  ) throws IOException {
-    final KsqlPlan plan = executionContext.plan(executionContext.getServiceContext(), stmt);
-    final String serialized = PLAN_MAPPER.writeValueAsString(plan);
-    return ConfiguredKsqlPlan.of(
-        PLAN_MAPPER.readValue(serialized, KsqlPlan.class),
-        stmt.getOverrides(),
-        stmt.getConfig());
-  }
-
-  private static Optional<Long> getWindowSize(final Query query) {
-    return query.getWindow().flatMap(window -> window
-        .getKsqlWindowExpression()
-        .getWindowInfo()
-        .getSize()
-        .map(Duration::toMillis));
-  }
-
-  private static List<DataSource<?>> getSortedSources(
-      final Query query,
+  private static List<DataSource<?>> getSources(
+      final Collection<SourceName> sources,
       final MetaStore metaStore) {
-    final Relation from = query.getFrom();
-    if (from instanceof Join) {
-      final Join join = (Join) from;
-      final AliasedRelation left = (AliasedRelation) join.getLeft();
-      final AliasedRelation right = (AliasedRelation) join.getRight();
+    final ImmutableList.Builder<DataSource<?>> sourceBuilder = new Builder<>();
+    for (final SourceName name : sources) {
+      if (metaStore.getSource(name) == null) {
+        throw new KsqlException("Source does not exist: " + name.toString());
+      }
+      sourceBuilder.add(metaStore.getSource(name));
+    }
+    return sourceBuilder.build();
+  }
 
-      final SourceName leftName = ((Table) left.getRelation()).getName();
-      final SourceName rightName = ((Table) right.getRelation()).getName();
+  private static final class PlannedStatementIterator implements
+      Iterable<ConfiguredKsqlPlan>, Iterator<ConfiguredKsqlPlan> {
+    private final Iterator<ParsedStatement> statements;
+    private final KsqlExecutionContext executionContext;
+    private final Map<String, Object> overrides;
+    private final KsqlConfig ksqlConfig;
+    private final StubKafkaService stubKafkaService;
+    private final Optional<DefaultSchemaInjector> schemaInjector;
+    private Optional<ConfiguredKsqlPlan> next = Optional.empty();
 
-      if (metaStore.getSource(leftName) == null) {
-        throw new KsqlException("Source does not exist: " + left.getRelation().toString());
+    private PlannedStatementIterator(
+        final Iterator<ParsedStatement> statements,
+        final KsqlExecutionContext executionContext,
+        final Map<String, Object> overrides,
+        final KsqlConfig ksqlConfig,
+        final StubKafkaService stubKafkaService,
+        final Optional<DefaultSchemaInjector> schemaInjector
+    ) {
+      this.statements = Objects.requireNonNull(statements, "statements");
+      this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+      this.overrides = Objects.requireNonNull(overrides, "overrides");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.stubKafkaService = Objects.requireNonNull(stubKafkaService, "stubKafkaService");
+      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
+    }
+
+    public static PlannedStatementIterator of(
+        final KsqlExecutionContext executionContext,
+        final TestCase testCase,
+        final KsqlConfig ksqlConfig,
+        final Optional<SchemaRegistryClient> srClient,
+        final StubKafkaService stubKafkaService
+    ) {
+      final Optional<DefaultSchemaInjector> schemaInjector = srClient
+          .map(SchemaRegistryTopicSchemaSupplier::new)
+          .map(DefaultSchemaInjector::new);
+      final String sql = testCase.statements().stream()
+          .collect(Collectors.joining(System.lineSeparator()));
+      final Iterator<ParsedStatement> statements = executionContext.parse(sql).iterator();
+      return new PlannedStatementIterator(
+          statements,
+          executionContext,
+          testCase.properties(),
+          ksqlConfig,
+          stubKafkaService,
+          schemaInjector
+      );
+    }
+
+    @Override
+    public boolean hasNext() {
+      while (!next.isPresent() && statements.hasNext()) {
+        next = planStatement(statements.next());
       }
-      if (metaStore.getSource(rightName) == null) {
-        throw new KsqlException("Source does not exist: " + right.getRelation().toString());
+      return next.isPresent();
+    }
+
+    @Override
+    public ConfiguredKsqlPlan next() {
+      hasNext();
+      final ConfiguredKsqlPlan current = next.orElseThrow(NoSuchElementException::new);
+      next = Optional.empty();
+      return current;
+    }
+
+    @Override
+    public Iterator<ConfiguredKsqlPlan> iterator() {
+      return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Optional<ConfiguredKsqlPlan> planStatement(final ParsedStatement stmt) {
+      final PreparedStatement<?> prepared = executionContext.prepare(stmt);
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, overrides, ksqlConfig);
+
+      if (prepared.getStatement() instanceof InsertValues) {
+        StubInsertValuesExecutor.of(stubKafkaService).execute(
+            (ConfiguredStatement<InsertValues>) configured,
+            overrides,
+            executionContext,
+            executionContext.getServiceContext()
+        );
+        return Optional.empty();
       }
-      return ImmutableList.of(
-          metaStore.getSource(leftName),
-          metaStore.getSource(rightName));
-    } else {
-      final SourceName fromName = ((Table) ((AliasedRelation) from).getRelation()).getName();
-      if (metaStore.getSource(fromName) == null) {
-        throw new KsqlException("Source does not exist: " + fromName);
+
+      final ConfiguredStatement<?> withSchema =
+          schemaInjector
+              .map(injector -> injector.inject(configured))
+              .orElse((ConfiguredStatement) configured);
+      final ConfiguredStatement<?> reformatted =
+          new SqlFormatInjector(executionContext).inject(withSchema);
+
+      try {
+        final KsqlPlan plan = executionContext
+            .plan(executionContext.getServiceContext(), reformatted);
+        return Optional.of(
+            ConfiguredKsqlPlan.of(
+                rewritePlan(plan),
+                reformatted.getOverrides(),
+                reformatted.getConfig()
+            )
+        );
+      } catch (final KsqlStatementException e) {
+        throw new KsqlStatementException(
+            e.getMessage(), withSchema.getStatementText(), e.getCause());
       }
-      return ImmutableList.of(metaStore.getSource(fromName));
+    }
+
+    private KsqlPlan rewritePlan(final KsqlPlan plan) {
+      try {
+        final String serialized = PLAN_MAPPER.writeValueAsString(plan);
+        return PLAN_MAPPER.readValue(serialized, KsqlPlan.class);
+      } catch (final IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
-  private static final class ExecuteResultAndSortedSources {
+  private static final class ExecuteResultAndSources {
 
     private final ExecuteResult executeResult;
     private final List<DataSource<?>> sources;
-    private final Optional<Long> windowSize;
 
-    ExecuteResultAndSortedSources(
+    ExecuteResultAndSources(
         final ExecuteResult executeResult,
-        final List<DataSource<?>> sources,
-        final Optional<Long> windowSize) {
+        final List<DataSource<?>> sources) {
       this.executeResult = executeResult;
       this.sources = sources;
-      this.windowSize = windowSize;
     }
 
     ExecuteResult getExecuteResult() {
@@ -431,26 +442,19 @@ public final class TestExecutorUtil {
     List<DataSource<?>> getSources() {
       return sources;
     }
-
-    public Optional<Long> getWindowSize() {
-      return windowSize;
-    }
   }
 
-  private static final class PersistentQueryAndSortedSources {
+  private static final class PersistentQueryAndSources {
 
     private final PersistentQueryMetadata persistentQueryMetadata;
     private final List<DataSource<?>> sources;
-    private final Optional<Long> windowSize;
 
-    PersistentQueryAndSortedSources(
+    PersistentQueryAndSources(
         final PersistentQueryMetadata persistentQueryMetadata,
-        final List<DataSource<?>> sources,
-        final Optional<Long> windowSize
+        final List<DataSource<?>> sources
     ) {
       this.persistentQueryMetadata = persistentQueryMetadata;
       this.sources = sources;
-      this.windowSize = windowSize;
     }
 
     PersistentQueryMetadata getPersistentQueryMetadata() {
@@ -459,10 +463,6 @@ public final class TestExecutorUtil {
 
     List<DataSource<?>> getSources() {
       return sources;
-    }
-
-    public Optional<Long> getWindowSize() {
-      return windowSize;
     }
   }
 }

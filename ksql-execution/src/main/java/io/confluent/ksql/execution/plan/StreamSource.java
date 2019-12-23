@@ -19,6 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -44,5 +45,32 @@ public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struc
   @Override
   public KStreamHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitStreamSource(this);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AbstractStreamSource that = (AbstractStreamSource) o;
+    return Objects.equals(properties, that.properties)
+        && Objects.equals(topicName, that.topicName)
+        && Objects.equals(formats, that.formats)
+        && Objects.equals(timestampColumn, that.timestampColumn)
+        && Objects.equals(sourceSchema, that.sourceSchema);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        properties,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema
+    );
   }
 }

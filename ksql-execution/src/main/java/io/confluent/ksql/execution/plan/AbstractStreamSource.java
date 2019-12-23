@@ -27,12 +27,12 @@ import java.util.Optional;
 
 @Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
-  private final ExecutionStepPropertiesV1 properties;
-  private final String topicName;
-  private final Formats formats;
-  private final Optional<TimestampColumn> timestampColumn;
-  private final LogicalSchema sourceSchema;
-  private final SourceName alias;
+  final ExecutionStepPropertiesV1 properties;
+  final String topicName;
+  final Formats formats;
+  final Optional<TimestampColumn> timestampColumn;
+  final LogicalSchema sourceSchema;
+  final SourceName alias;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
       final SourceName alias,
@@ -84,32 +84,5 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
 
   public SourceName getAlias() {
     return alias;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final AbstractStreamSource that = (AbstractStreamSource) o;
-    return Objects.equals(properties, that.properties)
-        && Objects.equals(topicName, that.topicName)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        properties,
-        topicName,
-        formats,
-        timestampColumn,
-        sourceSchema
-    );
   }
 }

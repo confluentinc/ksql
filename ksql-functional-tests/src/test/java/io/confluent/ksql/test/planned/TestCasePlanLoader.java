@@ -43,8 +43,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -68,52 +70,84 @@ public final class TestCasePlanLoader {
    * @param testCase the test case to build plans for
    * @return the built plan.
    */
-  public static TestCasePlan fromTestCase(final TestCase testCase) {
+  public static TestCasePlan currentForTestCase(final TestCase testCase) {
     final KsqlConfig configs = BASE_CONFIG.cloneWithPropertyOverwrite(testCase.properties());
     try (
         final ServiceContext serviceContext = getServiceContext();
         final KsqlEngine engine = getKsqlEngine(serviceContext)) {
-      return buildStatementsInTestCase(testCase, configs, serviceContext, engine);
+      return buildStatementsInTestCase(
+          testCase,
+          configs,
+          serviceContext,
+          engine,
+          CURRENT_VERSION,
+          System.currentTimeMillis()
+      );
+    }
+  }
+
+  /**
+   * Rebuilds a TestCasePlan given a TestCase and a TestCasePlan
+   * @param testCase the test case to rebuild the plan for
+   * @param original the plan to rebuild
+   * @return the rebuilt plan.
+   */
+  public static TestCasePlan rebuiltForTestCase(
+      final TestCase testCase,
+      final TestCasePlan original) {
+    final TestCase withOriginal = PlannedTestUtils.buildPlannedTestCase(testCase, original);
+    final KsqlConfig configs = BASE_CONFIG.cloneWithPropertyOverwrite(testCase.properties());
+    try (
+        final ServiceContext serviceContext = getServiceContext();
+        final KsqlEngine engine = getKsqlEngine(serviceContext)) {
+      return buildStatementsInTestCase(
+          withOriginal,
+          configs,
+          serviceContext,
+          engine,
+          original.getVersion(),
+          original.getTimestamp()
+      );
     }
   }
 
   /**
    * Create a TestCasePlan by loading it from the local filesystem. This factory loads the
    * most recent plan from a given test case directory.
-   * @param testCaseDir The directory to load the plan from.
+   * @param testCase The test case to load the latest plan for
    * @return the loaded plan.
    */
-  public static Optional<TestCasePlan> fromLatest(final Path testCaseDir) {
-    final Optional<List<String>> existing = PlannedTestUtils.loadContents(testCaseDir.toString());
-    if (!existing.isPresent()) {
-      return Optional.empty();
-    }
+  public static Optional<TestCasePlan> latestForTestCase(final TestCase testCase) {
     KsqlVersion latestVersion = null;
     TestCasePlan latest = null;
-    for (final String versionDir : existing.get()) {
-      final TestCasePlan planAtVersionNode = parseSpec(testCaseDir.resolve(versionDir));
-      final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getVersion())
-          .withTimestamp(planAtVersionNode.getTimestamp());
+    for (final TestCasePlan candidate : allForTestCase(testCase)) {
+      final KsqlVersion version = KsqlVersion.parse(candidate.getVersion())
+          .withTimestamp(candidate.getTimestamp());
       if (latestVersion == null || latestVersion.compareTo(version) < 0) {
         latestVersion = version;
-        latest = planAtVersionNode;
+        latest = candidate;
       }
     }
     return Optional.ofNullable(latest);
   }
 
   /**
-   * Create a TestCasePlan by loading a specific plan from the local filesystem.
-   * @param versionDir the directory to load the plan from.
-   * @return the loaded plan.
+   * Create a TestCasePlan for all saved plans for a test case
+   * @param testCase the test case to load saved lans for
+   * @return a list of the loaded plans.
    */
-  public static TestCasePlan fromSpecific(final Path versionDir) {
-    return parseSpec(versionDir);
+  public static List<TestCasePlan> allForTestCase(final TestCase testCase) {
+    final PlannedTestPath rootforCase = PlannedTestPath.forTestCase(testCase);
+    return PlannedTestUtils.loadContents(rootforCase.path().toString())
+        .orElse(Collections.emptyList())
+        .stream()
+        .map(p -> parseSpec(rootforCase.resolve(p)))
+        .collect(Collectors.toList());
   }
 
-  private static TestCasePlan parseSpec(final Path versionDir) {
-    final Path specPath = versionDir.resolve(PlannedTestLoader.SPEC_FILE);
-    final Path topologyPath = versionDir.resolve(PlannedTestLoader.TOPOLOGY_FILE);
+  private static TestCasePlan parseSpec(final PlannedTestPath versionDir) {
+    final PlannedTestPath specPath = versionDir.resolve(PlannedTestPath.SPEC_FILE);
+    final PlannedTestPath topologyPath = versionDir.resolve(PlannedTestPath.TOPOLOGY_FILE);
     try {
       return new TestCasePlan(
           MAPPER.readValue(slurp(specPath), TestCasePlanNode.class),
@@ -124,9 +158,9 @@ public final class TestCasePlanLoader {
     }
   }
 
-  private static String slurp(final Path path) throws IOException {
+  private static String slurp(final PlannedTestPath path) throws IOException {
     return new String(
-        Files.readAllBytes(PlannedTestUtils.findBaseDir().resolve(path)),
+        Files.readAllBytes(path.relativePath()),
         Charset.defaultCharset()
     );
   }
@@ -135,7 +169,9 @@ public final class TestCasePlanLoader {
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine) {
+      final KsqlEngine ksqlEngine,
+      final String version,
+      final long timestamp) {
     final Iterable<ConfiguredKsqlPlan> configuredPlans = TestExecutorUtil.planTestCase(
         ksqlEngine,
         testCase,
@@ -159,8 +195,8 @@ public final class TestCasePlanLoader {
       throw new AssertionError("test case does not build a query");
     }
     return new TestCasePlan(
-        CURRENT_VERSION,
-        System.currentTimeMillis(),
+        version,
+        timestamp,
         plansBuilder.build(),
         queryMetadata.getTopologyDescription(),
         queryMetadata.getSchemasDescription(),

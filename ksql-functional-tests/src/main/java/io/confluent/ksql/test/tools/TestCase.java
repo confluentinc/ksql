@@ -114,7 +114,8 @@ public class TestCase implements VersionedTest {
       throw new IllegalArgumentException("Test does not support supplied version: " + version);
     }
 
-    final String newName = name + "-" + version.getName();
+    final String newName = name + "-" + version.getName()
+        + (version.getTimestamp().isPresent() ? "-" + version.getTimestamp().getAsLong() : "");
     final TestCase copy = new TestCase(
         testPath,
         newName,

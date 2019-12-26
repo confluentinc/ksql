@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -50,6 +51,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressFBWarnings("UUF_UNUSED_FIELD")
 public class AstBuilderTest {
 
   private static final MetaStore META_STORE = MetaStoreFixture
@@ -62,6 +64,7 @@ public class AstBuilderTest {
 
   private AstBuilder builder;
 
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   @Before
   public void setup() {
     builder = new AstBuilder(META_STORE);

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
@@ -36,6 +37,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.atn.PredictionMode;
 
+@SuppressFBWarnings("UUF_UNUSED_FIELD")
 public final class SqlTypeParser {
 
   private final TypeRegistry typeRegistry;

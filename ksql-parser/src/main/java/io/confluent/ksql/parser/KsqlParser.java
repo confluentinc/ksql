@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
@@ -44,6 +45,7 @@ public interface KsqlParser {
    */
   PreparedStatement<?> prepare(ParsedStatement statement, TypeRegistry typeRegistry);
 
+  @SuppressFBWarnings("UUF_UNUSED_FIELD")
   final class ParsedStatement {
     private final String statementText;
     private final SingleStatementContext statement;
@@ -69,6 +71,7 @@ public interface KsqlParser {
     }
   }
 
+  @SuppressFBWarnings("UUF_UNUSED_FIELD")
   @Immutable
   final class PreparedStatement<T extends Statement> {
 

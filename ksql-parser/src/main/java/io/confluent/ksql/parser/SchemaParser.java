@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static java.util.Objects.requireNonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -34,6 +35,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
+@SuppressFBWarnings("UUF_UNUSED_FIELD")
 public final class SchemaParser {
 
   private final TypeRegistry typeRegistry;

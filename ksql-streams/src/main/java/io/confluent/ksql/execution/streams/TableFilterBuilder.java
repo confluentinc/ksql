@@ -70,7 +70,7 @@ public final class TableFilterBuilder {
     final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
     final KTable<K, GenericRow> filtered = table.getTable()
         .transformValues(
-            () -> new KsTransformer<>(predicate.getTransformer(processingLogger)),
+            () -> new KsTransformer<K, Optional<GenericRow>>(predicate.getTransformer(processingLogger)),
             Named.as(StreamsUtil.buildOpName(stacker.push(PRE_PROCESS_OP).getQueryContext()))
         )
         .filter(
@@ -93,5 +93,5 @@ public final class TableFilterBuilder {
                 step.getProperties().getQueryContext()
             ))
         );
-  }
+    }
 }

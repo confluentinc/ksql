@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -61,7 +62,7 @@ public final class StreamSelectBuilder {
 
     return stream.withStream(
         stream.getStream().transformValues(
-            () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+            () -> new KsTransformer<K, GenericRow>(selectMapper.getTransformer(logger)),
             selectName
         ),
         selection.getSchema()

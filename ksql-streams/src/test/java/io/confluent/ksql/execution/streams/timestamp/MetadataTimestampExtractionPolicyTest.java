@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.common.testing.EqualsTester;
-import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.UsePartitionTimeOnInvalidTimestamp;
 import org.junit.Test;
 
 public class MetadataTimestampExtractionPolicyTest {
@@ -27,8 +27,8 @@ public class MetadataTimestampExtractionPolicyTest {
             new MetadataTimestampExtractionPolicy(),
             new MetadataTimestampExtractionPolicy())
         .addEqualityGroup(
-            new MetadataTimestampExtractionPolicy(new UsePreviousTimeOnInvalidTimestamp()),
-            new MetadataTimestampExtractionPolicy(new UsePreviousTimeOnInvalidTimestamp())
+            new MetadataTimestampExtractionPolicy(new UsePartitionTimeOnInvalidTimestamp()),
+            new MetadataTimestampExtractionPolicy(new UsePartitionTimeOnInvalidTimestamp())
         )
         .testEquals();
   }

@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
-import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.UsePartitionTimeOnInvalidTimestamp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -105,11 +105,11 @@ public class TimestampExtractionPolicyFactoryTest {
   }
 
   @Test
-  public void shouldCreateMetadataPolicyWithConfiguredUsePreviousTimeOnInvalidTimestamp() {
+  public void shouldCreateMetadataPolicyWithConfiguredUsePartitionTimeOnInvalidTimestamp() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
-        UsePreviousTimeOnInvalidTimestamp.class
+        UsePartitionTimeOnInvalidTimestamp.class
     ));
 
     // When:
@@ -122,7 +122,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(UsePreviousTimeOnInvalidTimestamp.class));
+    assertThat(result.create(0), instanceOf(UsePartitionTimeOnInvalidTimestamp.class));
   }
 
   @Test

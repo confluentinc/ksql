@@ -33,7 +33,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 
@@ -100,13 +99,13 @@ public class PollingSubscriptionTest {
     final TestPublisher testPublisher = new TestPublisher();
     testPublisher.subscribe(testSubscriber);
 
-    assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
+    assertTrue(testSubscriber.await());
     assertTrue(exec.shutdownNow().isEmpty());
 
     assertTrue(testPublisher.subscription.closed);
-    assertNull(testSubscriber.error);
-    assertNotNull(testSubscriber.schema);
-    assertEquals(ELEMENTS, testSubscriber.elements);
+    assertNull(testSubscriber.getError());
+    assertNotNull(testSubscriber.getSchema());
+    assertEquals(ELEMENTS, testSubscriber.getElements());
   }
 
   @Test
@@ -134,12 +133,12 @@ public class PollingSubscriptionTest {
 
     testPublisher.subscribe(testSubscriber);
 
-    assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
+    assertTrue(testSubscriber.await());
     assertTrue(exec.shutdownNow().isEmpty());
 
     assertTrue(testPublisher.subscription.closed);
-    assertNotNull(testSubscriber.error);
-    assertEquals(ImmutableList.of("a", "b"), testSubscriber.elements);
+    assertNotNull(testSubscriber.getError());
+    assertEquals(ImmutableList.of("a", "b"), testSubscriber.getElements());
   }
 
   @Test
@@ -155,13 +154,13 @@ public class PollingSubscriptionTest {
     };
     testPublisher.subscribe(testSubscriber);
 
-    assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
+    assertTrue(testSubscriber.await());
     assertTrue(multithreadedExec.shutdownNow().isEmpty());
 
     assertTrue(testPublisher.subscription.closed);
-    assertNull(testSubscriber.error);
-    assertNotNull(testSubscriber.schema);
-    assertEquals(ELEMENTS, testSubscriber.elements);
+    assertNull(testSubscriber.getError());
+    assertNotNull(testSubscriber.getSchema());
+    assertEquals(ELEMENTS, testSubscriber.getElements());
   }
 
   @Test
@@ -192,12 +191,12 @@ public class PollingSubscriptionTest {
 
     testPublisher.subscribe(testSubscriber);
 
-    assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
+    assertTrue(testSubscriber.await());
     assertTrue(multithreadedExec.shutdownNow().isEmpty());
 
     assertTrue(testPublisher.subscription.closed);
-    assertNotNull(testSubscriber.error);
-    assertEquals(ImmutableList.of("a"), testSubscriber.elements);
+    assertNotNull(testSubscriber.getError());
+    assertEquals(ImmutableList.of("a"), testSubscriber.getElements());
   }
 
   @Test
@@ -220,12 +219,12 @@ public class PollingSubscriptionTest {
 
     testPublisher.subscribe(testSubscriber);
 
-    assertTrue(testSubscriber.done.await(1000, TimeUnit.MILLISECONDS));
+    assertTrue(testSubscriber.await());
     assertTrue(exec.shutdownNow().isEmpty());
 
     assertTrue(testPublisher.subscription.closed);
-    assertNull(testSubscriber.error);
-    assertEquals(ImmutableList.of(), testSubscriber.elements);
+    assertNull(testSubscriber.getError());
+    assertEquals(ImmutableList.of(), testSubscriber.getElements());
   }
 
   @Test(expected = IllegalArgumentException.class)

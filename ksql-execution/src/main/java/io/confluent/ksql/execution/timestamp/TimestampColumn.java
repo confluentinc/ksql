@@ -29,8 +29,8 @@ public final class TimestampColumn {
 
   @JsonCreator
   public TimestampColumn(
-      @JsonProperty(value = "column", required = true) ColumnRef column,
-      @JsonProperty("format") Optional<String> format
+      @JsonProperty(value = "column", required = true) final ColumnRef column,
+      @JsonProperty("format") final Optional<String> format
   ) {
     this.column = Objects.requireNonNull(column, "column");
     this.format = Objects.requireNonNull(format, "format");
@@ -45,14 +45,14 @@ public final class TimestampColumn {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TimestampColumn that = (TimestampColumn) o;
+    final TimestampColumn that = (TimestampColumn) o;
     return Objects.equals(column, that.column)
         && Objects.equals(format, that.format);
   }

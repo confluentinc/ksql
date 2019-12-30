@@ -39,17 +39,19 @@ public final class UdafUtil {
   }
 
   public static KsqlAggregateFunction<?, ?, ?> resolveAggregateFunction(
-      FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
+      final FunctionRegistry functionRegistry,
+      final FunctionCall functionCall,
+      final LogicalSchema schema
   ) {
     try {
-      ExpressionTypeManager expressionTypeManager =
+      final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
-      SqlType argumentType =
+      final SqlType argumentType =
           expressionTypeManager.getExpressionSqlType(functionCall.getArguments().get(0));
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
-      Expression arg = functionCall.getArguments().get(0);
+      final Expression arg = functionCall.getArguments().get(0);
 
       final Optional<Column> possibleValueColumn = arg instanceof ColumnReferenceExp
           ? schema.findValueColumn(((ColumnReferenceExp) arg).getReference())
@@ -59,7 +61,7 @@ public final class UdafUtil {
       final Column valueColumn = possibleValueColumn
           .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));
 
-      AggregateFunctionInitArguments aggregateFunctionInitArguments =
+      final AggregateFunctionInitArguments aggregateFunctionInitArguments =
           createAggregateFunctionInitArgs(valueColumn.index(), functionCall);
 
       return functionRegistry.getAggregateFunction(
@@ -67,16 +69,16 @@ public final class UdafUtil {
           argumentType,
           aggregateFunctionInitArguments
       );
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-      int udafIndex, FunctionCall functionCall
+      final int udafIndex, final FunctionCall functionCall
   ) {
     // args from index > 0 are all literals
-    List<Object> args = functionCall.getArguments()
+    final List<Object> args = functionCall.getArguments()
         .stream()
         .skip(1)
         .map(expr -> {

@@ -28,11 +28,11 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String topicName;
 
   public StreamSink(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) Formats formats,
-      @JsonProperty(value = "topicName", required = true) String topicName) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "topicName", required = true) final String topicName) {
+    this.properties = Objects.requireNonNull(props, "props");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
@@ -61,19 +61,19 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(PlanBuilder builder) {
+  public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitStreamSink(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamSink<?> that = (StreamSink<?>) o;
+    final StreamSink<?> that = (StreamSink<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

@@ -156,7 +156,7 @@ public class DistributingExecutorTest {
     distributor.execute(CONFIGURED_STATEMENT, executionContext, serviceContext);
 
     // Then:
-    InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
+    final InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
     inOrder.verify(transactionalProducer).initTransactions();
     inOrder.verify(transactionalProducer).beginTransaction();
     inOrder.verify(queue).waitForCommandConsumer();

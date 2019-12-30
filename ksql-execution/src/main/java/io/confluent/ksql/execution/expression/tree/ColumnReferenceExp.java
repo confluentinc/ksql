@@ -31,11 +31,11 @@ public class ColumnReferenceExp extends Expression {
 
   private final ColumnRef name;
 
-  public ColumnReferenceExp(ColumnRef name) {
+  public ColumnReferenceExp(final ColumnRef name) {
     this(Optional.empty(), name);
   }
 
-  public ColumnReferenceExp(Optional<NodeLocation> location, ColumnRef name) {
+  public ColumnReferenceExp(final Optional<NodeLocation> location, final ColumnRef name) {
     super(location);
     this.name = requireNonNull(name, "name");
   }
@@ -45,12 +45,12 @@ public class ColumnReferenceExp extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitColumnReference(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -58,7 +58,7 @@ public class ColumnReferenceExp extends Expression {
       return false;
     }
 
-    ColumnReferenceExp that = (ColumnReferenceExp) o;
+    final ColumnReferenceExp that = (ColumnReferenceExp) o;
     return Objects.equals(name, that.name);
   }
 

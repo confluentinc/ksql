@@ -39,7 +39,7 @@ public class CountDistinctKudafTest {
     List<Integer> agg = udaf.initialize();
 
     // When:
-    for (String value : values) {
+    for (final String value : values) {
       agg = udaf.aggregate(value, agg);
     }
 
@@ -59,7 +59,7 @@ public class CountDistinctKudafTest {
     List<Integer> agg = udaf.initialize();
 
     // When:
-    for (List<Integer> value : values) {
+    for (final List<Integer> value : values) {
       agg = udaf.aggregate(value, agg);
     }
 
@@ -93,11 +93,11 @@ public class CountDistinctKudafTest {
     List<Integer> agg2 = udaf.initialize();
 
     // When:
-    for (String value : values1) {
+    for (final String value : values1) {
       agg1 = udaf.aggregate(value, agg1);
     }
 
-    for (String value : new String[]{"5"}) {
+    for (final String value : new String[]{"5"}) {
       agg2 = udaf.aggregate(value, agg2);
     }
 

@@ -62,7 +62,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueIfAuthorizationIsAllowed() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
 
     // When:
     authorizationFilter.filter(request);
@@ -74,7 +74,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldAbortIfAuthorizationIsDenied() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
     doThrow(new KsqlException("access denied"))
         .when(authorizationProvider).checkEndpointAccess(userPrincipal, "GET", "/query");
 
@@ -90,7 +90,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata");
 
     // When:
     authorizationFilter.filter(request);
@@ -103,7 +103,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataIdPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata/id");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata/id");
 
     // When:
     authorizationFilter.filter(request);
@@ -116,7 +116,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedHealthCheckPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
 
     // When:
     authorizationFilter.filter(request);
@@ -133,7 +133,7 @@ public class KsqlAuthorizationFilterTest {
   ) {
     when(securityContext.getUserPrincipal()).thenReturn(principal);
 
-    ContainerRequest requestContext = new ContainerRequest(
+    final ContainerRequest requestContext = new ContainerRequest(
         URI.create(""),
         URI.create(path),
         method,

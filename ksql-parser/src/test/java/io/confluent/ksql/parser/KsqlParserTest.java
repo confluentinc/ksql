@@ -1287,18 +1287,18 @@ public class KsqlParserTest {
       final Optional<ColumnName> alias) {
     return new TypeSafeMatcher<SelectItem>() {
       @Override
-      protected boolean matchesSafely(SelectItem item) {
+      protected boolean matchesSafely(final SelectItem item) {
         if (!(item instanceof SingleColumn)) {
           return false;
         }
 
-        SingleColumn column = (SingleColumn) item;
+        final SingleColumn column = (SingleColumn) item;
         return Objects.equals(column.getExpression().toString(), expression)
             && Objects.equals(column.getAlias(), alias);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(
             String.format("Expression: %s, Alias: %s",
                 expression,

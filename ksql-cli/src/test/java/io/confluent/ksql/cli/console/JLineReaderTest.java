@@ -259,10 +259,10 @@ public class JLineReaderTest {
     final List<String> commands = new ArrayList<>();
     try {
       while (true) {
-         String line = reader.readLine();
+         final String line = reader.readLine();
          commands.add(line.trim());
       }
-    } catch (EndOfFileException e) {
+    } catch (final EndOfFileException e) {
       // this indicates end of input in JLine
     }
     return commands;
@@ -279,7 +279,7 @@ public class JLineReaderTest {
         new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
     final OutputStream outputStream = new ByteArrayOutputStream(512);
     final Terminal terminal = new DumbTerminal(inputStream, outputStream);
-    File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
+    final File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
     final Path historyFilePath = Paths.get(tempHistoryFile.getAbsolutePath());
     return new JLineReader(terminal, historyFilePath, cliLinePredicate);
   }

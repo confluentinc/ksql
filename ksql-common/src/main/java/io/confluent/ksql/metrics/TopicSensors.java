@@ -167,8 +167,8 @@ class TopicSensors<R> {
 
     private final Sensor sensor;
     private final KafkaMetric metric;
-    private Time time;
-    private boolean errorMetric;
+    private final Time time;
+    private final boolean errorMetric;
     private long lastEvent = 0;
 
     SensorMetric(final Sensor sensor, final KafkaMetric metric,

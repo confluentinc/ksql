@@ -94,7 +94,7 @@ public class TopicStreamWriterTest {
     );
 
     // When:
-    ValidatingOutputStream out = new ValidatingOutputStream();
+    final ValidatingOutputStream out = new ValidatingOutputStream();
     writer.write(out);
 
     // Then:

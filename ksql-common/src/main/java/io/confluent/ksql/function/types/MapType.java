@@ -21,11 +21,11 @@ public final class MapType extends ObjectType {
 
   private final ParamType value;
 
-  private MapType(ParamType value) {
+  private MapType(final ParamType value) {
     this.value = value;
   }
 
-  public static MapType of(ParamType value) {
+  public static MapType of(final ParamType value) {
     return new MapType(value);
   }
 
@@ -38,14 +38,14 @@ public final class MapType extends ObjectType {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MapType mapType = (MapType) o;
+    final MapType mapType = (MapType) o;
     return Objects.equals(value, mapType.value);
   }
 

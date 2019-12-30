@@ -55,7 +55,7 @@ public final class CountDistinct {
       }
 
       @Override
-      public List<Integer> aggregate(T current, List<Integer> aggregate) {
+      public List<Integer> aggregate(final T current, final List<Integer> aggregate) {
         if (current == null) {
           return aggregate;
         }
@@ -71,7 +71,7 @@ public final class CountDistinct {
       }
 
       @Override
-      public List<Integer> merge(List<Integer> aggOne, List<Integer> aggTwo) {
+      public List<Integer> merge(final List<Integer> aggOne, final List<Integer> aggTwo) {
         final RegisterSet registerSet = new RegisterSet(M, Ints.toArray(aggOne));
         registerSet.merge(new RegisterSet(M, Ints.toArray(aggTwo)));
 
@@ -79,7 +79,7 @@ public final class CountDistinct {
       }
 
       @Override
-      public Long map(List<Integer> agg) {
+      public Long map(final List<Integer> agg) {
         return toHyperLogLog(new RegisterSet(M, Ints.toArray(agg))).cardinality();
       }
     };

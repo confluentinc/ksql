@@ -303,9 +303,9 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldHaveAllInitializedFunctionNamesInUppercase() {
-    for (UdfFactory udfFactory : functionRegistry.listFunctions()) {
-      String actual = udfFactory.getName();
-      String expected = actual.toUpperCase();
+    for (final UdfFactory udfFactory : functionRegistry.listFunctions()) {
+      final String actual = udfFactory.getName();
+      final String expected = actual.toUpperCase();
 
       assertThat("UDF name must be registered in uppercase", actual, equalTo(expected));
     }
@@ -315,7 +315,7 @@ public class InternalFunctionRegistryTest {
   public void shouldHaveBuiltInUDFRegistered() {
 
     // Verify that all built-in UDF are correctly registered in the InternalFunctionRegistry
-    List<String> buildtInUDF = Arrays.asList(
+    final List<String> buildtInUDF = Arrays.asList(
         // String UDF
         "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
         // Math UDF
@@ -324,7 +324,7 @@ public class InternalFunctionRegistryTest {
         "EXTRACTJSONFIELD"
     );
 
-    Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
+    final Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
         UdfFactory::getName);
 
     assertThat("More or less UDF are registered in the InternalFunctionRegistry",
@@ -333,11 +333,11 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldHaveBuiltInUDAFRegistered() {
-    Collection<String> builtInUDAF = Arrays.asList(
+    final Collection<String> builtInUDAF = Arrays.asList(
         "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT"
     );
 
-    Collection<String> names = Collections2.transform(functionRegistry.listAggregateFunctions(),
+    final Collection<String> names = Collections2.transform(functionRegistry.listAggregateFunctions(),
         AggregateFunctionFactory::getName);
 
     assertThat("More or less UDAF are registered in the InternalFunctionRegistry",
@@ -382,7 +382,7 @@ public class InternalFunctionRegistryTest {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
         "", "", "", "")) {
       @Override
-      public KsqlTableFunction createTableFunction(List<SqlType> argTypeList) {
+      public KsqlTableFunction createTableFunction(final List<SqlType> argTypeList) {
         return tableFunction;
       }
 

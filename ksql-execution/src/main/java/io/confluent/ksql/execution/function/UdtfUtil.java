@@ -32,15 +32,20 @@ public final class UdtfUtil {
   }
 
   public static KsqlTableFunction resolveTableFunction(
-      FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
+      final FunctionRegistry functionRegistry,
+      final FunctionCall functionCall,
+      final LogicalSchema schema
   ) {
-    ExpressionTypeManager expressionTypeManager =
+    final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
-    List<Expression> functionArgs = functionCall.getArguments();
-    List<SqlType> argTypes = functionArgs.isEmpty()
+
+    final List<Expression> functionArgs = functionCall.getArguments();
+
+    final List<SqlType> argTypes = functionArgs.isEmpty()
         ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
         : functionArgs.stream().map(expressionTypeManager::getExpressionSqlType)
             .collect(Collectors.toList());
+
     return functionRegistry.getTableFunction(
         functionCall.getName().name(),
         argTypes

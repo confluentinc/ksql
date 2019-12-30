@@ -211,7 +211,7 @@ public class InsertValuesExecutor {
           key,
           value
       );
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
           statement.getStatementText(),
@@ -468,7 +468,7 @@ public class InsertValuesExecutor {
         throw (RuntimeException) e.getCause();
       }
       throw new RuntimeException(e);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }

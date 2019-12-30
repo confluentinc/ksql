@@ -31,12 +31,14 @@ public class FunctionCall extends Expression {
   private final FunctionName name;
   private final ImmutableList<Expression> arguments;
 
-  public FunctionCall(FunctionName name, List<Expression> arguments) {
+  public FunctionCall(final FunctionName name, final List<Expression> arguments) {
     this(Optional.empty(), name, arguments);
   }
 
   public FunctionCall(
-      Optional<NodeLocation> location, FunctionName name, List<Expression> arguments
+      final Optional<NodeLocation> location,
+      final FunctionName name,
+      final List<Expression> arguments
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
@@ -52,19 +54,19 @@ public class FunctionCall extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitFunctionCall(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    FunctionCall o = (FunctionCall) obj;
+    final FunctionCall o = (FunctionCall) obj;
     return Objects.equals(name, o.name)
         && Objects.equals(arguments, o.arguments);
   }

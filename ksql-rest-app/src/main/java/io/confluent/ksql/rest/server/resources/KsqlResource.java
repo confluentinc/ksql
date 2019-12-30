@@ -101,7 +101,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
-  private Errors errorHandler;
+  private final Errors errorHandler;
 
 
   public KsqlResource(

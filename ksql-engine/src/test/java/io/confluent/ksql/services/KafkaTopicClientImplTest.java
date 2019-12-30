@@ -684,7 +684,7 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private static DeleteTopicsResult deleteTopicException(Exception e)
+  private static DeleteTopicsResult deleteTopicException(final Exception e)
           throws InterruptedException, ExecutionException, TimeoutException {
     final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     final KafkaFuture<Void> kafkaFuture = mock(KafkaFuture.class);
@@ -848,13 +848,13 @@ public class KafkaTopicClientImplTest {
   private CreateTopicsOptions shouldValidateCreate(final boolean validateOnly) {
     EasyMock.reportMatcher(new IArgumentMatcher() {
       @Override
-      public boolean matches(Object argument) {
+      public boolean matches(final Object argument) {
         return argument instanceof CreateTopicsOptions
             && ((CreateTopicsOptions) argument).shouldValidateOnly() == validateOnly;
       }
 
       @Override
-      public void appendTo(StringBuffer buffer) {
+      public void appendTo(final StringBuffer buffer) {
         buffer.append("validateOnly(\"" + validateOnly + "\")");
       }
     });

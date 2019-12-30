@@ -93,8 +93,8 @@ public final class FunctionLoaderUtils {
         paramType = UdfUtil.getSchemaFromType(type);
       }
 
-      String doc = annotation.map(UdfParameter::description).orElse("");
-      boolean isVariadicParam = idx == method.getParameterCount() - 1 && method.isVarArgs();
+      final String doc = annotation.map(UdfParameter::description).orElse("");
+      final boolean isVariadicParam = idx == method.getParameterCount() - 1 && method.isVarArgs();
       return new ParameterInfo(name, paramType, doc, isVariadicParam);
     }).collect(Collectors.toList());
   }
@@ -197,7 +197,7 @@ public final class FunctionLoaderUtils {
 
     return (parameters, arguments) -> {
       if (schemaProvider != null) {
-        SqlType returnType = schemaProvider.apply(arguments);
+        final SqlType returnType = schemaProvider.apply(arguments);
         if (!(SchemaUtil.areCompatible(returnType, javaReturnSchema))) {
           throw new KsqlException(String.format(
               "Return type %s of UDF %s does not match the declared "
@@ -260,7 +260,7 @@ public final class FunctionLoaderUtils {
         ));
       }
       return m;
-    } catch (NoSuchMethodException e) {
+    } catch (final NoSuchMethodException e) {
       throw new KsqlException(String.format(
           "Cannot find schema provider method with name %s and parameter List<SqlType> in class "
               + "%s.", schemaProviderName, theClass.getName()), e);

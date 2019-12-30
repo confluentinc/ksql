@@ -129,7 +129,7 @@ public class KsqlContext implements AutoCloseable {
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
     final Map<String, Object> validationOverrides = new HashMap<>(overriddenProperties);
-    for (ParsedStatement stmt : statements) {
+    for (final ParsedStatement stmt : statements) {
       execute(
           sandbox,
           stmt,

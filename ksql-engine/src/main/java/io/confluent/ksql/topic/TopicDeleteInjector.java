@@ -102,7 +102,7 @@ public class TopicDeleteInjector implements Injector {
         ExecutorUtil.executeWithRetries(
             () -> topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName())),
             ExecutorUtil.RetryBehaviour.ALWAYS);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException("Could not delete the corresponding kafka topic: "
                 + source.getKafkaTopicName(), e);
       }

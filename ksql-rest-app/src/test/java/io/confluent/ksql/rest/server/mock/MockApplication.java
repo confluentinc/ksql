@@ -50,7 +50,7 @@ public class MockApplication extends ExecutableApplication<KsqlRestConfig> {
 
   @Override
   public void triggerShutdown() {
-    for (TestStreamWriter testStreamWriter : streamedQueryResource.getWriters()) {
+    for (final TestStreamWriter testStreamWriter : streamedQueryResource.getWriters()) {
       try {
         testStreamWriter.finished();
       } catch (final Exception e) {

@@ -277,7 +277,7 @@ public class RequestValidatorTest {
   }
 
   private void givenRequestValidator(
-      Map<Class<? extends Statement>, StatementValidator<?>> customValidators
+      final Map<Class<? extends Statement>, StatementValidator<?>> customValidators
   ) {
     validator = new RequestValidator(
         customValidators,

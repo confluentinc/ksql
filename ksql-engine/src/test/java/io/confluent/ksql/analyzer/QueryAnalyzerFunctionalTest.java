@@ -199,7 +199,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldAnalyseTableFunctions() {
 
     // We need to load udfs for this
-    UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
+    final UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
         Thread.currentThread().getContextClassLoader(),
         s -> false,
         Optional.empty(), true

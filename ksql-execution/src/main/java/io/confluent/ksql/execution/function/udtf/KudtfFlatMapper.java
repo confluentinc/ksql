@@ -34,7 +34,7 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
 
   private final ImmutableList<TableFunctionApplier> tableFunctionAppliers;
 
-  public KudtfFlatMapper(List<TableFunctionApplier> tableFunctionAppliers) {
+  public KudtfFlatMapper(final List<TableFunctionApplier> tableFunctionAppliers) {
     this.tableFunctionAppliers = ImmutableList.copyOf(requireNonNull(tableFunctionAppliers));
   }
 
@@ -55,16 +55,16 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
 
     final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
-    for (TableFunctionApplier applier : tableFunctionAppliers) {
-      List<?> exploded = applier.apply(value);
+    for (final TableFunctionApplier applier : tableFunctionAppliers) {
+      final List<?> exploded = applier.apply(value);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }
 
     final List<GenericRow> rows = new ArrayList<>(maxLength);
     for (int i = 0; i < maxLength; i++) {
-      List<Object> newRow = new ArrayList<>(value.getColumns());
-      for (Iterator<?> iter : iters) {
+      final List<Object> newRow = new ArrayList<>(value.getColumns());
+      for (final Iterator<?> iter : iters) {
         if (iter.hasNext()) {
           newRow.add(iter.next());
         } else {

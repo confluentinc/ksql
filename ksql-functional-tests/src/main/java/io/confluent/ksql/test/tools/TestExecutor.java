@@ -365,7 +365,7 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriver topologyTestDriver,
       final Topic sinkTopic
   ) {
-    int idx = 0;
+    final int idx = 0;
     while (true) {
       final ProducerRecord<?, ?> producerRecord = readOutput(topologyTestDriver, sinkTopic, idx);
       if (producerRecord == null) {

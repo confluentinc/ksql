@@ -173,7 +173,7 @@ public class SchemaKStream<K> {
 
     Optional<Column> found = Optional.empty();
 
-    for (SelectExpression selectExpression : selectExpressions) {
+    for (final SelectExpression selectExpression : selectExpressions) {
       final ColumnName toName = selectExpression.getAlias();
       final Expression toExpression = selectExpression.getExpression();
 
@@ -534,7 +534,7 @@ public class SchemaKStream<K> {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
   }
 
-  LogicalSchema resolveSchema(final ExecutionStep<?> step, SchemaKStream right) {
+  LogicalSchema resolveSchema(final ExecutionStep<?> step, final SchemaKStream right) {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(
         step,
         schema,

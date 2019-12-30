@@ -155,7 +155,7 @@ public class TestKsqlRestApp extends ExternalResource {
   public URI getWsListener() {
     try {
       return WSURI.toWebsocket(getHttpListener());
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }
   }
@@ -164,7 +164,7 @@ public class TestKsqlRestApp extends ExternalResource {
   public URI getWssListener() {
     try {
       return WSURI.toWebsocket(getHttpsListener());
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }
   }
@@ -264,7 +264,7 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       restServer.startAsync();
       listeners.addAll(ksqlRestApplication.getListeners());
-    } catch (Exception var2) {
+    } catch (final Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
 
@@ -280,7 +280,7 @@ public class TestKsqlRestApp extends ExternalResource {
     listeners.clear();
     try {
       restServer.triggerShutdown();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
     restServer = null;

@@ -31,14 +31,14 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> rightSource;
 
   public StreamTableJoin(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "joinType", required = true) JoinType joinType,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "leftSource", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "leftSource", required = true) final
       ExecutionStep<KStreamHolder<K>> leftSource,
-      @JsonProperty(value = "rightSource", required = true)
+      @JsonProperty(value = "rightSource", required = true) final
       ExecutionStep<KTableHolder<K>> rightSource) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+    this.properties = Objects.requireNonNull(props, "props");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.leftSource = Objects.requireNonNull(leftSource, "leftSource");
@@ -73,19 +73,19 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(PlanBuilder builder) {
+  public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitStreamTableJoin(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamTableJoin<?> that = (StreamTableJoin<?>) o;
+    final StreamTableJoin<?> that = (StreamTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(internalFormats, that.internalFormats)

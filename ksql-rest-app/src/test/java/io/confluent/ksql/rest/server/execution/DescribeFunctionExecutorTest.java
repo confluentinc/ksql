@@ -47,13 +47,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("CONCAT")
             && functionList.getType().equals(FunctionType.SCALAR);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });
@@ -73,13 +73,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("MAX")
             && functionList.getType().equals(FunctionType.AGGREGATE);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });
@@ -99,13 +99,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("TEST_UDTF1")
             && functionList.getType().equals(FunctionType.TABLE);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });

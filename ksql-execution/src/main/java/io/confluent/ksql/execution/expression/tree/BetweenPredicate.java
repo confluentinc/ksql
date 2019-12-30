@@ -29,12 +29,15 @@ public class BetweenPredicate extends Expression {
   private final Expression min;
   private final Expression max;
 
-  public BetweenPredicate(Expression value, Expression min, Expression max) {
+  public BetweenPredicate(final Expression value, final Expression min, final Expression max) {
     this(Optional.empty(), value, min, max);
   }
 
   public BetweenPredicate(
-      Optional<NodeLocation> location, Expression value, Expression min, Expression max
+      final Optional<NodeLocation> location,
+      final Expression value,
+      final Expression min,
+      final Expression max
   ) {
     super(location);
     this.value = requireNonNull(value, "value");
@@ -55,12 +58,12 @@ public class BetweenPredicate extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitBetweenPredicate(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -68,7 +71,7 @@ public class BetweenPredicate extends Expression {
       return false;
     }
 
-    BetweenPredicate that = (BetweenPredicate) o;
+    final BetweenPredicate that = (BetweenPredicate) o;
     return Objects.equals(value, that.value)
         && Objects.equals(min, that.min)
         && Objects.equals(max, that.max);

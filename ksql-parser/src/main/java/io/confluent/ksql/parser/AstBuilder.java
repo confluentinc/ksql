@@ -928,8 +928,8 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitStructConstructor(SqlBaseParser.StructConstructorContext context) {
-      ImmutableList.Builder<Field> fields = ImmutableList.builder();
+    public Node visitStructConstructor(final SqlBaseParser.StructConstructorContext context) {
+      final ImmutableList.Builder<Field> fields = ImmutableList.builder();
 
       for (int i = 0; i < context.identifier().size(); i++) {
         fields.add(new Field(

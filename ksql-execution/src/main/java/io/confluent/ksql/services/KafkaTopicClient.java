@@ -36,15 +36,19 @@ public interface KafkaTopicClient {
     COMPACT_DELETE
   }
 
-  default void validateCreateTopic(String topic, int numPartitions, short replicationFactor) {
+  default void validateCreateTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor
+  ) {
     validateCreateTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
   default void validateCreateTopic(
-      String topic,
-      int numPartitions,
-      short replicationFactor,
-      Map<String, ?> configs
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor,
+      final Map<String, ?> configs
   ) {
     createTopic(
         topic,
@@ -66,7 +70,11 @@ public interface KafkaTopicClient {
    * @param replicationFactor the rf of the topic.
    * @param numPartitions     the partition count of the topic.
    */
-  default void createTopic(String topic, int numPartitions, short replicationFactor) {
+  default void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor
+  ) {
     createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
@@ -84,10 +92,10 @@ public interface KafkaTopicClient {
    * @param configs           any additional topic configs to use
    */
   default void createTopic(
-      String topic,
-      int numPartitions,
-      short replicationFactor,
-      Map<String, ?> configs
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor,
+      final Map<String, ?> configs
   ) {
     createTopic(
         topic,
@@ -155,7 +163,7 @@ public interface KafkaTopicClient {
    * @return the description if the topic
    * @throws KafkaTopicExistsException if the topic does not exist.
    */
-  default TopicDescription describeTopic(String topicName) {
+  default TopicDescription describeTopic(final String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 

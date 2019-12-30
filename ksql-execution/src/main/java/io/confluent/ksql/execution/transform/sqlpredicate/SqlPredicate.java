@@ -41,14 +41,14 @@ public final class SqlPredicate {
   private final CodeGenSpec spec;
 
   public SqlPredicate(
-      Expression filterExpression,
-      LogicalSchema schema,
-      KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry
+      final Expression filterExpression,
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
 
-    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     spec = codeGenRunner.getCodeGenSpec(this.filterExpression);
 
     try {
@@ -58,14 +58,14 @@ public final class SqlPredicate {
 
       ee.setExpressionType(boolean.class);
 
-      String expressionStr = SqlToJavaVisitor.of(
+      final String expressionStr = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
           spec
       ).process(this.filterExpression);
 
       ee.cook(expressionStr);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException(
           "Failed to generate code for SqlPredicate."
               + " filterExpression: " + filterExpression
@@ -104,14 +104,14 @@ public final class SqlPredicate {
       }
 
       try {
-        Object[] values = new Object[spec.arguments().size()];
+        final Object[] values = new Object[spec.arguments().size()];
         spec.resolve(value, values);
         final boolean result = (Boolean) ee.evaluate(values);
         return result
             ? Optional.of(value)
             : Optional.empty();
 
-      } catch (Exception e) {
+      } catch (final Exception e) {
         logProcessingError(processingLogger, e, value);
         return Optional.empty();
       }

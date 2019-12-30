@@ -35,8 +35,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ErrorsTest {
   
-  private static String SOME_ERROR = "error string";
-  private static Response KAFKA_DENIED_ERROR = Response
+  private static final String SOME_ERROR = "error string";
+  private static final Response KAFKA_DENIED_ERROR = Response
       .status(FORBIDDEN)
       .entity(new KsqlErrorMessage(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, SOME_ERROR))
       .build();

@@ -751,7 +751,7 @@ public class KsqlConfig extends AbstractConfig {
       return value.equals("")
           ? Collections.emptyMap()
           : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       throw new KsqlException(
           String.format(
               "Invalid config value for '%s'. value: %s. reason: %s",

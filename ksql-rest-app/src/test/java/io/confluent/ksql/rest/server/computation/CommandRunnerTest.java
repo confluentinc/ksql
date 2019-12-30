@@ -15,16 +15,14 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -33,23 +31,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +56,7 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
-  private static long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
+  private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -246,11 +240,11 @@ public class CommandRunnerTest {
     }).when(statementExecutor).handleStatement(queuedCommand1);
 
     // When:
-    AtomicReference<Exception> expectedException = new AtomicReference<>(null);
+    final AtomicReference<Exception> expectedException = new AtomicReference<>(null);
     final Thread commandRunnerThread = (new Thread(() -> {
       try {
         commandRunner.fetchAndRunCommands();
-      } catch (Exception e) {
+      } catch (final Exception e) {
         expectedException.set(e);
       }
     }));

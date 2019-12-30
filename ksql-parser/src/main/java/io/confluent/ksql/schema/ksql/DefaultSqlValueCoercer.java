@@ -80,7 +80,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     return Optional.of(result);
   }
 
-  private static Optional<?> coerceStruct(Object value, SqlStruct targetType) {
+  private static Optional<?> coerceStruct(final Object value, final SqlStruct targetType) {
     if (!(value instanceof Struct)) {
       return Optional.empty();
     }
@@ -90,8 +90,10 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
         SchemaConverters.sqlToConnectConverter().toConnectSchema(targetType)
     );
 
-    for (Field field : coerced.schema().fields()) {
-      Optional<io.confluent.ksql.schema.ksql.types.Field> sqlField = targetType.field(field.name());
+    for (final Field field : coerced.schema().fields()) {
+      final Optional<io.confluent.ksql.schema.ksql.types.Field> sqlField =
+          targetType.field(field.name());
+
       if (!sqlField.isPresent()) {
         // if there was a field in the struct that wasn't in the schema
         // we cannot coerce
@@ -101,7 +103,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
         continue;
       }
 
-      Optional<?> val = doCoerce(struct.get(field), sqlField.get().type());
+      final Optional<?> val = doCoerce(struct.get(field), sqlField.get().type());
       val.ifPresent(v -> coerced.put(field.name(), v));
     }
 

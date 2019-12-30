@@ -189,9 +189,9 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    public Expression visitStructExpression(CreateStructExpression node, C context) {
+    public Expression visitStructExpression(final CreateStructExpression node, final C context) {
       final Builder<Field> fields = ImmutableList.builder();
-      for (Field field : node.getFields()) {
+      for (final Field field : node.getFields()) {
         fields.add(new Field(field.getName(), rewriter.apply(field.getValue(), context)));
       }
       return new CreateStructExpression(node.getLocation(), fields.build());

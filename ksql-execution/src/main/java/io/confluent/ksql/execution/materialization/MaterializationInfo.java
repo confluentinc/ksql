@@ -59,8 +59,10 @@ public final class MaterializationInfo {
   }
 
   private MaterializationInfo(
-      String stateStoreName, LogicalSchema stateStoreSchema, List<TransformInfo> transforms,
-      LogicalSchema schema
+      final String stateStoreName,
+      final LogicalSchema stateStoreSchema,
+      final List<TransformInfo> transforms,
+      final LogicalSchema schema
   ) {
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.stateStoreSchema = requireNonNull(stateStoreSchema, "stateStoreSchema");
@@ -75,7 +77,7 @@ public final class MaterializationInfo {
    * @param stateStoreSchema the schema of the data in the state store
    * @return builder instance.
    */
-  public static Builder builder(String stateStoreName, LogicalSchema stateStoreSchema) {
+  public static Builder builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
     return new Builder(stateStoreName, stateStoreSchema);
   }
 
@@ -86,7 +88,7 @@ public final class MaterializationInfo {
     private final List<TransformInfo> transforms;
     private LogicalSchema schema;
 
-    private Builder(String stateStoreName, LogicalSchema stateStoreSchema) {
+    private Builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
       this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
       this.stateStoreSchema = requireNonNull(stateStoreSchema, "stateStoreSchema");
       this.transforms = new LinkedList<>();
@@ -173,7 +175,7 @@ public final class MaterializationInfo {
       return mapperFactory.apply(loggerFactory.apply(queryContext));
     }
 
-    public <R> R visit(TransformVisitor<R> visitor) {
+    public <R> R visit(final TransformVisitor<R> visitor) {
       return visitor.visit(this);
     }
   }
@@ -198,7 +200,7 @@ public final class MaterializationInfo {
     }
 
     @Override
-    public <R> R visit(TransformVisitor<R> visitor) {
+    public <R> R visit(final TransformVisitor<R> visitor) {
       return visitor.visit(this);
     }
   }

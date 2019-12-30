@@ -60,7 +60,7 @@ public class DdlCommandExecTest {
   private DropSourceCommand dropSource;
   private DropTypeCommand dropType;
 
-  private MutableMetaStore metaStore
+  private final MutableMetaStore metaStore
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Mock

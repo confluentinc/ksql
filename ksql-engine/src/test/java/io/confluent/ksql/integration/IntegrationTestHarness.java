@@ -469,7 +469,7 @@ public final class IntegrationTestHarness extends ExternalResource {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
             return Arrays.stream(topicNames)
                 .allMatch(topicClient::isTopicExists);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
@@ -487,7 +487,7 @@ public final class IntegrationTestHarness extends ExternalResource {
         () -> {
           try {
             return getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
@@ -505,7 +505,7 @@ public final class IntegrationTestHarness extends ExternalResource {
         () -> {
           try {
             return !getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },

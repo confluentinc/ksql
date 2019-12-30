@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -45,7 +44,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -223,7 +221,7 @@ public class RequestHandlerTest {
   private static Matcher<KsqlEntityList> hasItems(final KsqlEntity... items) {
     return new TypeSafeMatcher<KsqlEntityList>() {
       @Override
-      protected boolean matchesSafely(KsqlEntityList actual) {
+      protected boolean matchesSafely(final KsqlEntityList actual) {
         if (items.length != actual.size()) {
           return false;
         }
@@ -237,7 +235,7 @@ public class RequestHandlerTest {
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(Arrays.toString(items));
       }
     };

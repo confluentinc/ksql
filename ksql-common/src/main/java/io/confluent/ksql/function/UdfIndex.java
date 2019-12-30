@@ -312,7 +312,9 @@ public class UdfIndex<T extends FunctionSignature> {
         return false;
       }
 
-      Map<GenericType, SqlType> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
+      final Map<GenericType, SqlType> genericMapping = GenericsUtil
+          .resolveGenerics(schema, argument);
+
       for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
         final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
         if (old != null && !old.equals(entry.getValue())) {

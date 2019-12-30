@@ -127,7 +127,7 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldIgnoreDeserializeJsonObjectCaseMismatch() {
     // Given:
-    Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()
+    final Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()
         .put("CASEFIELD", 1L)
         .build();
     final byte[] bytes = serializeJson(anOrder);
@@ -701,7 +701,7 @@ public class KsqlJsonDeserializerTest {
   private static byte[] serializeJson(final Object expected) {
     try {
       return OBJECT_MAPPER.writeValueAsBytes(expected);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }

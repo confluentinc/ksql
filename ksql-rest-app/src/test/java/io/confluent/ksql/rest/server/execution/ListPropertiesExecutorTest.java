@@ -58,9 +58,9 @@ public class ListPropertiesExecutorTest {
     assertThat(properties.getOverwrittenProperties(), is(empty()));
   }
 
-  private Map<String, String> toMap(PropertiesList properties) {
-    Map<String, String> map = new HashMap<>();
-    for (Property property : properties.getProperties()) {
+  private Map<String, String> toMap(final PropertiesList properties) {
+    final Map<String, String> map = new HashMap<>();
+    for (final Property property : properties.getProperties()) {
       map.put(property.getName(), property.getValue());
     }
     return map;

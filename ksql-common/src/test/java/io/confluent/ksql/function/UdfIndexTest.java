@@ -687,7 +687,7 @@ public class UdfIndexTest {
       }
     };
 
-    List<ParameterInfo> paramInfos = Arrays.stream(args)
+    final List<ParameterInfo> paramInfos = Arrays.stream(args)
         .map(type -> new ParameterInfo("", type, "", false))
         .collect(Collectors.toList());
 

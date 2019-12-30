@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 public class PlannedTestGenerator {
   private static final ObjectMapper MAPPER = PlanJsonMapper.create();
 
-  public static void generatePlans(Stream<TestCase> testCases) {
+  public static void generatePlans(final Stream<TestCase> testCases) {
     testCases
         .filter(PlannedTestUtils::isPlannedTestCase)
         .forEach(PlannedTestGenerator::maybeGenerateTestCase);

@@ -120,7 +120,7 @@ public final class DescribeConnectorExecutor {
     try {
       topics = getTopics(serviceContext.getAdminClient(), connector);
       warnings = ImmutableList.of();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       topics = ImmutableList.of();
       warnings = ImmutableList.of(
           new KsqlWarning("Could not list related topics due to " + e.getMessage())

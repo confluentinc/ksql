@@ -477,15 +477,15 @@ public final class LimitedProxyBuilderTest {
         return mock.someFunc();
       }
 
-      String someFunc(String a) {
+      String someFunc(final String a) {
         return mock.someFunc(a);
       }
 
-      void someFunc(long a0, double a1) {
+      void someFunc(final long a0, final double a1) {
         mock.someFunc(a0, a1);
       }
 
-      int differentParams(Double a0, String a1) {
+      int differentParams(final Double a0, final String a1) {
         return 0;
       }
 
@@ -497,7 +497,7 @@ public final class LimitedProxyBuilderTest {
         mock.defaultMethods();
       }
 
-      void defaultMethods(int i) {
+      void defaultMethods(final int i) {
         mock.defaultMethods(i);
       }
     }
@@ -525,7 +525,7 @@ public final class LimitedProxyBuilderTest {
 
     void defaultMethods();
 
-    default void defaultMethods(int i) {
+    default void defaultMethods(final int i) {
       throw new AssertionError("should never be called");
     }
 

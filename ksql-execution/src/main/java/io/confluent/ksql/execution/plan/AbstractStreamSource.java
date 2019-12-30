@@ -35,19 +35,19 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final SourceName alias;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
-      SourceName alias,
-      LogicalSchema schema) {
+      final SourceName alias,
+      final LogicalSchema schema) {
     return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
   }
 
   @VisibleForTesting
   public AbstractStreamSource(
-      ExecutionStepPropertiesV1 properties,
-      String topicName,
-      Formats formats,
-      Optional<TimestampColumn> timestampColumn,
-      LogicalSchema sourceSchema,
-      SourceName alias) {
+      final ExecutionStepPropertiesV1 properties,
+      final String topicName,
+      final Formats formats,
+      final Optional<TimestampColumn> timestampColumn,
+      final LogicalSchema sourceSchema,
+      final SourceName alias) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -87,14 +87,14 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AbstractStreamSource that = (AbstractStreamSource) o;
+    final AbstractStreamSource that = (AbstractStreamSource) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)

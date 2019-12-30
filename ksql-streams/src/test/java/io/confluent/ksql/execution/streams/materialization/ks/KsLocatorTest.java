@@ -200,7 +200,7 @@ public class KsLocatorTest {
   private static URL localHost() {
     try {
       return new URL("http://somehost:1234");
-    } catch (MalformedURLException e) {
+    } catch (final MalformedURLException e) {
       throw new AssertionError("Failed to build URL", e);
     }
   }

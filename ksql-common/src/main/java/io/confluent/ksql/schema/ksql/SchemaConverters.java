@@ -143,7 +143,7 @@ public final class SchemaConverters {
      */
     Class<?> toJavaType(SqlBaseType sqlBaseType);
 
-    default Class<?> toJavaType(SqlType sqlType) {
+    default Class<?> toJavaType(final SqlType sqlType) {
       return toJavaType(sqlType.baseType());
     }
   }
@@ -352,7 +352,7 @@ public final class SchemaConverters {
             .build();
 
     @Override
-    public SqlType toSqlType(ParamType paramType) {
+    public SqlType toSqlType(final ParamType paramType) {
       final SqlType sqlType = FUNCTION_TO_SQL.get(paramType);
       if (sqlType != null) {
         return sqlType;
@@ -380,7 +380,7 @@ public final class SchemaConverters {
   private static class SqlToFunction implements SqlToFunctionConverter {
 
     @Override
-    public ParamType toFunctionType(SqlType sqlType) {
+    public ParamType toFunctionType(final SqlType sqlType) {
       final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse().get(sqlType);
       if (paramType != null) {
         return paramType;
@@ -400,7 +400,7 @@ public final class SchemaConverters {
 
       if (sqlType.baseType() == SqlBaseType.STRUCT) {
         final StructType.Builder builder = StructType.builder();
-        for (Field field : ((SqlStruct) sqlType).fields()) {
+        for (final Field field : ((SqlStruct) sqlType).fields()) {
           builder.field(field.name(), toFunctionType(field.type()));
         }
         return builder.build();

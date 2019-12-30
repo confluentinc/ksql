@@ -135,7 +135,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldIgnoreNullRows() {
     // Given:
-    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
@@ -145,7 +145,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When:
@@ -156,17 +156,17 @@ public class SqlPredicateTest {
     );
 
     // Then:
-    ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
+    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
         = ArgumentCaptor.forClass(Function.class);
     verify(processingLogger).error(captor.capture());
-    SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
+    final SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
     assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    Struct struct = (Struct) schemaAndValue.value();
+    final Struct struct = (Struct) schemaAndValue.value();
     assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal())
     );
-    Struct errorStruct
+    final Struct errorStruct
         = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
@@ -190,7 +190,7 @@ public class SqlPredicateTest {
   public static class LenDummy implements Kudf {
 
     @Override
-    public Object evaluate(Object... args) {
+    public Object evaluate(final Object... args) {
       throw new IllegalStateException();
     }
   }

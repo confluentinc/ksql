@@ -105,7 +105,7 @@ class UdafFactoryInvoker implements FunctionSignature {
             method.getName());
       }
       return function;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlException("Failed to invoke UDAF factory method", e);
     }
   }

@@ -61,7 +61,7 @@ public final class UdfUtil {
    * @param argTypes     Expected argument types
    */
   public static void ensureCorrectArgs(
-      FunctionName functionName, Object[] args, Class<?>... argTypes
+      final FunctionName functionName, final Object[] args, final Class<?>... argTypes
   ) {
     if (args == null) {
       throw new KsqlFunctionException("Null argument list for " + functionName.name() + ".");
@@ -90,7 +90,7 @@ public final class UdfUtil {
     }
   }
 
-  public static ParamType getSchemaFromType(Type type) {
+  public static ParamType getSchemaFromType(final Type type) {
     ParamType schema;
     if (type instanceof TypeVariable) {
       schema = GenericType.of(((TypeVariable) type).getName());
@@ -104,22 +104,22 @@ public final class UdfUtil {
     return schema;
   }
 
-  private static ParamType handleParameterizedType(Type type) {
+  private static ParamType handleParameterizedType(final Type type) {
     if (type instanceof ParameterizedType) {
-      ParameterizedType parameterizedType = (ParameterizedType) type;
+      final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        ParamType keyType = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
+        final ParamType keyType = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
         if (!(keyType instanceof StringType)) {
           throw new KsqlException("Maps only support STRING keys, got: " + keyType);
         }
-        Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
+        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
         if (valueType instanceof TypeVariable) {
           return MapType.of(GenericType.of(((TypeVariable) valueType).getName()));
         }
 
         return MapType.of(getSchemaFromType(valueType));
       } else if (parameterizedType.getRawType() == List.class) {
-        Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
+        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
         if (valueType instanceof TypeVariable) {
           return ArrayType.of(GenericType.of(((TypeVariable) valueType).getName()));
         }

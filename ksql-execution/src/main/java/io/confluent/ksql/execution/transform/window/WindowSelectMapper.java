@@ -42,10 +42,13 @@ public final class WindowSelectMapper {
 
   private final Map<Integer, Type> windowSelects;
 
-  public WindowSelectMapper(int initialUdafIndex, List<KsqlAggregateFunction<?, ?, ?>> functions) {
-    Builder<Integer, Type> selectsBuilder = new Builder<>();
+  public WindowSelectMapper(
+      final int initialUdafIndex,
+      final List<KsqlAggregateFunction<?, ?, ?>> functions
+  ) {
+    final Builder<Integer, Type> selectsBuilder = new Builder<>();
     for (int i = 0; i < functions.size(); i++) {
-      String name = functions.get(i).name().name().toUpperCase();
+      final String name = functions.get(i).name().name().toUpperCase();
       if (WINDOW_FUNCTION_NAMES.containsKey(name)) {
         selectsBuilder.put(initialUdafIndex + i, WINDOW_FUNCTION_NAMES.get(name));
       }
@@ -87,7 +90,7 @@ public final class WindowSelectMapper {
 
     private final Function<Window, Object> mapper;
 
-    Type(Function<Window, Object> mapper) {
+    Type(final Function<Window, Object> mapper) {
       this.mapper = mapper;
     }
   }

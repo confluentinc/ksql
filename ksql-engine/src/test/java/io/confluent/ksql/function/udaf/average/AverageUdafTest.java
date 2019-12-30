@@ -94,7 +94,7 @@ public class AverageUdafTest {
   @Test
   public void shouldAverageEmpty() {
     final TableUdaf<Integer, Struct, Double> udaf = AverageUdaf.averageInt();
-    Struct agg = udaf.initialize();
+    final Struct agg = udaf.initialize();
     final double avg = udaf.map(agg);
 
     assertThat(0.0, equalTo(avg));

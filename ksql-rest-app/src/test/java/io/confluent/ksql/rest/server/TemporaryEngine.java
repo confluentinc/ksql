@@ -95,7 +95,7 @@ public class TemporaryEngine extends ExternalResource {
     );
 
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
-    UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, Optional.empty(),
+    final UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, Optional.empty(),
         typeParser, true
     );
     udtfLoader.loadUdtfFromClass(TestUdtf1.class, "whatever");
@@ -191,12 +191,12 @@ public class TemporaryEngine extends ExternalResource {
   public static class TestUdtf1 {
 
     @Udtf
-    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+    public List<Integer> foo1(@UdfParameter(value = "foo") final int foo) {
       return ImmutableList.of(1);
     }
 
     @Udtf
-    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+    public List<Double> foo2(@UdfParameter(value = "foo") final double foo) {
       return ImmutableList.of(1.0d);
     }
   }
@@ -206,12 +206,12 @@ public class TemporaryEngine extends ExternalResource {
   public static class TestUdtf2 {
 
     @Udtf
-    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+    public List<Integer> foo1(@UdfParameter(value = "foo") final int foo) {
       return ImmutableList.of(1);
     }
 
     @Udtf
-    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+    public List<Double> foo2(@UdfParameter(value = "foo") final double foo) {
       return ImmutableList.of(1.0d);
     }
   }

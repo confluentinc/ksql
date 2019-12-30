@@ -28,11 +28,11 @@ import java.util.Optional;
 @Immutable
 public class CreateTableCommand extends CreateSourceCommand {
   public CreateTableCommand(
-      @JsonProperty(value = "sourceName", required = true) SourceName sourceName,
-      @JsonProperty(value = "schema", required = true) LogicalSchema schema,
-      @JsonProperty("keyField") Optional<ColumnName> keyField,
-      @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "topicName", required = true) String topicName,
+      @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
+      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
+      @JsonProperty("keyField") final Optional<ColumnName> keyField,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
   ) {
@@ -48,7 +48,7 @@ public class CreateTableCommand extends CreateSourceCommand {
   }
 
   @Override
-  public DdlCommandResult execute(Executor executor) {
+  public DdlCommandResult execute(final Executor executor) {
     return executor.executeCreateTable(this);
   }
 }

@@ -42,7 +42,7 @@ public class CreateStructExpression extends Expression {
   }
 
   @Override
-  protected <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitStructExpression(this, context);
   }
 
@@ -51,14 +51,14 @@ public class CreateStructExpression extends Expression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CreateStructExpression that = (CreateStructExpression) o;
+    final CreateStructExpression that = (CreateStructExpression) o;
     return Objects.equals(fields, that.fields);
   }
 
@@ -72,7 +72,7 @@ public class CreateStructExpression extends Expression {
     private final String name;
     private final Expression value;
 
-    public Field(String name, Expression value) {
+    public Field(final String name, final Expression value) {
       this.name = Objects.requireNonNull(name, "name");
       this.value = Objects.requireNonNull(value, "value");
     }
@@ -86,14 +86,14 @@ public class CreateStructExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      Field field = (Field) o;
+      final Field field = (Field) o;
       return Objects.equals(name, field.name)
           && Objects.equals(value, field.value);
     }

@@ -128,8 +128,8 @@ public class GenericRowTest {
 
   @Test
   public void shouldHandleRowWithNoElements() {
-      List<Object> linkedList = new LinkedList<>();
-      GenericRow genericRow = new GenericRow(linkedList);
+      final List<Object> linkedList = new LinkedList<>();
+      final GenericRow genericRow = new GenericRow(linkedList);
 
       assertThat(genericRow.getColumns().size(), is(0) );
   }
@@ -137,7 +137,7 @@ public class GenericRowTest {
   @Test
   public void testEquals(){
 
-    List<Object> columnListWithString = ImmutableList.of("nr");
+    final List<Object> columnListWithString = ImmutableList.of("nr");
 
       new EqualsTester().
               addEqualityGroup(

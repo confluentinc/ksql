@@ -101,7 +101,7 @@ public class LogicalSchemaDeserializerTest {
 
   private static class TestModule extends SimpleModule {
 
-    private TestModule(boolean withImplicitColumns) {
+    private TestModule(final boolean withImplicitColumns) {
       addDeserializer(
           LogicalSchema.class,
           new LogicalSchemaDeserializer(withImplicitColumns)

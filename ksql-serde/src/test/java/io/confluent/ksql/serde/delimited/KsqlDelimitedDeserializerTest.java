@@ -214,7 +214,7 @@ public class KsqlDelimitedDeserializerTest {
     shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter('|');
   }
 
-  private void shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter(char delimiter) {
+  private void shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter(final char delimiter) {
     // Given:
     final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\r\n".getBytes(StandardCharsets.UTF_8);
 
@@ -324,7 +324,7 @@ public class KsqlDelimitedDeserializerTest {
     return PersistenceSchema.from((ConnectSchema) connectSchema, false);
   }
 
-  private static KsqlDelimitedDeserializer createDeserializer(PersistenceSchema schema) {
+  private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {
     return new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','));
   }
 

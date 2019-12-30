@@ -16,7 +16,8 @@
 package io.confluent.ksql.execution.codegen.helpers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -27,10 +28,10 @@ public class ArrayAccessTest {
   @Test
   public void shouldBeOneIndexed() {
     // Given:
-    List<Integer> list = ImmutableList.of(1, 2);
+    final List<Integer> list = ImmutableList.of(1, 2);
 
     // When:
-    Integer access = ArrayAccess.arrayAccess(list, 1);
+    final Integer access = ArrayAccess.arrayAccess(list, 1);
 
     // Then:
     assertThat(access, is(1));
@@ -39,10 +40,10 @@ public class ArrayAccessTest {
   @Test
   public void shouldSupportNegativeIndex() {
     // Given:
-    List<Integer> list = ImmutableList.of(1, 2);
+    final List<Integer> list = ImmutableList.of(1, 2);
 
     // When:
-    Integer access = ArrayAccess.arrayAccess(list, -1);
+    final Integer access = ArrayAccess.arrayAccess(list, -1);
 
     // Then:
     assertThat(access, is(2));
@@ -51,10 +52,10 @@ public class ArrayAccessTest {
   @Test
   public void shouldReturnNullOnOutOfBoundsIndex() {
     // Given:
-    List<Integer> list = ImmutableList.of(1, 2);
+    final List<Integer> list = ImmutableList.of(1, 2);
 
     // When:
-    Integer access = ArrayAccess.arrayAccess(list, 3);
+    final Integer access = ArrayAccess.arrayAccess(list, 3);
 
     // Then:
     assertThat(access, nullValue());
@@ -63,10 +64,10 @@ public class ArrayAccessTest {
   @Test
   public void shouldReturnNullOnNegativeOutOfBoundsIndex() {
     // Given:
-    List<Integer> list = ImmutableList.of(1, 2);
+    final List<Integer> list = ImmutableList.of(1, 2);
 
     // When:
-    Integer access = ArrayAccess.arrayAccess(list, -3);
+    final Integer access = ArrayAccess.arrayAccess(list, -3);
 
     // Then:
     assertThat(access, nullValue());

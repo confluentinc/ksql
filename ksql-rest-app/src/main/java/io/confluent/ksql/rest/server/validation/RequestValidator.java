@@ -103,7 +103,7 @@ public class RequestValidator {
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
     int numPersistentQueries = 0;
-    for (ParsedStatement parsed : statements) {
+    for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared, scopedPropertyOverrides, ksqlConfig);

@@ -241,7 +241,7 @@ public class SslFunctionalTest {
 
     @SuppressWarnings("unused") // Invoked via reflection
     @OnWebSocketMessage
-    public void onMessage(String msg) {
+    public void onMessage(final String msg) {
       closeSilently();
       latch.countDown();
     }

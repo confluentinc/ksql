@@ -36,15 +36,15 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ImmutableList<ColumnRef> nonAggregateColumns;
 
   public TableAggregate(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<KGroupedTableHolder> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "nonAggregateColumns", required = true)
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "nonAggregateColumns", required = true) final
       List<ColumnRef> nonAggregateColumns,
-      @JsonProperty(value = "aggregationFunctions", required = true)
+      @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonAggregateColumns
@@ -81,19 +81,19 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(PlanBuilder builder) {
+  public KTableHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitTableAggregate(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TableAggregate that = (TableAggregate) o;
+    final TableAggregate that = (TableAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

@@ -155,7 +155,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
     private static JsonNode handleCollection(final Collection<?> collection) {
       final ArrayNode list = JsonNodeFactory.instance.arrayNode();
-      for (Object element : collection) {
+      for (final Object element : collection) {
         list.add(toJsonNode(element));
       }
       return list;

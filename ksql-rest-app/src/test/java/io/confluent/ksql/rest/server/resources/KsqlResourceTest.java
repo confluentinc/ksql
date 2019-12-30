@@ -340,8 +340,8 @@ public class KsqlResourceTest {
 
     when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<Response>() {
       @Override
-      public Response answer(InvocationOnMock invocation) throws Throwable {
-        Object[] args = invocation.getArguments();
+      public Response answer(final InvocationOnMock invocation) throws Throwable {
+        final Object[] args = invocation.getArguments();
         return (Response) args[1];
       }
     });

@@ -181,7 +181,7 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldDescribeKnownConnectorIfTopicListFails() {
     // Given:
-    KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
+    final KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
     fut.cancel(true);
     when(topics.names()).thenReturn(fut);
 

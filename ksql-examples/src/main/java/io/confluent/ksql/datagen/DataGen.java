@@ -495,7 +495,7 @@ public final class DataGen {
                 result));
           }
           return result;
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
           throw new ArgumentParseException(String.format(
               "Invalid number of threads in '%s'; must be a positive number",
               numThreadsString));

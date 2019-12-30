@@ -44,10 +44,10 @@ public final class CodeGenSpec {
   private final ImmutableMap<CreateStructExpression, String> structToCodeName;
 
   private CodeGenSpec(
-      ImmutableList<ArgumentSpec> arguments,
-      ImmutableMap<ColumnRef, String> columnToCodeName,
-      ImmutableListMultimap<FunctionName, String> functionToCodeName,
-      ImmutableMap<CreateStructExpression, String> structToCodeName
+      final ImmutableList<ArgumentSpec> arguments,
+      final ImmutableMap<ColumnRef, String> columnToCodeName,
+      final ImmutableListMultimap<FunctionName, String> functionToCodeName,
+      final ImmutableMap<CreateStructExpression, String> structToCodeName
   ) {
     this.arguments = arguments;
     this.columnToCodeName = columnToCodeName;
@@ -67,25 +67,25 @@ public final class CodeGenSpec {
     return arguments;
   }
 
-  public String getCodeName(ColumnRef columnRef) {
+  public String getCodeName(final ColumnRef columnRef) {
     return columnToCodeName.get(columnRef);
   }
 
-  public String getUniqueNameForFunction(FunctionName functionName, int index) {
-    List<String> names = functionToCodeName.get(functionName);
+  public String getUniqueNameForFunction(final FunctionName functionName, final int index) {
+    final List<String> names = functionToCodeName.get(functionName);
     if (names.size() <= index) {
       throw new KsqlException("Cannot get name for " + functionName + " " + index + " times");
     }
     return names.get(index);
   }
 
-  public void resolve(GenericRow row, Object[] parameters) {
+  public void resolve(final GenericRow row, final Object[] parameters) {
     for (int paramIdx = 0; paramIdx < arguments.size(); paramIdx++) {
       parameters[paramIdx] = arguments.get(paramIdx).resolve(row);
     }
   }
 
-  public String getStructSchemaName(CreateStructExpression createStructExpression) {
+  public String getStructSchemaName(final CreateStructExpression createStructExpression) {
     final String schemaName = structToCodeName.get(createStructExpression);
     if (schemaName == null) {
       throw new KsqlException(
@@ -117,13 +117,13 @@ public final class CodeGenSpec {
       argumentBuilder.add(new ValueArgumentSpec(codeName, type, colIndex));
     }
 
-    void addFunction(FunctionName functionName, Kudf function) {
+    void addFunction(final FunctionName functionName, final Kudf function) {
       final String codeName = CodeGenUtil.functionName(functionName, argumentCount++);
       functionNameBuilder.put(functionName, codeName);
       argumentBuilder.add(new FunctionArgumentSpec(codeName, function.getClass(), function));
     }
 
-    void addStructSchema(CreateStructExpression struct, Schema schema) {
+    void addStructSchema(final CreateStructExpression struct, final Schema schema) {
       final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
       structToSchemaName.put(struct, structSchemaName);
       argumentBuilder.add(new SchemaArgumentSpec(structSchemaName, schema));
@@ -243,15 +243,15 @@ public final class CodeGenSpec {
     private final ConnectSchema schema;
 
     SchemaArgumentSpec(
-        String name,
-        Schema schema
+        final String name,
+        final Schema schema
     ) {
       super(name, Schema.class);
       this.schema = (ConnectSchema) requireNonNull(schema, "schema").schema();
     }
 
     @Override
-    public Object resolve(GenericRow value) {
+    public Object resolve(final GenericRow value) {
       return schema;
     }
 

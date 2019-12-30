@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 public interface ExpressionVisitor<R, C> {
 
-  default R process(Expression node, @Nullable C context) {
+  default R process(final Expression node, @Nullable final C context) {
     return node.accept(this, context);
   }
 

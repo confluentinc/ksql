@@ -105,7 +105,7 @@ public class KsqlRestClientFunctionalTest {
   public void cleanUp() {
     try {
       mockServer.triggerShutdown();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       System.err.println("Failed to stop app");
       e.printStackTrace(System.err);
     }

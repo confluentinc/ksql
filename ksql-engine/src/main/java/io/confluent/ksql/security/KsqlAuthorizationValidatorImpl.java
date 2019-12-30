@@ -65,7 +65,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
   ) {
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(query, null);
-    for (String kafkaTopic : extractor.getSourceTopics()) {
+    for (final String kafkaTopic : extractor.getSourceTopics()) {
       checkAccess(serviceContext, kafkaTopic, AclOperation.READ);
     }
   }

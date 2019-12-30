@@ -46,11 +46,11 @@ public final class TestExpressions {
   public static final ColumnReferenceExp MAPCOL = columnRef(TEST1, "COL5");
   public static final ColumnReferenceExp COL7 = columnRef(TEST1, "COL7");
 
-  private static ColumnReferenceExp columnRef(String source, String name) {
+  private static ColumnReferenceExp columnRef(final String source, final String name) {
     return new ColumnReferenceExp(ColumnRef.of(SourceName.of(source), ColumnName.of(name)));
   }
 
-  public static Expression literal(int value) {
+  public static Expression literal(final int value) {
     return new IntegerLiteral(value);
   }
 }

@@ -144,7 +144,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldBuildNodeContext() {
     // When:
-    Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
+    final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
     assertThat(result, is(new Stacker().push("some-id")));
@@ -153,10 +153,10 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldSwapInKsqlConfig() {
     // Given:
-    KsqlConfig other = mock(KsqlConfig.class);
+    final KsqlConfig other = mock(KsqlConfig.class);
 
     // When:
-    KsqlQueryBuilder result = ksqlQueryBuilder.withKsqlConfig(other);
+    final KsqlQueryBuilder result = ksqlQueryBuilder.withKsqlConfig(other);
 
     // Then:
     assertThat(ksqlQueryBuilder.getKsqlConfig(), is(ksqlConfig));
@@ -243,7 +243,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
     // Given:
-    PhysicalSchema schema = PhysicalSchema.from(
+    final PhysicalSchema schema = PhysicalSchema.from(
         SOME_SCHEMA.logicalSchema(),
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
     );

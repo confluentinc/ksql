@@ -181,9 +181,9 @@ public final class TestMethods {
     public void invokeMethod(final T instanceUnderTest) throws Throwable {
       try {
         method.invoke(instanceUnderTest, args);
-      } catch (IllegalAccessException e) {
+      } catch (final IllegalAccessException e) {
         throw new AssertionError("Invoke failed", e);
-      } catch (InvocationTargetException e) {
+      } catch (final InvocationTargetException e) {
         throw e.getCause();
       }
     }

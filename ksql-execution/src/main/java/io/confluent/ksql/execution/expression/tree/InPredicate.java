@@ -28,12 +28,14 @@ public class InPredicate extends Expression {
   private final Expression value;
   private final InListExpression valueList;
 
-  public InPredicate(Expression value, InListExpression valueList) {
+  public InPredicate(final Expression value, final InListExpression valueList) {
     this(Optional.empty(), value, valueList);
   }
 
   public InPredicate(
-      Optional<NodeLocation> location, Expression value, InListExpression valueList
+      final Optional<NodeLocation> location,
+      final Expression value,
+      final InListExpression valueList
   ) {
     super(location);
     this.value = requireNonNull(value, "value");
@@ -49,12 +51,12 @@ public class InPredicate extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitInPredicate(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -62,7 +64,7 @@ public class InPredicate extends Expression {
       return false;
     }
 
-    InPredicate that = (InPredicate) o;
+    final InPredicate that = (InPredicate) o;
     return Objects.equals(value, that.value)
         && Objects.equals(valueList, that.valueList);
   }

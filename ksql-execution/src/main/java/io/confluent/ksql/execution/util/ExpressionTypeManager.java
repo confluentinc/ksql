@@ -79,13 +79,16 @@ public class ExpressionTypeManager {
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(LogicalSchema schema, FunctionRegistry functionRegistry) {
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
-  public SqlType getExpressionSqlType(Expression expression) {
-    ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+  public SqlType getExpressionSqlType(final Expression expression) {
+    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     new Visitor().process(expression, expressionTypeContext);
     return expressionTypeContext.getSqlType();
   }
@@ -98,7 +101,7 @@ public class ExpressionTypeManager {
       return sqlType;
     }
 
-    void setSqlType(SqlType sqlType) {
+    void setSqlType(final SqlType sqlType) {
       this.sqlType = sqlType;
     }
   }
@@ -107,15 +110,15 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitArithmeticBinary(
-        ArithmeticBinaryExpression node, ExpressionTypeContext expressionTypeContext
+        final ArithmeticBinaryExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      SqlType leftType = expressionTypeContext.getSqlType();
+      final SqlType leftType = expressionTypeContext.getSqlType();
 
       process(node.getRight(), expressionTypeContext);
-      SqlType rightType = expressionTypeContext.getSqlType();
+      final SqlType rightType = expressionTypeContext.getSqlType();
 
-      SqlType resultType = node.getOperator().resultType(leftType, rightType);
+      final SqlType resultType = node.getOperator().resultType(leftType, rightType);
 
       expressionTypeContext.setSqlType(resultType);
       return null;
@@ -123,7 +126,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitArithmeticUnary(
-        ArithmeticUnaryExpression node, ExpressionTypeContext context
+        final ArithmeticUnaryExpression node, final ExpressionTypeContext context
     ) {
       process(node.getValue(), context);
       return null;
@@ -131,15 +134,15 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitNotExpression(
-        NotExpression node, ExpressionTypeContext expressionTypeContext
+        final NotExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
     @Override
-    public Void visitCast(Cast node, ExpressionTypeContext expressionTypeContext) {
-      SqlType sqlType = node.getType().getSqlType();
+    public Void visitCast(final Cast node, final ExpressionTypeContext expressionTypeContext) {
+      final SqlType sqlType = node.getType().getSqlType();
       if (!sqlType.supportsCast()) {
         throw new KsqlFunctionException("Only casts to primitive types or decimals "
             + "are supported: " + sqlType);
@@ -151,28 +154,31 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitComparisonExpression(
-        ComparisonExpression node, ExpressionTypeContext expressionTypeContext
+        final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      SqlType leftSchema = expressionTypeContext.getSqlType();
+      final SqlType leftSchema = expressionTypeContext.getSqlType();
       process(node.getRight(), expressionTypeContext);
-      SqlType rightSchema = expressionTypeContext.getSqlType();
+      final SqlType rightSchema = expressionTypeContext.getSqlType();
       ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
     @Override
-    public Void visitBetweenPredicate(BetweenPredicate node, ExpressionTypeContext context) {
+    public Void visitBetweenPredicate(
+        final BetweenPredicate node,
+        final ExpressionTypeContext context
+    ) {
       context.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
     @Override
     public Void visitColumnReference(
-        ColumnReferenceExp node, ExpressionTypeContext expressionTypeContext
+        final ColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      Column schemaColumn = schema.findColumn(node.getReference())
+      final Column schemaColumn = schema.findColumn(node.getReference())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
@@ -182,18 +188,18 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitDereferenceExpression(
-        DereferenceExpression node, ExpressionTypeContext expressionTypeContext
+        final DereferenceExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getBase(), expressionTypeContext);
-      SqlType sqlType = expressionTypeContext.getSqlType();
+      final SqlType sqlType = expressionTypeContext.getSqlType();
       if (!(sqlType instanceof SqlStruct)) {
         throw new IllegalStateException("Expected STRUCT type, got: " + sqlType);
       }
 
-      SqlStruct structType = (SqlStruct) sqlType;
-      String fieldName = node.getFieldName();
+      final SqlStruct structType = (SqlStruct) sqlType;
+      final String fieldName = node.getFieldName();
 
-      Field structField = structType
+      final Field structField = structType
           .field(fieldName)
           .orElseThrow(() -> new KsqlException(
               "Could not find field '" + fieldName + "' in '" + node.getBase() + "'.")
@@ -205,7 +211,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitStringLiteral(
-        StringLiteral node, ExpressionTypeContext expressionTypeContext
+        final StringLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.STRING);
       return null;
@@ -213,21 +219,24 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitBooleanLiteral(
-        BooleanLiteral node, ExpressionTypeContext expressionTypeContext
+        final BooleanLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
     @Override
-    public Void visitLongLiteral(LongLiteral node, ExpressionTypeContext expressionTypeContext) {
+    public Void visitLongLiteral(
+        final LongLiteral node,
+        final ExpressionTypeContext expressionTypeContext
+    ) {
       expressionTypeContext.setSqlType(SqlTypes.BIGINT);
       return null;
     }
 
     @Override
     public Void visitIntegerLiteral(
-        IntegerLiteral node, ExpressionTypeContext expressionTypeContext
+        final IntegerLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.INTEGER);
       return null;
@@ -235,21 +244,21 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitDoubleLiteral(
-        DoubleLiteral node, ExpressionTypeContext expressionTypeContext
+        final DoubleLiteral node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.DOUBLE);
       return null;
     }
 
     @Override
-    public Void visitNullLiteral(NullLiteral node, ExpressionTypeContext context) {
+    public Void visitNullLiteral(final NullLiteral node, final ExpressionTypeContext context) {
       context.setSqlType(null);
       return null;
     }
 
     @Override
     public Void visitLikePredicate(
-        LikePredicate node, ExpressionTypeContext expressionTypeContext
+        final LikePredicate node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
@@ -257,7 +266,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitIsNotNullPredicate(
-        IsNotNullPredicate node, ExpressionTypeContext expressionTypeContext
+        final IsNotNullPredicate node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
@@ -265,7 +274,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitIsNullPredicate(
-        IsNullPredicate node, ExpressionTypeContext expressionTypeContext
+        final IsNullPredicate node, final ExpressionTypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
@@ -273,11 +282,11 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitSearchedCaseExpression(
-        SearchedCaseExpression node, ExpressionTypeContext context
+        final SearchedCaseExpression node, final ExpressionTypeContext context
     ) {
-      Optional<SqlType> whenType = validateWhenClauses(node.getWhenClauses(), context);
+      final Optional<SqlType> whenType = validateWhenClauses(node.getWhenClauses(), context);
 
-      Optional<SqlType> defaultType = node.getDefaultValue()
+      final Optional<SqlType> defaultType = node.getDefaultValue()
           .map(ExpressionTypeManager.this::getExpressionSqlType);
 
       if (whenType.isPresent() && defaultType.isPresent()) {
@@ -304,12 +313,12 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitSubscriptExpression(
-        SubscriptExpression node, ExpressionTypeContext expressionTypeContext
+        final SubscriptExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getBase(), expressionTypeContext);
-      SqlType arrayMapType = expressionTypeContext.getSqlType();
+      final SqlType arrayMapType = expressionTypeContext.getSqlType();
 
-      SqlType valueType;
+      final SqlType valueType;
       if (arrayMapType instanceof SqlMap) {
         valueType = ((SqlMap) arrayMapType).getValueType();
       } else if (arrayMapType instanceof SqlArray) {
@@ -323,10 +332,13 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitStructExpression(CreateStructExpression exp, ExpressionTypeContext context) {
+    public Void visitStructExpression(
+        final CreateStructExpression exp,
+        final ExpressionTypeContext context
+    ) {
       final Builder builder = SqlStruct.builder();
 
-      for (CreateStructExpression.Field field : exp.getFields()) {
+      for (final CreateStructExpression.Field field : exp.getFields()) {
         process(field.getValue(), context);
         builder.field(field.getName(), context.getSqlType());
       }
@@ -336,16 +348,19 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitFunctionCall(FunctionCall node, ExpressionTypeContext expressionTypeContext) {
+    public Void visitFunctionCall(
+        final FunctionCall node,
+        final ExpressionTypeContext expressionTypeContext
+    ) {
       if (functionRegistry.isAggregate(node.getName().name())) {
-        SqlType schema = node.getArguments().isEmpty()
+        final SqlType schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
             : getExpressionSqlType(node.getArguments().get(0));
 
-        AggregateFunctionInitArguments args =
+        final AggregateFunctionInitArguments args =
             UdafUtil.createAggregateFunctionInitArgs(0, node);
 
-        KsqlAggregateFunction aggFunc = functionRegistry
+        final KsqlAggregateFunction aggFunc = functionRegistry
             .getAggregateFunction(node.getName().name(), schema, args);
 
         expressionTypeContext.setSqlType(aggFunc.returnType());
@@ -353,34 +368,34 @@ public class ExpressionTypeManager {
       }
 
       if (functionRegistry.isTableFunction(node.getName().name())) {
-        List<SqlType> argumentTypes = node.getArguments().isEmpty()
+        final List<SqlType> argumentTypes = node.getArguments().isEmpty()
             ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
             : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSqlType)
                 .collect(Collectors.toList());
 
-        KsqlTableFunction tableFunction = functionRegistry
+        final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName().name(), argumentTypes);
 
         expressionTypeContext.setSqlType(tableFunction.getReturnType(argumentTypes));
         return null;
       }
 
-      UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
 
-      List<SqlType> argTypes = new ArrayList<>();
-      for (Expression expression : node.getArguments()) {
+      final List<SqlType> argTypes = new ArrayList<>();
+      for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
         argTypes.add(expressionTypeContext.getSqlType());
       }
 
-      SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
+      final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
       expressionTypeContext.setSqlType(returnSchema);
       return null;
     }
 
     @Override
     public Void visitLogicalBinaryExpression(
-        LogicalBinaryExpression node, ExpressionTypeContext context
+        final LogicalBinaryExpression node, final ExpressionTypeContext context
     ) {
       process(node.getLeft(), context);
       process(node.getRight(), context);
@@ -388,67 +403,68 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitType(Type type, ExpressionTypeContext expressionTypeContext) {
+    public Void visitType(final Type type, final ExpressionTypeContext expressionTypeContext) {
       throw VisitorUtil.illegalState(this, type);
     }
 
     @Override
     public Void visitTimeLiteral(
-        TimeLiteral timeLiteral, ExpressionTypeContext expressionTypeContext
+        final TimeLiteral timeLiteral, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, timeLiteral);
     }
 
     @Override
     public Void visitTimestampLiteral(
-        TimestampLiteral timestampLiteral, ExpressionTypeContext expressionTypeContext
+        final TimestampLiteral timestampLiteral, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, timestampLiteral);
     }
 
     @Override
     public Void visitDecimalLiteral(
-        DecimalLiteral decimalLiteral, ExpressionTypeContext expressionTypeContext
+        final DecimalLiteral decimalLiteral, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, decimalLiteral);
     }
 
     @Override
     public Void visitSimpleCaseExpression(
-        SimpleCaseExpression simpleCaseExpression, ExpressionTypeContext expressionTypeContext
+        final SimpleCaseExpression simpleCaseExpression,
+        final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, simpleCaseExpression);
     }
 
     @Override
     public Void visitInListExpression(
-        InListExpression inListExpression, ExpressionTypeContext expressionTypeContext
+        final InListExpression inListExpression, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, inListExpression);
     }
 
     @Override
     public Void visitInPredicate(
-        InPredicate inPredicate, ExpressionTypeContext expressionTypeContext
+        final InPredicate inPredicate, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.unsupportedOperation(this, inPredicate);
     }
 
     @Override
     public Void visitWhenClause(
-        WhenClause whenClause, ExpressionTypeContext expressionTypeContext
+        final WhenClause whenClause, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.illegalState(this, whenClause);
     }
 
     private Optional<SqlType> validateWhenClauses(
-        List<WhenClause> whenClauses, ExpressionTypeContext context
+        final List<WhenClause> whenClauses, final ExpressionTypeContext context
     ) {
       Optional<SqlType> previousResult = Optional.empty();
-      for (WhenClause whenClause : whenClauses) {
+      for (final WhenClause whenClause : whenClauses) {
         process(whenClause.getOperand(), context);
 
-        SqlType operandType = context.getSqlType();
+        final SqlType operandType = context.getSqlType();
 
         if (operandType.baseType() != SqlBaseType.BOOLEAN) {
           throw new KsqlException("WHEN operand type should be boolean."
@@ -459,7 +475,7 @@ public class ExpressionTypeManager {
 
         process(whenClause.getResult(), context);
 
-        SqlType resultType = context.getSqlType();
+        final SqlType resultType = context.getSqlType();
         if (resultType == null) {
           continue; // `null` type
         }

@@ -90,7 +90,7 @@ public class RecoveryTest {
 
   @Mock
   @SuppressWarnings("unchecked")
-  private Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
+  private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -118,7 +118,7 @@ public class RecoveryTest {
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
     private int offset;
-    private Producer<CommandId, Command> transactionalProducer;
+    private final Producer<CommandId, Command> transactionalProducer;
 
     FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
       this.commandLog = commandLog;

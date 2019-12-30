@@ -269,7 +269,7 @@ public final class SourceBuilder {
       final Consumed<K, GenericRow> consumed,
       final Function<K, Object> rowKeyGenerator
   ) {
-    KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
+    final KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
 
     return stream

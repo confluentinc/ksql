@@ -36,7 +36,7 @@ public class ComparisonExpression extends Expression {
 
     private final String value;
 
-    Type(String value) {
+    Type(final String value) {
       this.value = value;
     }
 
@@ -89,12 +89,15 @@ public class ComparisonExpression extends Expression {
   private final Expression left;
   private final Expression right;
 
-  public ComparisonExpression(Type type, Expression left, Expression right) {
+  public ComparisonExpression(final Type type, final Expression left, final Expression right) {
     this(Optional.empty(), type, left, right);
   }
 
   public ComparisonExpression(
-      Optional<NodeLocation> location, Type type, Expression left, Expression right
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Expression left,
+      final Expression right
   ) {
     super(location);
     this.type = requireNonNull(type, "type");
@@ -115,12 +118,12 @@ public class ComparisonExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitComparisonExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -128,7 +131,7 @@ public class ComparisonExpression extends Expression {
       return false;
     }
 
-    ComparisonExpression that = (ComparisonExpression) o;
+    final ComparisonExpression that = (ComparisonExpression) o;
     return (type == that.type)
         && Objects.equals(left, that.left)
         && Objects.equals(right, that.right);

@@ -41,17 +41,17 @@ public class StreamWindowedAggregate
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "nonAggregateColumns", required = true)
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "nonAggregateColumns", required = true) final
       List<ColumnRef> nonAggregateColumns,
-      @JsonProperty(value = "aggregationFunctions", required = true)
+      @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions,
-      @JsonProperty(value = "windowExpression", required = true)
+      @JsonProperty(value = "windowExpression", required = true) final
       KsqlWindowExpression windowExpression) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonAggregateColumns
@@ -93,19 +93,19 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(PlanBuilder builder) {
+  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
     return builder.visitStreamWindowedAggregate(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamWindowedAggregate that = (StreamWindowedAggregate) o;
+    final StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

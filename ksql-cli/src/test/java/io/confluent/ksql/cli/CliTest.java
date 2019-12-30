@@ -262,7 +262,7 @@ public class CliTest {
   }
 
   private void testCreateStreamAsSelect(
-      String selectQuery,
+      final String selectQuery,
       final PhysicalSchema resultSchema,
       final Map<String, GenericRow> expectedResults
   ) {
@@ -405,7 +405,7 @@ public class CliTest {
 
       try {
         thread.join(0);
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         //
       }
     }

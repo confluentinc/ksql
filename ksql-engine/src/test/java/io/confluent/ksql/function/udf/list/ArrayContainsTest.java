@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function.udf.list;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -25,7 +24,7 @@ import org.junit.Test;
 
 public class ArrayContainsTest {
 
-  private ArrayContains udf = new ArrayContains();
+  private final ArrayContains udf = new ArrayContains();
 
   @Test
   public void shouldReturnFalseOnEmptyList() {

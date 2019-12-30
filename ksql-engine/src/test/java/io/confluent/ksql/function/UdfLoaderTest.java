@@ -272,7 +272,7 @@ public class UdfLoaderTest {
     final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
                                                                         PARENT_CLASS_LOADER,
                                                                         resourceName -> false);
-    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
+    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
     final UdfLoader udfLoader = new UdfLoader(
         functionRegistry,
         Optional.empty(),
@@ -298,7 +298,7 @@ public class UdfLoaderTest {
     final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
                                                                         PARENT_CLASS_LOADER,
                                                                         resourceName -> false);
-    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
+    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
     final UdfLoader udfLoader = new UdfLoader(
         functionRegistry,
         Optional.empty(),
@@ -324,7 +324,7 @@ public class UdfLoaderTest {
     final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
                                                                         PARENT_CLASS_LOADER,
                                                                         resourceName -> false);
-    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
+    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
                                                   + "ReturnDecimalWithoutSchemaProviderUdf");
     final UdfLoader udfLoader = new UdfLoader(
         functionRegistry,
@@ -363,7 +363,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldAllowClassesWithSameFQCNInDifferentUDFJars() throws Exception {
 
-    File pluginDir = tempFolder.newFolder();
+    final File pluginDir = tempFolder.newFolder();
     Files.copy(Paths.get("src/test/resources/udf-example.jar"),
         new File(pluginDir, "udf-example.jar").toPath());
     Files.copy(Paths.get("src/test/resources/udf-isolated.jar"),
@@ -1147,7 +1147,7 @@ public class UdfLoaderTest {
   }
 
   public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap(
-      int ignored) {
+      final int ignored) {
     return null;
   }
 
@@ -1195,7 +1195,7 @@ public class UdfLoaderTest {
     return createUdafLoader(Optional.empty());
   }
 
-  private static UdafLoader createUdafLoader(Optional<Metrics> metrics) {
+  private static UdafLoader createUdafLoader(final Optional<Metrics> metrics) {
     return new UdafLoader(new InternalFunctionRegistry(), metrics, SqlTypeParser.create(
         TypeRegistry.EMPTY));
   }
@@ -1298,7 +1298,7 @@ public class UdfLoaderTest {
     }
 
     @UdfSchemaProvider
-    public SqlType provideSchema(List<SqlType> params) {
+    public SqlType provideSchema(final List<SqlType> params) {
       return SqlDecimal.of(2, 1);
     }
   }
@@ -1316,7 +1316,7 @@ public class UdfLoaderTest {
     }
 
     @UdfSchemaProvider
-    public SqlType provideSchema(List<Schema> params) {
+    public SqlType provideSchema(final List<Schema> params) {
       return SqlDecimal.of(2, 1);
     }
   }

@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -58,10 +57,13 @@ public class CodeGenRunner {
   private final KsqlConfig ksqlConfig;
 
   public static List<ExpressionMetadata> compileExpressions(
-      Stream<Expression> expressions, String type, LogicalSchema schema, KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry
+      final Stream<Expression> expressions,
+      final String type,
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
   ) {
-    CodeGenRunner codeGen = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+    final CodeGenRunner codeGen = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
 
     return expressions
         .map(exp -> codeGen.buildCodeGenFromParseTree(exp, type))
@@ -69,7 +71,9 @@ public class CodeGenRunner {
   }
 
   public CodeGenRunner(
-      LogicalSchema schema, KsqlConfig ksqlConfig, FunctionRegistry functionRegistry
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
   ) {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -77,29 +81,32 @@ public class CodeGenRunner {
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
-  public CodeGenSpec getCodeGenSpec(Expression expression) {
-    Visitor visitor =
+  public CodeGenSpec getCodeGenSpec(final Expression expression) {
+    final Visitor visitor =
         new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
 
     visitor.process(expression, null);
     return visitor.spec.build();
   }
 
-  public ExpressionMetadata buildCodeGenFromParseTree(Expression expression, String type) {
+  public ExpressionMetadata buildCodeGenFromParseTree(
+      final Expression expression,
+      final String type
+  ) {
     try {
-      CodeGenSpec spec = getCodeGenSpec(expression);
-      String javaCode = SqlToJavaVisitor.of(
+      final CodeGenSpec spec = getCodeGenSpec(expression);
+      final String javaCode = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
           spec
       ).process(expression);
 
-      IExpressionEvaluator ee =
+      final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
       ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
       ee.setParameters(spec.argumentNames(), spec.argumentTypes());
 
-      SqlType expressionType = expressionTypeManager
+      final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(expression);
 
       ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
@@ -116,7 +123,7 @@ public class CodeGenRunner {
       throw new KsqlException("Code generation failed for " + type
           + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
@@ -131,8 +138,8 @@ public class CodeGenRunner {
     private final KsqlConfig ksqlConfig;
 
     private Visitor(
-        LogicalSchema schema, FunctionRegistry functionRegistry,
-        ExpressionTypeManager expressionTypeManager, KsqlConfig ksqlConfig
+        final LogicalSchema schema, final FunctionRegistry functionRegistry,
+        final ExpressionTypeManager expressionTypeManager, final KsqlConfig ksqlConfig
     ) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -142,22 +149,22 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLikePredicate(LikePredicate node, Void context) {
+    public Void visitLikePredicate(final LikePredicate node, final Void context) {
       process(node.getValue(), null);
       return null;
     }
 
     @Override
-    public Void visitFunctionCall(FunctionCall node, Void context) {
-      List<SqlType> argumentTypes = new ArrayList<>();
-      FunctionName functionName = node.getName();
-      for (Expression argExpr : node.getArguments()) {
+    public Void visitFunctionCall(final FunctionCall node, final Void context) {
+      final List<SqlType> argumentTypes = new ArrayList<>();
+      final FunctionName functionName = node.getName();
+      for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
         argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
       }
 
-      UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
-      KsqlScalarFunction function = holder.getFunction(argumentTypes);
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
+      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
@@ -167,9 +174,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(SubscriptExpression node, Void context) {
+    public Void visitSubscriptExpression(final SubscriptExpression node, final Void context) {
       if (node.getBase() instanceof ColumnReferenceExp) {
-        ColumnReferenceExp arrayBaseName = (ColumnReferenceExp) node.getBase();
+        final ColumnReferenceExp arrayBaseName = (ColumnReferenceExp) node.getBase();
         addRequiredColumn(arrayBaseName.getReference());
       } else {
         process(node.getBase(), context);
@@ -179,7 +186,10 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitStructExpression(CreateStructExpression exp, @Nullable Void context) {
+    public Void visitStructExpression(
+        final CreateStructExpression exp,
+        final Void context
+    ) {
       exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
           .sqlToConnectConverter()
@@ -190,13 +200,13 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitColumnReference(ColumnReferenceExp node, Void context) {
+    public Void visitColumnReference(final ColumnReferenceExp node, final Void context) {
       addRequiredColumn(node.getReference());
       return null;
     }
 
     @Override
-    public Void visitDereferenceExpression(DereferenceExpression node, Void context) {
+    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
       process(node.getBase(), null);
       return null;
     }

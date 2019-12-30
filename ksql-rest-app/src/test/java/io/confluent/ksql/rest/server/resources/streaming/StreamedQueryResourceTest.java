@@ -113,7 +113,7 @@ public class StreamedQueryResourceTest {
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
   
-  private static Response AUTHORIZATION_ERROR_RESPONSE = Response
+  private static final Response AUTHORIZATION_ERROR_RESPONSE = Response
       .status(FORBIDDEN)
       .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, "some error"))
       .build();

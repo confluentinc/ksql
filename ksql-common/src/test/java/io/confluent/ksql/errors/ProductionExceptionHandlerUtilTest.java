@@ -132,7 +132,7 @@ public class ProductionExceptionHandlerUtilTest {
     assertResponseIs(ProductionExceptionHandlerResponse.CONTINUE);
   }
 
-  private void assertResponseIs(Object o) {
+  private void assertResponseIs(final Object o) {
     // When:
     final ProductionExceptionHandlerResponse response =
         exceptionHandler.handle(record, new Exception());
@@ -145,7 +145,7 @@ public class ProductionExceptionHandlerUtilTest {
 
     private final ProductionExceptionHandlerResponse response;
 
-    private TestLogAndXProductionExceptionHandler(ProductionExceptionHandlerResponse response) {
+    private TestLogAndXProductionExceptionHandler(final ProductionExceptionHandlerResponse response) {
       this.response = response;
     }
 

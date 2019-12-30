@@ -71,7 +71,7 @@ public final class ListPropertiesExecutor {
   }
 
   private static List<Property> mergedProperties(
-      ConfiguredStatement<ListProperties> statement) {
+      final ConfiguredStatement<ListProperties> statement) {
     final List<Property> mergedProperties = new ArrayList<>();
 
     statement.getConfig()
@@ -87,18 +87,18 @@ public final class ListPropertiesExecutor {
   }
 
   private static Map<String, String> embeddedConnectWorkerProperties(
-      ConfiguredStatement<ListProperties> statement) {
-    String configFile = statement.getConfig()
+      final ConfiguredStatement<ListProperties> statement) {
+    final String configFile = statement.getConfig()
         .getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
     return !configFile.isEmpty()
         ? Utils.propsToStringMap(getWorkerProps(configFile))
         : Collections.emptyMap();
   }
 
-  private static Properties getWorkerProps(String configFile) {
+  private static Properties getWorkerProps(final String configFile) {
     try {
       return Utils.loadProps(configFile);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return new Properties();
     }
   }

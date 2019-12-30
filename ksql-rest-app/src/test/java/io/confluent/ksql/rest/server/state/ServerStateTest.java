@@ -31,7 +31,7 @@ public class ServerStateTest {
   @Test
   public void shouldReturnErrorWhenInitializing() {
     // Given:
-    KsqlErrorMessage error = new KsqlErrorMessage(12345, "bad stuff is happening");
+    final KsqlErrorMessage error = new KsqlErrorMessage(12345, "bad stuff is happening");
     serverState.setInitializingReason(error);
 
     // When:

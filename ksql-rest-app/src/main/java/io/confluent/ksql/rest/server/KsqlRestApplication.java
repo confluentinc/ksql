@@ -353,12 +353,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             .map(port -> {
               try {
                 return new URL(url.getProtocol(), url.getHost(), port, url.getFile());
-              } catch (MalformedURLException e) {
+              } catch (final MalformedURLException e) {
                 throw new KsqlServerException("Malformed URL specified in '"
                     + LISTENERS_CONFIG + "' config: " + listener, e);
               }
             });
-      } catch (MalformedURLException e) {
+      } catch (final MalformedURLException e) {
         throw new KsqlServerException("Malformed URL specified in '"
             + LISTENERS_CONFIG + "' config: " + listener, e);
       }

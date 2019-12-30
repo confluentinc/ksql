@@ -57,10 +57,10 @@ public final class StreamFlatMapBuilder {
     final CodeGenRunner codeGenRunner =
         new CodeGenRunner(schema, queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry());
 
-    for (FunctionCall functionCall: tableFunctions) {
+    for (final FunctionCall functionCall: tableFunctions) {
       final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
           functionCall.getArguments().size());
-      for (Expression expression : functionCall.getArguments()) {
+      for (final Expression expression : functionCall.getArguments()) {
         final ExpressionMetadata expressionMetadata =
             codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
         expressionMetadataList.add(expressionMetadata);
@@ -102,7 +102,7 @@ public final class StreamFlatMapBuilder {
 
     // We copy all the original columns to the output schema
     schemaBuilder.keyColumns(inputSchema.key());
-    for (Column col : cols) {
+    for (final Column col : cols) {
       schemaBuilder.valueColumn(col);
     }
 

@@ -36,14 +36,14 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ImmutableList<FunctionCall> aggregationFunctions;
 
   public StreamAggregate(
-      @JsonProperty(value = "properties", required = true)
-          ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final
+      ExecutionStepPropertiesV1 properties,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "nonAggregateColumns", required = true)
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "nonAggregateColumns", required = true) final
       List<ColumnRef> nonAggregateColumns,
-      @JsonProperty(value = "aggregationFunctions", required = true)
+      @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
@@ -82,19 +82,19 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(PlanBuilder builder) {
+  public KTableHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitStreamAggregate(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamAggregate that = (StreamAggregate) o;
+    final StreamAggregate that = (StreamAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

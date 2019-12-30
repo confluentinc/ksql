@@ -155,7 +155,7 @@ public class KsqlAvroSerializerTest {
 
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+  private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private Serializer<Object> serializer;
   private Deserializer<Object> deserializer;

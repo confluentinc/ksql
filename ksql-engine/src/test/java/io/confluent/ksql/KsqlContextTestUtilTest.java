@@ -52,7 +52,7 @@ public class KsqlContextTestUtilTest {
       first.terminateQuery(new QueryId("avoid compiler warning"));
 
       // When:
-      KsqlContext second = KsqlContextTestUtil.create(
+      final KsqlContext second = KsqlContextTestUtil.create(
           BASE_CONFIG,
           srClient,
           functionRegistry

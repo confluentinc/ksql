@@ -33,15 +33,15 @@ public final class WindowedStreamSource
   private final WindowInfo windowInfo;
 
   public WindowedStreamSource(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "topicName", required = true) String topicName,
-      @JsonProperty(value = "formats", required = true) Formats formats,
-      @JsonProperty(value = "windowInfo", required = true) WindowInfo windowInfo,
-      @JsonProperty("timestampColumn") Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) SourceName alias) {
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
+      @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) final SourceName alias) {
     super(
-        properties,
+        props,
         topicName,
         formats,
         timestampColumn,
@@ -56,7 +56,7 @@ public final class WindowedStreamSource
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> build(PlanBuilder builder) {
+  public KStreamHolder<Windowed<Struct>> build(final PlanBuilder builder) {
     return builder.visitWindowedStreamSource(this);
   }
 }

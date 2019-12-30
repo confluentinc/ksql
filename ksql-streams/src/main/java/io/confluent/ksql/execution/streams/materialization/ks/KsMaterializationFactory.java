@@ -115,7 +115,7 @@ public final class KsMaterializationFactory {
 
     try {
       return new URL((String) appServer);
-    } catch (MalformedURLException e) {
+    } catch (final MalformedURLException e) {
       throw new IllegalArgumentException(StreamsConfig.APPLICATION_SERVER_CONFIG + " malformed: "
           + "'" + appServer + "'");
     }

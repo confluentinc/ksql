@@ -46,7 +46,7 @@ public final class ConfigValidators {
       }
       try {
         parser.apply((String)val);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new ConfigException("Configuration " + name + " is invalid: " + e.getMessage());
       }
     };
@@ -86,7 +86,7 @@ public final class ConfigValidators {
       }
       try {
         new URL((String)val);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new ConfigException(name, val, "Not valid URL: " + e.getMessage());
       }
     };

@@ -141,7 +141,7 @@ public final class SchemaUtil {
         .build();
   }
 
-  public static boolean areCompatible(SqlType actual, ParamType declared) {
+  public static boolean areCompatible(final SqlType actual, final ParamType declared) {
     if (actual.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(((SqlArray) actual).getItemType(), ((ArrayType) declared).element());
     }
@@ -160,7 +160,7 @@ public final class SchemaUtil {
     return isPrimitiveMatch(actual, declared);
   }
 
-  private static boolean isStructCompatible(SqlType actual, ParamType declared) {
+  private static boolean isStructCompatible(final SqlType actual, final ParamType declared) {
     final SqlStruct actualStruct = (SqlStruct) actual;
 
     // consider a struct that is empty to match any other struct
@@ -168,8 +168,8 @@ public final class SchemaUtil {
       return true;
     }
 
-    for (Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
-      String k = entry.getKey();
+    for (final Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
+      final String k = entry.getKey();
       final Optional<io.confluent.ksql.schema.ksql.types.Field> field = actualStruct.field(k);
       if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
         return false;
@@ -179,7 +179,7 @@ public final class SchemaUtil {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private static boolean isPrimitiveMatch(SqlType actual, ParamType declared) {
+  private static boolean isPrimitiveMatch(final SqlType actual, final ParamType declared) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     return actual.baseType() == SqlBaseType.STRING  && declared instanceof StringType

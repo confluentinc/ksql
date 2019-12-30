@@ -36,14 +36,18 @@ public class DereferenceExpression extends Expression {
    * @param base      the base expression that resolves to a struct.
    * @param fieldName the name of the field within the struct.
    */
-  public DereferenceExpression(Optional<NodeLocation> location, Expression base, String fieldName) {
+  public DereferenceExpression(
+      final Optional<NodeLocation> location,
+      final Expression base,
+      final String fieldName
+  ) {
     super(location);
     this.base = requireNonNull(base, "base");
     this.fieldName = requireNonNull(fieldName, "fieldName");
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitDereferenceExpression(this, context);
   }
 
@@ -56,14 +60,14 @@ public class DereferenceExpression extends Expression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DereferenceExpression that = (DereferenceExpression) o;
+    final DereferenceExpression that = (DereferenceExpression) o;
     return Objects.equals(base, that.base)
         && Objects.equals(fieldName, that.fieldName);
   }

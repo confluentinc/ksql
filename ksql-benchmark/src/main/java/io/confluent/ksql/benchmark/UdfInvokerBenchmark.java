@@ -64,7 +64,7 @@ public class UdfInvokerBenchmark {
     private Method createMethod(final String methodName, final Class<?>... params) {
       try {
         return getClass().getMethod(methodName, params);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
@@ -73,7 +73,7 @@ public class UdfInvokerBenchmark {
       try {
         final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
         return new PluggableUdf(invoker, this);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
@@ -91,7 +91,7 @@ public class UdfInvokerBenchmark {
   public int invokeSimpleMethod(final UdfInvokerState state) {
     try {
       return (Integer) state.simpleMethod.invoke(state, 1);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }
@@ -100,7 +100,7 @@ public class UdfInvokerBenchmark {
   public int invokeVarargsMethod(final UdfInvokerState state) {
     try {
       return (Integer) state.varArgsMethod.invoke(state, 1, vargs2);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }

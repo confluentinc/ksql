@@ -82,11 +82,11 @@ public class WindowSelectMapperTest {
         ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
     ).getTransformer();
 
-    Window window = new SessionWindow(12345L, 54321L);
-    GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
+    final Window window = new SessionWindow(12345L, 54321L);
+    final GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
 
     // When:
-    GenericRow result = mapper.transform(new Windowed<>("k", window), row, ctx);
+    final GenericRow result = mapper.transform(new Windowed<>("k", window), row, ctx);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
@@ -101,8 +101,8 @@ public class WindowSelectMapperTest {
         ImmutableList.of(windowStartFunc)
     ).getTransformer();
 
-    Window window = new SessionWindow(12345L, 54321L);
-    GenericRow row = new GenericRow(new ArrayList<>());
+    final Window window = new SessionWindow(12345L, 54321L);
+    final GenericRow row = new GenericRow(new ArrayList<>());
 
     // When:
     mapper.transform(new Windowed<>("k", window), row, ctx);

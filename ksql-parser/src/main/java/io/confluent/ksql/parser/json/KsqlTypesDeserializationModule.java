@@ -20,7 +20,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 public class KsqlTypesDeserializationModule extends SimpleModule {
 
-  public KsqlTypesDeserializationModule(boolean withImplicitColumns) {
+  public KsqlTypesDeserializationModule(final boolean withImplicitColumns) {
     addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer(withImplicitColumns));
   }
 }

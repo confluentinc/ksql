@@ -104,7 +104,10 @@ public final class GenericsUtil {
    * @throws KsqlException if there is a generic in {@code schema} that is not present
    *                       in {@code mapping}
    */
-  public static SqlType applyResolved(ParamType schema, Map<GenericType, SqlType> resolved) {
+  public static SqlType applyResolved(
+      final ParamType schema,
+      final Map<GenericType, SqlType> resolved
+  ) {
     if (schema instanceof ArrayType) {
       return SqlTypes.array(applyResolved(((ArrayType) schema).element(), resolved));
     }
@@ -210,7 +213,7 @@ public final class GenericsUtil {
     return true;
   }
 
-  private static boolean matches(ParamType schema, SqlType instance) {
+  private static boolean matches(final ParamType schema, final SqlType instance) {
     switch (instance.baseType()) {
       case BOOLEAN: return schema instanceof BooleanType;
       case INTEGER: return schema instanceof IntegerType;

@@ -28,11 +28,11 @@ public final class Cast extends Expression {
   private final Expression expression;
   private final Type type;
 
-  public Cast(Expression expression, Type type) {
+  public Cast(final Expression expression, final Type type) {
     this(Optional.empty(), expression, type);
   }
 
-  public Cast(Optional<NodeLocation> location, Expression expression, Type type) {
+  public Cast(final Optional<NodeLocation> location, final Expression expression, final Type type) {
     super(location);
     this.expression = requireNonNull(expression, "expression");
     this.type = requireNonNull(type, "type");
@@ -47,19 +47,19 @@ public final class Cast extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitCast(this, context);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    Cast o = (Cast) obj;
+    final Cast o = (Cast) obj;
     return Objects.equals(this.expression, o.expression)
         && Objects.equals(this.type, o.type);
   }

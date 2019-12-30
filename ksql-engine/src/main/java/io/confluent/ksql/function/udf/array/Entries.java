@@ -115,7 +115,7 @@ public class Entries {
       list.sort(Comparator.comparing(Entry::getKey));
       entries = list;
     }
-    for (Map.Entry<String, T> entry : entries) {
+    for (final Map.Entry<String, T> entry : entries) {
       final Struct struct = new Struct(structSchema);
       struct.put(KEY_FIELD_NAME, entry.getKey()).put(VALUE_FIELD_NAME, entry.getValue());
       structs.add(struct);

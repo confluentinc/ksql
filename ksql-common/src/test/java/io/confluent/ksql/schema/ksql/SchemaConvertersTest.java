@@ -135,7 +135,7 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldGetLogicalForEverySqlType() {
-    for (Entry<SqlType, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
+    for (final Entry<SqlType, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
       final SqlType sqlType = entry.getKey();
       final Schema logical = entry.getValue();
       final Schema result = SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
@@ -162,7 +162,7 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldGetJavaTypesForAllSqlTypes() {
-    for (Entry<SqlBaseType, Class<?>> entry : SQL_TO_JAVA.entrySet()) {
+    for (final Entry<SqlBaseType, Class<?>> entry : SQL_TO_JAVA.entrySet()) {
       final SqlBaseType sqlType = entry.getKey();
       final Class<?> javaType = entry.getValue();
       final Class<?> result = SchemaConverters.sqlToJavaConverter().toJavaType(sqlType);

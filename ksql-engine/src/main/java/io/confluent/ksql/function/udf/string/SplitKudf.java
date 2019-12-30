@@ -61,7 +61,7 @@ public class SplitKudf {
       } else {
         return Splitter.on(delimiter).splitToList(string);
       }
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlFunctionException(
           String.format("Invalid delimiter '%s' in the split() function.", delimiter), e);
     }

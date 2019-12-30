@@ -79,7 +79,7 @@ public class UdtfLoader {
 
     final TableFunctionFactory factory = new TableFunctionFactory(metadata);
 
-    for (Method method : theClass.getMethods()) {
+    for (final Method method : theClass.getMethods()) {
       if (method.getAnnotation(Udtf.class) != null) {
         final Udtf annotation = method.getAnnotation(Udtf.class);
         try {

@@ -37,19 +37,19 @@ public final class EngineProcessingLogMessageFactory {
   }
 
   public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
-      String errorMsg, Throwable exception, GenericRow record
+      final String errorMsg, final Throwable exception, final GenericRow record
   ) {
     return (config) -> {
-      Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
+      final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
-      Struct recordProcessingError =
+      final Struct recordProcessingError =
           new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
       struct.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, recordProcessingError);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
           errorMsg
       );
-      List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
+      final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
       cause.remove(0);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
@@ -66,13 +66,13 @@ public final class EngineProcessingLogMessageFactory {
     };
   }
 
-  private static String serializeRow(ProcessingLogConfig config, GenericRow record) {
+  private static String serializeRow(final ProcessingLogConfig config, final GenericRow record) {
     if (!config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       return null;
     }
     try {
       return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
-    } catch (Throwable t) {
+    } catch (final Throwable t) {
       LOGGER.error("error serializing record for processing log", t);
       return null;
     }

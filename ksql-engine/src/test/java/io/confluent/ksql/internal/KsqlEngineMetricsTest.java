@@ -358,7 +358,7 @@ public class KsqlEngineMetricsTest {
   private static class TestKsqlMetricsExtension implements KsqlMetricsExtension {
 
     @Override
-    public void configure(Map<String, ?> config) {
+    public void configure(final Map<String, ?> config) {
     }
 
     @Override

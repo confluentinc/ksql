@@ -31,8 +31,8 @@ public class ArrayContains {
 
   @Udf
   public <T> boolean contains(
-      @UdfParameter List<T> array,
-      @UdfParameter T val
+      @UdfParameter final List<T> array,
+      @UdfParameter final T val
   ) {
     return array != null && array.contains(val);
   }

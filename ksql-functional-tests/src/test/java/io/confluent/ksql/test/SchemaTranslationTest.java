@@ -79,11 +79,11 @@ public class SchemaTranslationTest {
   private static List<Record> generateInputRecords(
       final Topic topic, final org.apache.avro.Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
-    List<Record> list = new ArrayList<>();
+    final List<Record> list = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       final Object avro = generator.generate();
       final JsonNode spec = avroToJson(avro, avroSchema, true);
-      Record record = new Record(
+      final Record record = new Record(
           topic,
           "test-key",
           avroToValueSpec(avro, avroSchema, true),

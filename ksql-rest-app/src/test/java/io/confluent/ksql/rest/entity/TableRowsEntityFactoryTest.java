@@ -127,7 +127,7 @@ public class TableRowsEntityFactoryTest {
     newColumns.add(null);
     newColumns.add(null);
     newColumns.add(null);
-    GenericRow row = new GenericRow(newColumns);
+    final GenericRow row = new GenericRow(newColumns);
 
     final Builder<Row> builder = ImmutableList.builder();
     builder.add(Row.of(SCHEMA_NULL, STRING_KEY_BUILDER.build("k"), row, ROWTIME));

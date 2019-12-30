@@ -28,12 +28,12 @@ import java.util.Optional;
 @Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
   public CreateStreamCommand(
-      @JsonProperty(value = "sourceName", required = true) SourceName sourceName,
-      @JsonProperty(value = "schema", required = true) LogicalSchema schema,
-      @JsonProperty(value = "keyField") Optional<ColumnName> keyField,
-      @JsonProperty(value = "timestampColumn")
+      @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
+      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
+      @JsonProperty(value = "keyField") final Optional<ColumnName> keyField,
+      @JsonProperty(value = "timestampColumn") final
       Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "topicName", required = true) String topicName,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
   ) {
@@ -49,7 +49,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
   }
 
   @Override
-  public DdlCommandResult execute(Executor executor) {
+  public DdlCommandResult execute(final Executor executor) {
     return executor.executeCreateStream(this);
   }
 }

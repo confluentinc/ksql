@@ -396,7 +396,7 @@ public class KsqlRestConfig extends RestConfig {
   private static String getLocalHostName() {
     try {
       return InetAddress.getLocalHost().getCanonicalHostName();
-    } catch (UnknownHostException e) {
+    } catch (final UnknownHostException e) {
       throw new KsqlServerException("Failed to obtain local host info", e);
     }
   }

@@ -46,7 +46,7 @@ public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>
   }
 
   @Override
-  public KTableHolder<Struct> build(PlanBuilder builder) {
+  public KTableHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitTableSource(this);
   }
 }

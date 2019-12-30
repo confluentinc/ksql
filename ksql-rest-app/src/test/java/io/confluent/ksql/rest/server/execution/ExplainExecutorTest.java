@@ -56,7 +56,7 @@ public class ExplainExecutorTest {
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
     when(metadata.getState()).thenReturn("Running");
 
-    KsqlEngine engine = mock(KsqlEngine.class);
+    final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
 
     // When:

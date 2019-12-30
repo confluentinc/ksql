@@ -277,7 +277,7 @@ public class UdtfLoaderTest {
   static class UdtfBadReturnValue {
 
     @Udtf
-    public Map<String, String> badReturn(int foo) {
+    public Map<String, String> badReturn(final int foo) {
       return new HashMap<>();
     }
   }
@@ -286,7 +286,7 @@ public class UdtfLoaderTest {
   static class RawListReturn {
 
     @Udtf
-    public List badReturn(int foo) {
+    public List badReturn(final int foo) {
       return new ArrayList();
     }
   }
@@ -295,7 +295,7 @@ public class UdtfLoaderTest {
   static class BigDecimalNoSchemaProvider {
 
     @Udtf
-    public List<BigDecimal> badReturn(int foo) {
+    public List<BigDecimal> badReturn(final int foo) {
       return ImmutableList.of(new BigDecimal("123"));
     }
   }

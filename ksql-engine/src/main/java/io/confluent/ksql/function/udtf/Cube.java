@@ -36,9 +36,9 @@ public class Cube {
   }
 
 
-  private <T> List<List<T>>  createAllCombinations(List<T> columns) {
+  private <T> List<List<T>>  createAllCombinations(final List<T> columns) {
 
-    int combinations = 1 << columns.size();
+    final int combinations = 1 << columns.size();
     // when a column value is null there is only a single possibility for the output
     // value [null] instead of two [null, original]. in order to avoid creating duplicate
     // rows, we use nullMask: a binary number with set bits at non-null column
@@ -50,7 +50,7 @@ public class Cube {
       }
     }
 
-    List<List<T>> result = new ArrayList<>(combinations);
+    final List<List<T>> result = new ArrayList<>(combinations);
     // bitmask is a binary number where a set bit represents that the value at that index of input
     // should be included - (e.g. the bitmask 5 (101) represents that cols[2] and cols[0]
     // should be set while cols[1] should be null).
@@ -59,14 +59,14 @@ public class Cube {
       // canonicalBitMask represents which indices in the output
       // row will be null after taking into consideration which values
       // in columns were originally null
-      int canonicalBitMask = bitMask & nullMask;
+      final int canonicalBitMask = bitMask & nullMask;
 
       if (canonicalBitMask != bitMask) {
         // if the canonicalBitMask is not the same as bitMask, then this row is a logical
         // duplicate of another row and we should not emit it
         continue;
       }
-      List<T> row = new ArrayList<>(columns.size());
+      final List<T> row = new ArrayList<>(columns.size());
       for (int i = 0; i < columns.size(); i++) {
         row.add(0, (bitMask & (1 << i)) == 0 ? null : columns.get(columns.size() - 1 - i));
       }

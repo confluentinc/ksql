@@ -321,13 +321,13 @@ public class InteractiveStatementExecutorTest {
     handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
 
     // Then:
-    InOrder inOrder = Mockito.inOrder(status);
-    ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
-    ArgumentCaptor<CommandStatus> argFinalCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
+    final InOrder inOrder = Mockito.inOrder(status);
+    final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
+    final ArgumentCaptor<CommandStatus> argFinalCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
     inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());
     inOrder.verify(status, times(1)).setFinalStatus(argFinalCommandStatus.capture());
 
-    List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
+    final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.PARSING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(1).getStatus());
     assertEquals(CommandStatus.Status.SUCCESS, argFinalCommandStatus.getValue().getStatus());
@@ -454,17 +454,17 @@ public class InteractiveStatementExecutorTest {
     // When:
     try {
       handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
-    } catch (KsqlStatementException e) {
+    } catch (final KsqlStatementException e) {
       // Then:
       assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
           "Statement: " + CREATE_STREAM_FOO_STATMENT, 
           e.getMessage());
     }
-    InOrder inOrder = Mockito.inOrder(status);
-    ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
+    final InOrder inOrder = Mockito.inOrder(status);
+    final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
     inOrder.verify(status, times(3)).setStatus(argCommandStatus.capture());
 
-    List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
+    final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.PARSING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(1).getStatus());
     assertEquals(CommandStatus.Status.ERROR, commandStatusList.get(2).getStatus());
@@ -623,7 +623,8 @@ public class InteractiveStatementExecutorTest {
     verify(mockQuery, times(0)).start();
   }
 
-  private  <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(PreparedStatement<T> preparedStatement) {
+  private  <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(
+      final PreparedStatement<T> preparedStatement) {
     return argThat(new ConfiguredStatementMatcher<>(preparedStatement));
   }
 
@@ -633,28 +634,28 @@ public class InteractiveStatementExecutorTest {
 
   private class ConfiguredKsqlPlanMatcher implements ArgumentMatcher<ConfiguredKsqlPlan> {
 
-    private ConfiguredKsqlPlan plan;
+    private final ConfiguredKsqlPlan plan;
 
-    ConfiguredKsqlPlanMatcher(KsqlPlan ksqlPlan) {
+    ConfiguredKsqlPlanMatcher(final KsqlPlan ksqlPlan) {
       plan = ConfiguredKsqlPlan.of(ksqlPlan, Collections.emptyMap(), ksqlConfig);
     }
 
     @Override
-    public boolean matches(ConfiguredKsqlPlan configuredKsqlPlan) {
+    public boolean matches(final ConfiguredKsqlPlan configuredKsqlPlan) {
       return plan.getPlan().equals(configuredKsqlPlan.getPlan());
     }
   }
 
   private class ConfiguredStatementMatcher<T extends Statement> implements ArgumentMatcher<ConfiguredStatement<T>> {
 
-    private ConfiguredStatement<?> statement;
+    private final ConfiguredStatement<?> statement;
 
-    ConfiguredStatementMatcher(PreparedStatement<?> preparedStatement) {
+    ConfiguredStatementMatcher(final PreparedStatement<?> preparedStatement) {
       statement = ConfiguredStatement.of(preparedStatement, Collections.<String, Object>emptyMap(), ksqlConfig);
     }
 
     @Override
-    public boolean matches(ConfiguredStatement<T> matchStatement) {
+    public boolean matches(final ConfiguredStatement<T> matchStatement) {
       return statement.getStatementText().equals(matchStatement.getStatementText()) &&
           statement.getStatement().equals(matchStatement.getStatement());
     }
@@ -695,7 +696,7 @@ public class InteractiveStatementExecutorTest {
         .thenReturn(PreparedStatement.of(queryStatement, terminateAll));
 
     final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
-     PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+     final PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
 
     when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
 
@@ -928,7 +929,7 @@ public class InteractiveStatementExecutorTest {
         getCommandStatus(terminateCommandId2).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
-  private CommandStatus getCommandStatus(CommandId commandId) {
+  private CommandStatus getCommandStatus(final CommandId commandId) {
     final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
     assertThat("command not registered: " + commandId,
         commandStatus,

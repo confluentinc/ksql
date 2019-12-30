@@ -107,7 +107,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
       final JsonNode value = MAPPER.readTree(bytes);
       return enforceFieldType(this, physicalSchema.serializedSchema(), value);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new SerializationException(e);
     }
   }
@@ -137,7 +137,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     if (context.val instanceof ObjectNode) {
       try {
         return MAPPER.writeValueAsString(MAPPER.treeToValue(context.val, Object.class));
-      } catch (JsonProcessingException e) {
+      } catch (final JsonProcessingException e) {
         throw new KsqlException("Unexpected inability to write value as string: " + context.val);
       }
     }
@@ -186,7 +186,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
     final ObjectNode map = (ObjectNode) context.val;
     final Map<String, Object> ksqlMap = new HashMap<>(map.size());
-    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
       final Entry<String, JsonNode> e = it.next();
       ksqlMap.put(
           enforceFieldType(
@@ -210,7 +210,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     final ObjectNode jsonFields = (ObjectNode) context.val;
     final Map<String, JsonNode> upperCasedFields = upperCaseKeys(jsonFields);
 
-    for (Field ksqlField : context.schema.fields()) {
+    for (final Field ksqlField : context.schema.fields()) {
       // the "case insensitive" strategy leverages that all KSQL fields are internally
       // case sensitive - if they were specified without quotes, then they are upper-cased
       // during parsing. any ksql fields that are case insensitive, therefore, will be matched
@@ -235,7 +235,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private static Map<String, JsonNode> upperCaseKeys(final ObjectNode map) {
     final Map<String, JsonNode> result = new HashMap<>(map.size());
-    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
       final Entry<String, JsonNode> entry = it.next();
       // what happens if we have two fields with the same name and different case?
       result.put(entry.getKey().toUpperCase(), entry.getValue());

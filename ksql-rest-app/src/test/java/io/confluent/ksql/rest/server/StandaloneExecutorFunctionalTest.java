@@ -313,7 +313,7 @@ public class StandaloneExecutorFunctionalTest {
   private void givenScript(final String contents) {
     try {
       Files.write(queryFile, contents.getBytes(StandardCharsets.UTF_8));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new AssertionError("Failed to save query file", e);
     }
   }

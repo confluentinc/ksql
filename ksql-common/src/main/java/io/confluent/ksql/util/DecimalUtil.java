@@ -88,7 +88,7 @@ public final class DecimalUtil {
 
     try {
       return Integer.parseInt(scaleString);
-    } catch (NumberFormatException e) {
+    } catch (final NumberFormatException e) {
       throw new DataException("Invalid scale parameter found in Decimal schema: ", e);
     }
   }
@@ -106,7 +106,7 @@ public final class DecimalUtil {
 
     try {
       return Integer.parseInt(precisionString);
-    } catch (NumberFormatException e) {
+    } catch (final NumberFormatException e) {
       throw new DataException("Invalid precision parameter found in Decimal schema: ", e);
     }
   }

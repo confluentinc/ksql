@@ -48,7 +48,7 @@ public class ListFunctionsExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
+    final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
         new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),

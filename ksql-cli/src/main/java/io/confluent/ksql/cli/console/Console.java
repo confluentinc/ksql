@@ -250,7 +250,7 @@ public class Console implements Closeable {
       spoolFile = Optional.of(file);
       terminal.writer().println("Session will be spooled to " + file.getAbsolutePath());
       terminal.writer().println("Enter SPOOL OFF to disable");
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Cannot SPOOL to file: " + file, e);
     }
   }

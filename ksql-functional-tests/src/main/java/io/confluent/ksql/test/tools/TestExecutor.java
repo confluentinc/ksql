@@ -396,7 +396,7 @@ public class TestExecutor implements Closeable {
     final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
         .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
 
-    Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
+    final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
         serviceContext.getSchemaRegistryClient()
     );
 
@@ -546,7 +546,7 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriver topologyTestDriver,
       final Topic sinkTopic
   ) {
-    int idx = 0;
+    final int idx = 0;
     while (true) {
       final ProducerRecord<?, ?> producerRecord = readOutput(topologyTestDriver, sinkTopic, idx);
       if (producerRecord == null) {

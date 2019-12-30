@@ -22,8 +22,8 @@ import java.util.Optional;
 
 final class KsqlPlanV1 implements KsqlPlan {
   private final String statementText;
-  private Optional<DdlCommand> ddlCommand;
-  private Optional<QueryPlan> queryPlan;
+  private final Optional<DdlCommand> ddlCommand;
+  private final Optional<QueryPlan> queryPlan;
 
   KsqlPlanV1(
       @JsonProperty(value = "statementText", required = true) final String statementText,

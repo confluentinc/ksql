@@ -73,7 +73,7 @@ public class RequestHandler {
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-    for (ParsedStatement parsed : statements) {
+    for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared, scopedPropertyOverrides, ksqlConfig);

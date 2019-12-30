@@ -50,8 +50,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisher() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, null),
         subscriber,
@@ -60,7 +60,7 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
+    final Collection<String> results = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
@@ -73,8 +73,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisherLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, 2),
         subscriber,
@@ -83,8 +83,8 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
@@ -97,8 +97,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisherLimitTwoBatches() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, 5),
         subscriber,
@@ -107,8 +107,8 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
@@ -125,8 +125,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisherIntervalNoLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, 2, null),
         subscriber,
@@ -135,8 +135,8 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
@@ -151,8 +151,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisherIntervalAndLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, 2, 4),
         subscriber,
@@ -161,10 +161,10 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
-    Collection<String> results3 = subscription.poll();
-    Collection<String> results4 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
+    final Collection<String> results3 = subscription.poll();
+    final Collection<String> results4 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(

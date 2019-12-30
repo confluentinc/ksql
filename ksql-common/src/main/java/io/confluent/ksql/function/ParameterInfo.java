@@ -26,7 +26,12 @@ public final class ParameterInfo {
   private final String description;
   private final boolean isVariadic;
 
-  public ParameterInfo(String name, ParamType type, String description, boolean isVariadic) {
+  public ParameterInfo(
+      final String name,
+      final ParamType type,
+      final String description,
+      final boolean isVariadic
+  ) {
     this.name = name;
     this.type = type;
     this.description = description;

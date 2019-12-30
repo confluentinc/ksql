@@ -21,11 +21,11 @@ public final class ArrayType extends ObjectType {
 
   private final ParamType element;
 
-  private ArrayType(ParamType element) {
+  private ArrayType(final ParamType element) {
     this.element = element;
   }
 
-  public static ArrayType of(ParamType element) {
+  public static ArrayType of(final ParamType element) {
     return new ArrayType(element);
   }
 
@@ -34,14 +34,14 @@ public final class ArrayType extends ObjectType {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ArrayType arrayType = (ArrayType) o;
+    final ArrayType arrayType = (ArrayType) o;
     return Objects.equals(element, arrayType.element);
   }
 

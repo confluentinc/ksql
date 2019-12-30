@@ -29,15 +29,15 @@ public final class KGroupedTableHolder {
   private final LogicalSchema schema;
 
   private KGroupedTableHolder(
-      KGroupedTable<Struct, GenericRow> groupedTable,
-      LogicalSchema schema) {
+      final KGroupedTable<Struct, GenericRow> groupedTable,
+      final LogicalSchema schema) {
     this.groupedTable = Objects.requireNonNull(groupedTable, "groupedTable");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   public static KGroupedTableHolder of(
-      KGroupedTable<Struct, GenericRow> groupedTable,
-      LogicalSchema schema
+      final KGroupedTable<Struct, GenericRow> groupedTable,
+      final LogicalSchema schema
   ) {
     return new KGroupedTableHolder(groupedTable, schema);
   }

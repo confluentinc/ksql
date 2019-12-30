@@ -65,7 +65,7 @@ final class RunScript implements CliSpecificCommand {
     try {
       return Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8).stream()
           .collect(Collectors.joining(System.lineSeparator()));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Failed to read file: " + filePath, e);
     }
   }

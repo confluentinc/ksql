@@ -49,7 +49,7 @@ public class MetricCollectorsTest {
 
   private static final String TEST_TOPIC = "shared-topic";
 
-  private KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+  private final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
 
   @Before
   public void setUp() {

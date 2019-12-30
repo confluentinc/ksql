@@ -334,7 +334,7 @@ public class KsqlTargetTest {
   }
 
   private static MultivaluedMap<String, Object> authHeaders(final String value) {
-    MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+    final MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
     headers.add(HttpHeaders.AUTHORIZATION, value);
     return headers;
   }

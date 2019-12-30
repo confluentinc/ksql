@@ -52,51 +52,51 @@ public final class SqlTypeWalker {
 
   public interface Visitor<S, F> {
 
-    default S visitType(SqlType schema) {
+    default S visitType(final SqlType schema) {
       throw new UnsupportedOperationException("Unsupported sql type: " + schema);
     }
 
-    default S visitPrimitive(SqlPrimitiveType type) {
+    default S visitPrimitive(final SqlPrimitiveType type) {
       return visitType(type);
     }
 
-    default S visitBoolean(SqlPrimitiveType type) {
+    default S visitBoolean(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 
-    default S visitInt(SqlPrimitiveType type) {
+    default S visitInt(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 
-    default S visitBigInt(SqlPrimitiveType type) {
+    default S visitBigInt(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 
-    default S visitDouble(SqlPrimitiveType type) {
+    default S visitDouble(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 
-    default S visitString(SqlPrimitiveType type) {
+    default S visitString(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 
-    default S visitDecimal(SqlDecimal type) {
+    default S visitDecimal(final SqlDecimal type) {
       return visitType(type);
     }
 
-    default S visitArray(SqlArray type, S element) {
+    default S visitArray(final SqlArray type, final S element) {
       return visitType(type);
     }
 
-    default S visitMap(SqlMap type, S value) {
+    default S visitMap(final SqlMap type, final S value) {
       return visitType(type);
     }
 
-    default S visitStruct(SqlStruct type, List<? extends F> fields) {
+    default S visitStruct(final SqlStruct type, final List<? extends F> fields) {
       return visitType(type);
     }
 
-    default F visitField(Field field, S type) {
+    default F visitField(final Field field, final S type) {
       return null;
     }
   }

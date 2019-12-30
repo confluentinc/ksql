@@ -465,7 +465,7 @@ public class RestTestExecutor implements Closeable {
     try {
       // More reliable than Thread.yield
       Thread.sleep(1);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       // ignore
     }
   }

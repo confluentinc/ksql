@@ -55,7 +55,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
       limitTotalMemory(pluginConfig);
       configureNumThreads(pluginConfig, options);
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       reset();
       throw e;
     }

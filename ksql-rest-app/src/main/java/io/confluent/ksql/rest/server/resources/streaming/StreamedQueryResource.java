@@ -285,7 +285,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private String writeValueAsString(final Object object) {
     try {
       return objectMapper.writeValueAsString(object);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }

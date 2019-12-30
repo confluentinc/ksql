@@ -54,14 +54,14 @@ public class PropertiesList extends KsqlEntity {
     }
 
     @Override
-    public boolean equals(Object object) {
+    public boolean equals(final Object object) {
       if (this == object) {
         return true;
       }
       if (object == null || getClass() != object.getClass()) {
         return false;
       }
-      Property that = (Property) object;
+      final Property that = (Property) object;
       return Objects.equals(name, that.name)
           && Objects.equals(scope, that.scope)
           && Objects.equals(value, that.value);

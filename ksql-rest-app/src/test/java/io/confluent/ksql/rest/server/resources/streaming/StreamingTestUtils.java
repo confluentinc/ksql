@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -38,7 +39,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
 
-class StreamingTestUtils {
+final class StreamingTestUtils {
 
   private StreamingTestUtils() { /* private constructor for utility class */ }
 
@@ -65,10 +66,10 @@ class StreamingTestUtils {
         .iterator();
   }
 
-  private static <K, V> ConsumerRecords<K, V> combine(List<ConsumerRecords<K,V>> recordsList) {
+  private static <K, V> ConsumerRecords<K, V> combine(final List<ConsumerRecords<K,V>> recordsList) {
     final Map<TopicPartition, List<ConsumerRecord<K, V>>> recordMap = new HashMap<>();
-    for (ConsumerRecords<K, V> records : recordsList) {
-      for (TopicPartition tp : records.partitions()) {
+    for (final ConsumerRecords<K, V> records : recordsList) {
+      for (final TopicPartition tp : records.partitions()) {
         recordMap.computeIfAbsent(tp, ignored -> new ArrayList<>()).addAll(records.records(tp));
       }
     }
@@ -91,11 +92,11 @@ class StreamingTestUtils {
 
   static class TestSubscriber<T> implements Subscriber<T> {
 
-    CountDownLatch done = new CountDownLatch(1);
-    Throwable error = null;
-    List<T> elements = Lists.newLinkedList();
-    LogicalSchema schema = null;
-    Subscription subscription;
+    private final CountDownLatch done = new CountDownLatch(1);
+    private final List<T> elements = Lists.newLinkedList();
+    private Throwable error = null;
+    private LogicalSchema schema = null;
+    private Subscription subscription;
 
     @Override
     public void onNext(final T item) {
@@ -135,6 +136,26 @@ class StreamingTestUtils {
     public void onSubscribe(final Subscription subscription) {
       this.subscription = subscription;
       subscription.request(1);
+    }
+
+    public Throwable getError() {
+      return error;
+    }
+
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    public List<T> getElements() {
+      return elements;
+    }
+
+    public boolean await() {
+      try {
+        return done.await(10, TimeUnit.SECONDS);
+      } catch (final InterruptedException e) {
+        throw new AssertionError("Test interrupted", e);
+      }
     }
   }
 }

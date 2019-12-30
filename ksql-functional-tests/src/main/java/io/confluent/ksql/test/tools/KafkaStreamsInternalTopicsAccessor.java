@@ -36,7 +36,7 @@ final class KafkaStreamsInternalTopicsAccessor {
   ) {
     try {
       return (Set<String>) INTERNAL_TOPICS_FIELD.get(topologyTestDriver);
-    } catch (IllegalAccessException e) {
+    } catch (final IllegalAccessException e) {
       throw new AssertionError("Failed to get internal topic names", e);
     }
   }

@@ -90,7 +90,7 @@ public class JsonArrayContains {
       }
 
       return false;
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return false;
     }
   }

@@ -75,7 +75,7 @@ public final class AvroUtil {
       return schemaRegistryClient
           .getLatestSchemaMetadata(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
           .getSchema();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       return "Could not get registered schema due to exception: " + e.getMessage();
     }
   }

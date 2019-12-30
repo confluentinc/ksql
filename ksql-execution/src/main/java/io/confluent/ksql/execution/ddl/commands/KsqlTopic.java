@@ -28,7 +28,11 @@ public class KsqlTopic {
   private final KeyFormat keyFormat;
   private final ValueFormat valueFormat;
 
-  public KsqlTopic(String kafkaTopicName, KeyFormat keyFormat, ValueFormat valueFormat) {
+  public KsqlTopic(
+      final String kafkaTopicName,
+      final KeyFormat keyFormat,
+      final ValueFormat valueFormat
+  ) {
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = requireNonNull(valueFormat, "valueFormat");

@@ -17,7 +17,7 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
   }
 
   @Override
-  public void initialize(KsqlConfig ksqlConfig) {
+  public void initialize(final KsqlConfig ksqlConfig) {
   }
 
   @Override

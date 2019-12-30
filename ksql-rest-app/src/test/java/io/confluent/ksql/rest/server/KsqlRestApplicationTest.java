@@ -317,8 +317,8 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotInitializeUntilPreconditionsChecked() {
     // Given:
-    KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
-    KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
+    final KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
+    final KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
     final Queue<KsqlErrorMessage> errors = new LinkedList<>();
     errors.add(error1);
     errors.add(error2);

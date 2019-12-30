@@ -146,7 +146,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedTable() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT * FROM " + USER_TABLE + ";"
     );
@@ -161,7 +161,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE STREAM " + output + " AS"
             + " SELECT * FROM " + USER_STREAM + ";"
     );
@@ -179,7 +179,7 @@ public class KsMaterializationFunctionalTest {
     try (TestKsqlContext ksqlNoAppServer = TEST_HARNESS.ksqlContextBuilder().build()) {
       initializeKsql(ksqlNoAppServer);
 
-      PersistentQueryMetadata query = executeQuery(
+      final PersistentQueryMetadata query = executeQuery(
           ksqlNoAppServer,
           "CREATE TABLE " + output + " AS"
               + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
@@ -197,7 +197,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedTable() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -231,7 +231,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedStream() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " GROUP BY USERID;"
@@ -265,7 +265,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForTumblingWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -310,7 +310,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForHoppingWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
@@ -355,7 +355,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForSessionWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -399,7 +399,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWithKeyFieldsInProjection() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -436,7 +436,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWitMultipleAggregationColumns() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -472,7 +472,7 @@ public class KsMaterializationFunctionalTest {
     // Note: HAVING clause are handled centrally by KsqlMaterialization
 
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
             + " GROUP BY USERID"

@@ -52,6 +52,59 @@
       ]
     },
     {
+      "name": "non-windowed single key lookup - BIGINT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed single key lookup - DOUBLE",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10.0;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.0, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10.0, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.0, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.0, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
       "name": "lookup on wrong type type",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",

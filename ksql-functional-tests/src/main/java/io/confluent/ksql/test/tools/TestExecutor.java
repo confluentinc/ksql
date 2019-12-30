@@ -26,42 +26,27 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.DurationParser;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
-import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.TestFrameworkException;
-import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
+import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.HashSet;
@@ -69,19 +54,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
@@ -99,21 +79,13 @@ public class TestExecutor implements Closeable {
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 
-  private static final Pattern INTERNAL_TOPIC_PATTERN = Pattern
-      .compile("_confluent.*query_(.*_\\d+)-.*-(changelog|repartition)");
-
-  private static final Pattern WINDOWED_JOIN_PATTERN = Pattern
-      .compile(
-          "CREATE .* JOIN .* WITHIN (\\d+ \\w+) ON .*",
-          Pattern.CASE_INSENSITIVE | Pattern.DOTALL
-      );
-
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
   private final Map<String, ?> config = baseConfig();
   private final StubKafkaService stubKafkaService;
   private final TopologyBuilder topologyBuilder;
   private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
+  private final TopicInfoCache topicInfoCache;
 
   public TestExecutor() {
     this(StubKafkaService.create(), getServiceContext());
@@ -132,6 +104,7 @@ public class TestExecutor implements Closeable {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
     this.internalTopicsAccessor = requireNonNull(internalTopicsAccessor, "internalTopicsAccessor");
+    this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
   private TestExecutor(
@@ -148,6 +121,8 @@ public class TestExecutor implements Closeable {
   }
 
   public void buildAndExecuteQuery(final TestCase testCase) {
+
+    topicInfoCache.clear();
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
@@ -171,7 +146,7 @@ public class TestExecutor implements Closeable {
       writeInputIntoTopics(testCase.getInputRecords(), stubKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
-          .map(record -> record.topic.getName())
+          .map(record -> record.getTopic().getName())
           .collect(Collectors.toSet());
 
       final Set<String> allTopicNames = new HashSet<>();
@@ -251,10 +226,10 @@ public class TestExecutor implements Closeable {
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
 
-    final Function<Object, Object> keyCoercer = keyCoercerForTopic(topicName);
+    final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
     for (int i = 0; i < expected.size(); i++) {
-      final Record expectedRecord = coerceRecordKey(expected.get(i), i, keyCoercer);
+      final Record expectedRecord = topicInfo.coerceRecordKey(expected.get(i), i);
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
 
       validateCreatedMessage(
@@ -265,153 +240,6 @@ public class TestExecutor implements Closeable {
           i
       );
     }
-  }
-
-  /**
-   * Coerce the key value to the correct type.
-   *
-   * <p>The type of the key loaded from the JSON test case file may not be the exact match on type,
-   * e.g. JSON will load a small number as an integer, but the key type of the source might be a
-   * long.
-   *
-   * @param record the record to coerce
-   * @param msgIndex the index of the message, displayed in the error message
-   * @param keyCoercer keyCoercer to use
-   * @return a new Record with the correct key type.
-   */
-  private static Record coerceRecordKey(
-      final Record record,
-      final int msgIndex,
-      final Function<Object, Object> keyCoercer
-  ) {
-    try {
-      final Object coerced = keyCoercer.apply(record.rawKey());
-      return record.withKey(coerced);
-    } catch (final Exception e) {
-      throw new AssertionError(
-          "Topic '" + record.topic.getName() + "', message " + msgIndex
-              + ": Invalid test-case: could not coerce key in test case to required type. "
-              + e.getMessage(),
-          e);
-    }
-  }
-
-  private Function<Object, Object> keyCoercerForTopic(final String topicName) {
-    final TopicInfo topicInfo = getTopicInfo(topicName);
-
-    final SqlType keyType = topicInfo
-        .getSchema()
-        .key()
-        .get(0)
-        .type();
-
-    return key -> {
-      if (key == null) {
-        return null;
-      }
-
-      return DefaultSqlValueCoercer.INSTANCE
-          .coerce(key, keyType)
-          .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
-              + System.lineSeparator()
-              + "Expected KeyType: " + keyType
-              + System.lineSeparator()
-              + "Actual KeyType: " + SchemaConverters.javaToSqlConverter().toSqlType(key.getClass())
-              + ", key: " + key + "."
-              + System.lineSeparator()
-              + "This is likely caused by the key type in the test-case not matching the schema."));
-    };
-  }
-
-  private TopicInfo getTopicInfo(final String topicName) {
-    try {
-      final java.util.regex.Matcher matcher = INTERNAL_TOPIC_PATTERN.matcher(topicName);
-      if (matcher.matches()) {
-        // Internal topic:
-        final QueryId queryId = new QueryId(matcher.group(1));
-        final PersistentQueryMetadata query = ksqlEngine
-            .getPersistentQuery(queryId)
-            .orElseThrow(() -> new TestFrameworkException("Unknown queryId for internal topic: "
-                + queryId));
-
-        final java.util.regex.Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
-            .matcher(query.getStatementString());
-
-        final OptionalLong changeLogWindowSize = topicName.endsWith("-changelog")
-            && windowedJoinMatcher.matches()
-            ? OptionalLong.of(DurationParser.parse(windowedJoinMatcher.group(1)).toMillis())
-            : OptionalLong.empty();
-
-        return new TopicInfo(
-            query.getLogicalSchema(),
-            query.getResultTopic().getKeyFormat(),
-            changeLogWindowSize
-        );
-      }
-
-      // Source / sink topic:
-      final Set<TopicInfo> keyTypes = ksqlEngine.getMetaStore().getAllDataSources().values()
-          .stream()
-          .filter(source -> source.getKafkaTopicName().equals(topicName))
-          .map(source -> new TopicInfo(
-              source.getSchema(),
-              source.getKsqlTopic().getKeyFormat(),
-              OptionalLong.empty()
-          ))
-          .collect(Collectors.toSet());
-
-      if (keyTypes.isEmpty()) {
-        throw new TestFrameworkException("no source found for topic");
-      }
-
-      return Iterables.get(keyTypes, 0);
-    } catch (final Exception e) {
-      throw new TestFrameworkException("Failed to determine key type for"
-          + System.lineSeparator() + "topic: " + topicName
-          + System.lineSeparator() + "reason: " + e.getMessage(), e);
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private Serializer<Object> getKeySerializer(final String topicName) {
-    final TopicInfo topicInfo = getTopicInfo(topicName);
-
-    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
-        .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
-
-    final Serializer<?> serializer = keySerdeSupplier.getSerializer(
-        serviceContext.getSchemaRegistryClient()
-    );
-
-    serializer.configure(ImmutableMap.of(
-        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
-    ), true);
-
-    return (Serializer) serializer;
-  }
-
-  private Deserializer<?> getKeyDeserializer(final String topicName) {
-    final TopicInfo topicInfo = getTopicInfo(topicName);
-
-    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
-        .getKeySerdeSupplier(topicInfo.getKeyFormat(), topicInfo::getSchema);
-
-    Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(
-        serviceContext.getSchemaRegistryClient()
-    );
-
-    deserializer.configure(ImmutableMap.of(), true);
-
-    if (!topicInfo.getChangeLogWindowSize().isPresent()) {
-      return deserializer;
-    }
-
-    final TimeWindowedDeserializer<?> changeLogDeserializer = new TimeWindowedDeserializer<>(
-        deserializer, topicInfo.getChangeLogWindowSize().getAsLong());
-
-    changeLogDeserializer.setIsChangelogTopic(true);
-
-    return changeLogDeserializer;
   }
 
   private static String getActualsForErrorMessage(final List<StubKafkaRecord> actual) {
@@ -462,13 +290,11 @@ public class TestExecutor implements Closeable {
 
     int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
-      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
+      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.getTopic().getName())) {
 
-        final Record coerced = coerceRecordKey(
-            record,
-            inputRecordIndex,
-            keyCoercerForTopic(record.topic.getName())
-        );
+        final TopicInfo topicInfo = topicInfoCache.get(record.getTopic().getName());
+
+        final Record coerced = topicInfo.coerceRecordKey(record, inputRecordIndex);
 
         processSingleRecord(
             StubKafkaRecord.of(coerced, null),
@@ -493,35 +319,28 @@ public class TestExecutor implements Closeable {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private void processSingleRecord(
       final StubKafkaRecord inputRecord,
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
     final Topic recordTopic = stubKafkaService
-        .getTopic(inputRecord.getTestRecord().topic.getName());
+        .getTopic(inputRecord.getTestRecord().getTopic().getName());
 
-    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
-
-    final Serializer<Object> keySerializer = getKeySerializer(recordTopic.getName());
-
-    final Serializer<Object> valueSerializer =
-        recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
-            ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
-            : recordTopic.getValueSerializer(schemaRegistryClient);
+    final TopicInfo topicInfo = topicInfoCache.get(recordTopic.getName());
 
     final Object key = getKey(inputRecord);
     final ConsumerRecord<byte[], byte[]> consumerRecord =
         new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-            keySerializer,
-            valueSerializer
+            topicInfo.getKeySerializer(),
+            topicInfo.getValueSerializer()
         ).create(
             recordTopic.getName(),
             key,
             inputRecord.getTestRecord().value(),
             inputRecord.getTestRecord().timestamp().orElse(0L)
         );
+
     testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
 
     final Topic sinkTopic = testDriver.getSinkTopic();
@@ -562,17 +381,18 @@ public class TestExecutor implements Closeable {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private ProducerRecord<?, ?> readOutput(
       final TopologyTestDriver topologyTestDriver,
       final Topic sinkTopic,
       final int idx
   ) {
     try {
+      final TopicInfo topicInfo = topicInfoCache.get(sinkTopic.getName());
+
       return topologyTestDriver.readOutput(
           sinkTopic.getName(),
-          getKeyDeserializer(sinkTopic.getName()),
-          sinkTopic.getValueDeserializer(serviceContext.getSchemaRegistryClient())
+          topicInfo.getKeyDeserializer(),
+          topicInfo.getValueDeserializer()
       );
     } catch (final Exception e) {
       throw new AssertionError("Topic " + sinkTopic.getName()
@@ -631,7 +451,7 @@ public class TestExecutor implements Closeable {
   ) {
     inputRecords.forEach(
         record -> stubKafkaService.writeRecord(
-            record.topic.getName(),
+            record.getTopic().getName(),
             StubKafkaRecord.of(record, null))
     );
   }
@@ -682,53 +502,5 @@ public class TestExecutor implements Closeable {
         KsqlConfig ksqlConfig,
         StubKafkaService stubKafkaService
     );
-  }
-
-  @Immutable
-  private static final class TopicInfo {
-
-    private final LogicalSchema schema;
-    private final KeyFormat keyFormat;
-    private final OptionalLong changeLogWindowSize;
-
-    TopicInfo(
-        final LogicalSchema schema,
-        final KeyFormat keyFormat,
-        final OptionalLong changeLogWindowSize
-    ) {
-      this.schema = requireNonNull(schema, "schema");
-      this.keyFormat = requireNonNull(keyFormat, "keyFormat");
-      this.changeLogWindowSize = requireNonNull(changeLogWindowSize, "changeLogWindowSize");
-    }
-
-    public KeyFormat getKeyFormat() {
-      return keyFormat;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
-    }
-
-    public OptionalLong getChangeLogWindowSize() {
-      return changeLogWindowSize;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final TopicInfo topicInfo = (TopicInfo) o;
-      return Objects.equals(schema, topicInfo.schema)
-          && Objects.equals(keyFormat, topicInfo.keyFormat);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(schema, keyFormat);
-    }
   }
 }

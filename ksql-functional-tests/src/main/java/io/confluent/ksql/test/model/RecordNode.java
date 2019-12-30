@@ -23,7 +23,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -69,7 +70,7 @@ public final class RecordNode {
   public Record build(final Map<String, Topic> topics) {
     final Topic topic = topics.get(topicName);
 
-    final Object recordValue = buildValue(topic);
+    final Object recordValue = buildValue();
 
     return new Record(
         topic,
@@ -85,12 +86,12 @@ public final class RecordNode {
     return window;
   }
 
-  private Object buildValue(final Topic topic) {
-    if (value.asText().equals("null")) {
+  private Object buildValue() {
+    if (value instanceof NullNode) {
       return null;
     }
 
-    if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
+    if (value instanceof TextNode) {
       return value.asText();
     }
 

@@ -236,6 +236,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     initialize();
   }
 
+  @VisibleForTesting
+  KsqlEngine getEngine() {
+    return ksqlEngine;
+  }
+
   private static final class KsqlFailedPrecondition extends RuntimeException {
 
     private KsqlFailedPrecondition(final String message) {

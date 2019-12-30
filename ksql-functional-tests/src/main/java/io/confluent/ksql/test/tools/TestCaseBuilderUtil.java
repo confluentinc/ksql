@@ -23,32 +23,22 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
-import io.confluent.ksql.test.model.WindowData;
-import io.confluent.ksql.test.model.WindowData.Type;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +47,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -105,7 +94,6 @@ public final class TestCaseBuilderUtil {
       final List<TopicNode> topics,
       final List<RecordNode> outputs,
       final List<RecordNode> inputs,
-      final Optional<String> defaultFormat,
       final boolean expectsException,
       final FunctionRegistry functionRegistry
   ) {
@@ -113,7 +101,7 @@ public final class TestCaseBuilderUtil {
 
     // Add all topics from topic nodes to the map:
     topics.stream()
-        .map(node -> node.build(defaultFormat))
+        .map(TopicNode::build)
         .forEach(topic -> allTopics.put(topic.getName(), topic));
 
     // Infer topics if not added already:
@@ -129,19 +117,9 @@ public final class TestCaseBuilderUtil {
       throw new InvalidFieldException("statements/topics", "The test does not define any topics");
     }
 
-    final SerdeSupplier<?> defaultValueSerdeSupplier =
-        allTopics.values().iterator().next().getValueSerdeSupplier();
-
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(recordNode -> new Topic(
-            recordNode.topicName(),
-            Optional.empty(),
-            getKeySerdeSupplier(recordNode.getWindow()),
-            defaultValueSerdeSupplier,
-            4,
-            1
-        ))
+        .map(recordNode -> new Topic(recordNode.topicName(), 4, 1, Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics;
@@ -163,14 +141,6 @@ public final class TestCaseBuilderUtil {
 
       final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
 
-      final KeyFormat keyFormat = ksqlTopic.getKeyFormat();
-
-      final Supplier<LogicalSchema> logicalSchemaSupplier =
-          () -> statement.getElements().toLogicalSchema(true);
-
-      final SerdeSupplier<?> keySerdeSupplier =
-          SerdeUtil.getKeySerdeSupplier(keyFormat, logicalSchemaSupplier);
-
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<org.apache.avro.Schema> avroSchema;
       if (valueFormat.getFormat() == Format.AVRO) {
@@ -186,18 +156,11 @@ public final class TestCaseBuilderUtil {
         avroSchema = Optional.empty();
       }
 
-      final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-          valueFormat.getFormat(),
-          logicalSchemaSupplier
-      );
-
       return new Topic(
           ksqlTopic.getKafkaTopicName(),
-          avroSchema,
-          keySerdeSupplier,
-          valueSerdeSupplier,
           KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount
+          KsqlConstants.legacyDefaultSinkReplicaCount,
+          avroSchema
       );
     };
 
@@ -220,30 +183,6 @@ public final class TestCaseBuilderUtil {
       e.printStackTrace(System.out);
       return null;
     }
-  }
-
-  private static SerdeSupplier<?> getKeySerdeSupplier(final Optional<WindowData> windowDataInfo) {
-    if (windowDataInfo.isPresent()) {
-      final WindowData windowData = windowDataInfo.get();
-      final WindowType windowType = WindowType.of((windowData.type == Type.SESSION)
-          ? WindowType.SESSION.name()
-          : WindowType.TUMBLING.name());
-      final KeyFormat windowKeyFormat = KeyFormat.windowed(
-          FormatInfo.of(
-            Format.KAFKA,
-            Optional.empty(),
-            Optional.empty()
-          ),
-          WindowInfo.of(
-              windowType,
-              windowType == WindowType.SESSION
-                  ? Optional.empty() : Optional.of(Duration.ofMillis(windowData.size())))
-      );
-      return SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
-    }
-    return SerdeUtil.getKeySerdeSupplier(
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        () -> LogicalSchema.builder().build());
   }
 
   private static Schema addNames(final Schema schema) {

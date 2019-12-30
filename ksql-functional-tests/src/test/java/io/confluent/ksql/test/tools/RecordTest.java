@@ -21,13 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -44,117 +37,10 @@ public class RecordTest {
   private Topic topic;
 
   @Test
-  public void shouldGetCorrectStringKeySerializer() {
-    // Given:
-    final Record record = new Record(
-        topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        null
-    );
-
-    // When:
-    final Serializer<?> serializer = record.keySerializer();
-
-    // Then:
-    assertThat(serializer, instanceOf(Serdes.String().serializer().getClass()));
-  }
-
-  @Test
-  public void shouldGetCorrectTimeWondowedKeySerializer() {
+  public void shouldGetKey() {
     // Given:
     final Record record = new Record(topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        new WindowData(100L, 1000L, "TIME"));
-
-    // When:
-    final Serializer<?> serializer = record.keySerializer();
-
-    // Then:
-    assertThat(serializer, instanceOf(TimeWindowedSerializer.class));
-  }
-
-  @Test
-  public void shouldGetCorrectSessionWindowedKeySerializer() {
-    // Given:
-    final Record record = new Record(topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        new WindowData(100L, 1000L, "SESSION"));
-
-    // When:
-    final Serializer<?> serializer = record.keySerializer();
-
-    // Then:
-    assertThat(serializer, instanceOf(SessionWindowedSerializer.class));
-  }
-
-  @Test
-  public void shouldGetCorrectStringKeyDeserializer() {
-    // Given:
-    final Record record = new Record(topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        null);
-
-    // When:
-    final Deserializer deserializer = record.keyDeserializer();
-
-    // Then:
-    assertThat(deserializer, instanceOf(Serdes.String().deserializer().getClass()));
-
-  }
-
-  @Test
-  public void shouldGetCorrectTimedWindowKeyDeserializer() {
-    // Given:
-    final Record record = new Record(topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        new WindowData(100L, 1000L, "TIME"));
-
-    // When:
-    final Deserializer deserializer = record.keyDeserializer();
-
-    // Then:
-    assertThat(deserializer, instanceOf(TimeWindowedDeserializer.class));
-
-  }
-
-  @Test
-  public void shouldGetCorrectSessionedWindowKeyDeserializer() {
-    // Given:
-    final Record record = new Record(topic,
-        "foo",
-        "bar",
-        null,
-        Optional.of(1000L),
-        new WindowData(100L, 1000L, "SESSION"));
-
-    // When:
-    final Deserializer deserializer = record.keyDeserializer();
-
-    // Then:
-    assertThat(deserializer, instanceOf(SessionWindowedDeserializer.class));
-
-  }
-
-  @Test
-  public void shouldGetStringKey() {
-    // Given:
-    final Record record = new Record(topic,
-        "foo",
+        10,
         "bar",
         null,
         Optional.of(1000L),
@@ -164,9 +50,8 @@ public class RecordTest {
     final Object key = record.key();
 
     // Then:
-    assertThat(key, equalTo("foo"));
+    assertThat(key, equalTo(10));
   }
-
 
   @Test
   public void shouldGetTimeWindowKey() {
@@ -209,5 +94,4 @@ public class RecordTest {
     assertThat(windowed.window().start(), equalTo(100L));
     assertThat(windowed.window().end(), equalTo(1000L));
   }
-
 }

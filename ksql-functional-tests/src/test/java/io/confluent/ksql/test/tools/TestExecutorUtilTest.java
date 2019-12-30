@@ -27,7 +27,6 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
@@ -74,14 +73,7 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldPlanTestCase() {
     // Given:
-    final Topic sourceTopic = new Topic(
-        "test_topic",
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new StringSerdeSupplier(),
-        1,
-        1
-    );
+    final Topic sourceTopic = new Topic("test_topic", 1, 1, Optional.empty());
 
     stubKafkaService.createTopic(sourceTopic);
 
@@ -113,15 +105,12 @@ public class TestExecutorUtilTest {
 
   @Test
   public void shouldBuildStreamsTopologyTestDrivers() {
-
     // Given:
     final Topic sourceTopic = new Topic(
         "test_topic",
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new StringSerdeSupplier(),
         1,
-        1
+        1,
+        Optional.empty()
     );
 
     stubKafkaService.createTopic(sourceTopic);

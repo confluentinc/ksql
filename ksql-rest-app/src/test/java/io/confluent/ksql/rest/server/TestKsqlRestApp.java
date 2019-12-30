@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -100,6 +101,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private final List<URL> listeners = new ArrayList<>();
   private final Optional<BasicCredentials> credentials;
   private ExecutableServer<KsqlRestConfig> restServer;
+  private KsqlExecutionContext ksqlEngine;
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
@@ -114,6 +116,10 @@ public class TestKsqlRestApp extends ExternalResource {
     this.serviceContextBinderFactory =
         requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.credentials = requireNonNull(credentials, "credentials");
+  }
+
+  public KsqlExecutionContext getEngine() {
+    return ksqlEngine;
   }
 
   public List<URL> getListeners() {
@@ -261,6 +267,8 @@ public class TestKsqlRestApp extends ExternalResource {
     } catch (Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
+
+    ksqlEngine = ksqlRestApplication.getEngine();
   }
 
   @Override

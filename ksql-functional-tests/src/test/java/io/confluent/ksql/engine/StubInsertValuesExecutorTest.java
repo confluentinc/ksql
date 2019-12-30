@@ -23,9 +23,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
-import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
@@ -49,6 +48,8 @@ public final class StubInsertValuesExecutorTest {
 
   @Mock
   private StubKafkaService stubKafkaService;
+  @Mock
+  private KsqlExecutionContext executionContext;
   @Captor
   private ArgumentCaptor<StubKafkaRecord> recordCaptor;
   private StubProducer stubProducer;
@@ -57,14 +58,12 @@ public final class StubInsertValuesExecutorTest {
   public void setUp() {
     when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new StringSerdeSupplier(),
         1,
-        1
+        1,
+        Optional.empty()
     ));
 
-    stubProducer = new StubProducer(stubKafkaService);
+    stubProducer = new StubProducer(stubKafkaService, executionContext);
   }
 
   @Test
@@ -122,11 +121,9 @@ public final class StubInsertValuesExecutorTest {
 
     when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new AvroSerdeSupplier(),
         1,
-        1
+        1,
+        Optional.empty()
     ));
 
     final long timestamp = 22L;

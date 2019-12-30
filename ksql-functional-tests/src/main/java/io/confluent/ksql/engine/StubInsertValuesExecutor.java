@@ -15,16 +15,15 @@
 
 package io.confluent.ksql.engine;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.TopicInfoCache;
+import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -34,54 +33,75 @@ public final class StubInsertValuesExecutor {
   private StubInsertValuesExecutor() {
   }
 
-  public static InsertValuesExecutor of(final StubKafkaService stubKafkaService) {
-    final StubProducer stubProducer = new StubProducer(stubKafkaService);
+  public static InsertValuesExecutor of(
+      final StubKafkaService stubKafkaService,
+      final KsqlExecutionContext executionContext
+  ) {
+    final StubProducer stubProducer = new StubProducer(stubKafkaService, executionContext);
 
     return new InsertValuesExecutor(
         false,
-        (record, ignored1, ingnored2) -> stubProducer.sendRecord(record));
+        (record, ignored1, ignored2) -> stubProducer.sendRecord(record));
   }
 
   @VisibleForTesting
   static class StubProducer {
 
     private final StubKafkaService stubKafkaService;
+    private final TopicInfoCache topicInfoCache;
 
-    StubProducer(final StubKafkaService stubKafkaService) {
+    StubProducer(
+        final StubKafkaService stubKafkaService,
+        final KsqlExecutionContext executionContext
+    ) {
       this.stubKafkaService = Objects.requireNonNull(stubKafkaService, "stubKafkaService");
+      this.topicInfoCache = new TopicInfoCache(
+          executionContext,
+          executionContext.getServiceContext().getSchemaRegistryClient()
+      );
     }
 
     void sendRecord(final ProducerRecord<byte[], byte[]> record) {
-      final Object value = getValue(record);
+      final Topic topic = stubKafkaService.getTopic(record.topic());
+
+      final Object key = deserializeKey(record);
+
+      final Object value = deserializeValue(record);
+
+      final Optional<Long> timestamp = Optional.of(record.timestamp());
 
       this.stubKafkaService.writeRecord(record.topic(),
           StubKafkaRecord.of(
               new Record(
-                  stubKafkaService.getTopic(record.topic()),
-                  new String(record.key(), StandardCharsets.UTF_8),
+                  topic,
+                  key,
                   value,
                   null,
-                  Optional.of(record.timestamp()),
+                  timestamp,
                   null
               ),
               null)
       );
     }
 
-    private Object getValue(final ProducerRecord<byte[], byte[]> record) {
-      final Topic topic = stubKafkaService.getTopic(record.topic());
-
-      final Object value;
-      if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
-        value = new String(record.value(), StandardCharsets.UTF_8);
-      } else {
-        try {
-          value = new ObjectMapper().readValue(record.value(), Object.class);
-        } catch (final IOException e) {
-          throw new InvalidFieldException("value", "failed to parse", e);
-        }
+    private Object deserializeKey(final ProducerRecord<byte[], byte[]> record) {
+      try {
+        final TopicInfo topicInfo = topicInfoCache.get(record.topic());
+        return topicInfo.getKeyDeserializer()
+            .deserialize(record.topic(), record.key());
+      } catch (final Exception e) {
+        throw new InvalidFieldException("key", "failed to parse", e);
       }
-      return value;
+    }
+
+    private Object deserializeValue(final ProducerRecord<byte[], byte[]> record) {
+      try {
+        final TopicInfo topicInfo = topicInfoCache.get(record.topic());
+        return topicInfo.getValueDeserializer()
+            .deserialize(record.topic(), record.value());
+      } catch (final Exception e) {
+        throw new InvalidFieldException("value", "failed to parse", e);
+      }
     }
   }
 }

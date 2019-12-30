@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
@@ -29,7 +30,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.engine.QueryPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
@@ -46,9 +46,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -61,7 +59,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -157,23 +154,11 @@ public final class TestExecutorUtil {
     final Optional<org.apache.avro.Schema> avroSchema =
         getAvroSchema(sinkDataSource, schemaRegistryClient);
 
-    final SerdeSupplier<?> keySerdeFactory = SerdeUtil.getKeySerdeSupplier(
-        sinkDataSource.getKsqlTopic().getKeyFormat(),
-        sinkDataSource::getSchema
-    );
-
-    final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),
-        sinkDataSource::getSchema
-    );
-
     final Topic sinkTopic = new Topic(
         kafkaTopicName,
-        avroSchema,
-        keySerdeFactory,
-        valueSerdeSupplier,
         KsqlConstants.legacyDefaultSinkPartitionCount,
-        KsqlConstants.legacyDefaultSinkReplicaCount
+        KsqlConstants.legacyDefaultSinkReplicaCount,
+        avroSchema
     );
 
     if (stubKafkaService.topicExists(sinkTopic)) {
@@ -233,7 +218,7 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getAvroSchema().ifPresent(schema -> {
         try {
           srClient
               .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
@@ -247,6 +232,7 @@ public final class TestExecutorUtil {
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
   private static List<PersistentQueryAndSources> execute(
       final KsqlEngine engine,
       final TestCase testCase,
@@ -258,18 +244,17 @@ public final class TestExecutorUtil {
     for (final ConfiguredKsqlPlan plan
         : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
       final ExecuteResultAndSources result = executePlan(engine, plan);
-      if (result.getSources() == null) {
+      if (!result.getSources().isPresent()) {
         continue;
       }
       queriesBuilder.add(new PersistentQueryAndSources(
           (PersistentQueryMetadata) result.getExecuteResult().getQuery().get(),
-          result.getSources()
+          result.getSources().get()
       ));
     }
     return queriesBuilder.build();
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   private static ExecuteResultAndSources executePlan(
       final KsqlExecutionContext executionContext,
       final ConfiguredKsqlPlan plan
@@ -278,17 +263,11 @@ public final class TestExecutorUtil {
         executionContext.getServiceContext(),
         plan
     );
-    final Optional<QueryPlan> maybeQueryPlan = plan.getPlan().getQueryPlan();
-    if (maybeQueryPlan.isPresent()) {
-      return new ExecuteResultAndSources(
-          executeResult,
-          getSources(maybeQueryPlan.get().getSources(), executionContext.getMetaStore())
-      );
-    }
-    return new ExecuteResultAndSources(
-        executeResult,
-        null
-    );
+
+    final Optional<List<DataSource<?>>> dataSources = plan.getPlan().getQueryPlan()
+        .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
+
+    return new ExecuteResultAndSources(executeResult, dataSources);
   }
 
   private static List<DataSource<?>> getSources(
@@ -322,12 +301,12 @@ public final class TestExecutorUtil {
         final StubKafkaService stubKafkaService,
         final Optional<DefaultSchemaInjector> schemaInjector
     ) {
-      this.statements = Objects.requireNonNull(statements, "statements");
-      this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-      this.overrides = Objects.requireNonNull(overrides, "overrides");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.stubKafkaService = Objects.requireNonNull(stubKafkaService, "stubKafkaService");
-      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
+      this.statements = requireNonNull(statements, "statements");
+      this.executionContext = requireNonNull(executionContext, "executionContext");
+      this.overrides = requireNonNull(overrides, "overrides");
+      this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+      this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
+      this.schemaInjector = requireNonNull(schemaInjector, "schemaInjector");
     }
 
     public static PlannedStatementIterator of(
@@ -361,6 +340,7 @@ public final class TestExecutorUtil {
       return next.isPresent();
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public ConfiguredKsqlPlan next() {
       hasNext();
@@ -369,19 +349,20 @@ public final class TestExecutorUtil {
       return current;
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public Iterator<ConfiguredKsqlPlan> iterator() {
       return this;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private Optional<ConfiguredKsqlPlan> planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared, overrides, ksqlConfig);
 
       if (prepared.getStatement() instanceof InsertValues) {
-        StubInsertValuesExecutor.of(stubKafkaService).execute(
+        StubInsertValuesExecutor.of(stubKafkaService, executionContext).execute(
             (ConfiguredStatement<InsertValues>) configured,
             overrides,
             executionContext,
@@ -413,7 +394,7 @@ public final class TestExecutorUtil {
       }
     }
 
-    private KsqlPlan rewritePlan(final KsqlPlan plan) {
+    private static KsqlPlan rewritePlan(final KsqlPlan plan) {
       try {
         final String serialized = PLAN_MAPPER.writeValueAsString(plan);
         return PLAN_MAPPER.readValue(serialized, KsqlPlan.class);
@@ -426,20 +407,21 @@ public final class TestExecutorUtil {
   private static final class ExecuteResultAndSources {
 
     private final ExecuteResult executeResult;
-    private final List<DataSource<?>> sources;
+    private final Optional<List<DataSource<?>>> sources;
 
     ExecuteResultAndSources(
         final ExecuteResult executeResult,
-        final List<DataSource<?>> sources) {
-      this.executeResult = executeResult;
-      this.sources = sources;
+        final Optional<List<DataSource<?>>> sources
+    ) {
+      this.executeResult = requireNonNull(executeResult, "executeResult");
+      this.sources = requireNonNull(sources, "sources");
     }
 
     ExecuteResult getExecuteResult() {
       return executeResult;
     }
 
-    List<DataSource<?>> getSources() {
+    Optional<List<DataSource<?>>> getSources() {
       return sources;
     }
   }
@@ -453,8 +435,9 @@ public final class TestExecutorUtil {
         final PersistentQueryMetadata persistentQueryMetadata,
         final List<DataSource<?>> sources
     ) {
-      this.persistentQueryMetadata = persistentQueryMetadata;
-      this.sources = sources;
+      this.persistentQueryMetadata =
+          requireNonNull(persistentQueryMetadata, "persistentQueryMetadata");
+      this.sources = requireNonNull(sources, "sources");
     }
 
     PersistentQueryMetadata getPersistentQueryMetadata() {

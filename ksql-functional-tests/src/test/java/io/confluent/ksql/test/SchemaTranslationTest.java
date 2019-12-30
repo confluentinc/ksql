@@ -13,9 +13,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
-import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
@@ -49,11 +46,9 @@ public class SchemaTranslationTest {
 
   private static final Topic OUTPUT_TOPIC = new Topic(
       OUTPUT_TOPIC_NAME,
-      Optional.empty(),
-      new StringSerdeSupplier(),
-      new ValueSpecAvroSerdeSupplier(),
       1,
-      1
+      1,
+      Optional.empty()
   );
 
   private final TestCase testCase;
@@ -160,11 +155,9 @@ public class SchemaTranslationTest {
       try {
         final Topic srcTopic = new Topic(
             TOPIC_NAME,
-            Optional.of(schema),
-            new StringSerdeSupplier(),
-            new AvroSerdeSupplier(),
             1,
-            1
+            1,
+            Optional.of(schema)
         );
 
         final List<Record> inputRecords = generateInputRecords(srcTopic, schema);

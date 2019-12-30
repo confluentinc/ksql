@@ -17,37 +17,24 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.util.Optional;
 import org.apache.avro.Schema;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 
-@SuppressWarnings("rawtypes")
 public class Topic {
 
   private final String name;
-  private final Optional<Schema> schema;
-  private final SerdeSupplier keySerdeFactory;
-  private final SerdeSupplier valueSerdeSupplier;
   private final int numPartitions;
   private final short replicas;
+  private final Optional<Schema> avroSchema;
 
   public Topic(
       final String name,
-      final Optional<Schema> schema,
-      final SerdeSupplier keySerdeFactory,
-      final SerdeSupplier valueSerdeSupplier,
       final int numPartitions,
-      final int replicas
+      final int replicas,
+      final Optional<Schema> avroSchema
   ) {
     this.name = requireNonNull(name, "name");
-    this.schema = requireNonNull(schema, "schema");
-    this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.valueSerdeSupplier = requireNonNull(valueSerdeSupplier, "valueSerdeSupplier");
+    this.avroSchema = requireNonNull(avroSchema, "schema");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
   }
@@ -56,8 +43,8 @@ public class Topic {
     return name;
   }
 
-  public Optional<Schema> getSchema() {
-    return schema;
+  public Optional<Schema> getAvroSchema() {
+    return avroSchema;
   }
 
   public int getNumPartitions() {
@@ -66,39 +53,5 @@ public class Topic {
 
   public short getReplicas() {
     return replicas;
-  }
-
-  public SerdeSupplier getValueSerdeSupplier() {
-    return valueSerdeSupplier;
-  }
-
-  public Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Serializer<?> serializer = valueSerdeSupplier.getSerializer(schemaRegistryClient);
-    serializer.configure(ImmutableMap.of(
-        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
-    ), false);
-    return serializer;
-  }
-
-  public Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of(
-        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"
-    ), false);
-    return deserializer;
-  }
-
-  public Serializer getKeySerializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Serializer<?> serializer = keySerdeFactory.getSerializer(schemaRegistryClient);
-    serializer.configure(ImmutableMap.of(
-        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
-    ), true);
-    return serializer;
-  }
-
-  public Deserializer<?> getKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Deserializer<?> deserializer = keySerdeFactory.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of(), true);
-    return deserializer;
   }
 }

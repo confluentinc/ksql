@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -38,6 +39,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -98,6 +100,8 @@ public class TestExecutorTest {
   private MetaStore metaStore;
   @Mock
   private Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
+  @Mock
+  private SchemaRegistryClient srClient;
 
   private TestExecutor executor;
   private final Map<SourceName, DataSource<?>> allSources = new HashMap<>();
@@ -105,6 +109,8 @@ public class TestExecutorTest {
   @Before
   public void setUp() {
     allSources.clear();
+
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     executor = new TestExecutor(
         kafkaService,
@@ -351,6 +357,9 @@ public class TestExecutorTest {
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKeyFormat())
         .thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA), Optional.empty()));
+    when(topic.getValueFormat())
+        .thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
+
     final DataSource<?> dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);

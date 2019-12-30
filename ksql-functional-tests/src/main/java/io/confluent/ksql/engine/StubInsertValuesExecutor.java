@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.test.tools.Record;
@@ -24,7 +26,6 @@ import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -37,11 +38,17 @@ public final class StubInsertValuesExecutor {
       final StubKafkaService stubKafkaService,
       final KsqlExecutionContext executionContext
   ) {
-    final StubProducer stubProducer = new StubProducer(stubKafkaService, executionContext);
+    final TopicInfoCache topicInfoCache = new TopicInfoCache(
+        executionContext,
+        executionContext.getServiceContext().getSchemaRegistryClient()
+    );
+
+    final StubProducer stubProducer = new StubProducer(stubKafkaService, topicInfoCache);
 
     return new InsertValuesExecutor(
         false,
-        (record, ignored1, ignored2) -> stubProducer.sendRecord(record));
+        (record, ignored1, ignored2) -> stubProducer.sendRecord(record)
+    );
   }
 
   @VisibleForTesting
@@ -52,13 +59,10 @@ public final class StubInsertValuesExecutor {
 
     StubProducer(
         final StubKafkaService stubKafkaService,
-        final KsqlExecutionContext executionContext
+        final TopicInfoCache topicInfoCache
     ) {
-      this.stubKafkaService = Objects.requireNonNull(stubKafkaService, "stubKafkaService");
-      this.topicInfoCache = new TopicInfoCache(
-          executionContext,
-          executionContext.getServiceContext().getSchemaRegistryClient()
-      );
+      this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
+      this.topicInfoCache = requireNonNull(topicInfoCache, "topicInfoCache");
     }
 
     void sendRecord(final ProducerRecord<byte[], byte[]> record) {

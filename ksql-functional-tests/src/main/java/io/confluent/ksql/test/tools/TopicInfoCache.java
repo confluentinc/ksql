@@ -189,7 +189,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
           .getKeySerdeSupplier(keyFormat, schema);
 
-      Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient);
 
       deserializer.configure(ImmutableMap.of(), true);
 
@@ -209,7 +209,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
           .getSerdeSupplier(valueFormat.getFormat(), schema);
 
-      Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
 
       deserializer.configure(ImmutableMap.of(), false);
 

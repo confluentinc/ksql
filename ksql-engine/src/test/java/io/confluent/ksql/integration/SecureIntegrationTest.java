@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
@@ -57,8 +58,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -96,35 +95,37 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-  private static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
-      EmbeddedSingleNodeKafkaCluster.newBuilder()
-          .withoutPlainListeners()
-          .withSaslSslListeners()
-          .withSslListeners()
-          .withAclsEnabled(SUPER_USER.username)
-          .build();
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness
+      .builder()
+      .withKafkaCluster(
+          EmbeddedSingleNodeKafkaCluster.newBuilder()
+              .withoutPlainListeners()
+              .withSaslSslListeners()
+              .withSslListeners()
+              .withAclsEnabled(SUPER_USER.username)
+      )
+      .build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(SECURE_CLUSTER);
+      .around(TEST_HARNESS);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
-  private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
   private Admin adminClient;
   private ServiceContext serviceContext;
 
   @Before
-  public void before() throws Exception {
-    SECURE_CLUSTER.clearAcls();
+  public void before() {
+    TEST_HARNESS.getKafkaCluster().clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
-    adminClient =  AdminClient.create(new KsqlConfig(getKsqlConfig(SUPER_USER))
-                                          .getKsqlAdminClientConfigProps());
+    adminClient = AdminClient.create(new KsqlConfig(getKsqlConfig(SUPER_USER))
+        .getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     produceInitData();
@@ -169,7 +170,7 @@ public class SecureIntegrationTest {
 
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                SECURE_CLUSTER.bootstrapServers(SecurityProtocol.SSL));
+        TEST_HARNESS.getKafkaCluster().bootstrapServers(SecurityProtocol.SSL));
 
     // Additional Properties required for KSQL to talk to cluster over SSL:
     configs.put("security.protocol", "SSL");
@@ -261,7 +262,8 @@ public class SecureIntegrationTest {
   private static void givenAllowAcl(final Credentials credentials,
                                     final ResourcePattern resource,
                                     final Set<AclOperation> ops) {
-    SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
+    TEST_HARNESS.getKafkaCluster()
+        .addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
@@ -300,13 +302,15 @@ public class SecureIntegrationTest {
         is(true)
     );
 
-    final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);
-    consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
+    TEST_HARNESS.verifyAvailableRecords(outputTopic, greaterThan(0));
   }
 
   private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>(KsqlConfigTestUtil.baseTestConfig());
-    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
+    configs.put(
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+        TEST_HARNESS.getKafkaCluster().bootstrapServers()
+    );
 
     // Additional Properties required for KSQL to talk to test secure cluster,
     // where SSL cert not properly signed. (Not required for proper cluster).
@@ -331,8 +335,7 @@ public class SecureIntegrationTest {
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
-    topicProducer
-        .produceInputData(INPUT_TOPIC, orderDataProvider.data(), orderDataProvider.schema());
+    TEST_HARNESS.produceRows(INPUT_TOPIC, orderDataProvider, JSON);
   }
 
   private void awaitAsyncInputTopicCreation() {

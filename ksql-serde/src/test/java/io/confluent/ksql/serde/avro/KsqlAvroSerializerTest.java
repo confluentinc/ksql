@@ -61,6 +61,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -492,7 +493,10 @@ public class KsqlAvroSerializerTest {
         org.apache.avro.Schema.create(Type.LONG)
     );
 
-    assertThat(deserialize(bytes), is(ImmutableList.of(expectedElements)));
+    final Matcher<List<? extends GenericArray<?>>> matcher = is(
+        ImmutableList.of(expectedElements));
+    final List<? extends GenericArray<?>> deserialize = deserialize(bytes);
+    assertThat(deserialize, matcher);
   }
 
   @Test

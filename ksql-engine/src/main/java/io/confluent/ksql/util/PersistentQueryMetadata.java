@@ -127,6 +127,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return schemas.getSchemasDescription();
   }
 
+  public String getSchemasString() {
+    return schemas.toString();
+  }
+
   public PhysicalSchema getPhysicalSchema() {
     return resultSchema;
   }

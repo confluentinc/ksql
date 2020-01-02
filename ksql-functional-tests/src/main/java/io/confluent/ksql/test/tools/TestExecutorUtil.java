@@ -135,8 +135,9 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService
   ) {
     initializeTopics(testCase, engine.getServiceContext(), stubKafkaService);
-    if (testCase.getExpectedTopology().isPresent()) {
-      return testCase.getExpectedTopology().get().getPlan()
+    if (testCase.getExpectedTopology().isPresent()
+        && testCase.getExpectedTopology().get().getPlan().isPresent()) {
+      return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
           .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
           .collect(Collectors.toList());
@@ -182,6 +183,19 @@ public final class TestExecutorUtil {
       }
     }
     return Optional.empty();
+  }
+
+  public static List<PersistentQueryMetadata> buildQueries(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig,
+      final StubKafkaService stubKafkaService
+  ) {
+    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService)
+        .stream()
+        .map(PersistentQueryAndSources::getPersistentQueryMetadata)
+        .collect(Collectors.toList());
   }
 
   private static List<PersistentQueryAndSources> doBuildQueries(

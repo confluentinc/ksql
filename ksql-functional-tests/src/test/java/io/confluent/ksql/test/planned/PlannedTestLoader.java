@@ -75,7 +75,7 @@ public class PlannedTestLoader implements TestLoader<VersionedTest> {
     return testCase.withExpectedTopology(
         version,
         new TopologyAndConfigs(
-            planAtVersionNode.getPlan(),
+            Optional.of(planAtVersionNode.getPlan()),
             planAtVersionNode.getTopology(),
             planAtVersionNode.getSchemas(),
             planAtVersionNode.getConfigs()

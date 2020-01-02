@@ -84,7 +84,6 @@ public final class KeyField {
    * @throws IllegalArgumentException if new key field is required but not available in the schema.
    */
   public Optional<Column> resolve(final LogicalSchema schema) {
-    // Todo(ac): throw if resolved column type does not match key column type.
     return keyField
         .map(colRef -> schema.findValueColumn(colRef)
             .orElseThrow(() -> new IllegalArgumentException(

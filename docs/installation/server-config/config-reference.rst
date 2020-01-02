@@ -428,6 +428,12 @@ KSQL Processing Log Settings
 The following configuration settings control the behavior of the
 :ref:`KSQL processing log <ksql_processing_log>`.
 
+.. note::
+
+   To enable security for the KSQL Processing Log, assign log4j properties
+   as shown in
+   `log4j-secure.properties <https://github.com/confluentinc/cp-demo/blob/master/scripts/security/log4j-secure.properties>`__. 
+
 .. _ksql-processing-log-topic-auto-create:
 
 -----------------------------------------

@@ -520,8 +520,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "`k0` BIGINT KEY, "
+        "`k0` BIGINT KEY, "
             + "`k1` DOUBLE KEY, "
             + "`f0` BOOLEAN, "
             + "`f1` INTEGER, "
@@ -531,7 +530,7 @@ public class LogicalSchemaTest {
             + "`f6` STRUCT<`a` BIGINT>, "
             + "`f7` ARRAY<STRING>, "
             + "`f8` MAP<STRING, STRING>"
-            + "]"));
+    ));
   }
 
   @Test
@@ -550,13 +549,12 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "`f0` BOOLEAN, "
+        "`f0` BOOLEAN, "
             + "`k0` BIGINT KEY, "
             + "`v0` INTEGER, "
             + "`k1` DOUBLE KEY, "
             + "`v1` BOOLEAN"
-            + "]"));
+    ));
   }
 
   @Test
@@ -578,11 +576,10 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "ROWKEY STRING KEY, "
+        "ROWKEY STRING KEY, "
             + "`f0` BOOLEAN, "
             + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
-            + "]"));
+    ));
   }
 
   @Test
@@ -598,10 +595,9 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "`bob`.`ROWKEY` STRING KEY, "
+        "`bob`.`ROWKEY` STRING KEY, "
             + "`bob`.`f0` BOOLEAN"
-            + "]"));
+    ));
   }
 
   @Test

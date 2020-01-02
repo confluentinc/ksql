@@ -39,8 +39,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": "int",
-          "format": "{FORMAT}"
+          "schema": "int"
         }
       ],
       "inputs": [
@@ -62,8 +61,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": "int",
-          "format": "{FORMAT}"
+          "schema": "int"
         }
       ],
       "inputs": [
@@ -83,8 +81,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]}
         }
       ],
       "inputs": [
@@ -109,8 +106,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "array", "items": ["null", "string"]},
-          "format": "{FORMAT}"
+          "schema": {"type": "array", "items": ["null", "string"]}
         }
       ],
       "inputs": [
@@ -134,8 +130,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "array", "items": ["null", "string"]},
-          "format": "{FORMAT}"
+          "schema": {"type": "array", "items": ["null", "string"]}
         }
       ],
       "inputs": [
@@ -155,8 +150,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]}
         }
       ],
       "inputs": [
@@ -202,13 +196,11 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "map", "values": ["null", "int"]},
-          "format": "{FORMAT}"
+          "schema": {"type": "map", "values": ["null", "int"]}
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]},
-          "format": "{FORMAT}"
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -275,13 +267,11 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]}
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]},
-          "format": "{FORMAT}"
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -396,8 +386,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": "boolean",
-          "format": "{FORMAT}"
+          "schema": "boolean"
         }
       ],
       "inputs": [
@@ -421,8 +410,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
         }
       ],
       "inputs": [
@@ -446,8 +434,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type": "array", "items": ["null", "long"]},
-          "format": "{FORMAT}"
+          "schema": {"type": "array", "items": ["null", "long"]}
         }
       ],
       "inputs": [
@@ -473,8 +460,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
         }
       ],
       "inputs": [
@@ -500,8 +486,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}},
-          "format": "{FORMAT}"
+          "schema": {"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}
         }
       ],
       "inputs": [
@@ -527,8 +512,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]},
-          "format": "{FORMAT}"
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -554,8 +538,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]},
-          "format": "{FORMAT}"
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
         }
       ],
       "inputs": [
@@ -583,8 +566,7 @@
           "name": "OUTPUT",
           "schema": {"name": "ignored", "type": "record", "fields": [
             {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
-          ]},
-          "format": "{FORMAT}"
+          ]}
         }
       ],
       "inputs": [

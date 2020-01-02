@@ -27,14 +27,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.test.TestFrameworkException;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import java.util.Optional;
 import org.apache.avro.Schema;
 
@@ -68,28 +63,8 @@ public final class TopicNode {
     }
   }
 
-  public Topic build(final Optional<String> defaultFormat) {
-    final String formatToUse = format
-        .replace("{FORMAT}", defaultFormat.orElse(FORMAT_REPLACE_ERROR));
-
-    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil.getKeySerdeSupplier(
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        LogicalSchema.builder()::build // Assume default STRING key for now.
-    );
-
-    final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        Format.of(formatToUse),
-        this::logicalSchema
-    );
-
-    return new Topic(
-        name,
-        avroSchema,
-        keySerdeSupplier,
-        valueSerdeSupplier,
-        numPartitions,
-        replicas
-    );
+  public Topic build() {
+    return new Topic(name, numPartitions, replicas, avroSchema);
   }
 
   private LogicalSchema logicalSchema() {

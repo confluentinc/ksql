@@ -81,7 +81,6 @@ final class RestTestCaseBuilder {
           test.topics(),
           test.outputs(),
           test.inputs(),
-          explicitFormat,
           ee.isPresent(),
           functionRegistry
       );

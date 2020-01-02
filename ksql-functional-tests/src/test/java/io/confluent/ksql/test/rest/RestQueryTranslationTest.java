@@ -122,6 +122,7 @@ public class RestQueryTranslationTest {
 
   private static RestTestExecutor testExecutor() {
     return new RestTestExecutor(
+        REST_APP.getEngine(),
         REST_APP.getListeners().get(0),
         TEST_HARNESS.getKafkaCluster(),
         TEST_HARNESS.getServiceContext()

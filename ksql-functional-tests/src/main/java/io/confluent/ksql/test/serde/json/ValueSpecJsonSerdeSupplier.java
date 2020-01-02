@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         Converter.converter(Long.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(Float.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(Double.class, JsonNodeFactory.instance::numberNode),
+        Converter.converter(BigDecimal.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(String.class, JsonNodeFactory.instance::textNode),
         Converter.converter(Collection.class, Converter::handleCollection),
         Converter.converter(Map.class, Converter::handleMap)

@@ -19,13 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -33,23 +26,12 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 
 public class Record {
 
-  final Topic topic;
+  private final Topic topic;
   private final Object key;
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
   private final Optional<JsonNode> jsonValue;
-
-  public Record(
-      final Topic topic,
-      final Object key,
-      final Object value,
-      final JsonNode jsonValue,
-      final long timestamp,
-      final WindowData window
-  ) {
-    this(topic, key, value, jsonValue, Optional.of(timestamp), window);
-  }
 
   public Record(
       final Topic topic,
@@ -67,27 +49,8 @@ public class Record {
     this.window = window;
   }
 
-  Serializer<?> keySerializer() {
-    final Serializer<String> stringDe = Serdes.String().serializer();
-    if (window == null) {
-      return stringDe;
-    }
-
-    return window.type == WindowData.Type.SESSION
-        ? new SessionWindowedSerializer<>(stringDe)
-        : new TimeWindowedSerializer<>(stringDe);
-  }
-
-  @SuppressWarnings("rawtypes")
-  Deserializer keyDeserializer() {
-    if (window == null) {
-      return Serdes.String().deserializer();
-    }
-
-    final Deserializer<String> inner = Serdes.String().deserializer();
-    return window.type == WindowData.Type.SESSION
-        ? new SessionWindowedDeserializer<>(inner)
-        : new TimeWindowedDeserializer<>(inner, window.size());
+  public Topic getTopic() {
+    return topic;
   }
 
   public Object rawKey() {

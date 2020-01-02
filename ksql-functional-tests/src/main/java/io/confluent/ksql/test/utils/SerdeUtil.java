@@ -28,7 +28,6 @@ import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
@@ -46,7 +45,7 @@ public final class SerdeUtil {
 
   public static SerdeSupplier<?> getSerdeSupplier(
       final Format format,
-      final Supplier<LogicalSchema> schemaSupplier
+      final LogicalSchema schema
   ) {
     switch (format) {
       case AVRO:
@@ -56,7 +55,7 @@ public final class SerdeUtil {
       case DELIMITED:
         return new StringSerdeSupplier();
       case KAFKA:
-        return new KafkaSerdeSupplier(schemaSupplier);
+        return new KafkaSerdeSupplier(schema);
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
     }
@@ -65,11 +64,11 @@ public final class SerdeUtil {
   @SuppressWarnings("unchecked")
   public static <T> SerdeSupplier<?> getKeySerdeSupplier(
       final KeyFormat keyFormat,
-      final Supplier<LogicalSchema> logicalSchemaSupplier
+      final LogicalSchema schema
   ) {
-    final SerdeSupplier<T> inner = (SerdeSupplier<T>) SerdeUtil.getSerdeSupplier(
+    final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
         keyFormat.getFormat(),
-        logicalSchemaSupplier
+        schema
     );
 
     if (!keyFormat.getWindowType().isPresent()) {
@@ -107,6 +106,7 @@ public final class SerdeUtil {
         return new TimeWindowedSerializer<>(serializer);
       }
 
+      @SuppressWarnings("OptionalGetWithoutIsPresent")
       @Override
       public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
         final Deserializer<T> deserializer = inner.getDeserializer(srClient);

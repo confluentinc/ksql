@@ -64,8 +64,8 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
     volumes:
-      - ${PWD}/confluentinc-kafka-connect-jdbc-5.3.1:/usr/share/kafka/plugins/jdbc
-      - ${PWD}/connect.properties:/connect/connect.properties
+      - ./confluentinc-kafka-connect-jdbc-5.3.1:/usr/share/kafka/plugins/jdbc
+      - ./connect.properties:/connect/connect.properties
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.6.0

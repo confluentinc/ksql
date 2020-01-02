@@ -389,6 +389,20 @@ A list of tags to be included with emitted :ref:`JMX metrics <ksql-monitoring-an
 formatted as a string of ``key:value`` pairs separated by commas.
 For example, ``key1:value1,key2:value2``.
 
+.. _ksql-streams-state-dir:
+
+----------------------
+ksql.streams.state.dir
+----------------------
+
+Sets the storage directory for stateful operations, like aggregations and
+joins, to a durable location. By default, state is stored in the ``/tmp``
+directory.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_STATE_DIR``.
+
 .. _ksql-c3-settings:
 
 |c3| Settings

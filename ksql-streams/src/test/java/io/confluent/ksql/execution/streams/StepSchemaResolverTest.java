@@ -358,14 +358,17 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        Collections.emptyList()
+        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumns(SCHEMA.value())
+        .build()));
   }
 
   @Test

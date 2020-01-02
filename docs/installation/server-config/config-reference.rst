@@ -399,6 +399,11 @@ Sets the storage directory for stateful operations, like aggregations and
 joins, to a durable location. By default, state is stored in the ``/tmp``
 directory.
 
+.. note::
+
+   The state storage directory must be unique for every server running on the
+   machine. Otherwise, servers may appear to be stuck and not doing any work.
+
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_KSQL_STREAMS_STATE_DIR``.

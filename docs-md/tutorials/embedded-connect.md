@@ -244,7 +244,7 @@ WITH (kafka_topic='rider_locations', value_format='json', partitions=1, key='dri
 
 The `driverLocations` stream has a relatively compact schema, and it doesn’t contain much data that a human would find particularly useful. You can *enrich* the stream of driver location events by joining them with the human-friendly vehicle information stored in the PostgreSQL database. This enriched data can be presented by the rider’s mobile application, ultimately helping the rider to safely identify the driver’s vehicle.
 
-We can easily achieve this result using ksqlDB by simply joining the ``driverLocations`` stream with the ``drivers`` table stored in PostgreSQL:
+You can achieve this result easily by joining the `driverLocations` stream with the `drivers` table stored in PostgreSQL.
 
 ```sql
 CREATE STREAM enrichedDriverLocations AS

@@ -187,7 +187,7 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
 
 ```
 
-Once the source connector is created, it will import any PostgreSQL tables matching the specified ``table.whitelist``. Tables are imported via Kafka topics, one topic per imported table. Once these topics are created, we may interact with them just like any other Kafka topic used by ksqlDB.
+When the source connector is created, it imports any PostgreSQL tables matching the specified `table.whitelist`. Tables are imported via {{ site.ak }} topics, with one topic per imported table. Once these topics are created, you can interact with them just like any other {{ site.ak }} topic used by ksqlDB.
 
 9. View imported topic
 ----------------------

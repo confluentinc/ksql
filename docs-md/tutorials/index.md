@@ -105,7 +105,7 @@ Elasticsearch and Grafana.
 ksqlDB with Embedded Connect
 -------------------------------
 
-ksqlDB has native integration with Kafka Connect. While ksqlDB can integrate with a separate [Kafka Connect](https://docs.confluent.io/current/connect/index.html) cluster, it can also run Connect embedded within the ksqlDB server, making it unnecessary to run a separate Connect cluster. The [embedded Connect tutorial](embedded-connect.md) provides an overview of how ksqlDB may be configured and used to run Connect in embedded mode.
+ksqlDB has native integration with {{ site.kconnect }}. While ksqlDB can integrate with a separate [Kafka Connect](https://docs.confluent.io/current/connect/index.html) cluster, it can also run {{ site.kconnect }} embedded within the ksqlDB server, making it unnecessary to run a separate {{ site.kconnect }} cluster. The [embedded Connect tutorial](embedded-connect.md) shows how you can configure ksqlDB to run {{ site.kconnect }} in embedded mode.
 
 ksqlDB Examples
 ---------------

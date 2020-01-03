@@ -329,6 +329,6 @@ As soon as you start writing rows to the input streams, your continuous query fr
 Next steps
 -------------
 
-This tutorial has demonstrated how to run ksqlDB in embedded Connect mode using Docker. We have used the JDBC connector to integrate ksqlDB with PostgreSQL data, but this is just one of many connectors that are available to help you integrate ksqlDB with external systems. Check out [Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the various connectors that enable integration with a wide variety of external systems.
+This tutorial demonstrated how to run ksqlDB in embedded Connect mode using Docker. We used the JDBC connector to integrate ksqlDB with PostgreSQL data, but this is just one of many connectors that are available to help you integrate ksqlDB with external systems. Check out [Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the various connectors that enable integration with a wide variety of external systems.
 
 You may also want to take a look at our [examples](https://ksqldb.io/examples.html) to better understand how you can use ksqlDB for your specific workload.

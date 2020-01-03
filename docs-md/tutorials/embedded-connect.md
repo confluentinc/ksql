@@ -308,7 +308,7 @@ SELECT * FROM rendezvous EMIT CHANGES;
 16. Write data to input streams
 -------------------------------
 
-Our continuous query is reading from the ``rendezvous`` stream, which takes its input from the ``enrichedDriverLocations`` and ``riderLocations`` streams. Because ``enrichedDriverLocations`` takes its input from the ``driverLocations`` stream, we'll need to write data into ``driverLocations`` and ``riderLocations`` before ``rendezvous`` will produce the joined output that our continuous query will read:
+Your continuous query reads from the `rendezvous` stream, which takes its input from the `enrichedDriverLocations` and `riderLocations` streams. And `enrichedDriverLocations` takes its input from the `driverLocations` stream, so you need to write data into `driverLocations` and `riderLocations` before `rendezvous` produces the joined output that the continuous query reads.
 
 ```sql
 INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (0, 37.3965, -122.0818, 23.2);
@@ -324,11 +324,11 @@ INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (3, 3
 INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (3, 37.4442, -122.1658);
 ```
 
-As soon as you start writing rows to the input streams, your continuous query from the previous step will begin producing joined output: the rider's location pings are joined with their inbound driver's location pings in real time, providing the rider with driver ETA, rating, as well as additional information describing the driver's vehicle.
+As soon as you start writing rows to the input streams, your continuous query from the previous step starts producing joined output. The rider's location pings are joined with their inbound driver's location pings in real time, providing the rider with driver ETA, rating, and additional information describing the driver's vehicle.
 
 Next steps
 -------------
 
-This tutorial demonstrated how to run ksqlDB in embedded Connect mode using Docker. We used the JDBC connector to integrate ksqlDB with PostgreSQL data, but this is just one of many connectors that are available to help you integrate ksqlDB with external systems. Check out [Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the various connectors that enable integration with a wide variety of external systems.
+This tutorial shows how to run ksqlDB in embedded {{ site.kconnect }} mode using Docker. It uses the JDBC connector to integrate ksqlDB with PostgreSQL data, but this is just one of many connectors that are available to help you integrate ksqlDB with external systems. Check out [Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the various connectors that enable integration with a wide variety of external systems.
 
 You may also want to take a look at our [examples](https://ksqldb.io/examples.html) to better understand how you can use ksqlDB for your specific workload.

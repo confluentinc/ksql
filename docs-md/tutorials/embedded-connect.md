@@ -201,7 +201,7 @@ SHOW TOPICS;
 10. Create drivers table in ksqlDB
 ----------------------------------
 
-While our driver data is now integrated as a Kafka topic, we’ll want to create a ksqlDB table over this topic in order to begin referencing it from any ksqlDB queries. Streams and tables in ksqlDB essentially associate a schema with a Kafka topic, breaking each message in the topic into strongly typed columns:
+The driver data is now integrated as a {{ site.ak }} topic, but you need to create a ksqlDB table over this topic to begin referencing it from ksqlDB queries. Streams and tables in ksqlDB essentially associate a schema with a {{ site.ak }} topic, breaking each message in the topic into strongly typed columns.
 
 ```sql
 CREATE TABLE drivers (

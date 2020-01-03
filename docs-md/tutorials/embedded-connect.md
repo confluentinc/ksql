@@ -128,7 +128,7 @@ docker-compose up
 5. Connect to PostgreSQL
 ------------------------
 
-Establish an interactive session with PostgreSQL by running this command:
+Run the following command to establish an interactive session with PostgreSQL.
 
 ```bash
 docker exec -it postgres psql -U postgres

@@ -96,7 +96,7 @@ unzip confluentinc-kafka-connect-jdbc-5.3.1.zip
 3. Configure Connect
 --------------------
 
-In order to tell ksqlDB to run Connect in embedded mode, we must point ksqlDB to a separate Connect configuration file. In our docker-compose file, this is done via the ``KSQL_KSQL_CONNECT_WORKER_CONFIG`` environment variable. From within your local working directory, run this command to generate the Connect configuration file:
+In order to tell ksqlDB to run Connect in embedded mode, we must point ksqlDB to a separate Connect configuration file. In our docker-compose file, this is done via the `KSQL_KSQL_CONNECT_WORKER_CONFIG` environment variable. From within your local working directory, run this command to generate the Connect configuration file:
 
 ```bash
 cat << EOF > ./connect.properties
@@ -257,10 +257,10 @@ CREATE STREAM enrichedDriverLocations AS
     jdbc.model         AS model,
     jdbc.year          AS year,
     jdbc.license_plate AS license_plate,
-    jdbc.rating AS rating
+    jdbc.rating        AS rating
   FROM driverLocations dl JOIN drivers jdbc
     ON dl.driver_id = jdbc.driver_id
-  EMIT CHANGES; 
+  EMIT CHANGES;
 ```
 
 13. Create the rendezvous stream

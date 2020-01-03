@@ -217,7 +217,7 @@ WITH (kafka_topic='jdbc_drivers', value_format='json', partitions=1, key='driver
 
 Tables in ksqlDB support update semantics, where each message in the underlying topic represents a row in the table. For messages in the topic with the same key, the latest message associated with a given key represents the latest value for the corresponding row in the table.
 
-11. Create driverLocations and riderLocations streams
+11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
 Next we’ll create streams to encapsulate location pings sent every few seconds by drivers’ and riders’ phones. In contrast to tables, ksqlDB streams are append-only collections of events, and therefore suitable for a continuous stream of location updates.

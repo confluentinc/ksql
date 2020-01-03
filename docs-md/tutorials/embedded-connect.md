@@ -299,7 +299,7 @@ docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 
 In this step, you run a continuous query over the rendezvous stream.
 
-This is the first thing that may feel a bit unfamiliar to you, because the query will never return until it's terminated. It will perpetually push output rows to the client as events are written to the rendezvous stream. Leave the query running in your CLI session for now. It will begin producing output as soon as we write events into ksqlDB:
+This may feel a bit unfamiliar, because the query never returns until you terminate it. The query perpetually pushes output rows to the client as events are written to the rendezvous stream. Leave the query running in your CLI session for now. It will begin producing output as soon as events are written into ksqlDB.
 
 ```sql
 SELECT * FROM rendezvous EMIT CHANGES;

@@ -137,7 +137,7 @@ docker exec -it postgres psql -U postgres
 6. Populate PostgreSQL with vehicle/driver data
 -----------------------------------------------
 
-From within the session opened in the previous step, run these SQL statements to set up our driver data. We will ultimately join this PostgreSQL data with our event streams in ksqlDB:
+In the PostgreSQL session, run the following SQL statements to set up the driver data. You will join this PostgreSQL data with event streams in ksqlDB.
 
 ```sql
 CREATE TABLE drivers (

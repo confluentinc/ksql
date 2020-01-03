@@ -119,7 +119,7 @@ EOF
 4. Start ksqlDB and PostgreSQL
 ------------------------------
 
-From a directory containing the ``docker-compose.yml`` file created in the first step, run this command in order to start all services in the correct order:
+In the directory containing the `docker-compose.yml` file you created in the first step, run the following command to start all services in the correct order.
 
 ```bash
 docker-compose up

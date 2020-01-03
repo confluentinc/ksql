@@ -192,7 +192,7 @@ When the source connector is created, it imports any PostgreSQL tables matching 
 9. View imported topic
 ----------------------
 
-From within your ksqlDB CLI session, run this command to verify that the drivers table has been imported. Since we’ve specified ``jdbc_`` as our topic prefix, you should see a ``jdbc_drivers`` topic in the output of this command:
+In the ksqlDB CLI session, run the following command to verify that the `drivers` table has been imported. Because you specified `jdbc_` as the topic prefix, you should see a `jdbc_drivers` topic in the output.
 
 ```bash
 SHOW TOPICS;

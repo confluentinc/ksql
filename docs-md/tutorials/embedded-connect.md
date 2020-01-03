@@ -16,7 +16,7 @@ This tutorial will demonstrate how to integrate ksqlDB with an external data sou
 
 Since ksqlDB runs natively on Apache Kafka®, you'll need to have a Kafka installation running that ksqlDB is configured to use. The docker-compose files to the right will run everything for you via Docker, including ksqlDB running [Kafka Connect](https://docs.confluent.io/current/connect/index.html) in embedded mode. Embedded Connect enables you to leverage the power of Connect without having to manage a separate Connect cluster--ksqlDB will manage one for you. Additionally, we will be using PostgreSQL as an external datastore to integrate with ksqlDB.
 
-Copy and paste the below ``docker-compose`` content into a file named ``docker-compose.yml`` in an empty local working directory. We will create and add a number of other files to this directory during this tutorial.
+In an empty local working directory, copy and paste the following `docker-compose` content into a file named `docker-compose.yml`. You will create and add a number of other files to this directory during this tutorial.
 
 ```bash
 ---

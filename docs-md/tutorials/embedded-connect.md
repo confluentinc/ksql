@@ -263,7 +263,7 @@ CREATE STREAM enrichedDriverLocations AS
   EMIT CHANGES; 
 ```
 
-13. Create rendezvous stream
+13. Create the rendezvous stream
 ----------------------------
 
 Putting all of this together, we will now create a final stream that the ride sharing app can use to facilitate a driver-rider rendezvous in real time. This stream is defined by a query that joins together rider and driver location updates, resulting in a contextualized output that the app may use to show the rider their driver’s position as the rider waits to be picked up.

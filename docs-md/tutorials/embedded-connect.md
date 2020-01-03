@@ -288,7 +288,7 @@ CREATE STREAM rendezvous AS
 14. Start two ksqlDB CLI sessions
 ---------------------------------
 
-Run this command to twice to open two separate ksqlDB CLI sessions. Will we use both of these sessions in the steps to follow. Note that if you still have a CLI session open from a previous step, you may reuse that session.
+Run the following command twice to open two separate ksqlDB CLI sessions. If you still have a CLI session open from a previous step, you can reuse that session.
 
 ```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088

@@ -308,7 +308,7 @@ SELECT * FROM rendezvous EMIT CHANGES;
 16. Write data to input streams
 -------------------------------
 
-Our continuous query is reading from the ``rendezvous`` stream, which takes its input from the ``enrichedDriverLocations`` and ``riderLocations`` streams. And ``enrichedDriverLocations`` takes its input from the ``driverLocations`` stream, so we'll need to write data into ``driverLocations`` and ``riderLocations`` before ``rendezvous`` will produce the joined output that our continuous query will read:
+Our continuous query is reading from the ``rendezvous`` stream, which takes its input from the ``enrichedDriverLocations`` and ``riderLocations`` streams. Because ``enrichedDriverLocations`` takes its input from the ``driverLocations`` stream, we'll need to write data into ``driverLocations`` and ``riderLocations`` before ``rendezvous`` will produce the joined output that our continuous query will read:
 
 ```sql
 INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (0, 37.3965, -122.0818, 23.2);

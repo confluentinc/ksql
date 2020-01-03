@@ -9,14 +9,29 @@ keywords: ksqlDB, connect, PostgreSQL, jdbc
 Overview
 ==============
 
-This tutorial will demonstrate how to integrate ksqlDB with an external data source to power a simple ride sharing app. Our external source will be a PostgreSQL database containing relatively static data describing each driver’s vehicle. By combining this human-friendly static data with a continuous stream of computer-friendly driver and rider location events, we derive an enriched output stream that the ride sharing app may use to facilitate a rendezvous in real time.
+This tutorial will demonstrate how to integrate ksqlDB with an external data
+source to power a simple ride sharing app. Our external source will be a
+PostgreSQL database containing relatively static data describing each driver’s
+vehicle. By combining this human-friendly static data with a continuous stream
+of computer-friendly driver and rider location events, we derive an enriched
+output stream that the ride sharing app may use to facilitate a rendezvous in
+real time.
 
 1. Get ksqlDB
 --------------
 
-Since ksqlDB runs natively on {{ site.aktm }}, you need a running {{ site.ak }} installation that ksqlDB is configured to use. The following docker-compose files run everything for you via Docker, including ksqlDB running [Kafka Connect](https://docs.confluent.io/current/connect/index.html) in embedded mode. Embedded Connect enables you to leverage the power of {{ site.kconnect }} without having to manage a separate {{ site.kconnect }} cluster, because ksqlDB manages one for you. Also, this tutorial use PostgreSQL as an external datastore to integrate with ksqlDB.
+Since ksqlDB runs natively on {{ site.aktm }}, you need a running {{ site.ak }}
+installation that ksqlDB is configured to use. The following docker-compose
+files run everything for you via Docker, including ksqlDB running
+[Kafka Connect](https://docs.confluent.io/current/connect/index.html) in
+embedded mode. Embedded Connect enables you to leverage the power of
+{{ site.kconnect }} without having to manage a separate {{ site.kconnect }}
+cluster, because ksqlDB manages one for you. Also, this tutorial use PostgreSQL
+as an external datastore to integrate with ksqlDB.
 
-In an empty local working directory, copy and paste the following `docker-compose` content into a file named `docker-compose.yml`. You will create and add a number of other files to this directory during this tutorial.
+In an empty local working directory, copy and paste the following
+`docker-compose` content into a file named `docker-compose.yml`. You will
+create and add a number of other files to this directory during this tutorial.
 
 ```yaml
 ---
@@ -87,7 +102,8 @@ services:
 2. Get the JDBC connector
 -------------------------
 
-[Download the JDBC connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc) to your local working directory. Next, unzip the downloaded archive:
+[Download the JDBC connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc)
+to your local working directory. Next, unzip the downloaded archive:
 
 ```bash
 unzip confluentinc-kafka-connect-jdbc-5.3.1.zip
@@ -96,7 +112,11 @@ unzip confluentinc-kafka-connect-jdbc-5.3.1.zip
 3. Configure Connect
 --------------------
 
-In order to tell ksqlDB to run Connect in embedded mode, we must point ksqlDB to a separate Connect configuration file. In our docker-compose file, this is done via the `KSQL_KSQL_CONNECT_WORKER_CONFIG` environment variable. From within your local working directory, run this command to generate the Connect configuration file:
+In order to tell ksqlDB to run Connect in embedded mode, we must point ksqlDB
+to a separate Connect configuration file. In our docker-compose file, this is
+done via the `KSQL_KSQL_CONNECT_WORKER_CONFIG` environment variable. From
+within your local working directory, run this command to generate the Connect
+configuration file:
 
 ```bash
 cat << EOF > ./connect.properties
@@ -119,7 +139,9 @@ EOF
 4. Start ksqlDB and PostgreSQL
 ------------------------------
 
-In the directory containing the `docker-compose.yml` file you created in the first step, run the following command to start all services in the correct order.
+In the directory containing the `docker-compose.yml` file you created in the
+first step, run the following command to start all services in the correct
+order.
 
 ```bash
 docker-compose up
@@ -137,7 +159,8 @@ docker exec -it postgres psql -U postgres
 6. Populate PostgreSQL with vehicle/driver data
 -----------------------------------------------
 
-In the PostgreSQL session, run the following SQL statements to set up the driver data. You will join this PostgreSQL data with event streams in ksqlDB.
+In the PostgreSQL session, run the following SQL statements to set up the
+driver data. You will join this PostgreSQL data with event streams in ksqlDB.
 
 ```sql
 CREATE TABLE drivers (
@@ -161,7 +184,8 @@ INSERT INTO drivers (driver_id, make, model, year, license_plate, rating) VALUES
 
 ksqlDB runs as a server which clients connect to in order to issue queries.
 
-Run the following command to connect to the ksqlDB server and start an interactive command-line interface (CLI) session.
+Run the following command to connect to the ksqlDB server and start an
+interactive command-line interface (CLI) session.
 
 ```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
@@ -170,7 +194,8 @@ docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 8. Create source connector
 --------------------------
 
-Make your PostgreSQL data accessible to ksqlDB by creating a *source* connector. In the ksqlDB CLI, run the following command.
+Make your PostgreSQL data accessible to ksqlDB by creating a *source*
+connector. In the ksqlDB CLI, run the following command.
 
 ```sql
 CREATE SOURCE CONNECTOR jdbc_source WITH (
@@ -187,12 +212,17 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
 
 ```
 
-When the source connector is created, it imports any PostgreSQL tables matching the specified `table.whitelist`. Tables are imported via {{ site.ak }} topics, with one topic per imported table. Once these topics are created, you can interact with them just like any other {{ site.ak }} topic used by ksqlDB.
+When the source connector is created, it imports any PostgreSQL tables matching
+the specified `table.whitelist`. Tables are imported via {{ site.ak }} topics,
+with one topic per imported table. Once these topics are created, you can
+interact with them just like any other {{ site.ak }} topic used by ksqlDB.
 
 9. View imported topic
 ----------------------
 
-In the ksqlDB CLI session, run the following command to verify that the `drivers` table has been imported. Because you specified `jdbc_` as the topic prefix, you should see a `jdbc_drivers` topic in the output.
+In the ksqlDB CLI session, run the following command to verify that the
+`drivers` table has been imported. Because you specified `jdbc_` as the topic
+prefix, you should see a `jdbc_drivers` topic in the output.
 
 ```bash
 SHOW TOPICS;
@@ -201,7 +231,11 @@ SHOW TOPICS;
 10. Create drivers table in ksqlDB
 ----------------------------------
 
-The driver data is now integrated as a {{ site.ak }} topic, but you need to create a ksqlDB table over this topic to begin referencing it from ksqlDB queries. Streams and tables in ksqlDB essentially associate a schema with a {{ site.ak }} topic, breaking each message in the topic into strongly typed columns.
+The driver data is now integrated as a {{ site.ak }} topic, but you need to
+create a ksqlDB table over this topic to begin referencing it from ksqlDB
+queries. Streams and tables in ksqlDB essentially associate a schema with a
+{{ site.ak }} topic, breaking each message in the topic into strongly typed
+columns.
 
 ```sql
 CREATE TABLE drivers (
@@ -215,12 +249,18 @@ CREATE TABLE drivers (
 WITH (kafka_topic='jdbc_drivers', value_format='json', partitions=1, key='driver_id');
 ```
 
-Tables in ksqlDB support update semantics, where each message in the underlying topic represents a row in the table. For messages in the topic with the same key, the latest message associated with a given key represents the latest value for the corresponding row in the table.
+Tables in ksqlDB support update semantics, where each message in the
+underlying topic represents a row in the table. For messages in the topic with
+the same key, the latest message associated with a given key represents the
+latest value for the corresponding row in the table.
 
 11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
-In this step, you create streams to encapsulate location pings that are sent every few seconds by drivers’ and riders’ phones. In contrast to tables, ksqlDB streams are append-only collections of events, so they're suitable for a continuous stream of location updates.
+In this step, you create streams to encapsulate location pings that are sent
+every few seconds by drivers’ and riders’ phones. In contrast to tables,
+ksqlDB streams are append-only collections of events, so they're suitable for a
+continuous stream of location updates.
 
 ```sql
 CREATE STREAM driverLocations (
@@ -242,9 +282,15 @@ WITH (kafka_topic='rider_locations', value_format='json', partitions=1, key='dri
 12. Enrich driverLocations stream by joining with PostgreSQL data
 -----------------------------------------------------------------
 
-The `driverLocations` stream has a relatively compact schema, and it doesn’t contain much data that a human would find particularly useful. You can *enrich* the stream of driver location events by joining them with the human-friendly vehicle information stored in the PostgreSQL database. This enriched data can be presented by the rider’s mobile application, ultimately helping the rider to safely identify the driver’s vehicle.
+The `driverLocations` stream has a relatively compact schema, and it doesn’t
+contain much data that a human would find particularly useful. You can *enrich*
+the stream of driver location events by joining them with the human-friendly
+vehicle information stored in the PostgreSQL database. This enriched data can
+be presented by the rider’s mobile application, ultimately helping the rider to
+safely identify the driver’s vehicle.
 
-You can achieve this result easily by joining the `driverLocations` stream with the `drivers` table stored in PostgreSQL.
+You can achieve this result easily by joining the `driverLocations` stream with
+the `drivers` table stored in PostgreSQL.
 
 ```sql
 CREATE STREAM enrichedDriverLocations AS
@@ -266,9 +312,16 @@ CREATE STREAM enrichedDriverLocations AS
 13. Create the rendezvous stream
 ----------------------------
 
-To put all of this together, create a final stream that the ridesharing app can use to facilitate a driver-rider rendezvous in real time. This stream is defined by a query that joins together rider and driver location updates, resulting in a contextualized output that the app can use to show the rider their driver’s position as the rider waits to be picked up.
+To put all of this together, create a final stream that the ridesharing app can
+use to facilitate a driver-rider rendezvous in real time. This stream is
+defined by a query that joins together rider and driver location updates,
+resulting in a contextualized output that the app can use to show the rider
+their driver’s position as the rider waits to be picked up.
 
-The rendezvous stream includes human-friendly information describing the driver’s vehicle for the rider. Also, the rendezvous stream computes (albeit naively) the driver’s estimated time of arrival (ETA) at the rider’s location.
+The rendezvous stream includes human-friendly information describing the
+driver’s vehicle for the rider. Also, the rendezvous stream computes
+(albeit naively) the driver’s estimated time of arrival (ETA) at the rider’s
+location.
 
 ```sql
 CREATE STREAM rendezvous AS
@@ -288,7 +341,9 @@ CREATE STREAM rendezvous AS
 14. Start two ksqlDB CLI sessions
 ---------------------------------
 
-Run the following command twice to open two separate ksqlDB CLI sessions. If you still have a CLI session open from a previous step, you can reuse that session.
+Run the following command twice to open two separate ksqlDB CLI sessions. If
+you still have a CLI session open from a previous step, you can reuse that
+session.
 
 ```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
@@ -299,7 +354,11 @@ docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 
 In this step, you run a continuous query over the rendezvous stream.
 
-This may feel a bit unfamiliar, because the query never returns until you terminate it. The query perpetually pushes output rows to the client as events are written to the rendezvous stream. Leave the query running in your CLI session for now. It will begin producing output as soon as events are written into ksqlDB.
+This may feel a bit unfamiliar, because the query never returns until you
+terminate it. The query perpetually pushes output rows to the client as events
+are written to the rendezvous stream. Leave the query running in your CLI
+session for now. It will begin producing output as soon as events are written
+into ksqlDB.
 
 ```sql
 SELECT * FROM rendezvous EMIT CHANGES;
@@ -308,7 +367,11 @@ SELECT * FROM rendezvous EMIT CHANGES;
 16. Write data to input streams
 -------------------------------
 
-Your continuous query reads from the `rendezvous` stream, which takes its input from the `enrichedDriverLocations` and `riderLocations` streams. And `enrichedDriverLocations` takes its input from the `driverLocations` stream, so you need to write data into `driverLocations` and `riderLocations` before `rendezvous` produces the joined output that the continuous query reads.
+Your continuous query reads from the `rendezvous` stream, which takes its input
+from the `enrichedDriverLocations` and `riderLocations` streams. And
+`enrichedDriverLocations` takes its input from the `driverLocations` stream,
+so you need to write data into `driverLocations` and `riderLocations` before
+`rendezvous` produces the joined output that the continuous query reads.
 
 ```sql
 INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (0, 37.3965, -122.0818, 23.2);
@@ -324,11 +387,23 @@ INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (3, 3
 INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (3, 37.4442, -122.1658);
 ```
 
-As soon as you start writing rows to the input streams, your continuous query from the previous step starts producing joined output. The rider's location pings are joined with their inbound driver's location pings in real time, providing the rider with driver ETA, rating, and additional information describing the driver's vehicle.
+As soon as you start writing rows to the input streams, your continuous query
+from the previous step starts producing joined output. The rider's location
+pings are joined with their inbound driver's location pings in real time,
+providing the rider with driver ETA, rating, and additional information
+describing the driver's vehicle.
 
 Next steps
 -------------
 
-This tutorial shows how to run ksqlDB in embedded {{ site.kconnect }} mode using Docker. It uses the JDBC connector to integrate ksqlDB with PostgreSQL data, but this is just one of many connectors that are available to help you integrate ksqlDB with external systems. Check out [Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the various connectors that enable integration with a wide variety of external systems.
+This tutorial shows how to run ksqlDB in embedded {{ site.kconnect }} mode
+using Docker. It uses the JDBC connector to integrate ksqlDB with PostgreSQL
+data, but this is just one of many connectors that are available to help you
+integrate ksqlDB with external systems. Check out
+[Confluent Hub](https://www.confluent.io/hub/) to learn more about all of the
+various connectors that enable integration with a wide variety of external
+systems.
 
-You may also want to take a look at our [examples](https://ksqldb.io/examples.html) to better understand how you can use ksqlDB for your specific workload.
+You may also want to take a look at our
+[examples](https://ksqldb.io/examples.html) to better understand how you can
+use ksqlDB for your specific workload.

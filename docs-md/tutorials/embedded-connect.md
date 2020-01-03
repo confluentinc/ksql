@@ -161,7 +161,7 @@ INSERT INTO drivers (driver_id, make, model, year, license_plate, rating) VALUES
 
 ksqlDB runs as a server which clients connect to in order to issue queries.
 
-Run this command to connect to the ksqlDB server and enter an interactive command-line interface (CLI) session:
+Run the following command to connect to the ksqlDB server and start an interactive command-line interface (CLI) session.
 
 ```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088

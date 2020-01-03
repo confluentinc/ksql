@@ -18,7 +18,7 @@ Since ksqlDB runs natively on {{ site.aktm }}, you need a running {{ site.ak }} 
 
 In an empty local working directory, copy and paste the following `docker-compose` content into a file named `docker-compose.yml`. You will create and add a number of other files to this directory during this tutorial.
 
-```bash
+```yaml
 ---
 version: '2'
 

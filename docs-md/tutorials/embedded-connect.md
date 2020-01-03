@@ -170,7 +170,7 @@ docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 8. Create source connector
 --------------------------
 
-Next, we are going to make our PostgreSQL data accessible to ksqlDB by creating a *source* connector. From within the ksqlDB session opened in the previous step, run this command:
+Make your PostgreSQL data accessible to ksqlDB by creating a *source* connector. In the ksqlDB CLI, run the following command.
 
 ```sql
 CREATE SOURCE CONNECTOR jdbc_source WITH (

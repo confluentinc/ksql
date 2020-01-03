@@ -220,7 +220,7 @@ Tables in ksqlDB support update semantics, where each message in the underlying 
 11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
-Next we’ll create streams to encapsulate location pings sent every few seconds by drivers’ and riders’ phones. In contrast to tables, ksqlDB streams are append-only collections of events, and therefore suitable for a continuous stream of location updates.
+In this step, you create streams to encapsulate location pings that are sent every few seconds by drivers’ and riders’ phones. In contrast to tables, ksqlDB streams are append-only collections of events, so they're suitable for a continuous stream of location updates.
 
 ```sql
 CREATE STREAM driverLocations (

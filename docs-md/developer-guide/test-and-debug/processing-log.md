@@ -100,6 +100,11 @@ You can disable the log completely by setting the level to OFF:
 log4j.logger.processing=OFF
 ```
 
+!!! note
+    To enable security for the KSQL Processing Log, assign log4j properties
+    as shown in
+    [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/security/log4j-secure.properties).
+
 Log Schema
 ----------
 

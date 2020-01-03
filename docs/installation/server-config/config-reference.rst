@@ -396,8 +396,8 @@ ksql.streams.state.dir
 ----------------------
 
 Sets the storage directory for stateful operations, like aggregations and
-joins, to a durable location. By default, state is stored in the ``/tmp``
-directory.
+joins, to a durable location. By default, state is stored in the
+``/tmp/kafka-streams`` directory.
 
 .. note::
 

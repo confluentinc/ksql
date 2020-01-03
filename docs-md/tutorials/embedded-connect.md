@@ -324,7 +324,7 @@ INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (3, 3
 INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (3, 37.4442, -122.1658);
 ```
 
-As soon as you start writing rows to the input streams, your continuous query from the previous step will begin producing joined output: the rider's location pings are joined with their inbound driver's location pings in real time, providing the rider with driver ETA, rating, as well as additional describing the driver's vehicle.
+As soon as you start writing rows to the input streams, your continuous query from the previous step will begin producing joined output: the rider's location pings are joined with their inbound driver's location pings in real time, providing the rider with driver ETA, rating, as well as additional information describing the driver's vehicle.
 
 Next steps
 -------------

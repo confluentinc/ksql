@@ -315,7 +315,7 @@ INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (0, 3
 INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (0, 37.3952, -122.0813);
 
 INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (1, 37.7850, -122.40270, 12.0);
-INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (1, 37.7887,-122.4074);
+INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (1, 37.7887, -122.4074);
 
 INSERT INTO driverLocations (driver_id, latitude, longitude, speed) VALUES (2, 37.7925, -122.4148, 11.2);
 INSERT INTO riderLocations (driver_id, latitude, longitude) VALUES (2, 37.7876,-122.4235);

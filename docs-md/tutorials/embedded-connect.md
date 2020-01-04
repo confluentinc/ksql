@@ -163,7 +163,7 @@ In the PostgreSQL session, run the following SQL statements to set up the
 driver data. You will join this PostgreSQL data with event streams in ksqlDB.
 
 ```sql
-CREATE TABLE drivers (
+CREATE TABLE driver_profiles (
   driver_id integer PRIMARY KEY,
   make text,
   model text,
@@ -172,7 +172,7 @@ CREATE TABLE drivers (
   rating float
 );
 
-INSERT INTO drivers (driver_id, make, model, year, license_plate, rating) VALUES
+INSERT INTO driver_profiles (driver_id, make, model, year, license_plate, rating) VALUES
   (0, 'Toyota', 'Prius',   2019, 'KAFKA-1', 5.00),
   (1, 'Kia',    'Sorento', 2017, 'STREAMS', 4.89),
   (2, 'Tesla',  'Model S', 2019, 'CNFLNT',  4.92),
@@ -203,13 +203,12 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
   'connection.url'           = 'jdbc:postgresql://postgres:5432/postgres',
   'connection.user'          = 'postgres',
   'topic.prefix'             = 'jdbc_',
-  'table.whitelist'          = 'drivers',
+  'table.whitelist'          = 'driver_profiles',
   'mode'                     = 'incrementing',
   'numeric.mapping'          = 'best_fit',
   'incrementing.column.name' = 'driver_id',
   'key'                      = 'driver_id',
   'value.converter.schemas.enable' = false);
-
 ```
 
 When the source connector is created, it imports any PostgreSQL tables matching
@@ -221,8 +220,8 @@ interact with them just like any other {{ site.ak }} topic used by ksqlDB.
 ----------------------
 
 In the ksqlDB CLI session, run the following command to verify that the
-`drivers` table has been imported. Because you specified `jdbc_` as the topic
-prefix, you should see a `jdbc_drivers` topic in the output.
+`driver_profiles` table has been imported as a Kafka topic. Because you specified `jdbc_` as the topic
+prefix, you should see a `jdbc_user_profiles` topic in the output.
 
 ```bash
 SHOW TOPICS;
@@ -238,7 +237,7 @@ queries. Streams and tables in ksqlDB essentially associate a schema with a
 columns.
 
 ```sql
-CREATE TABLE drivers (
+CREATE TABLE driverProfiles (
   driver_id INTEGER,
   make STRING,
   model STRING,
@@ -246,7 +245,7 @@ CREATE TABLE drivers (
   license_plate STRING,
   rating DOUBLE
 )
-WITH (kafka_topic='jdbc_drivers', value_format='json', partitions=1, key='driver_id');
+WITH (kafka_topic='jdbc_driver_profiles', value_format='json', partitions=1, key='driver_id');
 ```
 
 Tables in ksqlDB support update semantics, where each message in the
@@ -290,7 +289,7 @@ be presented by the rider’s mobile application, ultimately helping the rider t
 safely identify the driver’s vehicle.
 
 You can achieve this result easily by joining the `driverLocations` stream with
-the `drivers` table stored in PostgreSQL.
+the `driver_profiles` table stored in PostgreSQL.
 
 ```sql
 CREATE STREAM enrichedDriverLocations AS
@@ -304,7 +303,7 @@ CREATE STREAM enrichedDriverLocations AS
     jdbc.year          AS year,
     jdbc.license_plate AS license_plate,
     jdbc.rating        AS rating
-  FROM driverLocations dl JOIN drivers jdbc
+  FROM driverLocations dl JOIN driverProfiles jdbc
     ON dl.driver_id = jdbc.driver_id
   EMIT CHANGES;
 ```

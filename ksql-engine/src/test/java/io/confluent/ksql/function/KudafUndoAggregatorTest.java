@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
 import java.util.List;
@@ -31,7 +32,7 @@ import org.junit.Test;
 public class KudafUndoAggregatorTest {
   private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
   private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregateFunction(
-      "SUM",
+      FunctionName.of("SUM"),
       SqlTypes.INTEGER,
       new AggregateFunctionInitArguments(2)
   );

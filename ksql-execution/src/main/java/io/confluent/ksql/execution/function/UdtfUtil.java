@@ -47,7 +47,7 @@ public final class UdtfUtil {
             .collect(Collectors.toList());
 
     return functionRegistry.getTableFunction(
-        functionCall.getName().name(),
+        functionCall.getName(),
         argTypes
     );
   }

@@ -65,7 +65,7 @@ public final class UdafUtil {
           createAggregateFunctionInitArgs(valueColumn.index(), functionCall);
 
       return functionRegistry.getAggregateFunction(
-          functionCall.getName().name(),
+          functionCall.getName(),
           argumentType,
           aggregateFunctionInitArguments
       );

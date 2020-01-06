@@ -94,23 +94,25 @@ public class AggregateParamsFactoryTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregateFunction(same(AGG0.getName().name()), any(), any())).thenReturn(agg0);
+    when(functionRegistry.getAggregateFunction(same(AGG0.getName()), any(), any()))
+        .thenReturn(agg0);
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(agg0.name()).thenReturn(AGG0.getName());
     when(agg0.returnType()).thenReturn(SqlTypes.INTEGER);
     when(agg0.getAggregateType()).thenReturn(SqlTypes.BIGINT);
-    when(functionRegistry.getAggregateFunction(same(AGG1.getName().name()), any(), any())).thenReturn(agg1);
+    when(functionRegistry.getAggregateFunction(same(AGG1.getName()), any(), any()))
+        .thenReturn(agg1);
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
     when(agg1.name()).thenReturn(AGG1.getName());
     when(agg1.returnType()).thenReturn(SqlTypes.STRING);
     when(agg1.getAggregateType()).thenReturn(SqlTypes.DOUBLE);
-    when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName().name()), any(), any()))
+    when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName()), any(), any()))
         .thenReturn(tableAgg);
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(tableAgg.returnType()).thenReturn(SqlTypes.INTEGER);
     when(tableAgg.getAggregateType()).thenReturn(SqlTypes.BIGINT);
     when(tableAgg.name()).thenReturn(TABLE_AGG.getName());
-    when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName().name()), any(), any()))
+    when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName()), any(), any()))
         .thenReturn(windowStart);
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(windowStart.name()).thenReturn(WINDOW_START.getName());

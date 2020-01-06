@@ -23,6 +23,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -203,20 +204,20 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public UdfFactory getUdfFactory(final String functionName) {
+  public UdfFactory getUdfFactory(final FunctionName functionName) {
     return functionRegistry.getUdfFactory(functionName);
   }
 
-  public boolean isAggregate(final String functionName) {
+  public boolean isAggregate(final FunctionName functionName) {
     return functionRegistry.isAggregate(functionName);
   }
 
-  public boolean isTableFunction(final String functionName) {
+  public boolean isTableFunction(final FunctionName functionName) {
     return functionRegistry.isTableFunction(functionName);
   }
 
   public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      final String functionName,
+      final FunctionName functionName,
       final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
@@ -224,7 +225,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   public KsqlTableFunction getTableFunction(
-      final String functionName,
+      final FunctionName functionName,
       final List<SqlType> argumentTypes
   ) {
     return functionRegistry.getTableFunction(functionName, argumentTypes);
@@ -236,12 +237,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+  public AggregateFunctionFactory getAggregateFactory(final FunctionName functionName) {
     return functionRegistry.getAggregateFactory(functionName);
   }
 
   @Override
-  public TableFunctionFactory getTableFunctionFactory(final String functionName) {
+  public TableFunctionFactory getTableFunctionFactory(final FunctionName functionName) {
     return functionRegistry.getTableFunctionFactory(functionName);
   }
 

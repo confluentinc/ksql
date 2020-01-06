@@ -808,8 +808,8 @@ public class SqlToJavaVisitorTest {
   private void givenUdf(
       final String name, final UdfFactory factory, final KsqlScalarFunction function
   ) {
-    when(functionRegistry.isAggregate(name)).thenReturn(false);
-    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
+    when(functionRegistry.isAggregate(FunctionName.of(name))).thenReturn(false);
+    when(functionRegistry.getUdfFactory(FunctionName.of(name))).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
     when(function.getReturnType(anyList())).thenReturn(SqlTypes.STRING);
     final UdfMetadata metadata = mock(UdfMetadata.class);

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -63,7 +64,8 @@ public class UdtfLoaderTest {
     );
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
@@ -84,7 +86,8 @@ public class UdtfLoaderTest {
     );
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
@@ -105,7 +108,8 @@ public class UdtfLoaderTest {
     );
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
@@ -118,7 +122,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(SqlTypes.INTEGER);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.INTEGER));
@@ -131,7 +136,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(SqlTypes.BIGINT);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.BIGINT));
@@ -144,7 +150,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(SqlTypes.DOUBLE);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.DOUBLE));
@@ -157,7 +164,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(SqlTypes.BOOLEAN);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.BOOLEAN));
@@ -170,7 +178,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(SqlTypes.STRING);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
@@ -183,7 +192,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(DECIMAL_SCHEMA);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(SqlTypes.decimal(30, 10)));
@@ -196,7 +206,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));
@@ -209,7 +220,8 @@ public class UdtfLoaderTest {
     final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
 
     // When:
-    final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
+    final KsqlTableFunction function = FUNC_REG
+        .getTableFunction(FunctionName.of("test_udtf"), args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));

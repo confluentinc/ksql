@@ -26,8 +26,8 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.literal;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,7 +108,7 @@ public class ExpressionTypeManagerTest {
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(internalFactory.getMetadata()).thenReturn(metadata);
 
-    when(functionRegistry.getUdfFactory(anyString()))
+    when(functionRegistry.getUdfFactory(any()))
         .thenReturn(internalFactory);
   }
 
@@ -579,8 +579,8 @@ public class ExpressionTypeManagerTest {
   private void givenUdfWithNameAndReturnType(
       final String name, final SqlType returnType, final UdfFactory factory, final KsqlScalarFunction function
   ) {
-    when(functionRegistry.isAggregate(name)).thenReturn(false);
-    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
+    when(functionRegistry.isAggregate(FunctionName.of(name))).thenReturn(false);
+    when(functionRegistry.getUdfFactory(FunctionName.of(name))).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
     when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);

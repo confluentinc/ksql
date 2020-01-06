@@ -108,7 +108,7 @@ public class SqlPredicateTest {
 
   @Before
   public void init() {
-    when(functionRegistry.getUdfFactory("LEN")).thenReturn(lenFactory);
+    when(functionRegistry.getUdfFactory(FunctionName.of("LEN"))).thenReturn(lenFactory);
     when(lenFactory.getFunction(any())).thenReturn(LEN_FUNCTION);
   }
 

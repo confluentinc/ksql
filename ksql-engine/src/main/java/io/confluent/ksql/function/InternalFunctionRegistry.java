@@ -58,10 +58,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public synchronized UdfFactory getUdfFactory(final String functionName) {
-    final UdfFactory udfFactory = udfs.get(functionName.toUpperCase());
+  public synchronized UdfFactory getUdfFactory(final FunctionName functionName) {
+    final UdfFactory udfFactory = udfs.get(functionName.name().toUpperCase());
     if (udfFactory == null) {
-      throw new KsqlException("Can't find any functions with the name '" + functionName + "'");
+      throw new KsqlException(
+          "Can't find any functions with the name '" + functionName.name() + "'");
     }
     return udfFactory;
   }
@@ -99,22 +100,22 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public synchronized boolean isAggregate(final String functionName) {
-    return udafs.containsKey(functionName.toUpperCase());
+  public synchronized boolean isAggregate(final FunctionName functionName) {
+    return udafs.containsKey(functionName.name().toUpperCase());
   }
 
   @Override
-  public synchronized boolean isTableFunction(final String functionName) {
-    return udtfs.containsKey(functionName.toUpperCase());
+  public synchronized boolean isTableFunction(final FunctionName functionName) {
+    return udtfs.containsKey(functionName.name().toUpperCase());
   }
 
   @Override
   public synchronized KsqlAggregateFunction getAggregateFunction(
-      final String functionName,
+      final FunctionName functionName,
       final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.toUpperCase());
+    final AggregateFunctionFactory udafFactory = udafs.get(functionName.name().toUpperCase());
     if (udafFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
@@ -126,10 +127,10 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
   @Override
   public synchronized KsqlTableFunction getTableFunction(
-      final String functionName,
+      final FunctionName functionName,
       final List<SqlType> argumentTypes
   ) {
-    final TableFunctionFactory udtfFactory = udtfs.get(functionName.toUpperCase());
+    final TableFunctionFactory udtfFactory = udtfs.get(functionName.name().toUpperCase());
     if (udtfFactory == null) {
       throw new KsqlException("No table function with name " + functionName + " exists!");
     }
@@ -187,8 +188,9 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public synchronized AggregateFunctionFactory getAggregateFactory(final String functionName) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.toUpperCase());
+  public synchronized AggregateFunctionFactory getAggregateFactory(
+      final FunctionName functionName) {
+    final AggregateFunctionFactory udafFactory = udafs.get(functionName.name().toUpperCase());
     if (udafFactory == null) {
       throw new KsqlException(
           "Can not find any aggregate functions with the name '" + functionName + "'");
@@ -198,8 +200,9 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public synchronized TableFunctionFactory getTableFunctionFactory(final String functionName) {
-    final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.toUpperCase());
+  public synchronized TableFunctionFactory getTableFunctionFactory(
+      final FunctionName functionName) {
+    final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.name().toUpperCase());
     if (tableFunctionFactory == null) {
       throw new KsqlException(
           "Can not find any table functions with the name '" + functionName + "'");

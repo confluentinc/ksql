@@ -114,7 +114,7 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addFunction(func);
 
     // Then:
-    final UdfFactory factory = functionRegistry.getUdfFactory("func");
+    final UdfFactory factory = functionRegistry.getUdfFactory(FunctionName.of("func"));
     assertThat(factory.getFunction(Collections.emptyList()), is(this.func));
   }
 
@@ -235,14 +235,14 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldKnowIfFunctionIsAggregate() {
-    assertFalse(functionRegistry.isAggregate("lcase"));
-    assertTrue(functionRegistry.isAggregate("topk"));
+    assertFalse(functionRegistry.isAggregate(FunctionName.of("lcase")));
+    assertTrue(functionRegistry.isAggregate(FunctionName.of("topk")));
   }
 
   @Test
   public void shouldAddAggregateFunction() {
     functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
-    assertThat(functionRegistry.getAggregateFunction("my_aggregate",
+    assertThat(functionRegistry.getAggregateFunction(FunctionName.of("my_aggregate"),
         SqlTypes.INTEGER,
         AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
   }
@@ -250,7 +250,7 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddTableFunction() {
     functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
-    assertThat(functionRegistry.getTableFunction("my_tablefunction",
+    assertThat(functionRegistry.getTableFunction(FunctionName.of("my_tablefunction"),
         ImmutableList.of(SqlTypes.INTEGER)
     ), not(nullValue()));
   }
@@ -288,9 +288,9 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addFunction(func2);
 
     // Then:
-    assertThat(functionRegistry.getUdfFactory("func")
+    assertThat(functionRegistry.getUdfFactory(FunctionName.of("func"))
         .getFunction(Collections.singletonList(SqlTypes.BIGINT)), equalTo(func2));
-    assertThat(functionRegistry.getUdfFactory("func")
+    assertThat(functionRegistry.getUdfFactory(FunctionName.of("func"))
         .getFunction(Collections.emptyList()), equalTo(func));
   }
 
@@ -298,7 +298,7 @@ public class InternalFunctionRegistryTest {
   public void shouldThrowExceptionIfNoFunctionsWithNameExist() {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("'foo_bar'");
-    functionRegistry.getUdfFactory("foo_bar");
+    functionRegistry.getUdfFactory(FunctionName.of("foo_bar"));
   }
 
   @Test

@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -147,7 +148,7 @@ public class FlatMapNode extends PlanNode {
         final FunctionCall node,
         final Context<Void> context
     ) {
-      final String functionName = node.getName().name();
+      final FunctionName functionName = node.getName();
       if (functionRegistry.isTableFunction(functionName)) {
         final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;

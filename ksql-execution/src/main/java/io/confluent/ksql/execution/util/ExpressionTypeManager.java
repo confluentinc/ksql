@@ -352,7 +352,7 @@ public class ExpressionTypeManager {
         final FunctionCall node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      if (functionRegistry.isAggregate(node.getName().name())) {
+      if (functionRegistry.isAggregate(node.getName())) {
         final SqlType schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
             : getExpressionSqlType(node.getArguments().get(0));
@@ -361,26 +361,26 @@ public class ExpressionTypeManager {
             UdafUtil.createAggregateFunctionInitArgs(0, node);
 
         final KsqlAggregateFunction aggFunc = functionRegistry
-            .getAggregateFunction(node.getName().name(), schema, args);
+            .getAggregateFunction(node.getName(), schema, args);
 
         expressionTypeContext.setSqlType(aggFunc.returnType());
         return null;
       }
 
-      if (functionRegistry.isTableFunction(node.getName().name())) {
+      if (functionRegistry.isTableFunction(node.getName())) {
         final List<SqlType> argumentTypes = node.getArguments().isEmpty()
             ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
             : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSqlType)
                 .collect(Collectors.toList());
 
         final KsqlTableFunction tableFunction = functionRegistry
-            .getTableFunction(node.getName().name(), argumentTypes);
+            .getTableFunction(node.getName(), argumentTypes);
 
         expressionTypeContext.setSqlType(tableFunction.getReturnType(argumentTypes));
         return null;
       }
 
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
       final List<SqlType> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {

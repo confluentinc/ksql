@@ -163,7 +163,7 @@ public class CodeGenRunner {
         argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),

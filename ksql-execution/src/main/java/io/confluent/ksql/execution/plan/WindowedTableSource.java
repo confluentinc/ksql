@@ -60,19 +60,20 @@ public final class WindowedTableSource
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AbstractStreamSource that = (AbstractStreamSource) o;
+    final WindowedTableSource that = (WindowedTableSource) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(alias, that.alias);
   }
 
   @Override
@@ -82,7 +83,8 @@ public final class WindowedTableSource
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        alias
     );
   }
 }

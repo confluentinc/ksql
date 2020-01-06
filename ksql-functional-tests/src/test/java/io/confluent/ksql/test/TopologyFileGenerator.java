@@ -237,23 +237,11 @@ public final class TopologyFileGenerator {
                 .getSource(persistentQueryMetadata.getSinkName())
                 .getKafkaTopicName();
 
-            final SerdeSupplier<?> keySerdes = SerdeUtil.getKeySerdeSupplier(
-                persistentQueryMetadata.getResultTopic().getKeyFormat(),
-                queryMetadata::getLogicalSchema
-            );
-
-            final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-                persistentQueryMetadata.getResultTopic().getValueFormat().getFormat(),
-                queryMetadata::getLogicalSchema
-            );
-
             final Topic sinkTopic = new Topic(
                 sinkKafkaTopicName,
-                Optional.empty(),
-                keySerdes,
-                valueSerdes,
                 1,
-                1
+                1,
+                Optional.empty()
             );
 
             stubKafkaService.createTopic(sinkTopic);

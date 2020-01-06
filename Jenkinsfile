@@ -96,43 +96,56 @@ def job = {
     ]
 
     if (params.PROMOTE_TO_PRODUCTION) {
-        withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
-            withDockerServer([uri: dockerHost()]) {
-                writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                sh '''
-                    bash extract-iam-credential.sh
+        stage("Pulling Docker Images") {
+            withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
+                withDockerServer([uri: dockerHost()]) {
+                    writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                    sh '''
+                        bash extract-iam-credential.sh
 
-                    # Hide login credential from below
-                    set +x
+                        # Hide login credential from below
+                        set +x
 
-                    LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
+                        LOGIN_CMD=$(aws ecr get-login --no-include-email --region us-west-2)
 
-                    $LOGIN_CMD
-                '''
-                config.dockerRepos.each { dockerRepo ->
-                    sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
-                }
-            }
-        }
-
-        dockerHubCreds = usernamePassword(
-            credentialsId: 'Jenkins Docker Hub Account',
-            passwordVariable: 'DOCKER_PASSWORD',
-            usernameVariable: 'DOCKER_USERNAME')
-        withCredentials([dockerHubCreds]) {
-            withDockerServer([uri: dockerHost()]) {
-                config.dockerRepos.each { dockerRepo ->
-                    sh "docker login --username $DOCKER_USERNAME --password \'$DOCKER_PASSWORD\'"
-                    sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
-                    sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
-
-                    if (params.UPDATE_LATEST_TAG) {
-                        sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION} ${dockerRepo}:latest"
-                        sh "docker push ${dockerRepo}:latest"
+                        $LOGIN_CMD
+                    '''
+                    config.dockerRepos.each { dockerRepo ->
+                        sh "docker pull ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION}"
                     }
                 }
             }
         }
+
+        stage("Tag and Push Images") {
+            dockerHubCreds = usernamePassword(
+                credentialsId: 'Jenkins Docker Hub Account',
+                passwordVariable: 'DOCKER_PASSWORD',
+                usernameVariable: 'DOCKER_USERNAME')
+            withCredentials([dockerHubCreds]) {
+                withDockerServer([uri: dockerHost()]) {
+                    config.dockerRepos.each { dockerRepo ->
+                        sh "docker login --username $DOCKER_USERNAME --password \'$DOCKER_PASSWORD\'"
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+                        sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+
+                        if (params.UPDATE_LATEST_TAG) {
+                            sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION} ${dockerRepo}:latest"
+                            sh "docker push ${dockerRepo}:latest"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Promote Maven Artifacts") {
+            withDockerServer([uri: dockerHost()]) {
+                writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                sh "bash extract-iam-credential.sh"
+                sh "aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/"
+            }
+        }
+
         return null
     }
 

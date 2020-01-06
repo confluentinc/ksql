@@ -125,7 +125,7 @@ public class SchemaKTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
-  private final Grouped grouped = Grouped.with(
+  private final Grouped<String, String> grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
 
   private SchemaKTable initialSchemaKTable;
@@ -180,7 +180,7 @@ public class SchemaKTableTest {
 
     mockKTable = EasyMock.niceMock(KTable.class);
     validKeyField = KeyField
-        .of(Optional.of(ColumnRef.of(ksqlTable.getName(), ColumnName.of("COL1"))));
+        .of(Optional.of(ColumnRef.of(ksqlTable.getName(), ColumnName.of("COL0"))));
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
 
@@ -822,7 +822,9 @@ public class SchemaKTableTest {
     final SchemaKTable selected = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
-    final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
+    final List<Expression> groupByExprs =  ImmutableList.of(
+        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("COL0")))
+    );
 
     // When:
     final SchemaKGroupedTable result = selected
@@ -830,7 +832,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL1")))));
+        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")))));
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

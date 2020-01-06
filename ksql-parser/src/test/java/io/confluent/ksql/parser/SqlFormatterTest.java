@@ -68,6 +68,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -109,16 +110,18 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("NAME"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("CATEGORY"), categorySchema)
       .build();
 
-  private static final LogicalSchema tableSchema = LogicalSchema.builder()
+  private static final LogicalSchema TABLE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("TABLE"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -200,7 +203,7 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("TABLE"),
-        tableSchema,
+        TABLE_SCHEMA,
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("TABLE"))),
         Optional.empty(),

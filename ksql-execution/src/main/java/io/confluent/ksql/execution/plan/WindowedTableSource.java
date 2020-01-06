@@ -58,4 +58,33 @@ public final class WindowedTableSource
   public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
     return builder.visitWindowedTableSource(this);
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final WindowedTableSource that = (WindowedTableSource) o;
+    return Objects.equals(properties, that.properties)
+        && Objects.equals(topicName, that.topicName)
+        && Objects.equals(formats, that.formats)
+        && Objects.equals(timestampColumn, that.timestampColumn)
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(alias, that.alias);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        properties,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        alias
+    );
+  }
 }

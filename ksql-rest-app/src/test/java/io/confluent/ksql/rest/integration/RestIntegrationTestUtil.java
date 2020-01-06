@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static org.junit.Assert.assertEquals;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -35,9 +33,9 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -134,26 +132,13 @@ final class RestIntegrationTestUtil {
     }
   }
 
-  static void createStreams(final TestKsqlRestApp restApp, final String streamName, final String topicName) {
-    final Client client = TestKsqlRestApp.buildClient();
-
-    try (final Response response = client
-        .target(restApp.getHttpListener())
-        .path("ksql")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(ksqlRequest(
-            "CREATE STREAM " + streamName + " "
-                + "(viewtime bigint, pageid varchar, userid varchar) "
-                + "WITH (kafka_topic='" + topicName + "', value_format='json');"))) {
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-    } finally {
-      client.close();
-    }
-  }
-
-  private static Entity<?> ksqlRequest(final String sql) {
-    return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
+  static void createStream(final TestKsqlRestApp restApp, final TestDataProvider<?> dataProvider) {
+    makeKsqlRequest(
+        restApp,
+        "CREATE STREAM " + dataProvider.kstreamName()
+            + " (" + dataProvider.ksqlSchemaString() + ") "
+            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
+    );
   }
 
   private static List<KsqlEntity> awaitResults(

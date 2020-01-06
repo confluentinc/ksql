@@ -46,8 +46,7 @@ public abstract class TestDataProvider<K> {
   }
 
   public String ksqlSchemaString() {
-    final String text = schema.logicalSchema().toString();
-    return text.substring(1, text.length() - 1);
+    return schema.logicalSchema().toString();
   }
 
   public String key() {

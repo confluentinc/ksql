@@ -84,7 +84,7 @@ public final class PlannedTestUtils {
     return testCase.withExpectedTopology(
         version,
         new TopologyAndConfigs(
-            planAtVersionNode.getPlan(),
+            Optional.of(planAtVersionNode.getPlan()),
             planAtVersionNode.getTopology(),
             planAtVersionNode.getSchemas(),
             planAtVersionNode.getConfigs()

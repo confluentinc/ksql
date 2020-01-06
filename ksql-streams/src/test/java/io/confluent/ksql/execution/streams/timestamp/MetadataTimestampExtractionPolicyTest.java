@@ -20,6 +20,7 @@ import org.apache.kafka.streams.processor.UsePartitionTimeOnInvalidTimestamp;
 import org.junit.Test;
 
 public class MetadataTimestampExtractionPolicyTest {
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()

@@ -203,29 +203,29 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
 
     assertThat(lines[0], startsWith(
-        " > [ PROJECT ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
-            + "KSQL_COL_2 BIGINT] |"));
+        " > [ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
+            + "KSQL_COL_2 BIGINT |"));
     assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
-            + "KSQL_AGG_VARIABLE_1 BIGINT] |"));
+            + "KSQL_AGG_VARIABLE_1 BIGINT |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE] |"
+        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE |"
     ));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
+        "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE |"));
     assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
+            + "TEST1.COL5 MAP<STRING, DOUBLE> |"));
     assertThat(lines[5], startsWith(
-        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
+            + "TEST1.COL5 MAP<STRING, DOUBLE> |"));
   }
 
   @Test
@@ -243,11 +243,11 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
-        " > [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.S1");
+        " > [ SINK ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
-        "\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.Project");
+        "\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] | Logger: InsertQuery_1.KsqlTopic.Source");
+        "\t\t\t\t > [ SOURCE ] | Schema: TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE | Logger: InsertQuery_1.KsqlTopic.Source");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
@@ -273,13 +273,13 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(3));
     assertThat(lines[0], containsString(
-        "> [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
+        "> [ SINK ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[1], containsString(
-        "> [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
+        "> [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[2], containsString(
-        "> [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 INTEGER]"));
+        "> [ SOURCE ] | Schema: TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 INTEGER"));
   }
 
   @Test
@@ -294,13 +294,13 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
-    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
-        + "DOUBLE] | Logger: InsertQuery_1.S1"));
+    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
+        + "DOUBLE | Logger: InsertQuery_1.S1"));
     assertThat(lines[2],
-        containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] "
+        containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE "
             + "| Logger: InsertQuery_1.PartitionBy"));
-    assertThat(lines[1], containsString("[ PROJECT ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
-        + ", COL2 DOUBLE] | Logger: InsertQuery_1.Project"));
+    assertThat(lines[1], containsString("[ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
+        + ", COL2 DOUBLE | Logger: InsertQuery_1.Project"));
   }
 
   @Test
@@ -316,7 +316,7 @@ public class PhysicalPlanBuilderTest {
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST2."));
+    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, TEST2."));
   }
 
   @Test
@@ -332,7 +332,7 @@ public class PhysicalPlanBuilderTest {
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST3."));
+    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, TEST3."));
   }
 
   @Test

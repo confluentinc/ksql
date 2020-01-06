@@ -219,7 +219,7 @@ public final class LogicalSchema {
     return columns.stream()
         .filter(withNamespace(Namespace.META).negate())
         .map(c -> c.toString(formatOptions))
-        .collect(Collectors.joining(", ", "[", "]"));
+        .collect(Collectors.joining(", "));
   }
 
   private Optional<Column> findColumnMatching(final Predicate<Column> predicate) {

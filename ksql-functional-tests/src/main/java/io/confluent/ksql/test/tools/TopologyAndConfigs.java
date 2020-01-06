@@ -19,16 +19,17 @@ import io.confluent.ksql.engine.KsqlPlan;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TopologyAndConfigs {
 
-  private final List<KsqlPlan> plan;
+  private final Optional<List<KsqlPlan>> plan;
   private final String topology;
   private final Map<String, String> schemas;
   private final Map<String, String> configs;
 
   public TopologyAndConfigs(
-      final List<KsqlPlan> plan,
+      final Optional<List<KsqlPlan>> plan,
       final String topology,
       final Map<String, String> schemas,
       final Map<String, String> configs
@@ -51,7 +52,7 @@ public class TopologyAndConfigs {
     return configs;
   }
 
-  public List<KsqlPlan> getPlan() {
+  public Optional<List<KsqlPlan>> getPlan() {
     return plan;
   }
 }

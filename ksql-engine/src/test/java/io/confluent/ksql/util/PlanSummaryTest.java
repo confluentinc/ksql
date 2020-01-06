@@ -50,7 +50,7 @@ public class PlanSummaryTest {
   @Mock
   private StepSchemaResolver schemaResolver;
 
-  private ExecutionStep sourceStep;
+  private ExecutionStep<?> sourceStep;
   private PlanSummary planSummaryBuilder;
 
   @Before
@@ -66,7 +66,7 @@ public class PlanSummaryTest {
 
     // Then:
     assertThat(summary, is(
-        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, L0 INTEGER] | Logger: QID.src\n"
+        " > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0 INTEGER | Logger: QID.src\n"
     ));
   }
 
@@ -76,15 +76,15 @@ public class PlanSummaryTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
         .build();
-    final ExecutionStep step = givenStep(StreamSelect.class, "child", schema, sourceStep);
+    final ExecutionStep<?> step = givenStep(StreamSelect.class, "child", schema, sourceStep);
 
     // When:
     final String summary = planSummaryBuilder.summarize(step);
 
     // Then:
     assertThat(summary, is(
-        " > [ PROJECT ] | Schema: [ROWKEY STRING KEY, L1 STRING] | Logger: QID.child"
-            + "\n\t\t > [ SOURCE ] | Schema: [ROWKEY STRING KEY, L0 INTEGER] | Logger: QID.src\n"
+        " > [ PROJECT ] | Schema: ROWKEY STRING KEY, L1 STRING | Logger: QID.child"
+            + "\n\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0 INTEGER | Logger: QID.src\n"
     ));
   }
 
@@ -97,8 +97,8 @@ public class PlanSummaryTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
         .build();
-    final ExecutionStep sourceStep2 = givenStep(StreamSource.class, "src2", sourceSchema2);
-    final ExecutionStep step =
+    final ExecutionStep<?> sourceStep2 = givenStep(StreamSource.class, "src2", sourceSchema2);
+    final ExecutionStep<?> step =
         givenStep(StreamStreamJoin.class, "child", schema, sourceStep, sourceStep2);
 
     // When:
@@ -106,9 +106,9 @@ public class PlanSummaryTest {
 
     // Then:
     assertThat(summary, is(
-        " > [ JOIN ] | Schema: [ROWKEY STRING KEY, L1 STRING] | Logger: QID.child"
-            + "\n\t\t > [ SOURCE ] | Schema: [ROWKEY STRING KEY, L0 INTEGER] | Logger: QID.src"
-            + "\n\t\t > [ SOURCE ] | Schema: [ROWKEY STRING KEY, L0_2 STRING] | Logger: QID.src2\n"
+        " > [ JOIN ] | Schema: ROWKEY STRING KEY, L1 STRING | Logger: QID.child"
+            + "\n\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0 INTEGER | Logger: QID.src"
+            + "\n\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, L0_2 STRING | Logger: QID.src2\n"
     ));
   }
 

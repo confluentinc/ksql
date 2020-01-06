@@ -388,6 +388,20 @@ A list of tags to be included with emitted
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
+### ksql.streams.state.dir
+
+Sets the storage directory for stateful operations, like aggregations and
+joins, to a durable location. By default, state is stored in the
+`/tmp/kafka-streams` directory.
+
+!!! note
+    The state storage directory must be unique for every server running on the
+    machine. Otherwise, servers may appear to be stuck and not doing any work.
+
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
+is `KSQL_KSQL_STREAMS_STATE_DIR`.
+
 Confluent Control Center Settings
 ---------------------------------
 
@@ -421,6 +435,11 @@ ksqlDB Processing Log Settings
 
 The following configuration settings control the behavior of the
 [ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+
+!!! note
+    To enable security for the KSQL Processing Log, assign log4j properties
+    as shown in
+    [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/security/log4j-secure.properties).
 
 ### ksql.logging.processing.topic.auto.create
 

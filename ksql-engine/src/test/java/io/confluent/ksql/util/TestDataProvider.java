@@ -20,24 +20,22 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
 import java.util.Objects;
 
-public abstract class TestDataProvider {
+public abstract class TestDataProvider<K> {
+
   private final String topicName;
-  private final String ksqlSchemaString;
   private final String key;
   private final PhysicalSchema schema;
-  private final Map<String, GenericRow> data;
+  private final Map<K, GenericRow> data;
   private final String kstreamName;
 
   TestDataProvider(
       final String namePrefix,
-      final String ksqlSchemaString,
       final String key,
       final PhysicalSchema schema,
-      final Map<String, GenericRow> data
+      final Map<K, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.kstreamName =  namePrefix + "_KSTREAM";
-    this.ksqlSchemaString = Objects.requireNonNull(ksqlSchemaString, "ksqlSchemaString");
     this.key = Objects.requireNonNull(key, "key");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.data = Objects.requireNonNull(data, "data");
@@ -48,7 +46,7 @@ public abstract class TestDataProvider {
   }
 
   public String ksqlSchemaString() {
-    return ksqlSchemaString;
+    return schema.logicalSchema().toString();
   }
 
   public String key() {
@@ -59,7 +57,7 @@ public abstract class TestDataProvider {
     return schema;
   }
 
-  public Map<String, GenericRow> data() {
+  public Map<K, GenericRow> data() {
     return data;
   }
 

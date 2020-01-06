@@ -14,47 +14,37 @@
  */
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-public class UserDataProvider extends TestDataProvider {
-  private static final String namePrefix = "USER";
+public class UserDataProvider extends TestDataProvider<String> {
 
-  private static final String ksqlSchemaString = "(REGISTERTIME bigint, GENDER varchar, REGIONID varchar, USERID varchar)";
-
-  private static final String key = "USERID";
-
-  private static final LogicalSchema schema = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("REGISTERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GENDER"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("REGIONID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)
       .build();
 
-  private static final Map<String, GenericRow> data = buildData();
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(LOGICAL_SCHEMA, SerdeOption.none());
+
+  private static final Map<String, GenericRow> ROWS = ImmutableMap.<String, GenericRow>builder()
+      .put("USER_0", new GenericRow(ImmutableList.of(0L, "FEMALE", "REGION_0", "USER_0")))
+      .put("USER_1", new GenericRow(ImmutableList.of(1L, "MALE", "REGION_1", "USER_1")))
+      .put("USER_2", new GenericRow(ImmutableList.of(2L, "FEMALE", "REGION_1", "USER_2")))
+      .put("USER_3", new GenericRow(ImmutableList.of(3L, "MALE", "REGION_0", "USER_3")))
+      .put("USER_4", new GenericRow(ImmutableList.of(4L, "MALE", "REGION_4", "USER_4")))
+      .build();
 
   public UserDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
-  }
-
-  private static Map<String, GenericRow> buildData() {
-    final Map<String, GenericRow> dataMap = new HashMap<>();
-    // create a records with:
-    // key == user_id
-    // value = (creation_time, gender, region, user_id)
-    dataMap.put("USER_0", new GenericRow(Arrays.asList(0L, "FEMALE", "REGION_0", "USER_0")));
-    dataMap.put("USER_1", new GenericRow(Arrays.asList(1L, "MALE", "REGION_1", "USER_1")));
-    dataMap.put("USER_2", new GenericRow(Arrays.asList(2L, "FEMALE", "REGION_1", "USER_2")));
-    dataMap.put("USER_3", new GenericRow(Arrays.asList(3L, "MALE", "REGION_0", "USER_3")));
-    dataMap.put("USER_4", new GenericRow(Arrays.asList(4L, "MALE", "REGION_4", "USER_4")));
-
-    return dataMap;
+    super("USER", "USERID", PHYSICAL_SCHEMA, ROWS);
   }
 }

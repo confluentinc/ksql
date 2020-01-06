@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.serde.Format.JSON;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
@@ -27,16 +28,15 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.TopicProducer;
 import io.confluent.rest.RestConfig;
 import java.io.EOFException;
 import java.net.URI;
@@ -80,12 +80,10 @@ public class SslFunctionalTest {
           + " \"ksql\": \"PRINT " + TOPIC_NAME + " FROM BEGINNING;\""
           + "}");
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster
-      .newBuilder()
-      .build();
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
-      .builder(CLUSTER::bootstrapServers)
+      .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperties(ServerKeyStore.keyStoreProps())
       .withProperty(RestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
@@ -93,7 +91,7 @@ public class SslFunctionalTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(CLUSTER)
+      .around(TEST_HARNESS)
       .around(REST_APP);
 
   @Rule
@@ -105,8 +103,8 @@ public class SslFunctionalTest {
   @BeforeClass
   public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    CLUSTER.createTopic(TOPIC_NAME);
-    new TopicProducer(CLUSTER).produceInputData(dataProvider);
+    TEST_HARNESS.getKafkaCluster().createTopic(TOPIC_NAME);
+    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, JSON);
   }
 
   @Before

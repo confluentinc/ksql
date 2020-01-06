@@ -578,8 +578,8 @@ public class KsMaterializationFunctionalTest {
   private static void initializeKsql(final TestKsqlContext ksqlContext) {
     ksqlContext.ensureStarted();
 
-    ksqlContext.sql("CREATE TABLE " + USER_TABLE + " "
-        + USER_DATA_PROVIDER.ksqlSchemaString()
+    ksqlContext.sql("CREATE TABLE " + USER_TABLE
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT + "', "
@@ -588,7 +588,7 @@ public class KsMaterializationFunctionalTest {
     );
 
     ksqlContext.sql("CREATE STREAM " + USER_STREAM + " "
-        + USER_DATA_PROVIDER.ksqlSchemaString()
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
         + "    value_format='" + VALUE_FORMAT + "', "

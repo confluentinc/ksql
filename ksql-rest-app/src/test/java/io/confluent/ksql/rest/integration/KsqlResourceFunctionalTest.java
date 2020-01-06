@@ -41,6 +41,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -59,8 +60,9 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class KsqlResourceFunctionalTest {
 
-  private static final String PAGE_VIEW_TOPIC = "pageviews";
-  private static final String PAGE_VIEW_STREAM = "pageviews_original";
+  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
+  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -78,7 +80,8 @@ public class KsqlResourceFunctionalTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
+
+    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
   }
 
   @After

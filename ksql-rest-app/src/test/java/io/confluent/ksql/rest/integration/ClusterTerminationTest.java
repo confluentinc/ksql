@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.Format.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
@@ -34,7 +34,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -44,9 +43,9 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class ClusterTerminationTest {
 
-  private static final String PAGE_VIEW_TOPIC = "pageviews";
-  private static final String PAGE_VIEW_STREAM = "pageviews_original";
-  private static final PageViewDataProvider PAGE_VIEW_DATA_PROVIDER = new PageViewDataProvider();
+  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
+  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
 
   private static final String SINK_TOPIC = "sink_topic";
   private static final String SINK_STREAM = "sink_stream";
@@ -68,7 +67,7 @@ public class ClusterTerminationTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
   }
 
   @Test
@@ -84,7 +83,7 @@ public class ClusterTerminationTest {
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC);
 
     // Produce to stream so that schema is registered by AvroConverter
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, JSON, System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
@@ -96,7 +95,7 @@ public class ClusterTerminationTest {
 
     TEST_HARNESS.waitForSubjectToBeAbsent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
-    MatcherAssert.assertThat(
+    assertThat(
         "Should not delete non-sink topics",
         TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
         is(true)
@@ -112,7 +111,7 @@ public class ClusterTerminationTest {
         .request(MediaType.APPLICATION_JSON_TYPE)
         .post(terminateClusterRequest(deleteTopicList))) {
 
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+      assertThat(response.getStatus(), is(Response.Status.OK.getStatusCode()));
     } finally {
       client.close();
     }

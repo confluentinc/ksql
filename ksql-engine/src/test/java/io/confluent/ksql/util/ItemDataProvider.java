@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -22,43 +23,29 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-public class ItemDataProvider extends TestDataProvider {
+public class ItemDataProvider extends TestDataProvider<String> {
 
-  private static final String namePrefix =
-      "ITEM";
-
-  private static final String ksqlSchemaString =
-      "(ID varchar, DESCRIPTION varchar)";
-
-  private static final String key = "ID";
-
-  private static final LogicalSchema schema = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("ID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("DESCRIPTION"), SqlTypes.STRING)
       .build();
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(LOGICAL_SCHEMA, SerdeOption.none());
 
-  private static final Map<String, GenericRow> data = buildData();
+  private static final Map<String, GenericRow> ROWS = ImmutableMap.<String, GenericRow>builder()
+      .put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1", "home cinema")))
+      .put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2", "clock radio")))
+      .put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3", "road bike")))
+      .put("ITEM_4", new GenericRow(Arrays.asList("ITEM_4", "mountain bike")))
+      .put("ITEM_5", new GenericRow(Arrays.asList("ITEM_5", "snowboard")))
+      .put("ITEM_6", new GenericRow(Arrays.asList("ITEM_6", "iphone 10")))
+      .put("ITEM_7", new GenericRow(Arrays.asList("ITEM_7", "gopro")))
+      .put("ITEM_8", new GenericRow(Arrays.asList("ITEM_8", "cat")))
+      .build();
 
   public ItemDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
+    super("ITEM", "ID", PHYSICAL_SCHEMA, ROWS);
   }
-
-  private static Map<String, GenericRow> buildData() {
-
-    final Map<String, GenericRow> dataMap = new HashMap<>();
-    dataMap.put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")));
-    dataMap.put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2",  "clock radio")));
-    dataMap.put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3",  "road bike")));
-    dataMap.put("ITEM_4", new GenericRow(Arrays.asList("ITEM_4",  "mountain bike")));
-    dataMap.put("ITEM_5", new GenericRow(Arrays.asList("ITEM_5",  "snowboard")));
-    dataMap.put("ITEM_6", new GenericRow(Arrays.asList("ITEM_6",  "iphone 10")));
-    dataMap.put("ITEM_7", new GenericRow(Arrays.asList("ITEM_7",  "gopro")));
-    dataMap.put("ITEM_8", new GenericRow(Arrays.asList("ITEM_8",  "cat")));
-
-    return dataMap;
-  }
-
 }

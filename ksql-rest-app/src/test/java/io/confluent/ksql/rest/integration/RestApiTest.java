@@ -84,8 +84,11 @@ public class RestApiTest {
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.
   private static final int LIMIT = 2;
-  private static final String PAGE_VIEW_TOPIC = "pageviews";
-  private static final String PAGE_VIEW_STREAM = "pageviews_original";
+
+  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
+  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
@@ -171,12 +174,13 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), Format.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, Format.JSON);
 
-    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;");
+        + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+    );
   }
 
   @After
@@ -226,9 +230,9 @@ public class RestApiTest {
     assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
     final String[] messages = response.split(System.lineSeparator());
     assertThat(messages[0],
-        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` STRING\"}},"));
-    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}},"));
-    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}},"));
+        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` BIGINT\"}},"));
+    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,1]}},"));
+    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,2]}},"));
     assertThat(messages[3], is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 

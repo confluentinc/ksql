@@ -15,27 +15,20 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-public class OrderDataProvider extends TestDataProvider {
+public class OrderDataProvider extends TestDataProvider<Long> {
 
-  private static final String namePrefix =
-      "ORDER";
-
-  private static final String ksqlSchemaString =
-      "(ORDERTIME bigint, ORDERID varchar, ITEMID varchar, ORDERUNITS double, TIMESTAMP varchar, PRICEARRAY array<double>, KEYVALUEMAP map<varchar, double>)";
-
-  private static final String key = "ORDERTIME";
-
-  private static final LogicalSchema schema = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -45,92 +38,106 @@ public class OrderDataProvider extends TestDataProvider {
       .valueColumn(ColumnName.of("KEYVALUEMAP"), SqlTypes.map(SqlTypes.DOUBLE))
       .build();
 
-  private static final Map<String, GenericRow> data = buildData();
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(LOGICAL_SCHEMA, SerdeOption.none());
+
+  private static final Map<String, Double> MAP_FIELD = ImmutableMap.of(
+      "key1", 1.0,
+      "key2", 2.0,
+      "key3", 3.0
+  );
+
+  private static final Map<Long, GenericRow> ROWS = ImmutableMap.<Long, GenericRow>builder()
+      .put(
+          1L,
+          new GenericRow(ImmutableList.of(
+              1L,
+              "ORDER_1",
+              "ITEM_1",
+              10.0,
+              "2018-01-01",
+              ImmutableList.of(100.0, 110.99, 90.0),
+              MAP_FIELD
+          )))
+      .put(
+          2L,
+          new GenericRow(ImmutableList.of(
+              2L,
+              "ORDER_2",
+              "ITEM_2",
+              20.0,
+              "2018-01-02",
+              ImmutableList.of(10.0, 10.99, 9.0),
+              MAP_FIELD
+          )))
+      .put(
+          3L,
+          new GenericRow(ImmutableList.of(
+              3L,
+              "ORDER_3",
+              "ITEM_3",
+              30.0,
+              "2018-01-03",
+              ImmutableList.of(10.0, 10.99, 91.0),
+              MAP_FIELD
+          )))
+      .put(
+          4L,
+          new GenericRow(ImmutableList.of(
+              4L,
+              "ORDER_4",
+              "ITEM_4",
+              40.0,
+              "2018-01-04",
+              ImmutableList.of(10.0, 140.99, 94.0),
+              MAP_FIELD)))
+      .put(
+          5L,
+          new GenericRow(ImmutableList.of(
+              5L,
+              "ORDER_5",
+              "ITEM_5",
+              50.0,
+              "2018-01-05",
+              ImmutableList.of(160.0, 160.99, 98.0),
+              MAP_FIELD
+          )))
+      .put(
+          6L,
+          new GenericRow(ImmutableList.of(
+              6L,
+              "ORDER_6",
+              "ITEM_6",
+              60.0,
+              "2018-01-06",
+              ImmutableList.of(1000.0, 1100.99, 900.0),
+              MAP_FIELD
+          )))
+      .put(
+          7L,
+          new GenericRow(ImmutableList.of(
+              7L,
+              "ORDER_6",
+              "ITEM_7",
+              70.0,
+              "2018-01-07",
+              ImmutableList.of(1100.0, 1110.99, 190.0),
+              MAP_FIELD
+          )))
+      .put(
+          8L,
+          new GenericRow(ImmutableList.of(
+              8L,
+              "ORDER_6",
+              "ITEM_8",
+              80.0,
+              "2018-01-08",
+              ImmutableList.of(1100.0, 1110.99, 970.0),
+              MAP_FIELD
+          )))
+      .build();
 
   public OrderDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
+    super("ORDER", "ORDERTIME", PHYSICAL_SCHEMA, ROWS);
   }
-
-  private static Map<String, GenericRow> buildData() {
-
-    final Map<String, Double> mapField = new HashMap<>();
-    mapField.put("key1", 1.0);
-    mapField.put("key2", 2.0);
-    mapField.put("key3", 3.0);
-
-    final Map<String, GenericRow> dataMap = new HashMap<>();
-    dataMap.put("1", new GenericRow(Arrays.asList(
-        1L,
-        "ORDER_1",
-        "ITEM_1",
-        10.0,
-        "2018-01-01",
-        Arrays.asList(100.0, 110.99, 90.0 ),
-        mapField)));
-    dataMap.put("2", new GenericRow(Arrays.asList(
-        2L,
-        "ORDER_2",
-        "ITEM_2",
-        20.0,
-        "2018-01-02",
-        Arrays.asList(10.0, 10.99, 9.0),
-        mapField)));
-
-    dataMap.put("3", new GenericRow(Arrays.asList(
-        3L,
-        "ORDER_3",
-        "ITEM_3",
-        30.0,
-        "2018-01-03",
-        Arrays.asList(10.0, 10.99, 91.0),
-        mapField)));
-
-    dataMap.put("4", new GenericRow(Arrays.asList(
-        4L,
-        "ORDER_4",
-        "ITEM_4",
-        40.0,
-        "2018-01-04",
-        Arrays.asList(10.0, 140.99, 94.0),
-        mapField)));
-
-    dataMap.put("5", new GenericRow(Arrays.asList(
-        5L,
-        "ORDER_5",
-        "ITEM_5",
-        50.0,
-        "2018-01-05",
-        Arrays.asList(160.0, 160.99, 98.0),
-        mapField)));
-
-    dataMap.put("6", new GenericRow(Arrays.asList(
-        6L,
-        "ORDER_6",
-        "ITEM_6",
-        60.0,
-        "2018-01-06",
-        Arrays.asList(1000.0, 1100.99, 900.0),
-        mapField)));
-
-    dataMap.put("7", new GenericRow(Arrays.asList(
-        7L,
-        "ORDER_6",
-        "ITEM_7",
-        70.0,
-        "2018-01-07",
-        Arrays.asList(1100.0, 1110.99, 190.0),
-        mapField)));
-
-    dataMap.put("8", new GenericRow(Arrays.asList(
-        8L,
-        "ORDER_6",
-        "ITEM_8",
-        80.0,
-        "2018-01-08",
-        Arrays.asList(1100.0, 1110.99, 970.0),
-        mapField)));
-
-    return dataMap;
-  }
-
 }

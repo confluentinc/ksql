@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.kafka;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -75,8 +76,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  @SuppressWarnings("unchecked")
-  private static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
+  @VisibleForTesting
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
     if (schema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("KAFKA format does not support unwrapping");
     }

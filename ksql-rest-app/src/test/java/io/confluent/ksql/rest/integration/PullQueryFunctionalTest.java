@@ -39,7 +39,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
@@ -87,7 +86,7 @@ public class PullQueryFunctionalTest {
   private static final String USER_WITH_ACCESS = "harry";
   private static final String USER_WITH_ACCESS_PWD = "changeme";
 
-  private static final TestDataProvider USER_PROVIDER = new UserDataProvider();
+  private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final Format VALUE_FORMAT = Format.JSON;
   private static final int HEADER = 1;
 
@@ -156,7 +155,7 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE STREAM " + USERS_STREAM
-            + " " + USER_PROVIDER.ksqlSchemaString()
+            + " (" + USER_PROVIDER.ksqlSchemaString() + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
             + "   key='" + USER_PROVIDER.key() + "', "

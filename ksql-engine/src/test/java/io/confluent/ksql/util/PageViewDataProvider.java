@@ -14,53 +14,40 @@
  */
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-public class PageViewDataProvider extends TestDataProvider {
-  private static final String namePrefix =
-      "PAGEVIEW";
+public class PageViewDataProvider extends TestDataProvider<Long> {
 
-  private static final String ksqlSchemaString = "(VIEWTIME bigint, USERID varchar, PAGEID varchar)";
-
-  private static final String key = "VIEWTIME";
-
-  private static final LogicalSchema schema = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("VIEWTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("PAGEID"), SqlTypes.STRING)
       .build();
 
-  private static final Map<String, GenericRow> data = buildData();
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(LOGICAL_SCHEMA, SerdeOption.none());
+
+  private static final Map<Long, GenericRow> ROWS = ImmutableMap.<Long, GenericRow>builder()
+      .put(1L, new GenericRow(ImmutableList.of(1L, "USER_1", "PAGE_1")))
+      .put(2L, new GenericRow(ImmutableList.of(2L, "USER_2", "PAGE_2")))
+      .put(3L, new GenericRow(ImmutableList.of(3L, "USER_4", "PAGE_3")))
+      .put(4L, new GenericRow(ImmutableList.of(4L, "USER_3", "PAGE_4")))
+      .put(5L, new GenericRow(ImmutableList.of(5L, "USER_0", "PAGE_5")))
+      // Duplicate page views from different users.
+      .put(6L, new GenericRow(ImmutableList.of(6L, "USER_2", "PAGE_5")))
+      .put(7L, new GenericRow(ImmutableList.of(7L, "USER_3", "PAGE_5")))
+      .build();
 
   public PageViewDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
+    super("PAGEVIEW", "VIEWTIME", PHYSICAL_SCHEMA, ROWS);
   }
-
-  private static Map<String, GenericRow> buildData() {
-    final Map<String, GenericRow> dataMap = new HashMap<>();
-
-    // Create page view records with:
-    // key = page_id
-    // value = (view time, user_id, page_id)
-    dataMap.put("1", new GenericRow(Arrays.asList(1L, "USER_1", "PAGE_1")));
-    dataMap.put("2", new GenericRow(Arrays.asList(2L, "USER_2", "PAGE_2")));
-    dataMap.put("3", new GenericRow(Arrays.asList(3L, "USER_4", "PAGE_3")));
-    dataMap.put("4", new GenericRow(Arrays.asList(4L, "USER_3", "PAGE_4")));
-    dataMap.put("5", new GenericRow(Arrays.asList(5L, "USER_0", "PAGE_5")));
-
-    // Duplicate page views from different users.
-    dataMap.put("6", new GenericRow(Arrays.asList(6L, "USER_2", "PAGE_5")));
-    dataMap.put("7", new GenericRow(Arrays.asList(7L, "USER_3", "PAGE_5")));
-
-    return dataMap;
-  }
-
 }

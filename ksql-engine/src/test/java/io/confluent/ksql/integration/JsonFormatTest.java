@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -40,13 +41,10 @@ import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +52,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -72,29 +69,27 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
   private static final AtomicInteger COUNTER = new AtomicInteger();
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(CLUSTER);
+      .around(TEST_HARNESS);
 
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
-  private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
-  private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
   private QueryId queryId;
   private KafkaTopicClient topicClient;
   private String streamName;
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
+    ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.kafkaBootstrapServers());
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
 
     ksqlEngine = new KsqlEngine(
@@ -118,11 +113,10 @@ public class JsonFormatTest {
     topicClient.createTopic(messageLogTopic, 1, (short) 1);
   }
 
-  private void produceInitData() throws Exception {
+  private static void produceInitData() {
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
-    topicProducer
-            .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
+    TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
@@ -140,7 +134,7 @@ public class JsonFormatTest {
         SerdeOption.none()
     );
 
-    topicProducer.produceInputData(messageLogTopic, records, schema);
+    TEST_HARNESS.produceRows(messageLogTopic, records, schema, JSON);
   }
 
   private void execInitCreateStreamQueries() {
@@ -260,7 +254,8 @@ public class JsonFormatTest {
         source.getSerdeOptions()
     );
 
-    return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
+    return TEST_HARNESS
+        .verifyAvailableUniqueRows(resultTopic, expectedNumMessages, JSON, resultSchema);
   }
 
   private void terminateQuery() {

@@ -70,8 +70,8 @@ public class StreamsSelectAndProjectIntTest {
   private String avroTopicName;
   private String intermediateStream;
   private String resultStream;
-  private Map<String, RecordMetadata> producedAvroRecords;
-  private Map<String, RecordMetadata> producedJsonRecords;
+  private Map<Long, RecordMetadata> producedAvroRecords;
+  private Map<Long, RecordMetadata> producedJsonRecords;
 
   @Before
   public void before() {
@@ -168,7 +168,7 @@ public class StreamsSelectAndProjectIntTest {
         + " CREATE STREAM " + resultStream + " AS"
         + " SELECT ORDERID, TIMESTAMP from " + intermediateStream + ";");
 
-    final List<ConsumerRecord<String, String>> records =
+    final List<ConsumerRecord<byte[], byte[]>> records =
         TEST_HARNESS.verifyAvailableRecords(resultStream.toUpperCase(), 1);
 
     final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -182,7 +182,7 @@ public class StreamsSelectAndProjectIntTest {
         + " AS SELECT ORDERID, ORDERTIME FROM " + AVRO_TIMESTAMP_STREAM_NAME
         + " WHERE ITEMID='ITEM_4';");
 
-    final List<ConsumerRecord<String, String>> records =
+    final List<ConsumerRecord<byte[], byte[]>> records =
         TEST_HARNESS.verifyAvailableRecords(resultStream.toUpperCase(), 1);
 
     final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -193,7 +193,7 @@ public class StreamsSelectAndProjectIntTest {
   private void testTimestampColumnSelection(
       final String inputStreamName,
       final Format dataSourceSerDe,
-      final Map<String, RecordMetadata> recordMetadataMap
+      final Map<Long, RecordMetadata> recordMetadataMap
   ) {
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ROWKEY AS RKEY, "
@@ -206,18 +206,17 @@ public class StreamsSelectAndProjectIntTest {
                 + "FROM %s ;", intermediateStream,
             inputStreamName, resultStream, intermediateStream);
 
-
     ksqlContext.sql(query1String);
 
-    final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8",
+    final Map<Long, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(8L,
         new GenericRow(Arrays.asList(null,
             null,
             "8",
-            recordMetadataMap.get("8").timestamp() + 10000,
+            recordMetadataMap.get(8L).timestamp() + 10000,
             "8",
-            recordMetadataMap.get("8").timestamp() + 10000,
-            recordMetadataMap.get("8").timestamp() + 100,
+            recordMetadataMap.get(8L).timestamp() + 10000,
+            recordMetadataMap.get(8L).timestamp() + 100,
             "ORDER_6",
             "ITEM_8")));
 
@@ -230,22 +229,23 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectProjectKeyTimestamp(
       final String inputStreamName,
-      final Format dataSourceSerDe,
-      final Map<String, RecordMetadata> recordMetadataMap
+      final Format valueFormat,
+      final Map<Long, RecordMetadata> recordMetadataMap
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME "
                                   + "AS RTIME, ITEMID FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
                                   + "'ITEM_8';", resultStream, inputStreamName));
 
-    final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Long, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         1,
-        dataSourceSerDe,
-        getResultSchema());
+        valueFormat,
+        getResultSchema()
+    );
 
-    assertThat(results.get(0).key(), is("8"));
+    assertThat(results.get(0).key(), is(8L));
     assertThat(results.get(0).value(), is(new GenericRow(
-        ImmutableList.of("8", recordMetadataMap.get("8").timestamp(), "ITEM_8"))));
+        ImmutableList.of(8L, recordMetadataMap.get(8L).timestamp(), "ITEM_8"))));
   }
 
   private void testSelectProject(
@@ -286,17 +286,18 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectStar(
       final String inputStreamName,
-      final Format dataSourceSerDe
+      final Format valueFormat
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s;",
                                   resultStream,
                                   inputStreamName));
 
-    final Map<String, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
+    final Map<Long, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
-        dataSourceSerDe,
-        DATA_PROVIDER.schema());
+        valueFormat,
+        DATA_PROVIDER.schema()
+    );
 
     assertThat(results, is(DATA_PROVIDER.data()));
   }
@@ -357,11 +358,12 @@ public class StreamsSelectAndProjectIntTest {
 
     ksqlContext.sql("INSERT INTO " + resultStream + " SELECT * FROM " + JSON_STREAM_NAME + ";");
 
-    final Map<String, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
+    final Map<Long, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         JSON,
-        DATA_PROVIDER.schema());
+        DATA_PROVIDER.schema()
+    );
 
     assertThat(results, is(DATA_PROVIDER.data()));
   }
@@ -373,11 +375,12 @@ public class StreamsSelectAndProjectIntTest {
 
     ksqlContext.sql("INSERT INTO " + resultStream + " SELECT * FROM " + AVRO_STREAM_NAME + ";");
 
-    final Map<String, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
+    final Map<Long, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         AVRO,
-        DATA_PROVIDER.schema());
+        DATA_PROVIDER.schema()
+    );
 
     assertThat(results, is(DATA_PROVIDER.data()));
   }
@@ -415,21 +418,11 @@ public class StreamsSelectAndProjectIntTest {
         .getMetaStore()
         .getSource(SourceName.of(resultStream.toUpperCase()));
 
-    return PhysicalSchema.from(
-        source.getSchema().withoutMetaAndKeyColsInValue(),
-        source.getSerdeOptions()
-    );
+    return PhysicalSchema.from(source.getSchema(), source.getSerdeOptions());
   }
 
   private void createOrdersStream() {
-    final String columns = ""
-        + "ORDERTIME bigint, "
-        + "ORDERID varchar, "
-        + "ITEMID varchar, "
-        + "ORDERUNITS double, "
-        + "TIMESTAMP varchar, "
-        + "PRICEARRAY array<double>,"
-        + " KEYVALUEMAP map<varchar, double>";
+    final String columns = DATA_PROVIDER.ksqlSchemaString();
 
     ksqlContext.sql("CREATE STREAM " + JSON_STREAM_NAME + " (" + columns + ") WITH "
         + "(kafka_topic='" + jsonTopicName + "', value_format='JSON');");

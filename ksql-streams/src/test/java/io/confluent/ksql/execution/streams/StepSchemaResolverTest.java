@@ -450,15 +450,16 @@ public class StepSchemaResolverTest {
 
   private void givenTableFunction(final String name, final SqlType returnType) {
     final KsqlTableFunction tableFunction = mock(KsqlTableFunction.class);
-    when(functionRegistry.isTableFunction(name)).thenReturn(true);
-    when(functionRegistry.getTableFunction(eq(name), any())).thenReturn(tableFunction);
+    when(functionRegistry.isTableFunction(FunctionName.of(name))).thenReturn(true);
+    when(functionRegistry.getTableFunction(eq(FunctionName.of(name)), any()))
+        .thenReturn(tableFunction);
     when(tableFunction.getReturnType(any())).thenReturn(returnType);
   }
 
   @SuppressWarnings("unchecked")
   private void givenAggregateFunction(final String name, final SqlType returnType) {
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
-    when(functionRegistry.getAggregateFunction(eq(name), any(), any()))
+    when(functionRegistry.getAggregateFunction(eq(FunctionName.of(name)), any(), any()))
         .thenReturn(aggregateFunction);
     when(aggregateFunction.name()).thenReturn(FunctionName.of(name));
     when(aggregateFunction.getAggregateType()).thenReturn(SqlTypes.INTEGER);

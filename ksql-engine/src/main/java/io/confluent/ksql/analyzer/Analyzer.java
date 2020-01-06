@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.NodeLocation;
@@ -620,11 +621,11 @@ class Analyzer {
 
     private final class TableFunctionVisitor extends TraversalExpressionVisitor<Void> {
 
-      private Optional<String> tableFunctionName = Optional.empty();
+      private Optional<FunctionName> tableFunctionName = Optional.empty();
 
       @Override
       public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
-        final String functionName = functionCall.getName().name();
+        final FunctionName functionName = functionCall.getName();
         final boolean isTableFunction = metaStore.isTableFunction(functionName);
 
         if (isTableFunction) {

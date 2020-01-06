@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class AggregateExpressionRewriter
   public Optional<Expression> visitFunctionCall(
       final FunctionCall node,
       final ExpressionTreeRewriter.Context<Void> context) {
-    final String functionName = node.getName().name();
+    final FunctionName functionName = node.getName();
     if (functionRegistry.isAggregate(functionName)) {
       final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;

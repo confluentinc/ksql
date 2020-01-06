@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -34,7 +35,7 @@ public interface FunctionRegistry {
    * @param functionName the name of the function to test
    * @return {@code true} if it is an aggregate function, {@code false} otherwise.
    */
-  boolean isAggregate(String functionName);
+  boolean isAggregate(FunctionName functionName);
 
   /**
    * Test if the supplied {@code functionName} is a table function.
@@ -44,7 +45,7 @@ public interface FunctionRegistry {
    * @param functionName the name of the function to test
    * @return {@code true} if it is a table function, {@code false} otherwise.
    */
-  boolean isTableFunction(String functionName);
+  boolean isTableFunction(FunctionName functionName);
 
   /**
    * Get the factory for a UDF.
@@ -53,7 +54,7 @@ public interface FunctionRegistry {
    * @return the factory.
    * @throws KsqlException on unknown UDF.
    */
-  UdfFactory getUdfFactory(String functionName);
+  UdfFactory getUdfFactory(FunctionName functionName);
 
   /**
    * Get the factory for a table function.
@@ -62,7 +63,7 @@ public interface FunctionRegistry {
    * @return the factory.
    * @throws KsqlException on unknown table function.
    */
-  TableFunctionFactory getTableFunctionFactory(String functionName);
+  TableFunctionFactory getTableFunctionFactory(FunctionName functionName);
 
   /**
    * Get the factory for a UDAF.
@@ -71,7 +72,7 @@ public interface FunctionRegistry {
    * @return the factory.
    * @throws KsqlException on unknown UDAF.
    */
-  AggregateFunctionFactory getAggregateFactory(String functionName);
+  AggregateFunctionFactory getAggregateFactory(FunctionName functionName);
 
   /**
    * Get an instance of an aggregate function.
@@ -92,7 +93,7 @@ public interface FunctionRegistry {
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      String functionName,
+      FunctionName functionName,
       SqlType argumentType,
       AggregateFunctionInitArguments initArgs
   );
@@ -100,12 +101,12 @@ public interface FunctionRegistry {
   /**
    * Get a table function.
    *
-   * @param functionName the name of the function.
+   * @param functionName  the name of the function.
    * @param argumentTypes the schemas of the arguments.
    * @return the function instance.
    * @throws KsqlException on unknown table function, or on unsupported {@code argumentType}.
    */
-  KsqlTableFunction getTableFunction(String functionName, List<SqlType> argumentTypes);
+  KsqlTableFunction getTableFunction(FunctionName functionName, List<SqlType> argumentTypes);
 
   /**
    * @return all UDF factories.

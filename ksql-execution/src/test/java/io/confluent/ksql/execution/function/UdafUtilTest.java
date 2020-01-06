@@ -81,7 +81,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(eq("AGG"), any(), any());
+    verify(functionRegistry).getAggregateFunction(eq(FunctionName.of("AGG")), any(), any());
   }
 
   @Test

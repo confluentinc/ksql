@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.Objects;
@@ -65,7 +66,7 @@ class AggregateAnalyzer {
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
       if (aggFuncName.isPresent()) {
         throw new KsqlException("GROUP BY does not support aggregate functions: "
-            + aggFuncName.get() + " is an aggregate function.");
+            + aggFuncName.get().name() + " is an aggregate function.");
       }
     });
 
@@ -83,12 +84,12 @@ class AggregateAnalyzer {
 
   private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
-    private final BiConsumer<Optional<String>, ColumnReferenceExp> dereferenceCollector;
-    private Optional<String> aggFunctionName = Optional.empty();
+    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector;
+    private Optional<FunctionName> aggFunctionName = Optional.empty();
     private boolean visitedAggFunction = false;
 
     private AggregateVisitor(
-        final BiConsumer<Optional<String>, ColumnReferenceExp> dereferenceCollector
+        final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector
     ) {
       this.dereferenceCollector =
           Objects.requireNonNull(dereferenceCollector, "dereferenceCollector");
@@ -96,7 +97,7 @@ class AggregateAnalyzer {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
-      final String functionName = node.getName().name();
+      final FunctionName functionName = node.getName();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
 
       final FunctionCall functionCall = aggregateFunc && node.getArguments().isEmpty()
@@ -106,7 +107,7 @@ class AggregateAnalyzer {
       if (aggregateFunc) {
         if (aggFunctionName.isPresent()) {
           throw new KsqlException("Aggregate functions can not be nested: "
-              + aggFunctionName.get() + "(" + functionName + "())");
+              + aggFunctionName.get().name() + "(" + functionName.name() + "())");
         }
 
         visitedAggFunction = true;

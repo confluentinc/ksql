@@ -346,7 +346,7 @@ public class SqlToJavaVisitor {
     }
 
     private SqlType getFunctionReturnSchema(final FunctionCall node) {
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final List<SqlType> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSqlType)
           .collect(Collectors.toList());

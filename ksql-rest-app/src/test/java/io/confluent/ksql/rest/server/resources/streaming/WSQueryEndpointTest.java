@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -58,6 +59,7 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServ
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
@@ -402,7 +404,11 @@ public class WSQueryEndpointTest {
     when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
         .thenReturn(errorMessage);
     doThrow(new KsqlTopicAuthorizationException(AclOperation.CREATE, Collections.singleton("topic")))
-        .when(authorizationValidator).checkAuthorization(serviceContext, metaStore, query);
+        .when(authorizationValidator).checkAuthorization(
+            argThat(securityContext ->
+                securityContext.getServiceContext() == serviceContext),
+            eq(metaStore),
+            eq(query));
 
     // When:
     wsQueryEndpoint.onOpen(session, null);

@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServ
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -98,7 +99,7 @@ public class WSQueryEndpoint {
   private final Errors errorHandler;
 
   private WebSocketSubscriber<?> subscriber;
-  private ServiceContext serviceContext;
+  private KsqlSecurityContext securityContext;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -218,7 +219,7 @@ public class WSQueryEndpoint {
 
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
-      serviceContext = createServiceContext(session.getUserPrincipal());
+      securityContext = createSecurityContext(session.getUserPrincipal());
 
       final Statement statement = preparedStatement.getStatement();
       final Class<? extends Statement> type = statement.getClass();
@@ -227,7 +228,7 @@ public class WSQueryEndpoint {
 
       HANDLER_MAP
           .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
-          .handle(this, new RequestContext(session, request, serviceContext), statement);
+          .handle(this, new RequestContext(session, request, securityContext), statement);
     } catch (final TopicAuthorizationException e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(
@@ -246,8 +247,8 @@ public class WSQueryEndpoint {
       subscriber.close();
     }
 
-    if (serviceContext != null) {
-      serviceContext.close();
+    if (securityContext != null) {
+      securityContext.getServiceContext().close();
     }
 
     log.debug(
@@ -283,22 +284,26 @@ public class WSQueryEndpoint {
     );
   }
 
-  private ServiceContext createServiceContext(final Principal principal) {
-    // Creates a ServiceContext using the user's credentials, so the WS query topics are
-    // accessed with the user permission context (defaults to KSQL service context)
+  private KsqlSecurityContext createSecurityContext(final Principal principal) {
+    final ServiceContext serviceContext;
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
+      serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
+    } else {
+      // Creates a ServiceContext using the user's credentials, so the WS query topics are
+      // accessed with the user permission context (defaults to KSQL service context)
+
+      serviceContext = securityExtension.getUserContextProvider()
+          .map(provider ->
+              serviceContextFactory.create(
+                  ksqlConfig,
+                  Optional.empty(),
+                  provider.getKafkaClientSupplier(principal),
+                  provider.getSchemaRegistryClientFactory(principal)))
+          .get();
     }
 
-    return securityExtension.getUserContextProvider()
-        .map(provider ->
-            serviceContextFactory.create(
-                ksqlConfig,
-                Optional.empty(),
-                provider.getKafkaClientSupplier(principal),
-                provider.getSchemaRegistryClientFactory(principal)))
-        .get();
+    return new KsqlSecurityContext(Optional.ofNullable(principal), serviceContext);
   }
 
   private void validateVersion(final Session session) {
@@ -368,7 +373,7 @@ public class WSQueryEndpoint {
       }
     } else {
       authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
-          serviceContext,
+          securityContext,
           ksqlEngine.getMetaStore(),
           statement)
       );
@@ -396,7 +401,7 @@ public class WSQueryEndpoint {
 
     queryPublisher.start(
         ksqlEngine,
-        info.serviceContext,
+        info.securityContext.getServiceContext(),
         exec,
         configured,
         streamSubscriber
@@ -406,7 +411,7 @@ public class WSQueryEndpoint {
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic();
 
-    if (!info.serviceContext.getTopicClient().isTopicExists(topicName)) {
+    if (!info.securityContext.getServiceContext().getTopicClient().isTopicExists(topicName)) {
       throw new IllegalArgumentException(
           "Topic does not exist, or KSQL does not have permission to list the topic: " + topicName);
     }
@@ -417,7 +422,7 @@ public class WSQueryEndpoint {
 
     topicPublisher.start(
         exec,
-        info.serviceContext,
+        info.securityContext.getServiceContext(),
         ksqlConfig.getKsqlStreamConfigProps(),
         printTopic,
         topicSubscriber
@@ -493,13 +498,16 @@ public class WSQueryEndpoint {
 
     private final Session session;
     private final KsqlRequest request;
-    private final ServiceContext serviceContext;
+    private final KsqlSecurityContext securityContext;
 
     private RequestContext(
-        final Session session, final KsqlRequest request, final ServiceContext serviceContext) {
+        final Session session,
+        final KsqlRequest request,
+        final KsqlSecurityContext securityContext
+    ) {
       this.session = session;
       this.request = request;
-      this.serviceContext = serviceContext;
+      this.securityContext = securityContext;
     }
   }
 }

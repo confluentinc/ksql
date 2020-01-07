@@ -183,7 +183,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     try {
       final Consumer<KsqlAuthorizationValidator> authValidationConsumer =
           ksqlAuthorizationValidator -> ksqlAuthorizationValidator.checkAuthorization(
-              securityContext.getServiceContext(),
+              securityContext,
               ksqlEngine.getMetaStore(),
               statement.getStatement()
           );

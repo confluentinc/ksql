@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.security;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -41,8 +41,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.After;
 import org.junit.Before;
@@ -62,17 +60,13 @@ public class KsqlAuthorizationValidatorImplTest {
 
   private static final String STREAM_TOPIC_1 = "s1";
   private static final String STREAM_TOPIC_2 = "s2";
-  private final static String TOPIC_NAME_1 = "topic1";
-  private final static String TOPIC_NAME_2 = "topic2";
+  private final static String TOPIC_1 = "topic1";
+  private final static String TOPIC_2 = "topic2";
 
   @Mock
+  private KsqlAccessValidator accessValidator;
+  @Mock
   private ServiceContext serviceContext;
-  @Mock
-  private KafkaTopicClient kafkaTopicClient;
-  @Mock
-  private TopicDescription TOPIC_1;
-  @Mock
-  private TopicDescription TOPIC_2;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -80,19 +74,17 @@ public class KsqlAuthorizationValidatorImplTest {
   private KsqlAuthorizationValidator authorizationValidator;
   private KsqlEngine ksqlEngine;
   private MutableMetaStore metaStore;
+  private KsqlSecurityContext securityContext;
 
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    authorizationValidator = new KsqlAuthorizationValidatorImpl();
-    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    authorizationValidator = new KsqlAuthorizationValidatorImpl(accessValidator);
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
-    givenTopic(TOPIC_NAME_1, TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
-
-    givenTopic(TOPIC_NAME_2, TOPIC_2);
     givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
   }
 
@@ -106,35 +98,18 @@ public class KsqlAuthorizationValidatorImplTest {
   }
 
   @Test
-  public void shouldAllowAnyOperationIfPermissionsAreNull() {
-    // Given:
-    givenTopicPermissions(TOPIC_1, null);
-    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
-
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
-  }
-
-  @Test
   public void shouldSingleSelectWithReadPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenSingleSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.emptySet());
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s;", STREAM_TOPIC_1)
     );
@@ -142,34 +117,28 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldJoinSelectWithReadPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenJoinSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
@@ -177,18 +146,17 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenJoinWithOneRightTopicWithReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    givenAccessDenied(TOPIC_2, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
@@ -196,18 +164,17 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_2.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_2
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenJoinWitOneLeftTopicWithReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
     );
@@ -215,34 +182,28 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldInsertIntoWithAllPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
     final Statement statement = givenStatement(String.format(
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
-  public void shouldThrowWhenInsertIntoWithOnlyReadPermissionsDenied() {
+  public void shouldThrowWhenInsertIntoWithOnlyReadPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    givenAccessDenied(TOPIC_2, AclOperation.WRITE);
     final Statement statement = givenStatement(String.format(
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
@@ -250,18 +211,17 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
-  public void shouldThrowWhenInsertIntoWithOnlyWritePermissionsDenied() {
+  public void shouldThrowWhenInsertIntoWithOnlyWritePermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
@@ -269,17 +229,17 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenCreateAsSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.emptySet());
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
         "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
     );
@@ -287,34 +247,28 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldCreateAsSelectExistingTopicWithWritePermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
     final Statement statement = givenStatement(String.format(
         "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    givenAccessDenied(TOPIC_2, AclOperation.WRITE);
     final Statement statement = givenStatement(String.format(
         "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
     );
@@ -322,125 +276,91 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
     ));
 
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldCreateAsSelectWithTopicAndWritePermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
     final Statement statement = givenStatement(String.format(
         "CREATE STREAM newStream WITH (kafka_topic='%s') AS SELECT * FROM %s;",
-        TOPIC_2.name(), STREAM_TOPIC_1)
+        TOPIC_2, STREAM_TOPIC_1)
     );
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldPrintTopicWithReadPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
+    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_1));
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
-  public void shouldThrowWhenThrowPrintTopicWithoutReadPermissionsDenied() {
+  public void shouldThrowWhenPrintTopicWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.emptySet());
-    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_1));
 
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldCreateSourceWithReadPermissionsAllowed() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_1)
     );
 
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-
-    // Then:
-    // Above command should not throw any exception
+    // When/Then:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test
   public void shouldThrowWhenCreateSourceWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    givenAccessDenied(TOPIC_1, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_1)
     );
 
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
     ));
 
     // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
-  @Test
-  public void shouldThrowExceptionWhenTopicClientFails() {
-    // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
-    givenTopicClientError(TOPIC_1);
-
-    // Then:
-    expectedException.expect(KafkaResponseGetFailedException.class);
-
-    // When:
-    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
-  }
-
-  private void givenTopic(final String topicName, final TopicDescription topicDescription) {
-    when(topicDescription.name()).thenReturn(topicName);
-    when(kafkaTopicClient.describeTopic(topicDescription.name())).thenReturn(topicDescription);
-  }
-
-  private void givenTopicPermissions(
-      final TopicDescription topicDescription,
-      final Set<AclOperation> operations
-  ) {
-    when(topicDescription.authorizedOperations()).thenReturn(operations);
+  private void givenAccessDenied(final String topicName, final AclOperation operation) {
+    doThrow(new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName)))
+        .when(accessValidator).checkAccess(securityContext, topicName, operation);
   }
 
   private void givenStreamWithTopic(
       final String streamName,
-      final TopicDescription topicDescription
+      final String topicName
   ) {
     final KsqlTopic sourceTopic = new KsqlTopic(
-        topicDescription.name(),
+        topicName,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
         ValueFormat.of(FormatInfo.of(Format.JSON))
     );
@@ -457,10 +377,5 @@ public class KsqlAuthorizationValidatorImplTest {
     );
 
     metaStore.putSource(streamSource);
-  }
-
-  private void givenTopicClientError(final TopicDescription topic) {
-    when(kafkaTopicClient.describeTopic(topic.name()))
-        .thenThrow(KafkaResponseGetFailedException.class);
   }
 }

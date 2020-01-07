@@ -196,6 +196,19 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds to block waiting for the underlying streams instance to exit";
 
+  public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS =
+      "ksql.authorization.cache.expiry.time.secs";
+  public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
+  public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC = "Time in "
+      + "seconds to keep KSQL authorization responses in the cache. (The cache is disabled if "
+      + "0 or a negative number is set).";
+
+  public static final String KSQL_AUTH_CACHE_MAX_ENTRIES =
+      "ksql.authorization.cache.max.entries";
+  public static final Long KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT = 10000L;
+  public static final String KSQL_AUTH_CACHE_MAX_ENTRIES_DOC = "Controls the size of the cache "
+      + "to a maximum number of KSQL authorization responses entries.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -520,6 +533,18 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_EXECUTION_PLANS_ENABLE_DEFAULT,
             Importance.LOW,
             "Feature flag to enable writing KSQL execution plans. For testing only."
+        ).define(
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
+            Type.LONG,
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT,
+            Importance.LOW,
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC
+        ).define(
+            KSQL_AUTH_CACHE_MAX_ENTRIES,
+            Type.LONG,
+            KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT,
+            Importance.LOW,
+            KSQL_AUTH_CACHE_MAX_ENTRIES_DOC
         )
         .withClientSslSupport();
 

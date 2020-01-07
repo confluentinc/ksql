@@ -191,7 +191,7 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final KsqlEntityList entities = handler.execute(
-          securityContext.getServiceContext(),
+          securityContext,
           TERMINATE_CLUSTER,
           request.getStreamsProperties()
       );
@@ -228,7 +228,7 @@ public class KsqlResource implements KsqlConfigurable {
       );
 
       final KsqlEntityList entities = handler.execute(
-          securityContext.getServiceContext(),
+          securityContext,
           statements,
           request.getStreamsProperties()
       );

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -25,11 +24,8 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
-import java.util.Set;
 import org.apache.kafka.common.acl.AclOperation;
 
 /**
@@ -39,39 +35,49 @@ import org.apache.kafka.common.acl.AclOperation;
  * This validator only works on Kakfa 2.3 or later.
  */
 public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidator {
+  private final KsqlAccessValidator accessValidator;
+
+  public KsqlAuthorizationValidatorImpl(final KsqlAccessValidator accessValidator) {
+    this.accessValidator = accessValidator;
+  }
+
+  KsqlAccessValidator getAccessValidator() {
+    return accessValidator;
+  }
+
   @Override
   public void checkAuthorization(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final MetaStore metaStore,
       final Statement statement
   ) {
     if (statement instanceof Query) {
-      validateQuery(serviceContext, metaStore, (Query)statement);
+      validateQuery(securityContext, metaStore, (Query)statement);
     } else if (statement instanceof InsertInto) {
-      validateInsertInto(serviceContext, metaStore, (InsertInto)statement);
+      validateInsertInto(securityContext, metaStore, (InsertInto)statement);
     } else if (statement instanceof CreateAsSelect) {
-      validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
+      validateCreateAsSelect(securityContext, metaStore, (CreateAsSelect)statement);
     } else if (statement instanceof PrintTopic) {
-      validatePrintTopic(serviceContext, (PrintTopic)statement);
+      validatePrintTopic(securityContext, (PrintTopic)statement);
     } else if (statement instanceof CreateSource) {
-      validateCreateSource(serviceContext, (CreateSource)statement);
+      validateCreateSource(securityContext, (CreateSource)statement);
     }
   }
 
   private void validateQuery(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final MetaStore metaStore,
       final Query query
   ) {
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(query, null);
-    for (final String kafkaTopic : extractor.getSourceTopics()) {
-      checkAccess(serviceContext, kafkaTopic, AclOperation.READ);
+    for (String kafkaTopic : extractor.getSourceTopics()) {
+      accessValidator.checkAccess(securityContext, kafkaTopic, AclOperation.READ);
     }
   }
 
   private void validateCreateAsSelect(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final MetaStore metaStore,
       final CreateAsSelect createAsSelect
   ) {
@@ -84,15 +90,15 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
      * the target topic using the same ServiceContext used for validation.
      */
 
-    validateQuery(serviceContext, metaStore, createAsSelect.getQuery());
+    validateQuery(securityContext, metaStore, createAsSelect.getQuery());
 
     // At this point, the topic should have been created by the TopicCreateInjector
     final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
-    checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+    accessValidator.checkAccess(securityContext, kafkaTopic, AclOperation.WRITE);
   }
 
   private void validateInsertInto(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
@@ -102,25 +108,25 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
      * Validates Write on the target topic, and Read on the query sources topics.
      */
 
-    validateQuery(serviceContext, metaStore, insertInto.getQuery());
+    validateQuery(securityContext, metaStore, insertInto.getQuery());
 
     final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget());
-    checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+    accessValidator.checkAccess(securityContext, kafkaTopic, AclOperation.WRITE);
   }
 
   private void validatePrintTopic(
-          final ServiceContext serviceContext,
+          final KsqlSecurityContext securityContext,
           final PrintTopic printTopic
   ) {
-    checkAccess(serviceContext, printTopic.getTopic(), AclOperation.READ);
+    accessValidator.checkAccess(securityContext, printTopic.getTopic(), AclOperation.READ);
   }
 
   private void validateCreateSource(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final CreateSource createSource
   ) {
     final String sourceTopic = createSource.getProperties().getKafkaTopic();
-    checkAccess(serviceContext, sourceTopic, AclOperation.READ);
+    accessValidator.checkAccess(securityContext, sourceTopic, AclOperation.READ);
   }
 
   private String getSourceTopicName(final MetaStore metaStore, final SourceName streamOrTable) {
@@ -131,26 +137,6 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     }
 
     return dataSource.getKafkaTopicName();
-  }
-
-  /**
-   * Checks if the ServiceContext has access to the topic with the specified AclOperation.
-   */
-  private void checkAccess(
-      final ServiceContext serviceContext,
-      final String topicName,
-      final AclOperation operation
-  ) {
-    final Set<AclOperation> authorizedOperations = serviceContext.getTopicClient()
-        .describeTopic(topicName).authorizedOperations();
-
-    // Kakfa 2.2 or lower do not support authorizedOperations(). In case of running on a
-    // unsupported broker version, then the authorizeOperation will be null.
-    if (authorizedOperations != null && !authorizedOperations.contains(operation)) {
-      // This error message is similar to what Kafka throws when it cannot access the topic
-      // due to an authorization error. I used this message to keep a consistent message.
-      throw new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName));
-    }
   }
 
   private String getCreateAsSelectSinkTopic(

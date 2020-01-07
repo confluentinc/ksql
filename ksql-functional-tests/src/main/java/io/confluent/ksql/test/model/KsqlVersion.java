@@ -21,6 +21,7 @@ import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.Version;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,7 +34,7 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =
       Comparator.comparing(KsqlVersion::getVersion)
-      .thenComparingLong(KsqlVersion::getTimestamp);
+      .thenComparingLong(v -> v.timestamp);
 
   private final transient String name;
   private final SemanticVersion version;
@@ -78,8 +79,8 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
     return version;
   }
 
-  public long getTimestamp() {
-    return timestamp;
+  public OptionalLong getTimestamp() {
+    return timestamp == Long.MAX_VALUE ? OptionalLong.empty() : OptionalLong.of(timestamp);
   }
 
   @Override

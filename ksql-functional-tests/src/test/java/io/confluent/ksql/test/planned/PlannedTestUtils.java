@@ -17,8 +17,13 @@ package io.confluent.ksql.test.planned;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TopologyAndConfigs;
+import io.confluent.ksql.test.tools.VersionedTest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,13 +31,12 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public final class PlannedTestUtils {
-  private static final String BASE_DIRECTORY = "src/test/resources/";
-  private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
   // this is temporary
   private static final List<String> WHITELIST = ImmutableList.of(
       "average - calculate average in select"
@@ -71,28 +75,20 @@ public final class PlannedTestUtils {
     }
   }
 
-  public static List<String> findContentsOfDirectory(final String path) {
-    return loadContents(path)
-        .orElseThrow(() -> new AssertionError("Dir not found: " + path));
-  }
-
-  public static String formatName(final String originalName) {
-    return originalName
-        .replaceAll(" - (AVRO|JSON|DELIMITED|KAFKA)$", "")
-        .replaceAll(INVALID_FILENAME_CHARS_PATTERN, "_");
-  }
-
-  public static Path findBaseDir() {
-    Path path = Paths.get("./ksql-functional-tests");
-    if (Files.exists(path)) {
-      return path.resolve(BASE_DIRECTORY);
-    }
-    path = Paths.get("../ksql-functional-tests");
-    if (Files.exists(path)) {
-      return path.resolve(BASE_DIRECTORY);
-    }
-    throw new RuntimeException("Failed to determine location of expected topologies directory. "
-        + "App should be run with current directory set to either the root of the repo or the "
-        + "root of the ksql-functional-tests module");
+  public static TestCase buildPlannedTestCase(
+      final TestCase testCase,
+      final TestCasePlan planAtVersionNode
+  ) {
+    final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getVersion())
+        .withTimestamp(planAtVersionNode.getTimestamp());
+    return testCase.withExpectedTopology(
+        version,
+        new TopologyAndConfigs(
+            Optional.of(planAtVersionNode.getPlan()),
+            planAtVersionNode.getTopology(),
+            planAtVersionNode.getSchemas(),
+            planAtVersionNode.getConfigs()
+        )
+    );
   }
 }

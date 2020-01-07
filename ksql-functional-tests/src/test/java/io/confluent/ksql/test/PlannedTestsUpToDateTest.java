@@ -15,20 +15,15 @@
 
 package io.confluent.ksql.test;
 
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.planned.TestCasePlan;
 import io.confluent.ksql.test.planned.TestCasePlanLoader;
-import io.confluent.ksql.test.planned.PlannedTestLoader;
 import io.confluent.ksql.test.planned.PlannedTestUtils;
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
@@ -69,22 +64,8 @@ public class PlannedTestsUpToDateTest {
 
   @Test
   public void shouldHaveLatestPlans() {
-    final Path testCaseDir = Paths.get(
-        PlannedTestLoader.PLANS_DIR,
-        PlannedTestUtils.formatName(testCase.getName())
-    );
-
-    assertThat(
-        String.format(
-            "Missing test plan directory for: %s. Please re-generate QTT plans."
-                + " See `ksql-functional-tests/README.md` for more info.",
-            testCase.getName()
-        ),
-        Files.isDirectory(PlannedTestUtils.findBaseDir().resolve(testCaseDir)), is(true)
-    );
-
-    final Optional<TestCasePlan> latest = TestCasePlanLoader.fromLatest(testCaseDir);
-    final TestCasePlan current = TestCasePlanLoader.fromTestCase(testCase);
+    final Optional<TestCasePlan> latest = TestCasePlanLoader.latestForTestCase(testCase);
+    final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase);
     assertThat(
         String.format(
             "Current query plan differs from latest for: %s. Please re-generate QTT plans."

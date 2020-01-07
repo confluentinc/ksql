@@ -57,6 +57,7 @@ import java.util.Optional;
  */
 @SuppressWarnings("MethodMayBeStatic") // Methods can not be used in HANDLERS is static.
 public final class StepSchemaResolver {
+  @SuppressWarnings("rawtypes")
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, LogicalSchema, LogicalSchema> HANDLERS
       = HandlerMaps.forClass(ExecutionStep.class)
@@ -66,7 +67,7 @@ public final class StepSchemaResolver {
       .put(StreamWindowedAggregate.class, StepSchemaResolver::handleStreamWindowedAggregate)
       .put(StreamFilter.class, StepSchemaResolver::sameSchema)
       .put(StreamFlatMap.class, StepSchemaResolver::handleStreamFlatMap)
-      .put(StreamGroupBy.class, StepSchemaResolver::handleGroupBy)
+      .put(StreamGroupBy.class, StepSchemaResolver::handleStreamGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
       .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
@@ -75,13 +76,14 @@ public final class StepSchemaResolver {
       .put(WindowedStreamSource.class, StepSchemaResolver::handleSource)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
-      .put(TableGroupBy.class, StepSchemaResolver::sameSchema)
+      .put(TableGroupBy.class, StepSchemaResolver::handleTableGroupBy)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleSource)
       .build();
 
+  @SuppressWarnings("rawtypes")
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, JoinSchemas, LogicalSchema> JOIN_HANDLERS
       = HandlerMaps.forClass(ExecutionStep.class)
@@ -164,12 +166,27 @@ public final class StepSchemaResolver {
     );
   }
 
-  private LogicalSchema handleGroupBy(
+  private LogicalSchema handleStreamGroupBy(
       final LogicalSchema sourceSchema,
       final StreamGroupBy<?> streamGroupBy
   ) {
     final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
         streamGroupBy.getGroupByExpressions().stream(),
+        "Group By",
+        sourceSchema,
+        ksqlConfig,
+        functionRegistry
+    );
+
+    return GroupByParamsFactory.build(sourceSchema, compiledGroupBy).getSchema();
+  }
+
+  private LogicalSchema handleTableGroupBy(
+      final LogicalSchema sourceSchema,
+      final TableGroupBy<?> tableGroupBy
+  ) {
+    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+        tableGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
         ksqlConfig,

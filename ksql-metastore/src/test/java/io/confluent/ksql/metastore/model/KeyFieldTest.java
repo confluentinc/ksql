@@ -137,6 +137,18 @@ public class KeyFieldTest {
     keyField.resolve(SCHEMA);
   }
 
+  @Test
+  public void shouldThrowIfKeyColumnTypeDoesNotMatchWithKeyFieldType() {
+    // Given:
+    final KeyField keyField = KeyField.of(SCHEMA.value().get(1).ref());
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+
+    // When:
+    keyField.validateKeyExistsIn(SCHEMA);
+  }
+
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
   public void shouldResolveKeyField() {

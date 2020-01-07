@@ -49,7 +49,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
@@ -65,6 +64,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.HashMap;
 import java.util.List;
@@ -316,7 +316,7 @@ public class AnalyzerFunctionalTest {
         SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("FIELD1"))),
+        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopic

@@ -63,12 +63,12 @@ public class RequestHandlerTest {
 
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
   
-  @Mock KsqlEngine ksqlEngine;
-  @Mock KsqlConfig ksqlConfig;
-  @Mock ServiceContext serviceContext;
-  @Mock DistributingExecutor distributor;
-  @Mock KsqlEntity entity;
-  @Mock CommandQueueSync sync;
+  @Mock private KsqlEngine ksqlEngine;
+  @Mock private KsqlConfig ksqlConfig;
+  @Mock private ServiceContext serviceContext;
+  @Mock private DistributingExecutor distributor;
+  @Mock private KsqlEntity entity;
+  @Mock private CommandQueueSync sync;
 
   private MetaStore metaStore;
   private RequestHandler handler;
@@ -76,8 +76,6 @@ public class RequestHandlerTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.parse(any()))
-        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));

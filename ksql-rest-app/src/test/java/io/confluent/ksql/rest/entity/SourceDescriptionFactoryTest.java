@@ -86,7 +86,7 @@ public class SourceDescriptionFactoryTest {
         SourceName.of("stream"),
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.value().get(0).ref()),
+        KeyField.none(),
         timestampColumn,
         false,
         topic

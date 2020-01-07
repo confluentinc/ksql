@@ -92,6 +92,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -134,6 +135,7 @@ public class KsqlParserTest {
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -154,12 +156,12 @@ public class KsqlParserTest {
         ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
+    final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
+        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders

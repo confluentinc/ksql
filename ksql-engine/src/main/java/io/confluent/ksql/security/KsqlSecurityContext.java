@@ -27,7 +27,10 @@ public class KsqlSecurityContext {
   private final Optional<Principal> userPrincipal;
   private final ServiceContext serviceContext;
 
-  public KsqlSecurityContext(Optional<Principal> userPrincipal, ServiceContext serviceContext) {
+  public KsqlSecurityContext(
+      final Optional<Principal> userPrincipal,
+      final ServiceContext serviceContext
+  ) {
     this.userPrincipal = userPrincipal;
     this.serviceContext = serviceContext;
   }

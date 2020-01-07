@@ -235,6 +235,30 @@
       ]
     },
     {
+      "name": "should handle arbitrary nested expressions",
+      "statements": [
+        "CREATE STREAM TEST (I INT, A ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (I, A) VALUES (-1, ARRAY[ARRAY[1]]);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"I": -1, "A": [[1]]}}
+      ]
+    },
+    {
+      "name": "should handle map expressions",
+      "statements": [
+        "CREATE STREAM TEST (I INT, A MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (I, A) VALUES (-1, MAP('a':=0, 'b':=1));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"I": -1, "A": {"a": 0, "b": 1}}}
+      ]
+    },
+    {
       "name": "should handle quoted identifiers",
       "statements": [
         "CREATE STREAM `test` (`id!` INT) WITH (kafka_topic='test_topic', value_format='JSON');",

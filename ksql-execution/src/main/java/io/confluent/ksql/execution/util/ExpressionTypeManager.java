@@ -70,6 +70,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -339,7 +340,9 @@ public class ExpressionTypeManager {
         final ExpressionTypeContext context
     ) {
       if (exp.getValues().isEmpty()) {
-        throw new KsqlException("Cannot extract type from empty array!");
+        throw new KsqlException(
+            "Array constructor cannot be empty. Please supply at least one element "
+                + "(see https://github.com/confluentinc/ksql/issues/4239).");
       }
 
       final List<SqlType> sqlTypes = exp
@@ -350,16 +353,20 @@ public class ExpressionTypeManager {
             return context.getSqlType();
           })
           .filter(Objects::nonNull)
-          .distinct()
           .collect(Collectors.toList());
 
       if (sqlTypes.size() == 0) {
-        throw new KsqlException("Cannot extract type from array of nulls!");
+        throw new KsqlException("Cannot construct an array with all NULL elements "
+            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+            + "cast the NULL value to a desired type.");
       }
 
-      if (sqlTypes.size() != 1) {
+      if (new HashSet<>(sqlTypes).size() != 1) {
         throw new KsqlException(
-            "Invalid array expression! All values must be of the same type." + exp);
+            String.format(
+                "Cannot construct an array with mismatching types (%s) from expression %s.",
+                sqlTypes,
+                exp));
       }
 
       context.setSqlType(SqlArray.of(sqlTypes.get(0)));
@@ -372,19 +379,21 @@ public class ExpressionTypeManager {
         final ExpressionTypeContext context
     ) {
       if (exp.getMap().isEmpty()) {
-        throw new KsqlException("Cannot extract type from empty map!");
+        throw new KsqlException("Map constructor cannot be empty. Please supply at least one key "
+            + "value pair (see https://github.com/confluentinc/ksql/issues/4239).");
       }
 
-      final boolean anyNonStringKeys = exp.getMap()
+      final List<SqlType> gkeyTypes = exp.getMap()
           .keySet()
           .stream()
           .map(key -> {
             process(key, context);
             return context.getSqlType();
           })
-          .anyMatch(type -> !SqlTypes.STRING.equals(type));
-      if (anyNonStringKeys) {
-        throw new KsqlException("Cannot support non-string keys on maps:" + exp);
+          .collect(Collectors.toList());
+
+      if (gkeyTypes.stream().anyMatch(type -> !SqlTypes.STRING.equals(type))) {
+        throw new KsqlException("Only STRING keys are supported in maps but got: " + gkeyTypes);
       }
 
       final List<SqlType> sqlTypes = exp.getMap()
@@ -399,11 +408,14 @@ public class ExpressionTypeManager {
 
       if (sqlTypes.size() != 1) {
         throw new KsqlException(
-            "Invalid map expression! All values must be of the same type. " + exp);
+            String.format(
+                "Cannot construct a map with mismatching value types (%s) from expression %s.",
+                sqlTypes,
+                exp));
       }
 
       if (sqlTypes.get(0) == null) {
-        throw new KsqlException("Maps do not accept null values!");
+        throw new KsqlException("Cannot construct a map with NULL values.");
       }
 
       context.setSqlType(SqlMap.of(sqlTypes.get(0)));

@@ -365,7 +365,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot extract type from array of nulls");
+    expectedException.expectMessage("Cannot construct an array with all NULL elements");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -383,7 +383,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid array expression! All values must be of the same type.");
+    expectedException.expectMessage("Cannot construct an array with mismatching types");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -417,7 +417,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot support non-string keys on maps:");
+    expectedException.expectMessage("Only STRING keys are supported in maps");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -437,7 +437,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid map expression! All values must be of the same type.");
+    expectedException.expectMessage("Cannot construct a map with mismatching value types");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -455,7 +455,7 @@ public class ExpressionTypeManagerTest {
 
     // Expect
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Maps do not accept null values!");
+    expectedException.expectMessage("Cannot construct a map with NULL values");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);

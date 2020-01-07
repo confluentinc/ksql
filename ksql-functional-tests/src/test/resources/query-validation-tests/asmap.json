@@ -34,6 +34,39 @@
         {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
         {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  null}}}
       ]
+    },
+    {
+      "name": "create map from named tuples mismatching types",
+      "statements": [
+        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:='hello') as M FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot construct a map with mismatching value types ([INTEGER, STRING]) from expression MAP(TEST.K1:=TEST.V1, TEST.K2:='hello')."
+      }
+    },
+    {
+      "name": "create map from named tuples null values",
+      "statements": [
+        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:=NULL) as M FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot construct a map with mismatching value types ([INTEGER, null]) from expression MAP(TEST.K1:=TEST.V1, TEST.K2:=null)."
+      }
+    },
+    {
+      "name": "create empty map",
+      "statements": [
+        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP() as M FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Map constructor cannot be empty. Please supply at least one key value pair (see https://github.com/confluentinc/ksql/issues/4239)."
+      }
     }
   ]
 }

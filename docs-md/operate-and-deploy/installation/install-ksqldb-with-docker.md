@@ -3,40 +3,18 @@ layout: page
 title: Install ksqlDB with Docker
 tagline: Run ksqlDB by using Docker containers
 description: Learn how to install ksqlDB in various configurations by using Docker containers
-keywords: ksqldb, docker, install
+keywords: ksqldb, docker, container, install
 ---
 
-You can deploy ksqlDB by using Docker containers. Starting with {{ site.cp }}
-4.1.2, Confluent maintains images at [Docker Hub](https://hub.docker.com/u/confluentinc)
-for [ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/) and the
+You can deploy ksqlDB by using Docker containers. Confluent maintains images at
+[Docker Hub](https://hub.docker.com/u/confluentinc) for
+[ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/) and the
 [ksqlDB command-line interface (CLI)](https://hub.docker.com/r/confluentinc/ksqldb-cli/).
-
-ksqlDB runs separately from your {{ site.aktm }} cluster, so you specify
-the IP addresses of the cluster's bootstrap servers when you start a
-container for ksqlDB Server. To set up {{ site.cp }} by using containers, see
-[Confluent Platform Quick Start (Docker)](https://docs.confluent.io/current/quickstart/ce-docker-quickstart.html).
 
 Use the following settings to start containers that run ksqlDB in various
 configurations.
 
-When your ksqlDB processes are running in containers, you can
-[interact](#interact-with-ksqldb-running-in-a-docker-container) with
-them by using shell scripts and Docker Compose files.
-
--   [Wait for an HTTP Endpoint to Be Available](#ksqldb-wait-for-http-endpoint)
--   [Wait for a Particular Phrase in a Container's Log](#ksqldb-wait-for-message-in-container-log)
--   [Run Custom Code Before Launching a Container's Program](#ksqldb-run-custom-code-before-launch)
--   [Execute a SQL script in the ksqlDB CLI](#ksqldb-execute-script-in-cli)
-
-Scale Your ksqlDB Server Deployment
----------------------------------
-
-You can scale ksqlDB by adding more capacity per server (vertically) or by
-adding more servers (horizontally). Also, you can scale ksqlDB clusters
-during live operations without loss of data. For more information, see
-[Scaling ksqlDB](../capacity-planning.md#scaling-ksqldb).
-
-Assign Configuration Settings in the Docker Run Command
+Assign configuration settings in the Docker run command
 -------------------------------------------------------
 
 You can dynamically pass configuration settings into containers by using
@@ -68,10 +46,11 @@ Properties set with `KSQL_OPTS` take precedence over values specified in
 the ksqlDB configuration file. For more information, see
 [Setting ksqlDB Server Parameters](server-config/index.md#setting-ksqldb-server-parameters).
 
-ksqlDB Server
--------------
+ksqlDB Server configurations
+----------------------------
 
-The following commands show how to run ksqlDB Server in a container.
+The following commands show how to run ksqlDB Server in different
+configurations.
 
 ### ksqlDB Headless Server Settings (Production)
 
@@ -142,13 +121,13 @@ docker run -d \
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
 
-Connect ksqlDB Server to a Secure Kafka Cluster, Like Confluent Cloud
-===================================================================
+### Connect ksqlDB Server to a Secure Kafka Cluster, Like Confluent Cloud
 
-ksqlDB Server runs outside of your Kafka clusters, so you need specify in
-the container environment how ksqlDB Server connects with a Kafka cluster.
+ksqlDB Server runs outside of your {{ site.ak }} clusters, so you need to
+specify in the container environment how ksqlDB Server connects with a
+{{ site.ak }} cluster.
 
-Run a ksqlDB Server that uses a secure connection to a Kafka cluster:
+Run a ksqlDB Server that uses a secure connection to a {{ site.ak }} cluster:
 
 ```bash
 docker run -d \
@@ -275,7 +254,7 @@ KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
 ksqlDB Command-line Interface (CLI)
----------------------------------
+-----------------------------------
 
 Develop the SQL queries and statements for your real-time streaming
 applications by using the ksqlDB CLI, or the graphical interface in
@@ -355,8 +334,8 @@ Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 ksql>
 ```
 
-Interact With ksqlDB Running in a Docker Container
-------------------------------------------------
+Interact with ksqlDB running in a Docker container
+--------------------------------------------------
 
 You can communicate with ksqlDB Server and the ksqlDB CLI when they run in
 Docker containers. The following examples show common tasks with ksqlDB
@@ -367,7 +346,7 @@ processes that run in containers.
 -   [Run Custom Code Before Launching a Container's Program](#run-custom-code-before-launching-a-containers-program)
 -   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksql-script-in-the-ksql-cli)
 
-### Wait for an HTTP Endpoint to Be Available
+### Wait for an HTTP endpoint to be available
 
 Sometimes, a container reports its state as `up` before it's actually
 running. In this case, the docker-compose `depends_on` dependencies
@@ -401,7 +380,7 @@ docker-compose exec ksql-cli bash -c \
 'echo -e "\n\n⏳ Waiting for ksqlDB to be available before launching CLI\n"; while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ] ; do echo -e $(date) "ksqlDB Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)" ; sleep 5 ; done; ksql http://<ksql-server-ip-address>:8088'
 ```
 
-### Wait for a Particular Phrase in a Container's Log
+### Wait for a particular phrase in a container's log
 
 Use the `grep` command and
 [bash process substitution](http://tldp.org/LDP/abs/html/process-sub.html)
@@ -413,13 +392,13 @@ echo -e "\n--\n\nWaiting for Kafka Connect to start on $CONNECT_HOST … ⏳"
 grep -q "Kafka Connect started" <(docker-compose logs -f $CONNECT_HOST)
 ```
 
-### Run Custom Code Before Launching a Container's Program
+### Run custom code before launching a container's program
 
 You can run custom code, like downloading a dependency or moving a file,
 before a ksqlDB process starts in a container. Use Docker Compose to
 overlay a change on an existing image.
 
-#### Get the Container's Default Command
+#### Get the container's default command
 
 Discover the default command that the container runs when it launches,
 which is either `Entrypoint` or `Cmd`:
@@ -440,7 +419,7 @@ Your output should resemble:
 
 In this example, the default command is `/etc/confluent/docker/run`.
 
-#### Run Custom Commands Before the ksqlDB Process Starts
+#### Run custom commands before the ksqlDB process starts
 
 In a Docker Compose file, add the commands that you want to run before
 the main process starts. Use the `command` option to override the

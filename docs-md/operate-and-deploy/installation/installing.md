@@ -6,26 +6,73 @@ description: Learn how to install ksqlDB on-premises
 keywords: ksql, install, on-prem
 ---
 
-ksqlDB is a component of {{ site.cp }} and the ksqlDB binaries are located
-at [Confluent Downloads](https://www.confluent.io/download/)
-as a part of the {{ site.cp }} bundle.
+Install ksqlDB by using Docker containers. You need these Docker images from
+[Docker Hub](https://hub.docker.com/u/confluentinc):
 
-ksqlDB must have access to a running {{ site.aktm }} cluster, which can
-be in your data center, in a public cloud, {{ site.ccloud }}, etc.
+- [ksqldb-server](https://hub.docker.com/r/confluentinc/ksqldb-server/):
+  the ksqlDB Server image
+- [ksqldb-cli](https://hub.docker.com/r/confluentinc/ksqldb-cli/):
+  the ksqlDB command-line interface (CLI) image
 
-Docker support
+Install Docker
 --------------
 
-You can deploy ksqlDB by using
-[Docker containers](install-ksqldb-with-docker.md).
-Starting with {{ site.cp }} 4.1.2, Confluent maintains images at
-[Docker Hub](https://hub.docker.com/r/confluentinc/ksqldb-server/).
-To start ksqlDB containers in configurations like "ksqlDB Headless
-Server" and "Interactive Server with Interceptors", see
-[Docker Configuration Parameters](https://docs.confluent.io/current/installation/docker/config-reference.html).
+Install the Docker distribution that's appropriate for your operating system.
 
-Watch the
-[screencast of Installing and Running KSQL](https://www.youtube.com/embed/icwHpPm-TCA).
+!!! important
+    For macOS and Windows, Docker runs in a virtual machine, and you must
+    allocate at least 8 GB of RAM for the Docker VM to run the {{ site.aktm }}
+    stack. The default is 2 GB.
+
+- For macOS, use
+  [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/).
+  Change the **Memory** setting on the
+  [Resources](https://docs.docker.com/docker-for-mac/#resources) page.
+- For Windows, use
+  [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/).
+  Change the **Memory** setting on the
+  [Advanced](https://docs.docker.com/docker-for-windows/#advanced) settings
+  page.
+- For Linux, follow the [instructions](https://docs.docker.com/install/)
+  for your Linux distribution. No memory change is necessary, because Docker
+  runs natively.
+
+Quick start
+-----------
+
+The fastest way to get started with ksqlDB is to use a docker-compose file
+that defines an {{ site.aktm }} stack with the necessary components: 
+
+- {{ site.zk }}
+- {{ site.ak }}
+- {{ site.sr }}
+- ksqlDB Server
+- ksqlDB CLI
+
+You can use these `docker-compose.yml` files:
+
+- [In the ksqlDB Quick Start](../../tutorials/basics-docker.md):
+  one ksqlDB Server instance
+- [In the ksqlDB repo](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml):
+  two ksqlDB Server instances 
+
+Navigate to the directory where you saved `docker-compose.yml` and start the
+stack by using the `docker-compose up` command:
+
+```bash
+docker-compose up -d
+```
+
+ksqlDB must have access to a running {{ site.aktm }} cluster, which can
+be in your data center, in a public cloud, or in {{ site.ccloud }}.
+
+ksqlDB runs separately from your {{ site.ak }} cluster, so you specify
+the IP addresses of the cluster's bootstrap servers when you start a
+container for ksqlDB Server.
+
+To start ksqlDB containers in configurations like "ksqlDB Headless Server"
+and "ksqlDB Interactive Server (Development)", see
+[Install ksqlDB with Docker](install-ksqldb-with-docker.md).
 
 Supported Versions and Interoperability
 ---------------------------------------
@@ -38,19 +85,8 @@ versions.
 | Apache Kafka version  | 0.11.0 and later   |
 | {{ site.cp }} version | > 3.3.0 and later  |
 
-Installation Instructions
--------------------------
-
-Follow the instructions at
-[Confluent Platform Quick Start (Local)](https://docs.confluent.io/current/quickstart/ce-quickstart.html).
-
-Also, you can install ksqlDB individually by using the
-[confluent-ksql package](https://docs.confluent.io/current/installation/available_packages.html#confluent-ksql).
-For more information, see
-[Confluent Platform Packages](https://docs.confluent.io/current/installation/available_packages.html).
-
 Scale Your ksqlDB Server Deployment
----------------------------------
+-----------------------------------
 
 You can scale ksqlDB by adding more capacity per server (vertically) or by
 adding more servers (horizontally). Also, you can scale ksqlDB clusters
@@ -73,14 +109,6 @@ You can only connect to one ksqlDB server at a time. The ksqlDB CLI does not
 support automatic failover to another ksqlDB Server.
 
 ![image](../../img/client-server.png)
-
-Follow these instructions to start ksqlDB Server using the
-`ksql-server-start` script.
-
-!!! tip
-	These instructions assume you are installing {{ site.cp }} by using ZIP
-    or TAR archives. For more information, see [On-Premises
-    Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
 
 ### Specify your ksqlDB server configuration parameters
 

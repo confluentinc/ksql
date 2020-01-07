@@ -36,7 +36,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlAccessValidatorCacheTest {
+public class KsqlCacheAccessValidatorTest {
   private static final String TOPIC_1 = "topic1";
   private static final long ONE_SEC_IN_NS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS);
 
@@ -56,11 +56,11 @@ public class KsqlAccessValidatorCacheTest {
 
   @Before
   public void setUp() {
-    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME)).thenReturn(1L);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS)).thenReturn(1L);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_MAX_ENTRIES)).thenReturn(10L);
     when(fakeTicker.read()).thenReturn(System.nanoTime());
 
-    cache = new KsqlAccessValidatorCache(ksqlConfig, backendValidator, fakeTicker);
+    cache = new KsqlCacheAccessValidator(ksqlConfig, backendValidator, fakeTicker);
   }
 
   @Test

@@ -62,12 +62,12 @@ public final class KsqlAuthorizationValidatorFactory {
   }
 
   private static KsqlAuthorizationValidator createAuthorizationValidator(KsqlConfig ksqlConfig) {
-    KsqlAccessValidator accessValidator = new KsqlAccessValidatorProvider();
+    KsqlAccessValidator accessValidator = new KsqlBackendAccessValidator();
 
     // The cache expiry time is used to decided whether to enable the cache or not
-    long expiryTime = ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME);
+    long expiryTime = ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS);
     if (expiryTime > 0) {
-      accessValidator = new KsqlAccessValidatorCache(ksqlConfig, accessValidator);
+      accessValidator = new KsqlCacheAccessValidator(ksqlConfig, accessValidator);
     }
 
     return new KsqlAuthorizationValidatorImpl(accessValidator);

@@ -24,7 +24,7 @@ import org.apache.kafka.common.acl.AclOperation;
  * An implementation of {@link KsqlAccessValidator} that provides authorization checks
  * from the Kafka service.
  */
-public class KsqlAccessValidatorProvider implements KsqlAccessValidator {
+public class KsqlBackendAccessValidator implements KsqlAccessValidator {
   @Override
   public void checkAccess(
       KsqlSecurityContext securityContext,

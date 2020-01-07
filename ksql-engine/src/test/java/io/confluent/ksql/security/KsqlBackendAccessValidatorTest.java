@@ -36,7 +36,7 @@ import java.util.Set;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlAccessValidatorProviderTest {
+public class KsqlBackendAccessValidatorTest {
   private final static String TOPIC_NAME_1 = "topic1";
   private final static String TOPIC_NAME_2 = "topic2";
 
@@ -63,7 +63,7 @@ public class KsqlAccessValidatorProviderTest {
     givenTopic(TOPIC_NAME_1, TOPIC_1);
     givenTopic(TOPIC_NAME_2, TOPIC_2);
 
-    accessValidator = new KsqlAccessValidatorProvider();
+    accessValidator = new KsqlBackendAccessValidator();
   }
 
   @Test

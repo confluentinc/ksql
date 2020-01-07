@@ -42,13 +42,10 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAuthorizationValidatorFactoryTest {
@@ -125,7 +122,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // Given:
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
-    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME))
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS))
         .thenReturn(0L);
 
     // When:
@@ -138,7 +135,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     assertThat("validator should be present", validator.isPresent());
     assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
-        is(instanceOf(KsqlAccessValidatorProvider.class)));
+        is(instanceOf(KsqlBackendAccessValidator.class)));
     verifyZeroInteractions(adminClient);
   }
 
@@ -147,7 +144,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // Given:
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
-    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME))
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS))
         .thenReturn(1L);
 
     // When:
@@ -160,7 +157,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     assertThat("validator should be present", validator.isPresent());
     assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
-        is(instanceOf(KsqlAccessValidatorCache.class)));
+        is(instanceOf(KsqlCacheAccessValidator.class)));
     verifyZeroInteractions(adminClient);
   }
 

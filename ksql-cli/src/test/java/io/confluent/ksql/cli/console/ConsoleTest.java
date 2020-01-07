@@ -1357,6 +1357,20 @@ public class ConsoleTest {
   }
 
   @Test
+  public void shouldSupportCmdBeingTerminatedWithSemiColonAndWhitespace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0; \n")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
   public void shouldSupportCmdWithQuotedArgBeingTerminatedWithSemiColon() {
     // Given:
     when(lineSupplier.get())

@@ -409,7 +409,7 @@ public class Console implements Closeable {
   }
 
   private Optional<CliCmdExecutor> getCliCommand(final String line) {
-    final List<String> parts = splitByUnquotedWhitespace(StringUtils.stripEnd(line, ";"));
+    final List<String> parts = splitByUnquotedWhitespace(StringUtils.stripEnd(line.trim(), ";"));
     if (parts.isEmpty()) {
       return Optional.empty();
     }

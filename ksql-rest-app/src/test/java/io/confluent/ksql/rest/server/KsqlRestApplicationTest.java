@@ -40,7 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -49,6 +49,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -68,6 +69,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -126,6 +128,10 @@ public class KsqlRestApplicationTest {
   private String logCreateStatement;
   private KsqlRestApplication app;
   private KsqlRestConfig restConfig;
+  private KsqlSecurityContext securityContext;
+
+  private ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
+      ArgumentCaptor.forClass(KsqlSecurityContext.class);
 
   @SuppressWarnings("unchecked")
   @Before
@@ -148,6 +154,8 @@ public class KsqlRestApplicationTest {
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
+
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
         processingLogConfig,
@@ -208,10 +216,11 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(ksqlResource).handleKsqlStatements(
-        serviceContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+        securityContextArgumentCaptor.capture(),
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), null))
     );
-
+    assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
+    assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
 
   @Test
@@ -225,7 +234,7 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(ksqlResource, never()).handleKsqlStatements(
-        serviceContext,
+        securityContext,
         new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
     );
   }
@@ -241,9 +250,11 @@ public class KsqlRestApplicationTest {
     inOrder.verify(commandRunner).processPriorCommands();
     inOrder.verify(commandRunner).start();
     inOrder.verify(ksqlResource).handleKsqlStatements(
-        serviceContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+        securityContextArgumentCaptor.capture(),
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), null))
     );
+    assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
+    assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
 
   @Test
@@ -255,9 +266,11 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(topicClient, ksqlResource);
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
     inOrder.verify(ksqlResource).handleKsqlStatements(
-        serviceContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+        securityContextArgumentCaptor.capture(),
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), null))
     );
+    assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
+    assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
 
   @Test
@@ -291,9 +304,11 @@ public class KsqlRestApplicationTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(ksqlResource, serverState);
     verify(ksqlResource).handleKsqlStatements(
-        serviceContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), null)
+        securityContextArgumentCaptor.capture(),
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), null))
     );
+    assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
+    assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
     inOrder.verify(serverState).setReady();
   }
 
@@ -402,7 +417,7 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
-        KsqlRestServiceContextBinder::new,
+        KsqlSecurityContextBinder::new,
         securityExtension,
         serverState,
         processingLogContext,

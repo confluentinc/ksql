@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -88,6 +89,8 @@ public class RecoveryTest {
   private final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
 
+  private KsqlSecurityContext securityContext;
+
   @Mock
   @SuppressWarnings("unchecked")
   private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
@@ -97,7 +100,9 @@ public class RecoveryTest {
 
 
   @Before
-  public void setup() { }
+  public void setup() {
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+  }
 
   @After
   public void tearDown() {
@@ -238,7 +243,7 @@ public class RecoveryTest {
 
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
-        final Response response = ksqlResource.handleKsqlStatements(serviceContext,
+        final Response response = ksqlResource.handleKsqlStatements(securityContext,
             new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();

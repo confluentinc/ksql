@@ -15,31 +15,31 @@
 
 package io.confluent.ksql.rest.server.context;
 
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 
 /**
- * Configures the {@link ServiceContext} class for dependency injection using the
- * {@link javax.ws.rs.core.Context} annotation.
+ * Configures the {@link KsqlSecurityContext} class for dependency injection using
+ * the {@link javax.ws.rs.core.Context} annotation.
  * </p>
- * Inject {@code ServiceContext} on each REST method as follows:
- * i.e. myMethod(@Context ServiceContext serviceContext)
+ * Inject {@code KsqlSecurityContext} on each REST method as follows:
+ * i.e. myMethod(@Context KsqlSecurityContext securityContext)
  */
-public class KsqlRestServiceContextBinder extends AbstractBinder {
-  public KsqlRestServiceContextBinder(
+public class KsqlSecurityContextBinder extends AbstractBinder {
+  public KsqlSecurityContextBinder(
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension
   ) {
-    KsqlRestServiceContextFactory.configure(ksqlConfig, securityExtension);
+    KsqlSecurityContextBinderFactory.configure(ksqlConfig, securityExtension);
   }
 
   @Override
   protected void configure() {
-    bindFactory(KsqlRestServiceContextFactory.class)
-        .to(ServiceContext.class)
+    bindFactory(KsqlSecurityContextBinderFactory.class)
+        .to(KsqlSecurityContext.class)
         .in(RequestScoped.class);
   }
 }

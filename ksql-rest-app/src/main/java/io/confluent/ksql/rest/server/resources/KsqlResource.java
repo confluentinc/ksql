@@ -45,6 +45,7 @@ import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
@@ -180,7 +181,7 @@ public class KsqlResource implements KsqlConfigurable {
   @POST
   @Path("/terminate")
   public Response terminateCluster(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final ClusterTerminateRequest request
   ) {
     LOG.info("Received: " + request);
@@ -190,7 +191,7 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final KsqlEntityList entities = handler.execute(
-          serviceContext,
+          securityContext.getServiceContext(),
           TERMINATE_CLUSTER,
           request.getStreamsProperties()
       );
@@ -203,7 +204,7 @@ public class KsqlResource implements KsqlConfigurable {
 
   @POST
   public Response handleKsqlStatements(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     LOG.info("Received: " + request);
@@ -220,14 +221,14 @@ public class KsqlResource implements KsqlConfigurable {
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
       validator.validate(
-          SandboxedServiceContext.create(serviceContext),
+          SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
           request.getStreamsProperties(),
           request.getKsql()
       );
 
       final KsqlEntityList entities = handler.execute(
-          serviceContext,
+          securityContext.getServiceContext(),
           statements,
           request.getStreamsProperties()
       );

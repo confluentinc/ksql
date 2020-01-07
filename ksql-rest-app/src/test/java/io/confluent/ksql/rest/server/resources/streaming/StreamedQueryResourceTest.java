@@ -58,6 +58,7 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -148,6 +149,7 @@ public class StreamedQueryResourceTest {
   private PreparedStatement<Statement> invalid;
   private PreparedStatement<Query> query;
   private PreparedStatement<PrintTopic> print;
+  private KsqlSecurityContext securityContext;
 
   @Before
   public void setup() {
@@ -161,6 +163,8 @@ public class StreamedQueryResourceTest {
     final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
     when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
     when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
+
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -207,7 +211,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest("query", Collections.emptyMap(), null)
     );
   }
@@ -227,7 +231,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest("query", Collections.emptyMap(), null)
     );
   }
@@ -236,7 +240,7 @@ public class StreamedQueryResourceTest {
   public void shouldNotWaitIfCommandSequenceNumberSpecified() throws Exception {
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -248,7 +252,7 @@ public class StreamedQueryResourceTest {
   public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
     );
 
@@ -273,7 +277,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
     );
   }
@@ -288,7 +292,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -303,7 +307,7 @@ public class StreamedQueryResourceTest {
   public void shouldThrowExceptionForPullQueryIfValidating() {
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -327,7 +331,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -399,7 +403,7 @@ public class StreamedQueryResourceTest {
 
     final Response response =
         testResource.streamQuery(
-            serviceContext,
+            securityContext,
             new KsqlRequest(queryString, requestStreamsProperties, null)
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
@@ -538,7 +542,7 @@ public class StreamedQueryResourceTest {
   public void shouldUpdateTheLastRequestTime() {
     /// When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -557,7 +561,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -580,7 +584,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
     );
 
@@ -626,7 +630,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
     );
   }

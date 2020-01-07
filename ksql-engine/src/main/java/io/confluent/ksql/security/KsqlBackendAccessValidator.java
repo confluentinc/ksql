@@ -27,9 +27,9 @@ import org.apache.kafka.common.acl.AclOperation;
 public class KsqlBackendAccessValidator implements KsqlAccessValidator {
   @Override
   public void checkAccess(
-      KsqlSecurityContext securityContext,
-      String topicName,
-      AclOperation operation
+      final KsqlSecurityContext securityContext,
+      final String topicName,
+      final AclOperation operation
   ) {
     final Set<AclOperation> authorizedOperations = securityContext.getServiceContext()
         .getTopicClient().describeTopic(topicName).authorizedOperations();

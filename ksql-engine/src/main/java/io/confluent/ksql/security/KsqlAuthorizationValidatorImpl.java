@@ -37,7 +37,7 @@ import org.apache.kafka.common.acl.AclOperation;
 public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidator {
   private final KsqlAccessValidator accessValidator;
 
-  public KsqlAuthorizationValidatorImpl(KsqlAccessValidator accessValidator) {
+  public KsqlAuthorizationValidatorImpl(final KsqlAccessValidator accessValidator) {
     this.accessValidator = accessValidator;
   }
 

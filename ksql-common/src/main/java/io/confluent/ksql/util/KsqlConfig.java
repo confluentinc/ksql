@@ -200,7 +200,8 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.authorization.cache.expiry.time.secs";
   public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
   public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC = "Time in "
-      + "seconds to keep KSQL authorization responses in the cache.";
+      + "seconds to keep KSQL authorization responses in the cache. (The cache is disabled if "
+      + "0 or a negative number is set).";
 
   public static final String KSQL_AUTH_CACHE_MAX_ENTRIES =
       "ksql.authorization.cache.max.entries";

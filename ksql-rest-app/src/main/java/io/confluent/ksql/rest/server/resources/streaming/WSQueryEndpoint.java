@@ -285,7 +285,7 @@ public class WSQueryEndpoint {
   }
 
   private KsqlSecurityContext createSecurityContext(final Principal principal) {
-    ServiceContext serviceContext;
+    final ServiceContext serviceContext;
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
       serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty());

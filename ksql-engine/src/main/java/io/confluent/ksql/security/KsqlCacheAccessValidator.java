@@ -44,19 +44,23 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
     private final String topicName;
     private final AclOperation operation;
 
-    CacheKey(KsqlSecurityContext securityContext, String topicName, AclOperation operation) {
+    CacheKey(
+        final KsqlSecurityContext securityContext,
+        final String topicName,
+        final AclOperation operation
+    ) {
       this.securityContext = securityContext;
       this.topicName = topicName;
       this.operation = operation;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (o == null || !(o instanceof CacheKey)) {
         return false;
       }
 
-      CacheKey other = (CacheKey)o;
+      final CacheKey other = (CacheKey)o;
       return getUserName(securityContext).equals(getUserName(other.securityContext))
           && topicName.equals(other.topicName)
           && operation.code() == other.operation.code();
@@ -71,7 +75,7 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
       );
     }
 
-    private String getUserName(KsqlSecurityContext securityContext) {
+    private String getUserName(final KsqlSecurityContext securityContext) {
       return (securityContext.getUserPrincipal().isPresent())
           ? securityContext.getUserPrincipal().get().getName()
           : UNKNOWN_USER;
@@ -82,7 +86,7 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
     private final boolean allowAccess;
     private final Optional<RuntimeException> denialReason;
 
-    CacheValue(boolean allowAccess, Optional<RuntimeException> denialReason) {
+    CacheValue(final boolean allowAccess, final Optional<RuntimeException> denialReason) {
       this.allowAccess = allowAccess;
       this.denialReason = denialReason;
     }
@@ -91,15 +95,18 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
   private final LoadingCache<CacheKey, CacheValue> cache;
   private final KsqlAccessValidator backendValidator;
 
-  public KsqlCacheAccessValidator(KsqlConfig ksqlConfig, KsqlAccessValidator backendValidator) {
+  public KsqlCacheAccessValidator(
+      final KsqlConfig ksqlConfig,
+      final KsqlAccessValidator backendValidator
+  ) {
     this(ksqlConfig, backendValidator, Ticker.systemTicker());
   }
 
   @VisibleForTesting
   KsqlCacheAccessValidator(
-      KsqlConfig ksqlConfig,
-      KsqlAccessValidator backendValidator,
-      Ticker cacheTicker
+      final KsqlConfig ksqlConfig,
+      final KsqlAccessValidator backendValidator,
+      final Ticker cacheTicker
   ) {
     this.backendValidator = backendValidator;
 
@@ -116,7 +123,7 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
   private CacheLoader<CacheKey, CacheValue> buildCacheLoader() {
     return new CacheLoader<CacheKey, CacheValue>() {
       @Override
-      public CacheValue load(CacheKey cacheKey) {
+      public CacheValue load(final CacheKey cacheKey) {
         try {
           backendValidator.checkAccess(
               cacheKey.securityContext,
@@ -134,12 +141,12 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
 
   @Override
   public void checkAccess(
-      KsqlSecurityContext securityContext,
-      String topicName,
-      AclOperation operation
+      final KsqlSecurityContext securityContext,
+      final String topicName,
+      final AclOperation operation
   ) {
-    CacheKey cacheKey = new CacheKey(securityContext, topicName, operation);
-    CacheValue cacheValue = cache.getUnchecked(cacheKey);
+    final CacheKey cacheKey = new CacheKey(securityContext, topicName, operation);
+    final CacheValue cacheValue = cache.getUnchecked(cacheKey);
     if (!cacheValue.allowAccess) {
       throw cacheValue.denialReason.get();
     }

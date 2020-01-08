@@ -21,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.test.util.TestMethods;
@@ -48,8 +50,12 @@ public final class SandboxedSchemaRegistryClientTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase<SchemaRegistryClient>> getMethodsToTest() {
       return TestMethods.builder(SchemaRegistryClient.class)
+          // Only add methods in here which are NOT handled by the proxy
+          // when adding, ensure you also add a suitable test to SupportedMethods below.
           .ignore("register", String.class, Schema.class)
+          .ignore("register", String.class, ParsedSchema.class)
           .ignore("register", String.class, Schema.class, int.class, int.class)
+          .ignore("register", String.class, ParsedSchema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("deleteSubject", String.class)
@@ -123,6 +129,17 @@ public final class SandboxedSchemaRegistryClientTest {
     public void shouldSwallowDeleteSubject() throws Exception {
       // When:
       sandboxedClient.deleteSubject("some subject");
+
+      // Then:
+      verifyZeroInteractions(delegate);
+    }
+
+    @Test
+    public void shouldSwallowRegister() throws Exception {
+      // When:
+      sandboxedClient.register("some subject", schema);
+      sandboxedClient.register("some subject", new AvroSchema(schema));
+      sandboxedClient.register("some subject", new AvroSchema(schema), 1, 1);
 
       // Then:
       verifyZeroInteractions(delegate);

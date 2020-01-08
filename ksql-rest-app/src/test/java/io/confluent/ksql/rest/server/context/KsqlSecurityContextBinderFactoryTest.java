@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -55,8 +54,6 @@ public class KsqlSecurityContextBinderFactoryTest {
   @Mock
   private Principal user1;
   @Mock
-  private DefaultServiceContextFactory defaultServiceContextProvider;
-  @Mock
   private UserServiceContextFactory userServiceContextFactory;
   @Mock
   private ServiceContext defaultServiceContext;
@@ -67,16 +64,15 @@ public class KsqlSecurityContextBinderFactoryTest {
 
   @Before
   public void setUp() {
-    KsqlSecurityContextBinderFactory.configure(ksqlConfig, securityExtension);
+    KsqlSecurityContextBinderFactory.configure(ksqlConfig, securityExtension,
+        defaultServiceContext);
     securityContextBinderFactory = new KsqlSecurityContextBinderFactory(
         securityContext,
         request,
-        defaultServiceContextProvider,
         userServiceContextFactory
     );
 
     when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(defaultServiceContextProvider.create(any(), any())).thenReturn(defaultServiceContext);
     when(userServiceContextFactory.create(any(), any(), any(), any()))
         .thenReturn(userServiceContext);
   }
@@ -91,7 +87,6 @@ public class KsqlSecurityContextBinderFactoryTest {
     final KsqlSecurityContext ksqlSecurityContext = securityContextBinderFactory.provide();
 
     // Then:
-    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty());
     assertThat(ksqlSecurityContext.getUserPrincipal(), is(Optional.empty()));
     assertThat(ksqlSecurityContext.getServiceContext(), is(defaultServiceContext));
   }
@@ -108,19 +103,6 @@ public class KsqlSecurityContextBinderFactoryTest {
     verify(userServiceContextFactory).create(eq(ksqlConfig), eq(Optional.empty()), any(), any());
     assertThat(ksqlSecurityContext.getUserPrincipal(), is(Optional.of(user1)));
     assertThat(ksqlSecurityContext.getServiceContext(), is(userServiceContext));
-  }
-
-  @Test
-  public void shouldPassAuthHeaderToDefaultFactory() {
-    // Given:
-    when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
-    when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("some-auth");
-
-    // When:
-    securityContextBinderFactory.provide();
-
-    // Then:
-    verify(defaultServiceContextProvider).create(any(), eq(Optional.of("some-auth")));
   }
 
   @Test

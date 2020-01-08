@@ -32,14 +32,6 @@ public final class RestServiceContextFactory {
   private RestServiceContextFactory() {
   }
 
-  public interface DefaultServiceContextFactory {
-
-    ServiceContext create(
-        KsqlConfig config,
-        Optional<String> authHeader
-    );
-  }
-
   public interface UserServiceContextFactory {
 
     ServiceContext create(

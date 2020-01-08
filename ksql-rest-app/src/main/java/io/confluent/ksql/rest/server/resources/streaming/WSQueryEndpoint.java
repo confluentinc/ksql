@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
-import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -94,9 +93,9 @@ public class WSQueryEndpoint {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final KsqlSecurityExtension securityExtension;
   private final UserServiceContextFactory serviceContextFactory;
-  private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final ServerState serverState;
   private final Errors errorHandler;
+  private final ServiceContext defaultServiceContext;
 
   private WebSocketSubscriber<?> subscriber;
   private KsqlSecurityContext securityContext;
@@ -115,7 +114,8 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
-      final ServerState serverState
+      final ServerState serverState,
+      final ServiceContext serviceContext
   ) {
     this(ksqlConfig,
         mapper,
@@ -132,8 +132,8 @@ public class WSQueryEndpoint {
         errorHandler,
         securityExtension,
         RestServiceContextFactory::create,
-        RestServiceContextFactory::create,
-        serverState);
+        serverState,
+        serviceContext);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -154,8 +154,8 @@ public class WSQueryEndpoint {
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
-      final DefaultServiceContextFactory defaultServiceContextFactory,
-      final ServerState serverState
+      final ServerState serverState,
+      final ServiceContext defaultServiceContext
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -176,10 +176,10 @@ public class WSQueryEndpoint {
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
     this.serviceContextFactory =
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
-    this.defaultServiceContextFactory =
-        Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.defaultServiceContext = Objects.requireNonNull(defaultServiceContext,
+        "defaultServiceContext");
   }
 
   @SuppressWarnings("unused")
@@ -288,7 +288,7 @@ public class WSQueryEndpoint {
     final ServiceContext serviceContext;
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
+      serviceContext = this.defaultServiceContext;
     } else {
       // Creates a ServiceContext using the user's credentials, so the WS query topics are
       // accessed with the user permission context (defaults to KSQL service context)

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.context;
 
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
@@ -31,9 +32,10 @@ import org.glassfish.jersey.process.internal.RequestScoped;
 public class KsqlSecurityContextBinder extends AbstractBinder {
   public KsqlSecurityContextBinder(
       final KsqlConfig ksqlConfig,
-      final KsqlSecurityExtension securityExtension
+      final KsqlSecurityExtension securityExtension,
+      final ServiceContext serviceContext
   ) {
-    KsqlSecurityContextBinderFactory.configure(ksqlConfig, securityExtension);
+    KsqlSecurityContextBinderFactory.configure(ksqlConfig, securityExtension, serviceContext);
   }
 
   @Override

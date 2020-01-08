@@ -30,6 +30,9 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
@@ -66,7 +69,6 @@ public class TopicStreamTest {
   }
 
   @Test
-  @Ignore("Temporarily disable this test until new Schema Registry changes land")
   public void shouldMatchAvroFormatter() throws Exception {
     // Given:
     final Schema schema = parseAvroSchema(
@@ -81,8 +83,8 @@ public class TopicStreamTest {
     final GenericData.Record avroRecord = new GenericData.Record(schema);
     avroRecord.put("str1", "My first string");
 
-    expect(schemaRegistryClient.register(anyString(), anyObject(Schema.class))).andReturn(1);
-    expect(schemaRegistryClient.getById(anyInt())).andReturn(schema).times(2);
+    expect(schemaRegistryClient.register(anyString(), anyObject(ParsedSchema.class))).andReturn(1);
+    expect(schemaRegistryClient.getSchemaById(anyInt())).andReturn(new AvroSchema(schema)).times(2);
 
     replay(schemaRegistryClient);
 

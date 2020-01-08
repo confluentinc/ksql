@@ -628,7 +628,7 @@
       "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE TABLE INPUT (f0 STRING, f1 STRING) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
-        "CREATE TABLE OUTPUT WITH(WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+        "CREATE TABLE OUTPUT WITH(WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

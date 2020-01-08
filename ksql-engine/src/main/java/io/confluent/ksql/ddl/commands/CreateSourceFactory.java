@@ -37,7 +37,9 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -51,24 +53,33 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class CreateSourceFactory {
+
   private final ServiceContext serviceContext;
   private final SerdeOptionsSupplier serdeOptionsSupplier;
-  private final ValueSerdeFactory serdeFactory;
+  private final KeySerdeFactory keySerdeFactory;
+  private final ValueSerdeFactory valueSerdeFactory;
 
   public CreateSourceFactory(final ServiceContext serviceContext) {
-    this(serviceContext, SerdeOptions::buildForCreateStatement, new GenericRowSerDe());
+    this(
+        serviceContext,
+        SerdeOptions::buildForCreateStatement,
+        new GenericKeySerDe(),
+        new GenericRowSerDe()
+    );
   }
 
   @VisibleForTesting
   CreateSourceFactory(
       final ServiceContext serviceContext,
       final SerdeOptionsSupplier serdeOptionsSupplier,
-      final ValueSerdeFactory serdeFactory
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serdeOptionsSupplier =
         Objects.requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
-    this.serdeFactory = Objects.requireNonNull(serdeFactory, "serdeFactory");
+    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public CreateStreamCommand createStreamCommand(
@@ -84,19 +95,16 @@ public final class CreateSourceFactory {
         statement.getProperties(),
         schema
     );
+
     final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
         statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
-    validateSerdeCanHandleSchemas(
-        ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
+
+    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+
     return new CreateStreamCommand(
         sourceName,
         schema,
@@ -127,13 +135,9 @@ public final class CreateSourceFactory {
         statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
-    validateSerdeCanHandleSchemas(
-        ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
+
+    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+
     return new CreateTableCommand(
         sourceName,
         schema,
@@ -213,13 +217,20 @@ public final class CreateSourceFactory {
     return timestampColumn;
   }
 
-  private static void validateSerdeCanHandleSchemas(
+  private void validateSerdesCanHandleSchemas(
       final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ValueSerdeFactory valueSerdeFactory,
       final PhysicalSchema physicalSchema,
       final KsqlTopic topic
   ) {
+    keySerdeFactory.create(
+        topic.getKeyFormat().getFormatInfo(),
+        physicalSchema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).close();
+
     valueSerdeFactory.create(
         topic.getValueFormat().getFormatInfo(),
         physicalSchema.valueSchema(),

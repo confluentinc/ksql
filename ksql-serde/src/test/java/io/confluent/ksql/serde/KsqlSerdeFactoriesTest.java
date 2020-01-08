@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,6 +78,28 @@ public class KsqlSerdeFactoriesTest {
   }
 
   @Test
+  public void shouldValidateOnValidate() {
+    // When:
+    factory.validate(formatInfo, schema);
+
+    // Then:
+    verify(ksqlSerdeFactory).validate(schema);
+  }
+
+  @Test
+  public void shouldThrowOnValidateIfValidationFails() {
+    // Given:
+    doThrow(new RuntimeException("Boom!"))
+        .when(ksqlSerdeFactory).validate(any());
+
+    // Expect:
+    expectedException.expectMessage("Boom!");
+
+    // When:
+    factory.validate(formatInfo, schema);
+  }
+
+  @Test
   public void shouldCreateFactory() {
     // When:
     factory.create(
@@ -106,7 +129,7 @@ public class KsqlSerdeFactoriesTest {
     verify(ksqlSerdeFactory).validate(schema);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Test
   public void shouldCreateSerde() {
     // Given:

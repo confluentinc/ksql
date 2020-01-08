@@ -63,6 +63,7 @@
         <module>ksql-functional-tests</module>
         <module>ksql-rocksdb-config-setter</module>
         <module>ksql-api</module>
+        <module>ksql-docker</module>
     </modules>
 
     <repositories>

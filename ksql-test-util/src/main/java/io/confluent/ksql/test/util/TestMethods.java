@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public final class TestMethods {
 
   private static final Map<Type, Object> BUILT_IN_DEFAULTS = ImmutableMap.<Type, Object>builder()
+      .put(boolean.class, true)
       .put(int.class, 0)
       .put(long.class, 0L)
       .put(float.class, 0.0f)

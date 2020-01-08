@@ -40,7 +40,7 @@ rebalancing completes and a new active is elected for the partition.
 There are two steps in the rebalancing procedure that are expensive: 
   1) One of `B` or `C` is picked as the new active, this takes ~10 seconds based on default configs. 
   2) Once a new active is chosen, depending on how far behind (lag) it is with respect to the changelog, 
-  it may take up  few seconds or even minutes before the standby has fully caught up to the last committed offset. 
+  it may take few seconds or even minutes before the standby has fully caught up to the last committed offset. 
 
 In total, it takes >>10 seconds before a query can start succeeding again. What can we do until a
 new active is ready to serve requests? 
@@ -48,12 +48,13 @@ new active is ready to serve requests?
 has laid the groundwork to allow us to serve requests from standbys, even if they are still in 
 rebalancing state or have not caught up to the last committed offset of the active. 
 
-Every KSQL server now has the information of:
+Every KSQL server (active or standby) now has the information of:
 
-1. Local offset lag: The lag of all partitions the server hosts (whether active or standby)
-2. Routing Metadata for a key: The partition, active host and standy hosts per key
+1. Local current offset position per partition: The current offset position of a partition of the changelog topic that has been successfully written into the state store
+2. Local end offset position per partition: The last offset written to a partition of the changelog topic
+3. Routing Metadata for a key: The partition, active host and standy hosts per key
 
-This information allows each server (with some communication, discussed below) to know the global 
+This information allows each server (with some communication, discussed below) to compute the global 
 lag information of every topic partition whether it is the standby or active. This enables us to 
 implement a policy where `B` having established that `A` is down (after trying to send a request 
 to `A` and seeing it failed), to decide whether it (`B`) will serve it or `C`. This effectively 
@@ -81,7 +82,7 @@ a large current gap in deploying KSQL pull queries for mission critical use-case
 reducing failure rate of pull queries during server failures.
 
 ## Public APIS
-No change to public APIs
+Add configuration parameter to the `WITH` clause of CTAS statements to specify `acceptable.offset.lag`. Also, add property to the json request to specify the above property.
 
 ## Design
 
@@ -155,13 +156,13 @@ private ClusterStatusResponse processRequest() {
 ```
 ### Lag reporting
 
-Every server neeeds to periodically broadcast their local lag information. We will implement a new 
-REST endpoint `/reportlag`. The lag information at a server is obtained via 
-`Map<String, Map<Integer, Long>> localLagMap = kafkaStreams.allLocalOffsetLags();`.
+Every server neeeds to periodically broadcast their local current offset and end offset positions. We will implement a new 
+REST endpoint `/reportlag`. The local offsets information at a server is obtained via 
+`Map<String, Map<Integer, LagInfo>> localPositionsMap = kafkaStreams.allLocalStorePartitionLags();`.
 
 Pseudocode for REST endpoint for `/reportlag`:
 ```java
-Map<KsqlServer, Map<String, Map<Integer, Long>> globalLagMap;
+Map<KsqlServer, Map<String, Map<Integer, LagInfo>>> globalPositionsMap;
 
 @POST
 public Response receiveLagInfo(Request lagMap) 
@@ -170,15 +171,17 @@ public Response receiveLagInfo(Request lagMap)
 
 private LagReportResponse processRequest() {
   KsqlServer server = request.getServer();
-  Map<String, Map<Integer, Long>> localLagMap = request.getLag();
-  globalLagMap.put(server, localLagMap);
+  Map<String, Map<Integer, LagInfo>>  localPositionsMap = request.getPositions();
+  globalPositionsMap.put(server, localPositionsMap);
 }
 ``` 
 
 ### Lag-aware routing
 
-Given the above information (alive + lag), how does a KSQL server decide to which standby to route 
-the request? Every server knows the lag of all partitions hosted by all servers in the cluster. 
+Given the above information (alive + offsets), how does a KSQL server decide to which standby to route 
+the request? Every server knows the offsets (current and end) of all partitions hosted by all servers in the cluster. 
+Given this information, a server can compute the lag of itself and others by determining the maximum end offset
+per partition as reported by all server and subtract from it their current offset. 
 This allows us to implement lag-aware routing where server `B` can a) determine that server `A` is 
 down and b) decide whether it will serve the request itself or forward it to `C` depending on who 
 has the smallest lag for the given key in the pull query. 
@@ -189,13 +192,29 @@ Pseudocode for routing:
 Map<KsqlNode, Boolean> aliveNodes;
 
 // Map populated periodically through lag reporting
-Map<KsqlNode, Map<String, Map<Integer, Long>> globalLagMap;
+// KsqlServer to store name to partition to lag information
+Map<KsqlServer, Map<String, Map<Integer, LagInfo>>> globalPositionsMap;
  
 // Fetch the metadata related to the key
 KeyQueryMetadata queryMetadata = queryMetadataForKey(store, key, serializer);
  
 // Acceptable lag for the query
 final long acceptableOffsetLag = 10000;
+
+// Max end offset position
+Map<String, Map<Integer, Long>> maxEndOffsetPerStorePerPartition;
+for (KsqlServer server:  globalPositionsMap) {
+    for (String store: globalPositionsMap.get(server)) {
+        for (Integer partition: globalPositionsMap.get(server).get(store)) {
+            long offset = globalPositionsMap.get(server).get(store).get(partition);
+            maxEndOffsetPerStorePerPartition.computeIfAbsent(store, Map::new);
+            maxEndOffsetPerStorePerPartition.get(store).computeIfAbsent(partition, Map::new);
+            maxEndOffsetPerStorePerPartition.get(store).putIfAbsent(partition, -1);
+            long currentMax = maxEndOffsetPerStore.get(store).get(partition);
+            maxEndOffsetPerStorePerPartition.get(store).put(partition, Math.max(offset, currentMax);       
+        }
+    }
+}
 
 // Ordered list of servers, in order of most caught-up to least
 List<KsqlNode> nodesToQuery;
@@ -209,7 +228,9 @@ nodesToQuery.addAll(queryMetadata.getStandbyHosts().stream()
     // filter out all the standbys that are down
     .filter(standbyHost -> aliveNodes.get(standByHost) != null)
     // get the lag at each standby host for the key's store partition
-    .map(standbyHost -> new Pair(standbyHostInfo, globalLagMap.get(standbyHost).get(storeName).get(queryMetadata.partition())))
+    .map(standbyHost -> new Pair(standbyHostInfo,
+        maxEndOffsetPerStorePerPartition.get(storeName).get(queryMetadata.partition()) - 
+        globalPositionsMap.get(standbyHost).get(storeName).get(queryMetadata.partition()).currentOffsetPosition))
     // Sort by offset lag, i.e smallest lag first
     .sorted(Comaparator.comparing(Pair::getRight())
     .filter(standbyHostLagPair -> standbyHostLagPair.getRight() < acceptableOffsetLag)
@@ -236,8 +257,8 @@ if (result == null) {
 return result;
 ```
 
-We will also introduce a per-table configuration parameter `acceptable.offset.lag`, that will provide 
-applications the ability to control how much stale data they are willing to tolerate on a per table
+We will also introduce a per-query configuration parameter `acceptable.offset.lag`, that will provide 
+applications the ability to control how much stale data they are willing to tolerate on a per query
 basis. If a standby lags behind by more than the tolerable limit, pull queries will fail. 
 This parameter can be configured either as part of the `WITH` clause of CTAS queries or be given as
 arguments to the request's JSON payload. This is a very 

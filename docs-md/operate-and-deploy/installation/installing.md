@@ -6,7 +6,27 @@ description: Learn how to install ksqlDB on-premises
 keywords: ksql, install, on-prem
 ---
 
-Install ksqlDB by using Docker containers. You need these Docker images from
+- [Docker images for ksqlDB](#docker-images-for-ksqldb)
+- [Install Docker](#install-docker)
+- [Quick start](#quick-start)
+  - [Minimal stack](#minimal-stack)
+  - [ksqlDB tutorial](#ksqldb-tutorial)
+  - [ksqlDB reference stack](#ksqldb-reference-stack)
+- [Start the stack](#start-the-stack)
+- [Supported Versions and Interoperability](#supported-versions-and-interoperability)
+- [Scale Your ksqlDB Server Deployment](#scale-your-ksqldb-server-deployment)
+- [Start the ksqlDB Server](#start-the-ksqldb-server)
+  - [Specify your ksqlDB server configuration parameters](#specify-your-ksqldb-server-configuration-parameters)
+  - [Start a ksqlDB Server node](#start-a-ksqldb-server-node)
+- [Start the ksqlDB CLI](#start-the-ksqldb-cli)
+- [Configure ksqlDB for Confluent Cloud](#configure-ksqldb-for-confluent-cloud)
+
+
+Docker images for ksqlDB
+------------------------
+
+Install ksqlDB and {{ site.aktm }} by using Docker containers. Confluent
+maintains these Docker images on
 [Docker Hub](https://hub.docker.com/u/confluentinc):
 
 - [ksqldb-server](https://hub.docker.com/r/confluentinc/ksqldb-server/):
@@ -14,47 +34,97 @@ Install ksqlDB by using Docker containers. You need these Docker images from
 - [ksqldb-cli](https://hub.docker.com/r/confluentinc/ksqldb-cli/):
   the ksqlDB command-line interface (CLI) image
 
+The following sections show how to install Docker and use the docker-compose
+tool to download and run the ksqlDB images.
+
 Install Docker
 --------------
 
-Install the Docker distribution that's appropriate for your operating system.
+Install the Docker distribution that's compatible with your operating system.
 
 !!! important
     For macOS and Windows, Docker runs in a virtual machine, and you must
-    allocate at least 8 GB of RAM for the Docker VM to run the {{ site.aktm }}
+    allocate at least 8 GB of RAM for the Docker VM to run the {{ site.ak }}
     stack. The default is 2 GB.
 
 - For macOS, use
   [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/).
   Change the **Memory** setting on the
-  [Resources](https://docs.docker.com/docker-for-mac/#resources) page.
+  [Resources](https://docs.docker.com/docker-for-mac/#resources) page to 8 GB.
 - For Windows, use
   [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/).
   Change the **Memory** setting on the
   [Advanced](https://docs.docker.com/docker-for-windows/#advanced) settings
-  page.
+  page to 8 GB.
 - For Linux, follow the [instructions](https://docs.docker.com/install/)
   for your Linux distribution. No memory change is necessary, because Docker
-  runs natively.
+  runs natively and not in a VM.
 
 Quick start
 -----------
 
 The fastest way to get started with ksqlDB is to use a docker-compose file
-that defines an {{ site.aktm }} stack with the necessary components: 
+that defines an {{ site.aktm }} stack that has the necessary components: 
 
 - {{ site.zk }}
 - {{ site.ak }}
-- {{ site.sr }}
+- {{ site.sr }} (optional)
 - ksqlDB Server
 - ksqlDB CLI
 
-You can use these `docker-compose.yml` files:
+You can use the following `docker-compose.yml` files to get started with a local
+installation of ksqlDB.
 
-- [In the ksqlDB Quick Start](../../tutorials/basics-docker.md):
-  one ksqlDB Server instance
-- [In the ksqlDB repo](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml):
-  two ksqlDB Server instances 
+!!! note
+    A stack that runs {{ site.sr }} can handle Avro-encoded events. Without
+    {{ site.sr }}, ksqlDB handles only JSON or delimited schemas for events. 
+
+### Minimal stack
+
+Download the `docker-compose.yml` file for the
+[Minimal stack](https://ksqldb.io/quickstart.html).
+
+- one ksqlDB Server instance
+- no {{ site.sr }}
+- ksqlDB CLI container starts automatically
+
+```bash
+docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
+```
+
+### ksqlDB tutorial
+
+Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
+for the [ksqlDB tutorial](../../tutorials/basics-docker.md).
+
+- one ksqlDB Server instance
+- {{ site.sr }}
+- you start the ksqlDB CLI container manually
+
+```bash
+docker run --network tutorials_default --rm --interactive --tty \
+    confluentinc/ksqldb-cli:latest ksql \
+    http://ksql-server:8088
+```
+
+### ksqlDB reference stack
+
+Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml)
+for the reference stack in the ksqlDB repo.
+
+- two or more ksqlDB Server instances
+- {{ site.sr }}
+- ksqlDB CLI container starts automatically
+
+```bash
+docker-compose exec ksqldb-cli ksql http://primary-ksqldb-server:8088
+```
+
+Start the stack
+---------------
+
+Decide on one of the stacks and download the corresponding `docker-compose.yml`
+file.
 
 Navigate to the directory where you saved `docker-compose.yml` and start the
 stack by using the `docker-compose up` command:
@@ -63,7 +133,13 @@ stack by using the `docker-compose up` command:
 docker-compose up -d
 ```
 
-ksqlDB must have access to a running {{ site.aktm }} cluster, which can
+The `-d` option specifies detached mode, so containers run in the
+background.
+
+
+
+
+ksqlDB must have access to a running {{ site.ak }} cluster, which can
 be in your data center, in a public cloud, or in {{ site.ccloud }}.
 
 ksqlDB runs separately from your {{ site.ak }} cluster, so you specify

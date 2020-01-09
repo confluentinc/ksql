@@ -251,7 +251,8 @@ underlying topic represents a row in the table. For messages in the topic with
 the same key, the latest message associated with a given key represents the
 latest value for the corresponding row in the table.
 
-_Note that when the data is ingested from the database, it's being written
+!!! note
+    When the data is ingested from the database, it's being written
 to the {{ site.ak }} topic using JSON serialization. Since JSON itself doesn't
 declare a schema, you need to declare it again when you run `CREATE TABLE`. 
 In practice, you would normally use Avro, since this supports the retention

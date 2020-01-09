@@ -39,7 +39,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.3.1
+    image: confluentinc/cp-zookeeper:5.3.2
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -49,7 +49,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.3.1
+    image: confluentinc/cp-enterprise-kafka:5.3.2
     hostname: broker
     container_name: broker
     depends_on:
@@ -79,7 +79,7 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
     volumes:
-      - ./confluentinc-kafka-connect-jdbc-5.3.1:/usr/share/kafka/plugins/jdbc
+      - ./confluentinc-kafka-connect-jdbc-5.3.2:/usr/share/kafka/plugins/jdbc
       - ./connect.properties:/connect/connect.properties
 
   ksqldb-cli:
@@ -106,7 +106,7 @@ services:
 to your local working directory. Next, unzip the downloaded archive:
 
 ```bash
-unzip confluentinc-kafka-connect-jdbc-5.3.1.zip
+unzip confluentinc-kafka-connect-jdbc-5.3.2.zip
 ```
 
 3. Configure Connect

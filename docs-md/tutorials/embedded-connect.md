@@ -126,7 +126,6 @@ group.id=ksql-connect-cluster
 key.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter.schemas.enable=false
-internal.key.converter.schemas.enable=false
 config.storage.topic=ksql-connect-configs
 offset.storage.topic=ksql-connect-offsets
 status.storage.topic=ksql-connect-statuses
@@ -207,8 +206,7 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
   'mode'                     = 'incrementing',
   'numeric.mapping'          = 'best_fit',
   'incrementing.column.name' = 'driver_id',
-  'key'                      = 'driver_id',
-  'value.converter.schemas.enable' = false);
+  'key'                      = 'driver_id');
 ```
 
 When the source connector is created, it imports any PostgreSQL tables matching

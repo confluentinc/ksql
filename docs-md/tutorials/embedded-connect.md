@@ -254,7 +254,7 @@ latest value for the corresponding row in the table.
 11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
-In this step, you create streams to encapsulate location pings that are sent
+In this step, you create streams over new topics to encapsulate location pings that are sent
 every few seconds by drivers’ and riders’ phones. In contrast to tables,
 ksqlDB streams are append-only collections of events, so they're suitable for a
 continuous stream of location updates.

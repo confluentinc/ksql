@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -69,6 +70,7 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
@@ -96,6 +98,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -104,6 +107,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -120,6 +124,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
+import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +148,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
+  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityExtension securityExtension;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
@@ -169,6 +175,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
@@ -192,6 +199,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.preconditions = requireNonNull(preconditions, "preconditions");
     this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
+    this.serviceContextBinderFactory =
+        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
@@ -381,8 +390,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(new KsqlSecurityContextBinder(
-        ksqlConfigNoPort, securityExtension, serviceContext));
+    config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -456,15 +464,20 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
-        RestServiceContextFactory.create(ksqlConfig, Optional.empty()));
+        RestServiceContextFactory.create(ksqlConfig, schemaRegistryClientFactory,
+            Optional.empty()));
 
     return buildApplication(
         "",
         restConfig,
         versionCheckerFactory,
         Integer.MAX_VALUE,
-        serviceContext);
+        serviceContext,
+        (config, securityExtension) ->
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
   }
 
   static KsqlRestApplication buildApplication(
@@ -472,7 +485,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
-      final ServiceContext serviceContext) {
+      final ServiceContext serviceContext,
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -600,6 +614,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         streamedQueryResource,
         ksqlResource,
         versionChecker,
+        serviceContextBinderFactory,
         securityExtension,
         serverState,
         processingLogContext,

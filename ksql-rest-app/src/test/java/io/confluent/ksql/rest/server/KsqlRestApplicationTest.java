@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
@@ -127,6 +129,8 @@ public class KsqlRestApplicationTest {
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+
+  private Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private String logCreateStatement;
   private KsqlRestApplication app;
   private KsqlRestConfig restConfig;
@@ -138,6 +142,7 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
+    schemaRegistryClientFactory = () -> schemaRegistryClient;
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -419,6 +424,8 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
+        (config, securityExtension) ->
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         securityExtension,
         serverState,
         processingLogContext,

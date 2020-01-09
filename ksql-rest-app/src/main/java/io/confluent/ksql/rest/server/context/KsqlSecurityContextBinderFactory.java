@@ -18,14 +18,16 @@ package io.confluent.ksql.rest.server.context;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
@@ -39,21 +41,22 @@ import org.glassfish.hk2.api.Factory;
 public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityContext> {
   private static KsqlConfig ksqlConfig;
   private static KsqlSecurityExtension securityExtension;
-  private static ServiceContext defaultServiceContext;
+  private static Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
 
   public static void configure(
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContext defaultServiceContext
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     KsqlSecurityContextBinderFactory.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     KsqlSecurityContextBinderFactory.securityExtension
         = requireNonNull(securityExtension, "securityExtension");
-    KsqlSecurityContextBinderFactory.defaultServiceContext
-        = requireNonNull(defaultServiceContext, "defaultServiceContext");
+    KsqlSecurityContextBinderFactory.schemaRegistryClientFactory
+        = requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
   }
 
   private final SecurityContext securityContext;
+  private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final UserServiceContextFactory userServiceContextFactory;
   private final HttpServletRequest request;
 
@@ -65,6 +68,8 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
     this(
         securityContext,
         request,
+        (config, authHeader) ->
+            RestServiceContextFactory.create(config, schemaRegistryClientFactory, authHeader),
         RestServiceContextFactory::create
     );
   }
@@ -73,9 +78,12 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
   KsqlSecurityContextBinderFactory(
       final SecurityContext securityContext,
       final HttpServletRequest request,
+      final DefaultServiceContextFactory defaultServiceContextFactory,
       final UserServiceContextFactory userServiceContextFactory
   ) {
     this.securityContext = requireNonNull(securityContext, "securityContext");
+    this.defaultServiceContextFactory = requireNonNull(defaultServiceContextFactory,
+        "defaultServiceContextFactory");
     this.userServiceContextFactory = requireNonNull(userServiceContextFactory,
         "userServiceContextFactory");
     this.request = requireNonNull(request, "request");
@@ -88,7 +96,10 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
         Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION));
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return new KsqlSecurityContext(Optional.ofNullable(principal), defaultServiceContext);
+      return new KsqlSecurityContext(
+      Optional.ofNullable(principal),
+          defaultServiceContextFactory.create(ksqlConfig, authHeader)
+      );
     }
 
     return securityExtension.getUserContextProvider()
@@ -104,5 +115,6 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
 
   @Override
   public void dispose(final KsqlSecurityContext ksqlSecurityContext) {
+    ksqlSecurityContext.getServiceContext().close();
   }
 }

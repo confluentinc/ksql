@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
@@ -125,6 +127,10 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
+
+  private Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private String logCreateStatement;
   private KsqlRestApplication app;
   private KsqlRestConfig restConfig;
@@ -136,6 +142,7 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
+    schemaRegistryClientFactory = () -> schemaRegistryClient;
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -417,7 +424,8 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
-        KsqlSecurityContextBinder::new,
+        (config, securityExtension) ->
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory),
         securityExtension,
         serverState,
         processingLogContext,

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
@@ -37,7 +38,9 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DisabledKsqlClient;
@@ -432,8 +435,7 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
-    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder
-        = KsqlSecurityContextBinder::new;
+    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder;
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
@@ -441,6 +443,9 @@ public class TestKsqlRestApp extends ExternalResource {
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
+      this.securityContextBinder = (config, securityExtension) ->
+        new KsqlSecurityContextBinder(config, securityExtension,
+            new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
     }
 
     @SuppressWarnings("unused") // Part of public API

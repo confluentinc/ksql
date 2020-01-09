@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -69,6 +70,7 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
@@ -96,6 +98,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -444,7 +447,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                       authorizationValidator,
                       errorHandler,
                       securityExtension,
-                      serverState
+                      serverState,
+                      serviceContext.getSchemaRegistryClientFactory()
                   );
                 }
               })
@@ -460,8 +464,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
-        RestServiceContextFactory.create(ksqlConfig, Optional.empty()));
+        RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
+            schemaRegistryClientFactory));
 
     return buildApplication(
         "",
@@ -469,7 +476,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         versionCheckerFactory,
         Integer.MAX_VALUE,
         serviceContext,
-        KsqlSecurityContextBinder::new);
+        (config, securityExtension) ->
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
   }
 
   static KsqlRestApplication buildApplication(
@@ -478,8 +486,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory
-  ) {
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());

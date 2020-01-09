@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -97,6 +99,7 @@ public class WSQueryEndpoint {
   private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final ServerState serverState;
   private final Errors errorHandler;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
 
   private WebSocketSubscriber<?> subscriber;
   private KsqlSecurityContext securityContext;
@@ -115,7 +118,8 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
-      final ServerState serverState
+      final ServerState serverState,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     this(ksqlConfig,
         mapper,
@@ -133,7 +137,8 @@ public class WSQueryEndpoint {
         securityExtension,
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
-        serverState);
+        serverState,
+        schemaRegistryClientFactory);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -155,7 +160,8 @@ public class WSQueryEndpoint {
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
-      final ServerState serverState
+      final ServerState serverState,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -179,7 +185,9 @@ public class WSQueryEndpoint {
     this.defaultServiceContextFactory =
         Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.schemaRegistryClientFactory =
+        Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
   }
 
   @SuppressWarnings("unused")
@@ -288,7 +296,8 @@ public class WSQueryEndpoint {
     final ServiceContext serviceContext;
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
+      serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty(),
+          schemaRegistryClientFactory);
     } else {
       // Creates a ServiceContext using the user's credentials, so the WS query topics are
       // accessed with the user permission context (defaults to KSQL service context)

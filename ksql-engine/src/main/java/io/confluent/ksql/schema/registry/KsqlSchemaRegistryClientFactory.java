@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.registry;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
@@ -43,14 +44,21 @@ public class KsqlSchemaRegistryClientFactory {
                                       Map<String, String> httpHeaders);
   }
 
-
   public KsqlSchemaRegistryClientFactory(
       final KsqlConfig config,
       final Map<String, String> schemaRegistryHttpHeaders
   ) {
+    this(config, newSchemaRegistrySslFactory(config), schemaRegistryHttpHeaders);
+  }
+
+  public KsqlSchemaRegistryClientFactory(
+      final KsqlConfig config,
+      final SslFactory sslFactory,
+      final Map<String, String> schemaRegistryHttpHeaders
+  ) {
     this(config,
         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
-        new SslFactory(Mode.CLIENT),
+        sslFactory,
         CachedSchemaRegistryClient::new,
         schemaRegistryHttpHeaders
     );
@@ -59,6 +67,7 @@ public class KsqlSchemaRegistryClientFactory {
     config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY);
   }
 
+  @VisibleForTesting
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
                                   final Supplier<RestService> serviceSupplier,
                                   final SslFactory sslFactory,
@@ -69,11 +78,23 @@ public class KsqlSchemaRegistryClientFactory {
     this.schemaRegistryClientConfigs = config.originalsWithPrefix(
         KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
-    this.sslFactory
-        .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
-
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
     this.httpHeaders = httpHeaders;
+  }
+
+  /**
+   * Creates an SslFactory configured to be used with the KsqlSchemaRegistryClient.
+   */
+  public static SslFactory newSchemaRegistrySslFactory(final KsqlConfig config) {
+    final SslFactory sslFactory = new SslFactory(Mode.CLIENT);
+    configureSslFactory(config, sslFactory);
+    return sslFactory;
+  }
+
+  @VisibleForTesting
+  static void configureSslFactory(final KsqlConfig config, final SslFactory sslFactory) {
+    sslFactory
+        .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
   }
 
   public SchemaRegistryClient get() {

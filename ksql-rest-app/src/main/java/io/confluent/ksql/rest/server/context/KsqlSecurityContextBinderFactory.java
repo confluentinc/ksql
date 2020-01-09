@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.context;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
@@ -26,6 +27,7 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
@@ -39,14 +41,18 @@ import org.glassfish.hk2.api.Factory;
 public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityContext> {
   private static KsqlConfig ksqlConfig;
   private static KsqlSecurityExtension securityExtension;
+  private static Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
 
   public static void configure(
       final KsqlConfig ksqlConfig,
-      final KsqlSecurityExtension securityExtension
+      final KsqlSecurityExtension securityExtension,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     KsqlSecurityContextBinderFactory.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     KsqlSecurityContextBinderFactory.securityExtension
         = requireNonNull(securityExtension, "securityExtension");
+    KsqlSecurityContextBinderFactory.schemaRegistryClientFactory
+        = requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
   }
 
   private final SecurityContext securityContext;
@@ -91,7 +97,7 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
     if (!securityExtension.getUserContextProvider().isPresent()) {
       return new KsqlSecurityContext(
           Optional.ofNullable(principal),
-          defaultServiceContextFactory.create(ksqlConfig, authHeader)
+          defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory)
       );
     }
 

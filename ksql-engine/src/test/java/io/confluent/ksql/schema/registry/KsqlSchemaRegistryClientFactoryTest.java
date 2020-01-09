@@ -88,14 +88,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
     final Map<String, Object> expectedConfigs = defaultConfigs();
 
     // When:
-    final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory, Collections.emptyMap()).get();
+    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
 
     // Then:
-    assertThat(client, is(notNullValue()));
     verify(sslFactory).configure(expectedConfigs);
-    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
 
   @Test
@@ -109,14 +105,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
 
     // When:
-    final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory, Collections.emptyMap()).get();
+    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
 
     // Then:
-    assertThat(client, is(notNullValue()));
     verify(sslFactory).configure(expectedConfigs);
-    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
 
   @Test
@@ -130,15 +122,11 @@ public class KsqlSchemaRegistryClientFactoryTest {
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
 
     // When:
-    final SchemaRegistryClient client =
-        new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory, Collections.emptyMap()).get();
+    KsqlSchemaRegistryClientFactory.configureSslFactory(config, sslFactory);
 
 
     // Then:
-    assertThat(client, is(notNullValue()));
     verify(sslFactory).configure(expectedConfigs);
-    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
 
   @Test
@@ -160,6 +148,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
         config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
+    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
     srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs), any());
   }
 

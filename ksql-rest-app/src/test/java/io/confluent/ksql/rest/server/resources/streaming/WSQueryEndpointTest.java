@@ -59,7 +59,6 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServ
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
@@ -185,7 +184,6 @@ public class WSQueryEndpointTest {
     when(securityExtension.getAuthorizationProvider())
         .thenReturn(Optional.of(authorizationProvider));
     when(serviceContextFactory.create(any(), any(), any(), any())).thenReturn(serviceContext);
-    when(defaultServiceContextProvider.create(any(), any())).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
@@ -208,7 +206,8 @@ public class WSQueryEndpointTest {
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,
-        serverState
+        serverState,
+        schemaRegistryClientSupplier
     );
   }
 
@@ -490,7 +489,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty());
+    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty(),
+        schemaRegistryClientSupplier);
     verifyZeroInteractions(userContextProvider);
   }
 

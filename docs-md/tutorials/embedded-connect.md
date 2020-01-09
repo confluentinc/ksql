@@ -251,6 +251,13 @@ underlying topic represents a row in the table. For messages in the topic with
 the same key, the latest message associated with a given key represents the
 latest value for the corresponding row in the table.
 
+_Note that when the data is ingested from the database, it's being written
+to the {{ site.ak }} topic using JSON serialization. Since JSON itself doesn't
+declare a schema, we need to declare it again when we run the `CREATE TABLE`. 
+In practice, you would normally use Avro since this supports the retention
+of schemas, ensuring compatibility between producers and consumers—and meaning
+that you don't have to enter it each time you want to use the data in ksqlDB._
+
 11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 

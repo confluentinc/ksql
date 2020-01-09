@@ -23,7 +23,7 @@
 #
 # 3. build docker images from local changes (Note: access to Confluent docker registry is required):
 # Change `docker.upstream-tag` if you want to depend on anything other than the latest master upstream, e.g. 5.4.x-latest
-# > mvn -Pdocker package -DskipTests -Dspotbugs.skip -Dcheckstyle.skip  -Ddockerfile.skip=false -Dskip.docker.build=false -Ddocker.upstream-tag=master-latest -Ddocker.tag=local.build -Ddocker.upstream-registry='368821881613.dkr.ecr.us-west-2.amazonaws.com/'
+# > mvn -Pdocker package -DskipTests -Dspotbugs.skip -Dcheckstyle.skip  -Ddockerfile.skip=false -Dskip.docker.build=false -Ddocker.upstream-tag=master-latest -Ddocker.tag=local.build
 #
 # 4. check images build:
 # > docker image ls | grep ksql.local.build

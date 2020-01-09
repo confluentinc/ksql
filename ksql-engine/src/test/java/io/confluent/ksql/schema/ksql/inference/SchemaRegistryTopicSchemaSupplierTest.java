@@ -24,6 +24,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -42,7 +44,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("ConstantConditions")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaRegistryTopicSchemaSupplierTest {
 
@@ -64,6 +65,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Mock
   private org.apache.avro.Schema avroSchema;
   @Mock
+  private ParsedSchema parsedSchema;
+  @Mock
   private Schema connectSchema;
   @Mock
   private Schema ksqlSchema;
@@ -78,8 +81,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(srClient.getLatestSchemaMetadata(any()))
         .thenReturn(new SchemaMetadata(SCHEMA_ID, -1, AVRO_SCHEMA));
 
-    when(srClient.getSchemaMetadata(any(), anyInt()))
-        .thenReturn(new SchemaMetadata(SCHEMA_ID, -1, AVRO_SCHEMA));
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
+        .thenReturn(parsedSchema);
+
+    when(parsedSchema.schemaType()).thenReturn(AvroSchema.TYPE);
+
+    when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(toAvroTranslator.apply(any()))
         .thenReturn(avroSchema);
@@ -111,7 +118,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueWithIdSchemaIfNotFound() throws Exception {
     // Given:
-    when(srClient.getSchemaMetadata(any(), anyInt()))
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
         .thenThrow(notFoundException());
 
     // When:
@@ -128,7 +135,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueIfUnauthorized() throws Exception {
     // Given:
-    when(srClient.getSchemaMetadata(any(), anyInt()))
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
         .thenThrow(unauthorizedException());
 
     // When:
@@ -145,7 +152,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueIfForbidden() throws Exception {
     // Given:
-    when(srClient.getSchemaMetadata(any(), anyInt()))
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
         .thenThrow(forbiddenException());
 
     // When:
@@ -177,7 +184,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldThrowFromGetValueWithIdSchemaOnOtherRestExceptions() throws Exception {
     // Given:
-    when(srClient.getSchemaMetadata(any(), anyInt()))
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
         .thenThrow(new RestClientException("failure", 1, 1));
 
     // Then:
@@ -207,7 +214,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldThrowFromGetValueWithIdSchemaOnOtherException() throws Exception {
     // Given:
-    when(srClient.getSchemaMetadata(any(), anyInt()))
+    when(srClient.getSchemaBySubjectAndId(any(), anyInt()))
         .thenThrow(new IOException("boom"));
 
     // Then:
@@ -288,7 +295,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
 
     // Then:
-    verify(srClient).getSchemaMetadata(TOPIC_NAME + "-value", 42);
+    verify(srClient).getSchemaBySubjectAndId(TOPIC_NAME + "-value", 42);
   }
 
   @Test

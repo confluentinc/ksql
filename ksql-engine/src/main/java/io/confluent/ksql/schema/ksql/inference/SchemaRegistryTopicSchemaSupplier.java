@@ -18,7 +18,8 @@ package io.confluent.ksql.schema.ksql.inference;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.links.DocumentationLinks;
@@ -66,39 +67,24 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   @Override
   public SchemaResult getValueSchema(final String topicName, final Optional<Integer> schemaId) {
-
-    final Optional<SchemaMetadata> metadata = getSchema(topicName, schemaId);
-    if (!metadata.isPresent()) {
-      return notFound(topicName);
-    }
-
-    try {
-      final Schema connectSchema = toConnectSchema(metadata.get().getSchema());
-
-      return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, metadata.get().getId()));
-    } catch (final Exception e) {
-      return notCompatible(topicName, metadata.get().getSchema(), e);
-    }
-  }
-
-  private Optional<SchemaMetadata> getSchema(
-      final String topicName,
-      final Optional<Integer> schemaId
-  ) {
     try {
       final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final int id;
 
       if (schemaId.isPresent()) {
-        return Optional.of(srClient.getSchemaMetadata(subject, schemaId.get()));
+        id = schemaId.get();
+      } else {
+        id = srClient.getLatestSchemaMetadata(subject).getId();
       }
 
-      return Optional.of(srClient.getLatestSchemaMetadata(subject));
+      final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
+      return fromParsedSchema(topicName, id, schema);
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
         case HttpStatus.SC_UNAUTHORIZED:
         case HttpStatus.SC_FORBIDDEN:
-          return Optional.empty();
+          return notFound(topicName);
         default:
           throw new KsqlException("Schema registry fetch for topic "
               + topicName + " request failed.", e);
@@ -106,6 +92,31 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     } catch (final Exception e) {
       throw new KsqlException("Schema registry fetch for topic "
           + topicName + " request failed.", e);
+    }
+  }
+
+  public SchemaResult fromParsedSchema(
+      final String topic,
+      final int id,
+      final ParsedSchema parsedSchema
+  ) {
+
+    try {
+      final Schema connectSchema;
+
+      switch (parsedSchema.schemaType()) {
+        case AvroSchema.TYPE:
+          connectSchema = toConnectSchema(parsedSchema.canonicalString());
+          break;
+        case "JSON":
+        case "PROTOBUF":
+        default:
+          throw new KsqlException("Unsupported schema type: " + parsedSchema.schemaType());
+      }
+
+      return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, id));
+    } catch (final Exception e) {
+      return notCompatible(topic, parsedSchema.canonicalString(), e);
     }
   }
 

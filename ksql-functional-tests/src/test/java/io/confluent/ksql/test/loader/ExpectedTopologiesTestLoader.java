@@ -182,9 +182,6 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
       final List<TopologiesAndVersion> expectedTopologies
   ) {
     Stream.Builder<T> builder = Stream.builder();
-    if (test.getVersionBounds().contains(CURRENT_VERSION)) {
-      builder.add(test);
-    }
 
     for (final TopologiesAndVersion topologies : expectedTopologies) {
       if (!test.getVersionBounds().contains(topologies.getVersion())) {

@@ -1,4 +1,4 @@
-# KLIP 15 - KQSLDB Client and new API
+# KLIP 15 - ksqlDB Client and New Server API
 
 **Author**: Tim Fox (purplefox) | 
 **Release Target**: ? | 
@@ -19,6 +19,7 @@ https://groups.google.com/forum/#!topic/ksql-dev/5mLKvtZFs4Y
  a simple event sourcing / CQRS style application.
  We should provide a new ksqlDB client that provides that currently missing single interaction point with the event streaming
  platform so that we can improve the application development process.
+ To support the client we should provide an updated HTTP2 based API that allows streaming use cases to be handled better.
            
 ## Motivation and background
 
@@ -40,9 +41,8 @@ This KLIP proposes that we:
 
 * Create a ksqlDB client (initially in Java and JavaScript) as the primary interaction point to the event streaming platform
 for an application
-* Create a new server side implementation that supports the client and enables the functionality of the client to be delivered in a straightforward
+* Create a new HTTP2 based server API using Vert.x that supports the client and enables the functionality of the client to be delivered in a straightforward
 and efficient way
-* The creation of a new wire protocol for the client<->server communication.
 * Migrate the functionality of the current HTTP/REST API over to the new server implementation and retire the parts that are no longer needed.
 
 ## What is in scope
@@ -54,38 +54,162 @@ and efficient way
 such as list and describe.
 * The client will support a reactive / async interaction style using Java CompletableFuture and Reactive Streams / JDK9 Flow API (or a copy thereof if we cannot upgrade from Java 8)
 * The client will also support a direct / synchronous interaction style.
+* The server API will be very simple, based on HTTP2 with a simple text/json based encoding therefore it will be very simple to use directly from vanilla
+HTTP2 clients if a ksqldb client is not available
 
-### The protocol
+### The Server API
 
-We will create a new super simple streaming protocol designed to efficiently stream data from server to client or client to server.
-HTTP/REST is a poor fit for streaming data as it is designed for a request/response interaction style. Attempting to implement "streaming"
-over HTTP/REST usually results in a polling approach which is awkward and inefficient compared to a protocol which is designed with streaming in mind from
-the start.
+We will create a new, simple HTTP2 API for streaming query results from server to client and
+for streaming inserts from client to server. We will use a simple text/JSON encoding for data.
+Please note, this is not a REST API, it's a streaming HTTP API. The API does not follow REST principles. REST is inherently designed for request/response (RPC)
+style interactions, not streaming.
 
-* Binary multiplexed protocol. The protocol will support multiple independent channels over a single connection. We want to discourage clients from opening new
-connections for single operations (e.g. a single query) and closing them again. This leads to poor performance and an inefficient use of resources. Multiplexing allows
-many queries to be running over a single connection. Multiplexing is also important because it is likely each KSQL node will maintain connections to other KSQL nodes
-for clustering purposes (e.g. proxying queries) It is far more efficient for a particular node to hold a single connection (or a small number of connections)
-to each other node rather than creating new connections for each query.
-* Each channel will implement flow control (back pressure) to prevent any one channel overwhelming the connection.
-* The protocol will run over WebSockets - WebSockets clients are available and very easy to use in all languages of interest.
-WebSockets are also usable from browsers - this will be very useful with a JavaScript client.
-* The protocol will also run over TCP. TCP might make sense in simple data centre deployments where there's no particular advantage to using WebSockets.
-* The protocol will support both streaming and request/response semantics
-* The protocol will follow tried and tested designs proved over many years by some of the most well known and best performing messaging
- systems in the industry.
-* The protocol will be designed for generic flow controlled streaming of data, not limited to KSQL. Therefore it has potential for re-use in other
-Confluent projects which might have a need for high performance streaming. 
+The API will have the following characteristics:
 
-### The server
+* Multiplexed (because of HTTP2 multiplexing)
+* Back-pressure (because of HTTP2 flow control)
+* Text based so easy to use and view results using command line tools such as curl
+* Can be used from any vanilla HTTP2 client for any language
+* Simple newline based delimitation so easy to parse results on client side
+* JSON encoding of data so very easy to parse as most languages have good JSON support
+* CORS support
+* HTTP basic auth support
+* TLS
 
-* We will create a new server implementation to host the new protocol.
-* The implementation will support equivalents for all the operations that are currently available on the HTTP/REST API
-* The implementation will be designed in a reactive / non blocking way in order to provide the best performance / scalability characteristics with
+#### Query streaming
+
+The request method will be a POST.
+
+Requests will be made to a specific URL, e.g. "/query-stream" (this can be configurable)
+
+The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
+operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
+
+````
+{
+"query": "select * from foo", <----- the SQL of the query to execute
+"push": true,                 <----- if true then push query, else pull query
+"limit": 10                   <----  If specified return at most this many rows,
+"properties": {               <----- Optional properties for the query
+    "prop1": "val1",
+    "prop2": "val2"
+   }
+}
+
+````
+
+Please note the parameters are not necessarily exhaustive. The description here is an outline not a detailed
+low level design. The low level design will evolve during development.
+
+In the case of a successful query 
+
+````
+{
+"query-id", "xyz123",                          <---- unique ID of the query, used when terminating the query
+"columns":["col", "col2", "col3"],             <---- the names of the columns
+"column_types":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
+"row_count": 101                               <---- The number of rows - only set in case of pull query
+}
+````
+
+Followed by zero or more JSON arrays:
+
+````
+[123, "blah", true]
+[432, "foo", true]
+[765, "whatever", false]
+````
+
+Each JSON array or row will be delimited by a newline.
+
+For a pull query the response will be ended by the server once all rows have been written, for
+a push query the response will remain open until the connection is closed or the query is explicitly
+terminated.
+
+#### Terminating queries
+
+Push queries can be explicitly terminated by the client by making a request to this endpoint
+
+The request method will be a POST.
+
+Requests will be made to a specific URL, e.g. "/query-terminate" (this can be configurable)
+
+The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
+operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
+
+````
+{
+"query-id": "xyz123", <----- the ID of the query to terminate
+}
+
+````
+ 
+
+#### Inserts
+
+The request method will be a POST.
+
+Requests will be made to a specific URL, e.g. "/insert-stream" (this can be configurable)
+
+The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
+operation (newlines have been added for clarity, the real JSON must not contain newlines):
+
+````
+{
+"stream": "my-stream" <----- The name of the KSQL stream to insert into
+"acks": true          <----- If true then a stream of acks will be returned in the response
+}
+
+````
+
+Followed by zero or more JSON objects representing the values to insert:
+
+````
+{
+"col1" : "val1",
+"col2": 2.3,
+"col3", true
+}
+````
+Each JSON object will be separated by a new line.
+
+To terminate the insert stream the client should end the request.
+
+If acks are requested then the response will be written to the response when each row has been
+successfully committed to the underlying topic. Rows are committed in the order they are provided.
+Each ack in the response is just an empty JSON object, separated by newlines:
+
+````
+{}
+{}
+{}
+{}
+````
+
+#### Errors
+
+Apropriate status codes will be returned from failed requests. The response will also contain JSON
+with further information on the error:
+
+{
+    "error_code": <Error code>
+    "message": <Error Message>
+}
+
+### Migration of existing "REST" API
+
+We will migrate the existing Jetty based "REST" API to the new Vert.x based implementation as-is or with
+minor modifications.
+
+We will migrate the existing Jetty specific plug-ins to Vert.x
+
+### Server implementation
+
+The new server API will be implemented using Vert.x
+
+The implementation will be designed in a reactive / non blocking way in order to provide the best performance / scalability characteristics with
 low resource usage. This will also influence the overall threading model of the server and position us with a better, more scalability internal
 server architecture that will help future proof the ksqlDB server.
-* The problematic parts of the current HTTP API will be removed (query streaming using chunked response and websockets)
-* The remainder of the current HTTP API will remain supported as-is using the new implementation.
 
 ## What is not in scope
 
@@ -95,7 +219,7 @@ server architecture that will help future proof the ksqlDB server.
 
 ## Value/Return
 
-We hope that by providing a delightful, easy to use client, it will enable application developers to easily write powerful
+We hope that by providing a delightful, easy to use client and new HTTP2 based server API, it will enable application developers to easily write powerful
 applications that take advantage of their data plane / event streaming platform more effectively.
 
 We hope that this could be transformative for the project in terms of adoption as it would position ksqlDB as a great choice for
@@ -106,24 +230,23 @@ there are benefits in relation to performance, scalability, simplicity of implem
 and threading model. Not to mention reduced dependencies and better resource usage. This will set us up better for the kinds of high
 throughput operations that we will need to implement efficiently now that the project has pivoted to a more active application
 facing server rather than a more passive DDL engine.
-A further advantage of using Vert.x on the server is that Vert.x has support for GraphQL which will make the implementation of
-GraphQL for ksqlDB relatively simple compared to having to implement it from scratch.
 
 ## Public APIS
 
 The following changes / additions to APIs will occur:
 
+* We will provide a new HTTP2 based streaming API. This will not be accessible using HTTP1.1
 * The current chunked streaming and websockets streaming endpoints will be retired.
-* The client will provide a new public API
-* We will provide a new wire protocol for client<->server communication.
+* The old API will be migrated to Vert.x possibly with some modifications and be accessible over HTTP1.1 and HTTP 2
+* The Java client will provide a new public API
 
 ## Design
 
 ### The client
 
-* The Java client will provide an API based on JDK 9 flow / reactive streams and completable future
-* The networking will be handled by Vert.x (which uses Netty). Both Vert.x and Netty are very widely
-used toolkits which are known for great performance, and have few dependencies.
+* The Java client will provide an API based on Reactive Streams and completable future. We can also consider providing a JDK 9 shim using the Flow API for those
+users using Java 9+
+* The networking will be handled by Vert.x (which uses Netty).
 * The client will have minimal transitive jar dependencies - this is important as the client will be embedded in end user applications.
 * Client connections are designed to be re-used.
 * The client will be thread-safe.
@@ -140,23 +263,6 @@ clarify the server side implementation result in a cleaner implementation and re
 characteristics for a JVM toolkit. It will also set us up well for a fully async / reactive internal threading model in the server that we
 should aim towards for the future.
 
-### Implementation plan
-
-There is a lot of work to do here and it should be split up into separate work packages rather than trying to complete it as a single
-monolithic piece of work. Some obvious partitions of the work would be:
-
-* Protocol implementation
-* Java client implementation. This can be developed using a fake server so there is no dependency on completing the server work first.
-* JavaScript client implementation. Again, this can be developed using a fake server
-* Server streaming implementation
-* Migration of existing endpoints to new server implementation
-* Migration of existing plugins to new server implementation.
-* Switchover from old API to new API
-
-We should retain the current API implementation until it's ready to be switched over to the new implementation. The new implementation can exist
-in the same codebase during development, and only after switchover will the old implementation be removed.
-That way we can ensure a seamless switchover as there is a working API at all times.
-
 ## Test plan
 
 We will require unit/module level tests and integration tests for all the new or changed components as per standard best practice.
@@ -164,9 +270,8 @@ We will require unit/module level tests and integration tests for all the new or
 ## Documentation Updates
 
 * We will produce new guide(s) for the Java and JavaScript clients.
+* We will provide a new guide for the new HTTP API and retire the existing "REST" API documentation.
 * We will produce example applications showing how to use the client in a real app. E.g. using Spring Boot / Vert.x (Java) and Node.js (JavaScript)
-* The current documentation for the HTTP/REST API can remain more or less as-is with the removal of the problematic parts.
-* We will write up a document on the new wire protocol to encourage 3rd parties to implement new clients.
 * There may be some server side configuration changes due to the new server implementation.
 
 # Compatibility Implications
@@ -177,9 +282,11 @@ The current websockets query streaming endpoint will be removed so any users cur
 This endpoint is currently undocumented so it's not expected a lot of users are using it. It is used by C3 (?)
 so that will need to be migrated to the new API.
 
+There may be some minor incompatible changes on the migrated old server API.
+
 ## Performance Implications
 
-* Streaming query results with the new client and protocol should provide significantly better performance than
+* Streaming query results with the new client and server side implementation should provide significantly better performance than
 the current websockets or HTTP streaming APIs
 * Using Vert.x in general for hosting the API will provide excellent performance and scalability with very low resource usage.
 

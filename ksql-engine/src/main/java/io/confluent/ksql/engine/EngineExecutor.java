@@ -228,17 +228,20 @@ final class EngineExecutor {
   private Optional<DdlCommand> maybeCreateSinkDdl(
       final String sql,
       final KsqlStructuredDataOutputNode outputNode,
-      final KeyField keyField) {
+      final KeyField keyField
+  ) {
     if (!outputNode.isDoCreateInto()) {
       validateExistingSink(outputNode, keyField);
       return Optional.empty();
     }
-    final CreateSourceCommand ddl;
+
     final Formats formats = Formats.of(
         outputNode.getKsqlTopic().getKeyFormat(),
         outputNode.getKsqlTopic().getValueFormat(),
         outputNode.getSerdeOptions()
     );
+
+    final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
           outputNode.getIntoSourceName(),
@@ -260,6 +263,7 @@ final class EngineExecutor {
           outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
       );
     }
+
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
     AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient, ksqlConfig);
     return Optional.of(ddl);

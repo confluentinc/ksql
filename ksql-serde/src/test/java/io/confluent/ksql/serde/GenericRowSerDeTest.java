@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -55,6 +57,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
+
+  private static final FormatInfo FORMAT =
+      FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty());
 
   private static final PersistenceSchema MUTLI_FIELD_SCHEMA =
       PersistenceSchema.from(
@@ -120,10 +125,37 @@ public class GenericRowSerDeTest {
   }
 
   @Test
+  public void shouldValidateFormatCanHandleSchema() {
+    // Given:
+    doThrow(new RuntimeException("Boom!"))
+        .when(serdesFactories).validate(FORMAT, MUTLI_FIELD_SCHEMA);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Value format does not support value schema."
+        + System.lineSeparator()
+        + "format: JSON"
+        + System.lineSeparator()
+        + "schema: Persistence{schema=STRUCT<f0 VARCHAR, f1 INT> NOT NULL, unwrapped=false}"
+        + System.lineSeparator()
+        + "reason: Boom!");
+
+    // When:
+    valueSerde.create(
+        FORMAT,
+        MUTLI_FIELD_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        LOGGER_PREFIX,
+        processingContext
+    );
+  }
+
+  @Test
   public void shouldGetStructSerdeOnConstruction() {
     // When:
     valueSerde.create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -133,7 +165,7 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(serdesFactories).create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -145,7 +177,7 @@ public class GenericRowSerDeTest {
   public void shouldGetStringSerdeOnConstruction() {
     // When:
     valueSerde.create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         UNWRAPPED_SINGLE_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -155,7 +187,7 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(serdesFactories).create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         UNWRAPPED_SINGLE_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -170,7 +202,7 @@ public class GenericRowSerDeTest {
 
     // When:
     valueSerde.create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -183,7 +215,7 @@ public class GenericRowSerDeTest {
   public void shouldThrowOnNullSchema() {
     // When:
     GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         null,
         ksqlConfig,
         srClientFactory,
@@ -196,7 +228,7 @@ public class GenericRowSerDeTest {
   public void shouldCreateProcessingLoggerWithCorrectName() {
     // When:
     GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -494,7 +526,7 @@ public class GenericRowSerDeTest {
 
   private Serde<GenericRow> givenSerdeForSchema(final PersistenceSchema schema) {
     return valueSerde.create(
-        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+        FORMAT,
         schema,
         ksqlConfig,
         srClientFactory,

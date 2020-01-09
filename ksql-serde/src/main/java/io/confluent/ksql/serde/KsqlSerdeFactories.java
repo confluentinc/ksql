@@ -44,6 +44,11 @@ final class KsqlSerdeFactories implements SerdeFactories {
   }
 
   @Override
+  public void validate(final FormatInfo format, final PersistenceSchema schema) {
+    factoryMethod.apply(format).validate(schema);
+  }
+
+  @Override
   public <K> Serde<K> create(
       final FormatInfo format,
       final PersistenceSchema schema,

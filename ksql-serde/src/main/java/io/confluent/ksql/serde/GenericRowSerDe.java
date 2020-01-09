@@ -26,6 +26,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -102,6 +103,20 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final ProcessingLogContext processingLogContext,
       final Class<T> targetType
   ) {
+    try {
+      serdeFactories.validate(format, schema);
+    } catch (final Exception e) {
+      throw new KsqlException("Value format does not support value schema."
+          + System.lineSeparator()
+          + "format: " + format.getFormat()
+          + System.lineSeparator()
+          + "schema: " + schema
+          + System.lineSeparator()
+          + "reason: " + e.getMessage(),
+          e
+      );
+    }
+
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 

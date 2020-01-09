@@ -24,6 +24,17 @@ import org.apache.kafka.common.serialization.Serde;
 interface SerdeFactories {
 
   /**
+   * Validate that supplied {@code format} can handle the supplied {@code schema}.
+   * @param format the format to validate.
+   * @param schema the schema to validate.
+   * @throws RuntimeException if format does not support schema.
+   */
+  void validate(
+      FormatInfo format,
+      PersistenceSchema schema
+  );
+
+  /**
    * Create {@link Serde} for supported KSQL formats.
    *
    * @param format required format.

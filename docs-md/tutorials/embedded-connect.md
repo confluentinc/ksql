@@ -39,7 +39,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.3.1
+    image: confluentinc/cp-zookeeper:5.3.2
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -49,7 +49,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.3.1
+    image: confluentinc/cp-enterprise-kafka:5.3.2
     hostname: broker
     container_name: broker
     depends_on:
@@ -79,7 +79,7 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
     volumes:
-      - ./confluentinc-kafka-connect-jdbc-5.3.1:/usr/share/kafka/plugins/jdbc
+      - ./confluentinc-kafka-connect-jdbc-5.3.2:/usr/share/kafka/plugins/jdbc
       - ./connect.properties:/connect/connect.properties
 
   ksqldb-cli:
@@ -106,7 +106,7 @@ services:
 to your local working directory. Next, unzip the downloaded archive:
 
 ```bash
-unzip confluentinc-kafka-connect-jdbc-5.3.1.zip
+unzip confluentinc-kafka-connect-jdbc-5.3.2.zip
 ```
 
 3. Configure Connect
@@ -126,7 +126,6 @@ group.id=ksql-connect-cluster
 key.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter.schemas.enable=false
-internal.key.converter.schemas.enable=false
 config.storage.topic=ksql-connect-configs
 offset.storage.topic=ksql-connect-offsets
 status.storage.topic=ksql-connect-statuses
@@ -207,8 +206,7 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
   'mode'                     = 'incrementing',
   'numeric.mapping'          = 'best_fit',
   'incrementing.column.name' = 'driver_id',
-  'key'                      = 'driver_id',
-  'value.converter.schemas.enable' = false);
+  'key'                      = 'driver_id');
 ```
 
 When the source connector is created, it imports any PostgreSQL tables matching
@@ -245,7 +243,7 @@ CREATE TABLE driverProfiles (
   license_plate STRING,
   rating DOUBLE
 )
-WITH (kafka_topic='jdbc_driver_profiles', value_format='json', partitions=1, key='driver_id');
+WITH (kafka_topic='jdbc_driver_profiles', value_format='json', key='driver_id');
 ```
 
 Tables in ksqlDB support update semantics, where each message in the
@@ -253,10 +251,18 @@ underlying topic represents a row in the table. For messages in the topic with
 the same key, the latest message associated with a given key represents the
 latest value for the corresponding row in the table.
 
+!!! note
+    When the data is ingested from the database, it's being written
+to the {{ site.ak }} topic using JSON serialization. Since JSON itself doesn't
+declare a schema, you need to declare it again when you run `CREATE TABLE`. 
+In practice, you would normally use Avro, since this supports the retention
+of schemas, ensuring compatibility between producers and consumers. This means
+that you don't have to enter it each time you want to use the data in ksqlDB.
+
 11. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
-In this step, you create streams to encapsulate location pings that are sent
+In this step, you create streams over new topics to encapsulate location pings that are sent
 every few seconds by drivers’ and riders’ phones. In contrast to tables,
 ksqlDB streams are append-only collections of events, so they're suitable for a
 continuous stream of location updates.

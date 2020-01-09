@@ -243,7 +243,7 @@ CREATE TABLE driverProfiles (
   license_plate STRING,
   rating DOUBLE
 )
-WITH (kafka_topic='jdbc_driver_profiles', value_format='json', partitions=1, key='driver_id');
+WITH (kafka_topic='jdbc_driver_profiles', value_format='json', key='driver_id');
 ```
 
 Tables in ksqlDB support update semantics, where each message in the

@@ -80,7 +80,8 @@ public class KsqlSecurityContextBinderFactoryTest {
     );
 
     when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(defaultServiceContextProvider.create(any(), any())).thenReturn(defaultServiceContext);
+    when(defaultServiceContextProvider.create(any(), any(), any()))
+        .thenReturn(defaultServiceContext);
     when(userServiceContextFactory.create(any(), any(), any(), any()))
         .thenReturn(userServiceContext);
   }
@@ -123,7 +124,7 @@ public class KsqlSecurityContextBinderFactoryTest {
     securityContextBinderFactory.provide();
 
     // Then:
-    verify(defaultServiceContextProvider).create(any(), eq(Optional.of("some-auth")));
+    verify(defaultServiceContextProvider).create(any(), eq(Optional.of("some-auth")), any());
   }
 
   @Test

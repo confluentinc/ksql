@@ -34,7 +34,8 @@ public final class RestServiceContextFactory {
 
     ServiceContext create(
         KsqlConfig config,
-        Optional<String> authHeader
+        Optional<String> authHeader,
+        Supplier<SchemaRegistryClient> srClientFactory
     );
   }
 
@@ -50,8 +51,8 @@ public final class RestServiceContextFactory {
 
   public static ServiceContext create(
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final Optional<String> authHeader
+      final Optional<String> authHeader,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return create(
         ksqlConfig,

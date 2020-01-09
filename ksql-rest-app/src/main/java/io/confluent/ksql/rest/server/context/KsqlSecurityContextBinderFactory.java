@@ -68,8 +68,7 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
     this(
         securityContext,
         request,
-        (config, authHeader) ->
-            RestServiceContextFactory.create(config, schemaRegistryClientFactory, authHeader),
+        RestServiceContextFactory::create,
         RestServiceContextFactory::create
     );
   }
@@ -97,8 +96,8 @@ public class KsqlSecurityContextBinderFactory implements Factory<KsqlSecurityCon
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
       return new KsqlSecurityContext(
-      Optional.ofNullable(principal),
-          defaultServiceContextFactory.create(ksqlConfig, authHeader)
+          Optional.ofNullable(principal),
+          defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory)
       );
     }
 

@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
@@ -161,6 +162,8 @@ public class WSQueryEndpointTest {
   private KsqlUserContextProvider userContextProvider;
   @Mock
   private Errors errorsHandler;
+  @Mock
+  private DefaultServiceContextFactory defaultServiceContextProvider;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -202,8 +205,9 @@ public class WSQueryEndpointTest {
         errorsHandler,
         securityExtension,
         serviceContextFactory,
+        defaultServiceContextProvider,
         serverState,
-        serviceContext
+        schemaRegistryClientSupplier
     );
   }
 
@@ -476,7 +480,7 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldUseDefaultServiceContextIfUserContextProviderIsNotEnabled() {
+  public void shouldCreateDefaultServiceContextIfUserContextProviderIsNotEnabled() {
     // Given:
     givenRequestIs(query);
     when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
@@ -485,6 +489,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
+    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty(),
+        schemaRegistryClientSupplier);
     verifyZeroInteractions(userContextProvider);
   }
 
@@ -505,6 +511,8 @@ public class WSQueryEndpointTest {
         topicClientSupplier,
         schemaRegistryClientSupplier
     );
+
+    verifyZeroInteractions(defaultServiceContextProvider);
   }
 
   @Test

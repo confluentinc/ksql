@@ -448,7 +448,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                       errorHandler,
                       securityExtension,
                       serverState,
-                      serviceContext
+                      serviceContext.getSchemaRegistryClientFactory()
                   );
                 }
               })
@@ -467,8 +467,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
-        RestServiceContextFactory.create(ksqlConfig, schemaRegistryClientFactory,
-            Optional.empty()));
+        RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
+            schemaRegistryClientFactory));
 
     return buildApplication(
         "",

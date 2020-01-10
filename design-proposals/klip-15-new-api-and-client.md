@@ -198,8 +198,8 @@ with further information on the error:
 
 #### Non streaming results
 
-The API is design for efficiently streaming rows from client to server or from server to client.
-It is not primarily designed for RPC.
+The API is designed for efficiently streaming rows from client to server or from server to client.
+
 The amount of data that is streamed in any specific query or insert stream can be huge so we want to
 avoid any solution that buffers it all in memory at any one time or requires specialised parsers to
 parse.

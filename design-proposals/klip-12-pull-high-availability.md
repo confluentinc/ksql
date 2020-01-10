@@ -115,10 +115,23 @@ provide us with more datapoints required to implement a well-informed policy for
 server is up and when down.
 
 Configuration parameters:
-1) Heartbeat INTERVAL (e.g send heartbeat every 200 ms)
-2) Heartbeat WINDOW (e.g every 2 seconds, count the missed/received heartbeats and determine if server is down/up)
-3) MISSED_THRESHOLD: How many heartbeats in a row constitute a node as down (e.g. 3 missed heartbeats = server is down)
-4) RECEIVED_THRESHOLD: How many heartbeats in a row constitute a node as up (e.g. 2 received heartbeats = server is up)
+1) Heartbeat SEND interval (e.g send heartbeat every 100 ms)
+2) Heartbeat WINDOW size (e.g valid heartbeat to consider when counting missed/received heartbeats 
+and determine if server is down/up)
+3) Heartbeat CHECK interval (e.g. process received heartbeats and determine server status every 200 ms)
+4) MISSED_THRESHOLD: How many heartbeats in a row constitute a node as down (e.g. 3 missed heartbeats = server is down)
+5) RECEIVED_THRESHOLD: How many heartbeats in a row constitute a node as up (e.g. 2 received heartbeats = server is up)
+
+Description of how these configuration parameters are used:
+
+Every server sends a heartbeat every SEND interval. Every server processes its received heartbeats via the 
+`decide-status` process every CHECK interval. The `decide-status` process considers only heartbeats that are 
+received from `windowStart = now - WINDOW` to `windowEnd = now`. Heartbeats that were received before `windowStart`
+are expunged. The `decide-status` process counts the number of missed and received heartbeats in one window by 
+checking whether there was a heartbeat received every SEND interval starting from `windowStart`. For example, 
+from `windowStart=0` and `SEND=100` it will check if there was a heartbeat received at timestamp 0, 100, 200, 300 
+etc. until `windowEnd`. If there is a timestamp for which no heartbeat was received, the process increases the 
+missed count. If there are more than MISSED_THRESHOLD heartbeats missed in a row, then a server is marked as down.
 
 We will provide sane defaults out-of-box, to achieve a 99% uptime.
 

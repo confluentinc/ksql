@@ -339,11 +339,16 @@ public class AstBuilder {
         columns = ImmutableList.of();
       }
 
+      final List<List<Expression>> values = context.values()
+          .stream()
+          .map(v -> visit(v.valueExpression(), Expression.class))
+          .collect(Collectors.toList());
+
       return new InsertValues(
           targetLocation,
           targetName,
           columns,
-          visit(context.values().valueExpression(), Expression.class));
+          values);
     }
 
     @Override

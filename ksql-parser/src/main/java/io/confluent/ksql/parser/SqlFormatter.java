@@ -63,6 +63,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.apache.commons.lang3.StringUtils;
 
 public final class SqlFormatter {
@@ -323,13 +325,18 @@ public final class SqlFormatter {
 
       builder.append("VALUES ");
 
-      builder.append("(");
-      builder.append(
-          node.getValues()
-              .stream()
-              .map(ExpressionFormatterUtil::formatExpression)
-              .collect(Collectors.joining(", ")));
-      builder.append(")");
+      IntStream.range(0, node.getValues().size()).forEach(idx -> {
+        if (idx > 0) {
+          builder.append(", ");
+        }
+
+        builder.append("(");
+        builder.append(
+            node.getValues().get(idx).stream()
+                .map(ExpressionFormatterUtil::formatExpression)
+                .collect(Collectors.joining(", ")));
+        builder.append(")");
+      });
 
       return null;
     }

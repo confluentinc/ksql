@@ -144,35 +144,6 @@ public class InsertValuesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-
-    final ProducerRecord<byte[], byte[]> record =
-        buildRecord(statement, executionContext, serviceContext);
-
-    try {
-      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
-    } catch (final TopicAuthorizationException e) {
-      // TopicAuthorizationException does not give much detailed information about why it failed,
-      // except which topics are denied. Here we just add the ACL to make the error message
-      // consistent with other authorization error messages.
-      final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          e.unauthorizedTopics()
-      );
-
-      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
-    } catch (final Exception e) {
-      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
-    }
-  }
-
-  private ProducerRecord<byte[], byte[]> buildRecord(
-      final ConfiguredStatement<InsertValues> statement,
-      final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
-  ) {
     throwIfDisabled(statement.getConfig());
 
     final InsertValues insertValues = statement.getStatement();
@@ -192,9 +163,51 @@ public class InsertValuesExecutor {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
+    int currIdx = 0;
+
+    try {
+      for (currIdx = 0; currIdx < insertValues.getValues().size(); currIdx++) {
+        final ProducerRecord<byte[], byte[]> record =
+            buildRecord(
+                statement,
+                insertValues,
+                config,
+                dataSource,
+                executionContext,
+                serviceContext,
+                currIdx
+            );
+
+        producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+      }
+    } catch (final TopicAuthorizationException e) {
+      // TopicAuthorizationException does not give much detailed information about why it failed,
+      // except which topics are denied. Here we just add the ACL to make the error message
+      // consistent with other authorization error messages.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          e.unauthorizedTopics()
+      );
+
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues, currIdx), rootCause);
+    } catch (final Exception e) {
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues, currIdx), e);
+    }
+  }
+
+  private ProducerRecord<byte[], byte[]> buildRecord(
+      final ConfiguredStatement<InsertValues> statement,
+      final InsertValues insertValues,
+      final KsqlConfig config,
+      final DataSource<?> dataSource,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final int rowPos
+  ) {
     try {
       final RowData row = extractRow(
-          insertValues,
+          insertValues.getColumns(),
+          insertValues.getValues().get(rowPos),
           dataSource,
           executionContext.getMetaStore(),
           config);
@@ -213,14 +226,18 @@ public class InsertValuesExecutor {
       );
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
+          createInsertFailedExceptionMessage(insertValues, rowPos) + " " + e.getMessage(),
           statement.getStatementText(),
           e);
     }
   }
 
-  private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
-    return "Failed to insert values into '" + insertValues.getTarget().name() + "'.";
+  private static String createInsertFailedExceptionMessage(
+      final InsertValues insertValues,
+      final int rowPos
+  ) {
+    return String.format("Failed to insert values (row %d) into '"
+        + insertValues.getTarget().name() + "'.", rowPos);
   }
 
   private void throwIfDisabled(final KsqlConfig config) {
@@ -233,31 +250,32 @@ public class InsertValuesExecutor {
   }
 
   private RowData extractRow(
-      final InsertValues insertValues,
+      final List<ColumnName> columnNames,
+      final List<Expression> values,
       final DataSource<?> dataSource,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config
   ) {
-    final List<ColumnName> columns = insertValues.getColumns().isEmpty()
-        ? implicitColumns(dataSource, insertValues.getValues())
-        : insertValues.getColumns();
+    final List<ColumnName> columns = columnNames.isEmpty()
+        ? implicitColumns(dataSource, values)
+        : columnNames;
 
     final LogicalSchema schema = dataSource.getSchema();
 
-    final Map<ColumnName, Object> values = resolveValues(
-        insertValues, columns, schema, functionRegistry, config);
+    final Map<ColumnName, Object> resolveValues = resolveValues(
+        values, columns, schema, functionRegistry, config);
 
-    handleExplicitKeyField(values, dataSource.getKeyField());
+    handleExplicitKeyField(resolveValues, dataSource.getKeyField());
 
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE
-        && values.get(SchemaUtil.ROWKEY_NAME) == null) {
+        && resolveValues.get(SchemaUtil.ROWKEY_NAME) == null) {
       throw new KsqlException("Value for ROWKEY is required for tables");
     }
 
-    final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
+    final long ts = (long) resolveValues.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
 
-    final Struct key = buildKey(schema, values);
-    final GenericRow value = buildValue(schema, values);
+    final Struct key = buildKey(schema, resolveValues);
+    final GenericRow value = buildValue(schema, resolveValues);
 
     return RowData.of(ts, key, value);
   }
@@ -315,25 +333,25 @@ public class InsertValuesExecutor {
   }
 
   private static Map<ColumnName, Object> resolveValues(
-      final InsertValues insertValues,
+      final List<Expression> values,
       final List<ColumnName> columns,
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config
   ) {
-    final Map<ColumnName, Object> values = new HashMap<>();
+    final Map<ColumnName, Object> resolvedValues = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final ColumnName column = columns.get(i);
       final SqlType columnType = columnType(column, schema);
-      final Expression valueExp = insertValues.getValues().get(i);
+      final Expression valueExp = values.get(i);
 
       final Object value =
           new ExpressionResolver(columnType, column, schema, functionRegistry, config)
           .process(valueExp, null);
 
-      values.put(column, value);
+      resolvedValues.put(column, value);
     }
-    return values;
+    return resolvedValues;
   }
 
   private static void handleExplicitKeyField(

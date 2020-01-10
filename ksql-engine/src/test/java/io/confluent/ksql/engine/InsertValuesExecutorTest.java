@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.engine;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -92,6 +94,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -195,10 +198,10 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -211,13 +214,45 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldHandleMultipleRows() {
+    // Given:
+    final byte[] value1 = new byte[]{1};
+    final byte[] value2 = new byte[]{2};
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        valueFieldNames(SCHEMA),
+        ImmutableList.of(
+            ImmutableList.of(
+                new StringLiteral("lol"),
+                new LongLiteral(1L)),
+            ImmutableList.of(
+              new StringLiteral("str"),
+              new LongLiteral(2L)))
+    );
+    when(valueSerializer.serialize(any(), argThat(row ->
+        row != null && row.getColumns().equals(ImmutableList.of("lol", 1L))))).thenReturn(value1);
+    when(valueSerializer.serialize(any(), argThat(row ->
+        row != null && row.getColumns().equals(ImmutableList.of("str", 2L))))).thenReturn(value2);
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("lol"));
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("lol", 1L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, value1));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, value2));
+  }
+
+  @Test
   public void shouldInsertWrappedSingleField() {
     // Given:
     givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SINGLE_FIELD_SCHEMA),
-        ImmutableList.of(new StringLiteral("new"))
+        singletonList(ImmutableList.of(new StringLiteral("new")))
     );
 
     // When:
@@ -240,7 +275,7 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SINGLE_FIELD_SCHEMA),
-        ImmutableList.of(new StringLiteral("new"))
+        singletonList(ImmutableList.of(new StringLiteral("new")))
     );
 
     // When:
@@ -257,11 +292,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -278,11 +313,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWTIME", "COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1234L),
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -299,10 +334,10 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -319,11 +354,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -340,9 +375,9 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
-            new StringLiteral("str"))
+            new StringLiteral("str")))
     );
 
     // When:
@@ -359,10 +394,10 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -379,10 +414,10 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1", "COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(2L),
             new StringLiteral("str")
-        )
+        ))
     );
 
     // When:
@@ -399,9 +434,9 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1", "COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(2L),
-            new StringLiteral("str"))
+            new StringLiteral("str")))
     );
 
     // When:
@@ -420,7 +455,7 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(BIG_SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
@@ -430,7 +465,7 @@ public class InsertValuesExecutorTest {
             new BooleanLiteral("TRUE"),
             new StringLiteral("str"),
             new StringLiteral("1.2"))
-    );
+    ));
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
@@ -452,10 +487,10 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))
-        )
+        ))
     );
 
     // When:
@@ -474,10 +509,10 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new FunctionCall(
                 FunctionName.of("AS_ARRAY"),
-                ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))))
+                ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))))
     );
 
     // When:
@@ -495,14 +530,14 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new FunctionCall(
                 FunctionName.of("AS_MAP"),
                 ImmutableList.of(
                     new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new StringLiteral("foo"))),
                     new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new IntegerLiteral(1)))
                 ))
-        )
+        ))
     );
 
     // When:
@@ -520,10 +555,10 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new IntegerLiteral(1)
-        )
+        ))
     );
 
     // When:
@@ -540,12 +575,12 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     final Future<?> failure = mock(Future.class);
@@ -554,7 +589,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to insert values into ");
+    expectedException.expectMessage("Failed to insert values (row 0) into ");
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
@@ -565,11 +600,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
     when(keySerializer.serialize(any(), any())).thenThrow(new SerializationException("Jibberish!"));
 
@@ -586,11 +621,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
     when(valueSerializer.serialize(any(), any()))
         .thenThrow(new SerializationException("Jibberish!"));
@@ -608,11 +643,11 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
     doThrow(new TopicAuthorizationException(Collections.singleton("t1")))
         .when(producer).send(any());
@@ -632,9 +667,9 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("foo"),
-            new StringLiteral("bar"))
+            new StringLiteral("bar")))
     );
 
     // Expect:
@@ -650,8 +685,8 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(),
-        ImmutableList.of(
-            new LongLiteral(1L))
+        singletonList(ImmutableList.of(
+            new LongLiteral(1L)))
     );
 
     // Expect:
@@ -669,9 +704,9 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("INT"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new DoubleLiteral(1.1)
-        )
+        ))
     );
 
     // Expect:
@@ -689,10 +724,10 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("key"),
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
 
     // When:
@@ -711,10 +746,10 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("key"),
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
 
     // When:
@@ -733,9 +768,9 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
 
     // When:
@@ -754,15 +789,15 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
-            new LongLiteral(2L))
+            new LongLiteral(2L)))
     );
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+        "Failed to insert values (row 0) into 'TOPIC'.");
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
@@ -775,14 +810,14 @@ public class InsertValuesExecutorTest {
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1"),
-        ImmutableList.of(
-            new LongLiteral(2L))
+        singletonList(ImmutableList.of(
+            new LongLiteral(2L)))
     );
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+        "Failed to insert values (row 0) into 'TOPIC'.");
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
@@ -793,10 +828,10 @@ public class InsertValuesExecutorTest {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SCHEMA),
-        ImmutableList.of(
+        singletonList(ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
-        )
+        ))
     );
 
     // When:
@@ -824,14 +859,14 @@ public class InsertValuesExecutorTest {
 
   private static ConfiguredStatement<InsertValues> givenInsertValuesStrings(
       final List<String> columns,
-      final List<Expression> values
+      final List<List<Expression>> values
   ) {
     return givenInsertValues(columns.stream().map(ColumnName::of).collect(Collectors.toList()), values);
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(
       final List<ColumnName> columns,
-      final List<Expression> values
+      final List<List<Expression>> values
   ) {
     return ConfiguredStatement.of(
         PreparedStatement.of(

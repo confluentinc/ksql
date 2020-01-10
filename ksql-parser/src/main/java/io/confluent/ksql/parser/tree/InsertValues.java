@@ -32,12 +32,12 @@ public class InsertValues extends Statement {
 
   private final SourceName target;
   private final ImmutableList<ColumnName> columns;
-  private final ImmutableList<Expression> values;
+  private final ImmutableList<List<Expression>> values;
 
   public InsertValues(
       final SourceName target,
       final List<ColumnName> columns,
-      final List<Expression> values
+      final List<List<Expression>> values
   ) {
     this(Optional.empty(), target, columns, values);
   }
@@ -46,22 +46,32 @@ public class InsertValues extends Statement {
       final Optional<NodeLocation> location,
       final SourceName target,
       final List<ColumnName> columns,
-      final List<Expression> values
+      final List<List<Expression>> values
   ) {
     super(location);
+
+    Objects.requireNonNull(values, "values");
+
     this.target = Objects.requireNonNull(target, "target");
     this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
-    this.values = ImmutableList.copyOf(Objects.requireNonNull(values, "values"));
+    this.values = values.stream()
+        .map(ImmutableList::copyOf)
+        .collect(ImmutableList.toImmutableList());
 
     if (values.isEmpty()) {
       throw new KsqlException("Expected some values for INSERT INTO statement.");
     }
 
-    if (!columns.isEmpty() && columns.size() != values.size()) {
-      throw new KsqlException(
-          "Expected number columns and values to match: "
-              + columns.stream().map(ColumnName::name).collect(Collectors.toList()) + ", "
-              + values);
+    if (!columns.isEmpty()) {
+      for (int i = 0; i < values.size(); i++) {
+        final List<Expression> row = values.get(i);
+        if (columns.size() != row.size()) {
+          throw new KsqlException(
+              String.format("Expected number columns and values to match (row %d): ", i)
+                  + columns.stream().map(ColumnName::name).collect(Collectors.toList()) + ", "
+                  + row);
+        }
+      }
     }
   }
 
@@ -73,7 +83,7 @@ public class InsertValues extends Statement {
     return columns;
   }
 
-  public List<Expression> getValues() {
+  public List<List<Expression>> getValues() {
     return values;
   }
 

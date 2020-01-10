@@ -684,35 +684,37 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatInsertValuesStatement() {
-    final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
+    final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES "
+        + "(2, 'high', 'palo alto'), (3, 'low', 'mountain view');";
     final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, is("INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto')"));
+    assertThat(result, is("INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES "
+        + "(2, 'high', 'palo alto'), (3, 'low', 'mountain view')"));
   }
 
   @Test
   public void shouldFormatInsertValuesNoSchema() {
-    final String statementString = "INSERT INTO ADDRESS VALUES (2);";
+    final String statementString = "INSERT INTO ADDRESS VALUES (2),(3),(4),(5);";
     final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, is("INSERT INTO ADDRESS VALUES (2)"));
+    assertThat(result, is("INSERT INTO ADDRESS VALUES (2), (3), (4), (5)"));
   }
 
   @Test
   public void shouldParseArbitraryExpressions() {
     // Given:
-    final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1);";
+    final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1), (3 + 3);";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("INSERT INTO ADDRESS VALUES ((2 + 1))"));
+    assertThat(result, is("INSERT INTO ADDRESS VALUES ((2 + 1)), ((3 + 3))"));
   }
 
   @Test

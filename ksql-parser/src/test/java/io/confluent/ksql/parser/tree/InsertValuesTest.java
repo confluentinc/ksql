@@ -26,6 +26,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Collections;
+
 public class InsertValuesTest {
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
@@ -37,14 +39,24 @@ public class InsertValuesTest {
   public void shouldImplementEqualsHashcode() {
     new EqualsTester()
         .addEqualityGroup(
-            new InsertValues(SOME_NAME, ImmutableList.of(), ImmutableList.of(new NullLiteral())),
-            new InsertValues(SOME_NAME, ImmutableList.of(), ImmutableList.of(new NullLiteral())))
+            new InsertValues(SOME_NAME, ImmutableList.of(),
+                Collections.singletonList(ImmutableList.of(new NullLiteral()))),
+            new InsertValues(SOME_NAME, ImmutableList.of(),
+                Collections.singletonList(ImmutableList.of(new NullLiteral()))))
         .addEqualityGroup(new InsertValues(
-            SourceName.of("diff"), ImmutableList.of(), ImmutableList.of(new StringLiteral("b"))))
+            SourceName.of("diff"), ImmutableList.of(),
+            Collections.singletonList(ImmutableList.of(new StringLiteral("b")))))
         .addEqualityGroup(new InsertValues(
-            SOME_NAME, ImmutableList.of(ColumnName.of("diff")), ImmutableList.of(new StringLiteral("b"))))
+            SOME_NAME, ImmutableList.of(ColumnName.of("diff")),
+            Collections.singletonList(ImmutableList.of(new StringLiteral("b")))))
         .addEqualityGroup(new InsertValues(
-            SOME_NAME, ImmutableList.of(), ImmutableList.of(new StringLiteral("diff"))))
+            SOME_NAME, ImmutableList.of(),
+            Collections.singletonList(ImmutableList.of(new StringLiteral("diff")))))
+        .addEqualityGroup(new InsertValues(
+            SOME_NAME, ImmutableList.of(),
+            ImmutableList.of(
+                ImmutableList.of(
+                    new StringLiteral("a")), ImmutableList.of(new StringLiteral("b")))))
         .testEquals();
   }
 
@@ -71,7 +83,21 @@ public class InsertValuesTest {
     new InsertValues(
         SOME_NAME,
         ImmutableList.of(ColumnName.of("col1")),
-        ImmutableList.of(new StringLiteral("val1"), new StringLiteral("val2")));
+        ImmutableList.of(ImmutableList.of(new StringLiteral("val1"), new StringLiteral("val2"))));
   }
 
+  @Test
+  public void shouldThrowIfOneRowNonEmptyColumnsValuesDoNotMatch() {
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Expected number columns and values to match");
+
+    // When:
+    new InsertValues(
+        SOME_NAME,
+        ImmutableList.of(ColumnName.of("col1")),
+        ImmutableList.of(
+            ImmutableList.of(new StringLiteral("val1")),
+            ImmutableList.of()));
+  }
 }

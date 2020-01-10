@@ -23,7 +23,6 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static javax.ws.rs.core.Response.Status.FORBIDDEN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
@@ -286,8 +285,7 @@ public class StreamedQueryResourceTest {
   public void shouldNotCreateExternalClientsForPullQuery() {
     // Given
     testResource.configure(new KsqlConfig(ImmutableMap.of(
-        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
 
     // When:
@@ -304,30 +302,13 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldThrowExceptionForPullQueryIfValidating() {
-    // When:
-    final Response response = testResource.streamQuery(
-        securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    // Then:
-    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
-    assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
-    assertThat(
-        expectedEntity.getMessage(),
-        containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG)
-    );
-  }
-
-  @Test
-  public void shouldPassCheckForPullQueryIfNotValidating() {
-    // Given
-    testResource.configure(new KsqlConfig(ImmutableMap.of(
-        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
-    )));
+  public void shouldReturnForbiddenKafkaAccessForPullQueryAuthorizationDenied() {
+    // Given:
+    when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING))
+        .thenReturn(query);
+    doThrow(
+        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)))
+        .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final Response response = testResource.streamQuery(
@@ -335,13 +316,10 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
-    // Then:
-    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
-    assertThat(
-        expectedEntity.getMessage(),
-        not(containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-    );
+    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) AUTHORIZATION_ERROR_RESPONSE.getEntity();
+    assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
+    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
   @Test

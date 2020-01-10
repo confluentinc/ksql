@@ -161,7 +161,6 @@ public class RestApiTest {
       .withProperty("security.protocol", "SASL_SSL")
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
-      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
 

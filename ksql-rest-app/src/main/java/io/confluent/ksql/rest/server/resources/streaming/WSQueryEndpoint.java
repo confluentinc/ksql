@@ -370,23 +370,11 @@ public class WSQueryEndpoint {
   }
 
   private void validateKafkaAuthorization(final Statement statement) {
-    if (statement instanceof Query && ((Query) statement).isPullQuery()) {
-      final boolean skipAccessValidation = ksqlConfig.getBoolean(
-          KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
-      if (authorizationValidator.isPresent() && !skipAccessValidation) {
-        throw new KsqlException("Pull queries are not currently supported when "
-            + "access validation against Kafka is configured. If you really want to "
-            + "bypass this limitation please set "
-            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "
-            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC);
-      }
-    } else {
-      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
-          securityContext,
-          ksqlEngine.getMetaStore(),
-          statement)
-      );
-    }
+    authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+        securityContext,
+        ksqlEngine.getMetaStore(),
+        statement)
+    );
   }
 
 

@@ -422,8 +422,6 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-        .thenReturn(true);
     givenQueryIs(QueryType.PULL);
     givenRequestIs(query);
 
@@ -445,17 +443,26 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldFailPullQueryIfValidating() throws Exception {
+  public void shouldFailPullQueryIfTopicAuthorizationIsDenied() throws Exception {
     // Given:
+    final String errorMessage = "authorization error";
     givenQueryIs(QueryType.PULL);
     givenRequestIs(query);
+    when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
+        .thenReturn(errorMessage);
+    doThrow(new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton("topic")))
+        .when(authorizationValidator).checkAuthorization(
+        argThat(securityContext ->
+            securityContext.getServiceContext() == serviceContext),
+        eq(metaStore),
+        eq(query));
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
     verifyClosedContainingReason(
-        "Pull queries are not currently supported",
+        errorMessage,
         CloseCodes.CANNOT_ACCEPT
     );
   }

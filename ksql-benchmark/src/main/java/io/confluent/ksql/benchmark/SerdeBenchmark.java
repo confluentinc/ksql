@@ -57,7 +57,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
@@ -68,8 +68,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 3, time = 10)
-@Measurement(iterations = 3, time = 10)
+@Warmup(iterations = 6, time = 30)
+@Measurement(iterations = 3, time = 60)
 @Threads(4)
 @Fork(3)
 public class SerdeBenchmark {
@@ -192,20 +192,26 @@ public class SerdeBenchmark {
     }
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
   public byte[] serialize(final SerdeState serdeState) {
     return serdeState.serializer.serialize(TOPIC_NAME, serdeState.row);
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
   public GenericRow deserialize(final SerdeState serdeState) {
     return serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes);
   }
 
-  public static void main(final String[] args) throws RunnerException {
-    final Options opt = new OptionsBuilder()
-        .include(SerdeBenchmark.class.getSimpleName())
-        .build();
+  public static void main(final String[] args) throws Exception {
+
+    final Options opt = args.length != 0
+        ? new CommandLineOptions(args)
+        : new OptionsBuilder()
+            .include(SerdeBenchmark.class.getSimpleName())
+            .shouldFailOnError(true)
+            .build();
 
     new Runner(opt).run();
   }

@@ -17,10 +17,8 @@ package io.confluent.ksql.schema.ksql;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * A named field within KSQL schema types.
@@ -48,7 +46,7 @@ public final class Column implements SimpleColumn {
       final ColumnName name,
       final SqlType type
   ) {
-    return Column.of(Optional.empty(), name, type, Namespace.VALUE, Integer.MAX_VALUE);
+    return Column.of(name, type, Namespace.VALUE, Integer.MAX_VALUE);
   }
 
   /**
@@ -59,11 +57,10 @@ public final class Column implements SimpleColumn {
       final ColumnName name,
       final SqlType type
   ) {
-    return Column.of(Optional.empty(), name, type, Namespace.KEY, Integer.MAX_VALUE);
+    return Column.of(name, type, Namespace.KEY, Integer.MAX_VALUE);
   }
 
   /**
-   * @param source the name of the source of the field.
    * @param name the name of the field.
    * @param type the type of the field.
    * @param namespace the namespace of the field.
@@ -72,13 +69,12 @@ public final class Column implements SimpleColumn {
    * @return the immutable field.
    */
   public static Column of(
-      final Optional<SourceName> source,
       final ColumnName name,
       final SqlType type,
       final Namespace namespace,
       final int indexWithinNamespace
   ) {
-    return new Column(ColumnRef.of(source, name), type, namespace, indexWithinNamespace);
+    return new Column(ColumnRef.of(name), type, namespace, indexWithinNamespace);
   }
 
   private Column(
@@ -95,13 +91,6 @@ public final class Column implements SimpleColumn {
     if (index < 0) {
       throw new IllegalArgumentException("Invalid column index: " + index);
     }
-  }
-
-  /**
-   * @return the source of the Column
-   */
-  public Optional<SourceName> source() {
-    return ref.source();
   }
 
   /**
@@ -139,20 +128,6 @@ public final class Column implements SimpleColumn {
    */
   public int index() {
     return index;
-  }
-
-  /**
-   * Create a new Field that matches the current, but with the supplied {@code source}.
-   *
-   * @param source the source to set of the new field.
-   * @return the new field.
-   */
-  Column withSource(final SourceName source) {
-    return new Column(ref.withSource(source), type, namespace, index);
-  }
-
-  Column withoutSource() {
-    return new Column(ref.withoutSource(), type, namespace, index);
   }
 
   @Override

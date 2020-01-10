@@ -32,17 +32,6 @@ public class ColumnReferenceParserTest {
     final ColumnRef result = ColumnReferenceParser.parse("foo");
 
     // Then:
-    assertThat(result.source(), is(Optional.empty()));
-    assertThat(result.name(), is(ColumnName.of("FOO")));
-  }
-
-  @Test
-  public void shouldParseUnquotedColumnRef() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("a.foo");
-
-    // Then:
-    assertThat(result.source(), is(Optional.of(SourceName.of("A"))));
     assertThat(result.name(), is(ColumnName.of("FOO")));
   }
 
@@ -52,30 +41,6 @@ public class ColumnReferenceParserTest {
     final ColumnRef result = ColumnReferenceParser.parse("`foo`");
 
     // Then:
-    assertThat(result.source(), is(Optional.empty()));
     assertThat(result.name(), is(ColumnName.of("foo")));
   }
-
-  @Test
-  public void shouldParseQuotedIdentifierWithDot() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("`foo.bar`");
-
-    // Then:
-    assertThat(result.source(), is(Optional.empty()));
-    assertThat(result.name(), is(ColumnName.of("foo.bar")));
-  }
-
-
-  @Test
-  public void shouldParseQuotedColumnRef() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("a.`foo`");
-
-    // Then:
-    assertThat(result.source(), is(Optional.of(SourceName.of("A"))));
-    assertThat(result.name(), is(ColumnName.of("foo")));
-  }
-
-
 }

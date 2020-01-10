@@ -15,7 +15,7 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.ArrayList;
@@ -24,19 +24,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class MutableAggregateAnalysis implements AggregateAnalysis {
 
-  private final List<ColumnReferenceExp> requiredColumns = new ArrayList<>();
-  private final Map<Expression, Set<ColumnReferenceExp>> nonAggSelectExpressions
+  private final List<AbstractColumnReferenceExp> requiredColumns = new ArrayList<>();
+  private final Map<Expression, Set<AbstractColumnReferenceExp>> nonAggSelectExpressions
       = new HashMap<>();
-  private final Set<ColumnReferenceExp> nonAggHavingFields = new HashSet<>();
-  private final Set<ColumnReferenceExp> aggSelectFields = new HashSet<>();
+  private final Set<AbstractColumnReferenceExp> nonAggHavingFields = new HashSet<>();
+  private final Set<AbstractColumnReferenceExp> aggSelectFields = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> aggFunctions = new ArrayList<>();
-  private Expression havingExpression = null;
+  private Optional<Expression> havingExpression = Optional.empty();
 
 
   @Override
@@ -45,22 +46,22 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   @Override
-  public List<ColumnReferenceExp> getRequiredColumns() {
+  public List<AbstractColumnReferenceExp> getRequiredColumns() {
     return Collections.unmodifiableList(requiredColumns);
   }
 
   @Override
-  public Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions() {
+  public Map<Expression, Set<AbstractColumnReferenceExp>> getNonAggregateSelectExpressions() {
     return Collections.unmodifiableMap(nonAggSelectExpressions);
   }
 
   @Override
-  public Set<ColumnReferenceExp> getAggregateSelectFields() {
+  public Set<AbstractColumnReferenceExp> getAggregateSelectFields() {
     return Collections.unmodifiableSet(aggSelectFields);
   }
 
   @Override
-  public Set<ColumnReferenceExp> getNonAggregateHavingFields() {
+  public Set<AbstractColumnReferenceExp> getNonAggregateHavingFields() {
     return Collections.unmodifiableSet(nonAggHavingFields);
   }
 
@@ -75,12 +76,12 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   @Override
-  public Expression getHavingExpression() {
+  public Optional<Expression> getHavingExpression() {
     return havingExpression;
   }
 
   void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = havingExpression;
+    this.havingExpression = Optional.of(havingExpression);
   }
 
   void addAggregateFunctionArgument(final Expression argument) {
@@ -92,23 +93,23 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   void addAggregateSelectField(
-      final Set<ColumnReferenceExp> fields
+      final Set<AbstractColumnReferenceExp> fields
   ) {
     aggSelectFields.addAll(fields);
   }
 
   void addNonAggregateSelectExpression(
       final Expression selectExpression,
-      final Set<ColumnReferenceExp> referencedFields
+      final Set<AbstractColumnReferenceExp> referencedFields
   ) {
     nonAggSelectExpressions.put(selectExpression, ImmutableSet.copyOf(referencedFields));
   }
 
-  void addNonAggregateHavingField(final ColumnReferenceExp node) {
+  void addNonAggregateHavingField(final AbstractColumnReferenceExp node) {
     nonAggHavingFields.add(node);
   }
 
-  void addRequiredColumn(final ColumnReferenceExp node) {
+  void addRequiredColumn(final AbstractColumnReferenceExp node) {
     if (!requiredColumns.contains(node)) {
       requiredColumns.add(node);
     }

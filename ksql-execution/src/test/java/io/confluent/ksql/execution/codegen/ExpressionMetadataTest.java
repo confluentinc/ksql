@@ -53,12 +53,12 @@ public class ExpressionMetadataTest {
   public void shouldEvaluateExpressionWithValueColumnSpecs() throws Exception {
     // Given:
     spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        ColumnRef.of(ColumnName.of("foo1")),
         Integer.class,
         0
     );
     spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo2")),
+        ColumnRef.of(ColumnName.of("foo2")),
         Integer.class,
         1
     );
@@ -85,7 +85,7 @@ public class ExpressionMetadataTest {
         udf
     );
     spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        ColumnRef.of(ColumnName.of("foo1")),
         Integer.class,
         0
     );
@@ -109,12 +109,12 @@ public class ExpressionMetadataTest {
   public void shouldPerformThreadSafeParameterEvaluation() throws Exception {
     // Given:
     spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        ColumnRef.of(ColumnName.of("foo1")),
         Integer.class,
         0
     );
     spec.addParameter(
-        ColumnRef.withoutSource(ColumnName.of("foo2")),
+        ColumnRef.of(ColumnName.of("foo2")),
         Integer.class,
         1
     );

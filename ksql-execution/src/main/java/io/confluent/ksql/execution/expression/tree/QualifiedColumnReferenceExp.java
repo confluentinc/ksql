@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,29 +15,35 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
-import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Expression representing a column name, e.g. {@code col0} or {@code src.col1}.
- */
-@Immutable
-public class ColumnReferenceExp extends AbstractColumnReferenceExp {
+public class QualifiedColumnReferenceExp extends AbstractColumnReferenceExp {
+  private final SourceName qualifier;
 
-  public ColumnReferenceExp(final ColumnRef name) {
-    this(Optional.empty(), name);
+  public QualifiedColumnReferenceExp(final SourceName qualifier, final ColumnRef name) {
+    this(Optional.empty(), qualifier, name);
   }
 
-  public ColumnReferenceExp(final Optional<NodeLocation> location, final ColumnRef name) {
+  public QualifiedColumnReferenceExp(
+      final Optional<NodeLocation> location,
+      final SourceName qualifier,
+      final ColumnRef name
+  ) {
     super(location, name);
+    this.qualifier = Objects.requireNonNull(qualifier);
+  }
+
+  public SourceName getQualifier() {
+    return qualifier;
   }
 
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
-    return visitor.visitColumnReference(this, context);
+    return visitor.visitQualifiedColumnReference(this, context);
   }
 
   @Override
@@ -48,13 +54,14 @@ public class ColumnReferenceExp extends AbstractColumnReferenceExp {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
-    final ColumnReferenceExp that = (ColumnReferenceExp) o;
-    return Objects.equals(name, that.name);
+    final QualifiedColumnReferenceExp that = (QualifiedColumnReferenceExp) o;
+    return Objects.equals(qualifier, that.qualifier)
+        && Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return name.hashCode();
+
+    return Objects.hash(qualifier, name);
   }
 }

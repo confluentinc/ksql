@@ -64,7 +64,7 @@ public class SchemaKGroupedTableTest {
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
   private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
-      ColumnRef.withoutSource(ColumnName.of("IN0"))
+      ColumnRef.of(ColumnName.of("IN0"))
   );
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
@@ -182,7 +182,7 @@ public class SchemaKGroupedTableTest {
   private static FunctionCall udaf(final String name) {
     return new FunctionCall(
         FunctionName.of(name),
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("IN1"))))
+        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
     );
   }
 }

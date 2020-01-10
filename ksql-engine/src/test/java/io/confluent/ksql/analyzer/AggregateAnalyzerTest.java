@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -44,17 +45,17 @@ public class AggregateAnalyzerTest {
 
   private static final SourceName ORDERS = SourceName.of("ORDERS");
 
-  private static final ColumnReferenceExp DEFAULT_ARGUMENT =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, SchemaUtil.ROWTIME_NAME));
+  private static final QualifiedColumnReferenceExp DEFAULT_ARGUMENT =
+      new QualifiedColumnReferenceExp(ORDERS, ColumnRef.of(SchemaUtil.ROWTIME_NAME));
 
   private static final ColumnReferenceExp COL0 =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL0")));
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
 
   private static final ColumnReferenceExp COL1 =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL1")));
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
 
   private static final ColumnReferenceExp COL2 =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL2")));
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
 
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(FunctionName.of("UCASE"),
       ImmutableList.of(COL0));

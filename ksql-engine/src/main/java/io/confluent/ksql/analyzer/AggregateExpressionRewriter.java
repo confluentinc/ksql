@@ -49,7 +49,7 @@ public class AggregateExpressionRewriter
       final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
-          new ColumnReferenceExp(node.getLocation(), ColumnRef.withoutSource(aggVarName)));
+          new ColumnReferenceExp(node.getLocation(), ColumnRef.of(aggVarName)));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {

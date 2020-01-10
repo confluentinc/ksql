@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -198,6 +199,14 @@ public final class ExpressionFormatter {
     @Override
     public String visitColumnReference(final ColumnReferenceExp node, final Context context) {
       return node.getReference().toString(context.formatOptions);
+    }
+
+    @Override
+    public String visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Context context) {
+      return formatName(node.getQualifier(), context)
+          + KsqlConstants.DOT + node.getReference().toString(context.formatOptions);
     }
 
     @Override

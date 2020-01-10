@@ -67,7 +67,7 @@ public class RowGenerator {
     this.key = Objects.requireNonNull(key, "key");
     this.ksqlSchema = buildLogicalSchema(generator, avroData);
 
-    if (!ksqlSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(key))).isPresent()) {
+    if (!ksqlSchema.findValueColumn(ColumnRef.of(ColumnName.of(key))).isPresent()) {
       throw new IllegalArgumentException("key field does not exist in schema: " + key);
     }
   }

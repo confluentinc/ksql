@@ -65,7 +65,6 @@ public class StreamGroupByBuilderTest {
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withAlias(SourceName.of(ALIAS.name()))
       .withMetaAndKeyColsInValue();
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
@@ -292,6 +291,6 @@ public class StreamGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new ColumnReferenceExp(ColumnRef.of(ALIAS, ColumnName.of(column)));
+    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
   }
 }

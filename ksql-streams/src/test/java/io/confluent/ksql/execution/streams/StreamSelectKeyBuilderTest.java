@@ -64,25 +64,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyBuilderTest {
 
-  private static final SourceName ALIAS = SourceName.of("ATL");
-
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
 
   private static final ColumnReferenceExp KEY =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("BOI")));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ALIAS, ColumnName.of("BIG"), SqlTypes.BIGINT)
-      .valueColumn(ALIAS, ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .valueColumn(
+          ColumnName.of(SchemaUtil.ROWTIME_NAME.name()), SqlTypes.BIGINT)
+      .valueColumn(
+          ColumnName.of(SchemaUtil.ROWKEY_NAME.name()), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);

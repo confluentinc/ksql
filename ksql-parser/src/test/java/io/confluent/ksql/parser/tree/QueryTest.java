@@ -40,7 +40,7 @@ public class QueryTest {
   private static final Select SOME_SELECT = new Select(ImmutableList.of(
       new AllColumns(Optional.empty())));
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
-      new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("Bob"))),
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("Bob"))),
       Optional.of(ColumnName.of("B")))));
   private static final Relation SOME_FROM = new Table(SourceName.of("from"));
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(

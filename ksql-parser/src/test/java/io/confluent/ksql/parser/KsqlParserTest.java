@@ -180,7 +180,7 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -556,7 +556,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.withoutSource(ColumnName.of("USERID")))));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.of(ColumnName.of("USERID")))));
   }
 
   @Test

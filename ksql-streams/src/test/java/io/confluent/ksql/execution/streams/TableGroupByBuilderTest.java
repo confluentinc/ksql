@@ -56,13 +56,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class TableGroupByBuilderTest {
-  private static final SourceName ALIAS = SourceName.of("SOURCE");
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
-      .build()
-      .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .build();
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
@@ -236,6 +233,6 @@ public class TableGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new ColumnReferenceExp(ColumnRef.of(ALIAS, ColumnName.of(column)));
+    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
   }
 }

@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -306,6 +307,16 @@ public class SqlToJavaVisitor {
               new KsqlException("Field not found: " + node.getReference()));
 
       return new Pair<>(colRefToCodeName.apply(fieldName), schemaColumn.type());
+    }
+
+    @Override
+    public Pair<String, SqlType> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new UnsupportedOperationException(
+          "Qualified column reference must be resolved to unqualified reference before codegen"
+      );
     }
 
     @Override

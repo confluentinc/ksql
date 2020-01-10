@@ -779,7 +779,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only AND expressions are supported: ((AGGREGATE.ROWKEY = '10') OR (AGGREGATE.ROWKEY = '11'))",
+        "message": "Only AND expressions are supported: ((ROWKEY = '10') OR (ROWKEY = '11'))",
         "status": 400
       }
     },

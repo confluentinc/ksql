@@ -127,7 +127,7 @@ public class PullQueryValidatorTest {
   public void shouldThrowOnPartitionBy() {
     // Given:
     when(analysis.getPartitionBy())
-        .thenReturn(Optional.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("Something")))));
+        .thenReturn(Optional.of(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("Something")))));
 
     // Then:
     expectedException.expect(KsqlException.class);

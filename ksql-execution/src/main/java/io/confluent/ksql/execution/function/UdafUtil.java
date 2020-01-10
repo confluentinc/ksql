@@ -56,7 +56,7 @@ public final class UdafUtil {
       final Optional<Column> possibleValueColumn = arg instanceof ColumnReferenceExp
           ? schema.findValueColumn(((ColumnReferenceExp) arg).getReference())
           // assume that it is a column reference with no alias
-          : schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
+          : schema.findValueColumn(ColumnRef.of(ColumnName.of(arg.toString())));
 
       final Column valueColumn = possibleValueColumn
           .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));

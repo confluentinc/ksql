@@ -25,9 +25,9 @@ public class LongColumnTimestampExtractionPolicyTest {
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()
         .addEqualityGroup(
-            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))),
-            new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1"))))
-        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field2"))))
+            new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field1"))),
+            new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field1"))))
+        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field2"))))
         .testEquals();
   }
 }

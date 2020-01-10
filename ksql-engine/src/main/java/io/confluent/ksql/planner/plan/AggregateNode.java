@@ -23,6 +23,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -71,7 +72,7 @@ public class AggregateNode extends PlanNode {
   private final Optional<WindowExpression> windowExpression;
   private final ImmutableList<Expression> aggregateFunctionArguments;
   private final ImmutableList<FunctionCall> functionList;
-  private final ImmutableList<ColumnReferenceExp> requiredColumns;
+  private final ImmutableList<AbstractColumnReferenceExp> requiredColumns;
   private final ImmutableList<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
@@ -85,7 +86,7 @@ public class AggregateNode extends PlanNode {
       final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
-      final List<ColumnReferenceExp> requiredColumns,
+      final List<AbstractColumnReferenceExp> requiredColumns,
       final List<Expression> finalSelectExpressions,
       final Expression havingExpressions
   ) {
@@ -145,7 +146,7 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public List<ColumnReferenceExp> getRequiredColumns() {
+  public List<AbstractColumnReferenceExp> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -185,7 +186,8 @@ public class AggregateNode extends PlanNode {
     final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations
-    final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
+    final InternalSchema internalSchema = new InternalSchema(
+        getRequiredColumns(),
         getAggregateFunctionArguments());
 
     final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
@@ -265,7 +267,7 @@ public class AggregateNode extends PlanNode {
     private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
-        final List<ColumnReferenceExp> requiredColumns,
+        final List<AbstractColumnReferenceExp> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);
@@ -308,7 +310,7 @@ public class AggregateNode extends PlanNode {
         final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
         return new ColumnReferenceExp(
             nameRef.getLocation(),
-            nameRef.getReference().withoutSource()
+            nameRef.getReference()
         );
       };
 
@@ -364,7 +366,7 @@ public class AggregateNode extends PlanNode {
       if (name != null) {
         return new ColumnReferenceExp(
             exp.getLocation(),
-            ColumnRef.withoutSource(name));
+            ColumnRef.of(name));
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
@@ -387,12 +389,12 @@ public class AggregateNode extends PlanNode {
           return Optional.of(
               new ColumnReferenceExp(
                   node.getLocation(),
-                  ColumnRef.withoutSource(name)));
+                  ColumnRef.of(name)));
         }
 
         final boolean isAggregate = node.getReference().name().isAggregate();
 
-        if (!isAggregate || node.getReference().source().isPresent()) {
+        if (!isAggregate) {
           throw new KsqlException("Unknown source column: " + node.toString());
         }
 

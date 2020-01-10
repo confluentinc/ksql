@@ -16,12 +16,20 @@
 package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
-import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.analyzer.SourceSchemas;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -29,6 +37,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -52,28 +61,36 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class LogicalPlanner {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final KsqlConfig ksqlConfig;
-  private final Analysis analysis;
+  private final RewrittenAnalysis analysis;
   private final AggregateAnalysisResult aggregateAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
-      final Analysis analysis,
+      final ImmutableAnalysis analysis,
       final AggregateAnalysisResult aggregateAnalysis,
       final FunctionRegistry functionRegistry
   ) {
-    this.ksqlConfig = ksqlConfig;
-    this.analysis = analysis;
-    this.aggregateAnalysis = aggregateAnalysis;
-    this.functionRegistry = functionRegistry;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    Objects.requireNonNull(analysis, "analysis");
+    final ColumnReferenceRewriter refRewriter =
+        new ColumnReferenceRewriter(analysis.getFromSourceSchemas());
+    this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
+    this.aggregateAnalysis = new RewrittenAggregateAnalysis(
+        Objects.requireNonNull(aggregateAnalysis, "aggregateAnalysis"),
+        refRewriter::process
+    );
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   public OutputNode buildPlan() {
@@ -93,7 +110,7 @@ public class LogicalPlanner {
     }
 
     if (analysis.getGroupByExpressions().isEmpty()) {
-      currentNode = buildProjectNode(currentNode);
+      currentNode = buildProjectNode(currentNode, "Project", currentNode.getSelectExpressions());
     } else {
       currentNode = buildAggregateNode(currentNode);
     }
@@ -133,7 +150,7 @@ public class LogicalPlanner {
 
   private Optional<TimestampColumn> getTimestampColumn(
       final LogicalSchema inputSchema,
-      final Analysis analysis
+      final ImmutableAnalysis analysis
   ) {
     final Optional<ColumnRef> timestampColumnName =
         analysis.getProperties().getTimestampColumnName();
@@ -161,42 +178,46 @@ public class LogicalPlanner {
             expression.equals(groupBy)
                 && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
                 && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
-        sourcePlanNode);
+        sourcePlanNode.getSelectExpressions());
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
-        keyFieldName.map(ColumnRef::withoutSource),
+        keyFieldName.map(ColumnRef::of),
         groupByExps,
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
         aggregateAnalysis.getAggregateFunctions(),
         aggregateAnalysis.getRequiredColumns(),
         aggregateAnalysis.getFinalSelectExpressions(),
-        aggregateAnalysis.getHavingExpression()
+        aggregateAnalysis.getHavingExpression().orElse(null)
     );
   }
 
-  private ProjectNode buildProjectNode(final PlanNode sourcePlanNode) {
+  private ProjectNode buildProjectNode(
+      final PlanNode sourcePlanNode,
+      final String id,
+      final List<SelectExpression> projection) {
     final ColumnRef sourceKeyFieldName = sourcePlanNode
         .getKeyField()
         .ref()
         .orElse(null);
 
-    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
+    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode.getSchema(), projection);
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression instanceof ColumnReferenceExp
             && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName),
-        sourcePlanNode
+        projection
     );
 
     return new ProjectNode(
-        new PlanNodeId("Project"),
+        new PlanNodeId(id),
         sourcePlanNode,
+        projection,
         schema,
-        keyFieldName.map(ColumnRef::withoutSource)
+        keyFieldName.map(ColumnRef::of)
     );
   }
 
@@ -254,11 +275,49 @@ public class LogicalPlanner {
     return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, functionRegistry, analysis);
   }
 
+  private PlanNode buildSourceForJoin(
+      final AliasedDataSource source,
+      final String side,
+      final Expression joinExpression) {
+    final DataSourceNode sourceNode = new DataSourceNode(
+        new PlanNodeId("KafkaTopic_" + side),
+        source.getDataSource(),
+        source.getAlias(),
+        analysis.getSelectExpressions()
+    );
+    // it is always safe to build the repartition node - this operation will be
+    // a no-op if a repartition is not required. if the source is a table, and
+    // a repartition is needed, then an exception will be thrown
+    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
+        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(
+            Optional.empty()) {
+          @Override
+          public Optional<Expression> visitQualifiedColumnReference(
+              final QualifiedColumnReferenceExp node,
+              final Context<Void> ctx
+          ) {
+            return Optional.of(new ColumnReferenceExp(node.getReference()));
+          }
+        };
+    final PlanNode repartition = buildRepartitionNode(
+        side + "SourceKeyed",
+        sourceNode,
+        // We need to repartition on the original join expression, and we need to drop
+        // all qualifiers.
+        ExpressionTreeRewriter.rewriteWith(rewriter::process, joinExpression)
+    );
+    return buildProjectNode(
+        repartition,
+        "PrependAlias" + side,
+        selectWithPrependAlias(source.getAlias(), repartition.getSchema())
+    );
+  }
+
   private PlanNode buildSourceNode() {
 
     final List<AliasedDataSource> sources = analysis.getFromDataSources();
 
-    final Optional<JoinInfo> joinInfo = analysis.getJoin();
+    final Optional<JoinInfo> joinInfo = analysis.getOriginal().getJoin();
     if (!joinInfo.isPresent()) {
       return buildNonJoinNode(sources);
     }
@@ -270,31 +329,24 @@ public class LogicalPlanner {
     final AliasedDataSource left = sources.get(0);
     final AliasedDataSource right = sources.get(1);
 
-    final DataSourceNode leftSourceNode = new DataSourceNode(
-        new PlanNodeId("KafkaTopic_Left"),
-        left.getDataSource(),
-        left.getAlias(),
-        analysis.getSelectExpressions()
+    final PlanNode leftSourceNode = buildSourceForJoin(
+        left,
+        "Left",
+        joinInfo.get().getLeftJoinExpression()
     );
 
-    final DataSourceNode rightSourceNode = new DataSourceNode(
-        new PlanNodeId("KafkaTopic_Right"),
-        right.getDataSource(),
-        right.getAlias(),
-        analysis.getSelectExpressions()
+    final PlanNode rightSourceNode = buildSourceForJoin(
+        right,
+        "Right",
+        joinInfo.get().getRightJoinExpression()
     );
 
     return new JoinNode(
         new PlanNodeId("Join"),
         analysis.getSelectExpressions(),
         joinInfo.get().getType(),
-        // it is always safe to build the repartition node - this operation will be
-        // a no-op if a repartition is not required. if the source is a table, and
-        // a repartition is needed, then an exception will be thrown
-        buildRepartitionNode(
-            "LeftSourceKeyed", leftSourceNode, joinInfo.get().getLeftJoinExpression()),
-        buildRepartitionNode(
-            "RightSourceKeyed", rightSourceNode, joinInfo.get().getRightJoinExpression()),
+        leftSourceNode,
+        rightSourceNode,
         joinInfo.get().getWithinExpression()
     );
   }
@@ -315,10 +367,10 @@ public class LogicalPlanner {
 
   private static Optional<ColumnName> getSelectAliasMatching(
       final BiFunction<Expression, ColumnName, Boolean> matcher,
-      final PlanNode sourcePlanNode
+      final List<SelectExpression> projection
   ) {
-    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
-      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
+    for (int i = 0; i < projection.size(); i++) {
+      final SelectExpression select = projection.get(i);
 
       if (matcher.apply(select.getExpression(), select.getAlias())) {
         return Optional.of(select.getAlias());
@@ -328,20 +380,22 @@ public class LogicalPlanner {
     return Optional.empty();
   }
 
-  private LogicalSchema buildProjectionSchema(final PlanNode sourcePlanNode) {
+  private LogicalSchema buildProjectionSchema(
+      final LogicalSchema schema,
+      final List<SelectExpression> projection) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        sourcePlanNode.getSchema(),
+        schema,
         functionRegistry
     );
 
     final Builder builder = LogicalSchema.builder();
 
-    final List<Column> keyColumns = sourcePlanNode.getSchema().withoutAlias().key();
+    final List<Column> keyColumns = schema.key();
 
     builder.keyColumns(keyColumns);
 
-    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
-      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
+    for (int i = 0; i < projection.size(); i++) {
+      final SelectExpression select = projection.get(i);
 
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(select.getExpression());
@@ -366,7 +420,10 @@ public class LogicalPlanner {
       keyType = typeManager.getExpressionSqlType(groupByExps.get(0));
     }
 
-    final LogicalSchema sourceSchema = buildProjectionSchema(sourcePlanNode);
+    final LogicalSchema sourceSchema = buildProjectionSchema(
+        sourcePlanNode.getSchema(),
+        sourcePlanNode.getSelectExpressions()
+    );
 
     return LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
@@ -389,5 +446,115 @@ public class LogicalPlanner {
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
+  }
+
+  private static List<SelectExpression> selectWithPrependAlias(
+      final SourceName alias,
+      final LogicalSchema schema
+  ) {
+    return schema.value().stream()
+        .map(c -> SelectExpression.of(
+            ColumnName.generatedJoinColumnAlias(alias, c.ref()), new ColumnReferenceExp(c.ref())))
+        .collect(Collectors.toList());
+  }
+
+  private static final class ColumnReferenceRewriter
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+    final SourceSchemas sourceSchemas;
+
+    ColumnReferenceRewriter(final SourceSchemas sourceSchemas) {
+      super(Optional.empty());
+      this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
+    }
+
+    @Override
+    public Optional<Expression> visitColumnReference(
+        final ColumnReferenceExp node,
+        final Context<Void> ctx
+    ) {
+      if (sourceSchemas.isJoin()) {
+        final SourceName sourceName =
+            sourceSchemas.sourcesWithField(Optional.empty(), node.getReference()).iterator().next();
+        return Optional.of(new ColumnReferenceExp(
+            ColumnRef.of(ColumnName.generatedJoinColumnAlias(sourceName, node.getReference()))
+        ));
+      }
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<Expression> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Context<Void> ctx
+    ) {
+      if (sourceSchemas.isJoin()) {
+        return Optional.of(new ColumnReferenceExp(
+            ColumnRef.of(
+                ColumnName.generatedJoinColumnAlias(node.getQualifier(), node.getReference())
+            )
+        ));
+      } else {
+        return Optional.of(new ColumnReferenceExp(node.getReference()));
+      }
+    }
+  }
+
+  private static final class RewrittenAggregateAnalysis implements AggregateAnalysisResult {
+
+    private final AggregateAnalysisResult original;
+    private final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter;
+
+    private RewrittenAggregateAnalysis(
+        final AggregateAnalysisResult original,
+        final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter
+    ) {
+      this.original = Objects.requireNonNull(original, "original");
+      this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
+    }
+
+    @Override
+    public List<Expression> getAggregateFunctionArguments() {
+      return rewriteList(original.getAggregateFunctionArguments());
+    }
+
+    @Override
+    public List<AbstractColumnReferenceExp> getRequiredColumns() {
+      return rewriteList(original.getRequiredColumns());
+    }
+
+    @Override
+    public List<FunctionCall> getAggregateFunctions() {
+      return rewriteList(original.getAggregateFunctions());
+    }
+
+    @Override
+    public List<Expression> getFinalSelectExpressions() {
+      return original.getFinalSelectExpressions().stream()
+          .map(this::rewriteFinalSelectExpression)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Expression> getHavingExpression() {
+      return rewriteOptional(original.getHavingExpression());
+    }
+
+    private Expression rewriteFinalSelectExpression(final Expression expression) {
+      if (expression instanceof ColumnReferenceExp
+          && ((ColumnReferenceExp) expression).getReference().name().isAggregate()) {
+        return expression;
+      }
+      return ExpressionTreeRewriter.rewriteWith(rewriter, expression);
+    }
+
+    private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {
+      return expression.map(e -> ExpressionTreeRewriter.rewriteWith(rewriter, e));
+    }
+
+    private <T extends Expression> List<T> rewriteList(final List<T> expressions) {
+      return expressions.stream()
+          .map(e -> ExpressionTreeRewriter.rewriteWith(rewriter, e))
+          .collect(Collectors.toList());
+    }
   }
 }

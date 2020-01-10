@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -83,13 +84,23 @@ public class ExpressionTypeManager {
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
+  private final boolean referenceValueColumnsOnly;
 
   public ExpressionTypeManager(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry
   ) {
+    this(schema, functionRegistry, true);
+  }
+
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final boolean referenceValueColumnsOnly
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.referenceValueColumnsOnly = referenceValueColumnsOnly;
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
@@ -183,12 +194,26 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final ColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findColumn(node.getReference())
-          .orElseThrow(() ->
-              new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+      final Optional<Column> maybeColumn;
+      if (referenceValueColumnsOnly) {
+        maybeColumn = schema.findValueColumn(node.getReference());
+      }  else {
+        maybeColumn = schema.findColumn(node.getReference());
+      }
+      final Column schemaColumn = maybeColumn.orElseThrow(() ->
+          new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
       expressionTypeContext.setSqlType(schemaColumn.type());
       return null;
+    }
+
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
+    ) {
+      throw new IllegalStateException(
+          "Qualified column references must be resolved to unqualified reference "
+              + "before type can be resolved");
     }
 
     @Override

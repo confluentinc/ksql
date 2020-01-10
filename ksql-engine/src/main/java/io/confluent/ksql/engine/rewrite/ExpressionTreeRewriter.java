@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -428,6 +429,13 @@ public final class ExpressionTreeRewriter<C> {
     @Override
     public Expression visitColumnReference(
         final ColumnReferenceExp node,
+        final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
         final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }

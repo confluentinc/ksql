@@ -65,6 +65,8 @@ public interface ExpressionVisitor<R, C> {
 
   R visitColumnReference(ColumnReferenceExp exp, @Nullable C context);
 
+  R visitQualifiedColumnReference(QualifiedColumnReferenceExp exp, @Nullable C context);
+
   R visitSearchedCaseExpression(SearchedCaseExpression exp, @Nullable C context);
 
   R visitSimpleCaseExpression(SimpleCaseExpression exp, @Nullable C context);

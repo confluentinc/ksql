@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
@@ -493,10 +494,13 @@ public class AstBuilderTest {
   }
 
   private static ColumnReferenceExp column(final String fieldName) {
-    return new ColumnReferenceExp(ColumnRef.of(Optional.empty(), ColumnName.of(fieldName)));
+    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(fieldName)));
   }
 
-  private static ColumnReferenceExp column(final SourceName source, final String fieldName) {
-    return new ColumnReferenceExp(ColumnRef.of(source, ColumnName.of(fieldName)));
+  private static QualifiedColumnReferenceExp column(
+      final SourceName source,
+      final String fieldName
+  ) {
+    return new QualifiedColumnReferenceExp(source, ColumnRef.of(ColumnName.of(fieldName)));
   }
 }

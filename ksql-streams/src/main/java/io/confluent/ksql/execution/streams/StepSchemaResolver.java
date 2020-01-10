@@ -227,7 +227,7 @@ public final class StepSchemaResolver {
   private LogicalSchema handleSource(
       final LogicalSchema schema,
       final AbstractStreamSource<?> step) {
-    return schema.withAlias(step.getAlias()).withMetaAndKeyColsInValue();
+    return schema.withMetaAndKeyColsInValue();
   }
 
   private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {

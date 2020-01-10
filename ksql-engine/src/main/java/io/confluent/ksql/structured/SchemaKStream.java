@@ -524,7 +524,7 @@ public class SchemaKStream<K> {
     // this is safe because if we group by multiple fields the original field
     // will never be in the original schema, so we're necessarily creating a
     // new field
-    return ColumnRef.withoutSource(
+    return ColumnRef.of(
         ColumnName.of(groupByExpressions.stream()
             .map(Expression::toString)
             .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR))));

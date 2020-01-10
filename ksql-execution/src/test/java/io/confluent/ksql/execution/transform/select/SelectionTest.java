@@ -31,7 +31,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -50,17 +49,15 @@ public class SelectionTest {
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
-      .build().withAlias(SourceName.of("TEST")).withMetaAndKeyColsInValue();
-
-  private static final SourceName TEST = SourceName.of("TEST");
+      .build().withMetaAndKeyColsInValue();
 
   private static final Expression EXPRESSION1 =
-      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("GIRAFFE")));
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("GIRAFFE")));
 
   private static final Expression EXPRESSION2 = new ArithmeticBinaryExpression(
       Operator.ADD,
-      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("MANATEE"))),
-      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("RACCOON")))
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("MANATEE"))),
+      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("RACCOON")))
   );
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
       SelectExpression.of(ColumnName.of("FOO"), EXPRESSION1),

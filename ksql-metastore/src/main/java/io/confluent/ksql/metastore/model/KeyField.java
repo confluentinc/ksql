@@ -16,7 +16,6 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -94,16 +93,6 @@ public final class KeyField {
     resolved.ifPresent(col -> throwOnTypeMismatch(schema, col));
 
     return resolved;
-  }
-
-  /**
-   * Build a new instance with the supplied {@code alias} applied to both new and legacy fields.
-   *
-   * @param alias the field alias to apply.
-   * @return the new instance.
-   */
-  public KeyField withAlias(final SourceName alias) {
-    return KeyField.of(keyField.map(fieldName -> ColumnRef.of(alias, fieldName.name())));
   }
 
   @Override

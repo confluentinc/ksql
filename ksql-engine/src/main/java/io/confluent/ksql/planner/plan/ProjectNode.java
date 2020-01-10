@@ -29,6 +29,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -42,6 +43,7 @@ public class ProjectNode extends PlanNode {
   public ProjectNode(
       final PlanNodeId id,
       final PlanNode source,
+      final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
       final Optional<ColumnRef> keyFieldName
   ) {
@@ -49,7 +51,9 @@ public class ProjectNode extends PlanNode {
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
-    this.projectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
+    this.projectExpressions = ImmutableList.copyOf(
+        Objects.requireNonNull(projectExpressions, "projectExpressions")
+    );
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
 

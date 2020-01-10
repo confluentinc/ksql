@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.List;
+import java.util.Optional;
 
 public interface AggregateAnalysisResult {
 
@@ -30,11 +31,11 @@ public interface AggregateAnalysisResult {
    *
    * @return the full set of columns from the source schema that are required.
    */
-  List<ColumnReferenceExp> getRequiredColumns();
+  List<AbstractColumnReferenceExp> getRequiredColumns();
 
   List<FunctionCall> getAggregateFunctions();
 
   List<Expression> getFinalSelectExpressions();
 
-  Expression getHavingExpression();
+  Optional<Expression> getHavingExpression();
 }

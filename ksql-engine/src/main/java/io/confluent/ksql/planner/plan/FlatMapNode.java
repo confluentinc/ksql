@@ -152,8 +152,7 @@ public class FlatMapNode extends PlanNode {
       if (functionRegistry.isTableFunction(functionName)) {
         final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;
-        return Optional.of(
-            new ColumnReferenceExp(node.getLocation(), ColumnRef.of(Optional.empty(), varName)));
+        return Optional.of(new ColumnReferenceExp(node.getLocation(), ColumnRef.of(varName)));
       } else {
         final List<Expression> arguments = new ArrayList<>();
         for (final Expression argExpression : node.getArguments()) {

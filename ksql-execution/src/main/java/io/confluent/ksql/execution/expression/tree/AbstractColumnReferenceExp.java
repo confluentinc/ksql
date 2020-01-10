@@ -13,16 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.json;
+package io.confluent.ksql.execution.expression.tree;
 
-import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import java.util.Objects;
+import java.util.Optional;
 
-final class ColumnRefTestCase {
-  static final ColumnRef COLUMN_REF = ColumnRef.of(ColumnName.of("COL"));
-  static final String COLUMN_REF_TXT = "\"COL\"";
+public abstract class AbstractColumnReferenceExp extends Expression {
+  final ColumnRef name;
 
-  static final ColumnRef COLUMN_REF_NEEDS_QUOTES =
-      ColumnRef.of(ColumnName.of("STREAM"));
-  static final String COLUMN_REF_NEEDS_QUOTES_TXT = "\"`STREAM`\"";
+  AbstractColumnReferenceExp(
+      final Optional<NodeLocation> location,
+      final ColumnRef name) {
+    super(location);
+    this.name = Objects.requireNonNull(name, "name");
+  }
+
+  public ColumnRef getReference() {
+    return name;
+  }
 }

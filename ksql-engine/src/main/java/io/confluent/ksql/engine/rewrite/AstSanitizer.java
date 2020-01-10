@@ -19,6 +19,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -132,18 +133,22 @@ public final class AstSanitizer {
       }
       final ColumnName alias;
       final Expression expression = ctx.process(singleColumn.getExpression());
-      if (expression instanceof ColumnReferenceExp) {
-        final ColumnRef name = ((ColumnReferenceExp) expression).getReference();
+      if (expression instanceof QualifiedColumnReferenceExp) {
+        final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
+        final ColumnRef name = ((QualifiedColumnReferenceExp) expression).getReference();
         if (dataSourceExtractor.isJoin()
             && dataSourceExtractor.getCommonFieldNames().contains(name.name())) {
-          alias = ColumnName.generatedJoinColumnAlias(name);
+          alias = ColumnName.generatedJoinColumnAlias(source, name);
         } else {
           alias = name.name();
         }
+      } else if (expression instanceof ColumnReferenceExp) {
+        final ColumnRef name = ((ColumnReferenceExp) expression).getReference();
+        alias = name.name();
       } else if (expression instanceof DereferenceExpression) {
         final DereferenceExpression dereferenceExp = (DereferenceExpression) expression;
         final String dereferenceExpressionString = dereferenceExp.toString();
-        alias = ColumnName.of(replaceDotFieldRef(
+        alias = ColumnName.of(replaceColumnAndFieldRefs(
             dereferenceExpressionString.substring(
                 dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
       } else {
@@ -155,7 +160,7 @@ public final class AstSanitizer {
       );
     }
 
-    private static String replaceDotFieldRef(final String input) {
+    private static String replaceColumnAndFieldRefs(final String input) {
       return input
           .replace(KsqlConstants.DOT, "_")
           .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
@@ -193,14 +198,15 @@ public final class AstSanitizer {
         final ColumnReferenceExp expression,
         final Context<Void> ctx) {
       final ColumnRef columnRef = expression.getReference();
-      if (columnRef.source().isPresent()) {
-        return Optional.empty();
-      }
       try {
         final ColumnName columnName = columnRef.name();
         final SourceName sourceName = dataSourceExtractor.getAliasFor(columnName);
         return Optional.of(
-            new ColumnReferenceExp(expression.getLocation(), ColumnRef.of(sourceName, columnName))
+            new QualifiedColumnReferenceExp(
+                expression.getLocation(),
+                sourceName,
+                ColumnRef.of(columnName)
+            )
         );
       } catch (final KsqlException e) {
         throw new InvalidColumnReferenceException(expression.getLocation(), e.getMessage());

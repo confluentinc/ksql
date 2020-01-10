@@ -18,8 +18,6 @@ package io.confluent.ksql.parser.json;
 import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF;
 import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NEEDS_QUOTES;
 import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NEEDS_QUOTES_TXT;
-import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NO_SOURCE;
-import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NO_SOURCE_TXT;
 import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_TXT;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -41,14 +39,6 @@ public class ColumnRefDeserializerTest {
     assertThat(
         MAPPER.readValue(COLUMN_REF_TXT, ColumnRef.class),
         equalTo(COLUMN_REF)
-    );
-  }
-
-  @Test
-  public void shouldDeserializeColumnRefWithNoSource() throws IOException {
-    assertThat(
-        MAPPER.readValue(COLUMN_REF_NO_SOURCE_TXT, ColumnRef.class),
-        equalTo(COLUMN_REF_NO_SOURCE)
     );
   }
 

@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-{% set kr_props = env_to_props('CONNECT_', '') -%}
+{% set kr_props = env_to_props('KSQL_CONNECT_', '') -%}
 {% for name, value in kr_props.iteritems() -%}
 {{name}}={{value}}
 {% endfor -%}

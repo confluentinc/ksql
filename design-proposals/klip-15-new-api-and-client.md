@@ -196,6 +196,34 @@ with further information on the error:
     "message": <Error Message>
 }
 
+#### Non streaming results
+
+The API is design for efficiently streaming rows from client to server or from server to client.
+It is not primarily designed for RPC.
+The amount of data that is streamed in any specific query or insert stream can be huge so we want to
+avoid any solution that buffers it all in memory at any one time or requires specialised parsers to
+parse.
+
+For this reason we do not provide query results (or accept streams of inserts) by default as a single
+JSON object. If we did so we would force users to find and use a streaming JSON parser in order to 
+parse the results as they arrive. If no parser is available on their platform they would be forced
+to parse the entire result set as a single JSON object in memory - this might not be feasible or
+desirable due to memory and latency constraints. Moreover, in the world of streaming it's quite common
+to want to pipe the stream from one place to another without looking into it. In that case it's very
+inefficient to deserialize the bytes as JSON simply to serialize them back to bytes to write them
+to the output stream. For these reasons the results, by default, are sent as a set of JSON arrays
+delimited by newline. Newlines are very easy to parse by virtually every target platform without
+having to rely on specialist libraries.
+
+There are, however, some use cases where we can guarantee the results of the query are small, e.g.
+when using a limit clause. In this case, the more general streaming use case degenerates into an RPC
+use case. In this situation it can be convenient to accept the results as a single JSON object as we
+may always want to parse them as a single object in memory. To support this use case we can allow the request
+to contain an accept-header specifying the content-type of the response. To receive a response as 
+a single JSON object content-type should be specified as 'text/json', for our delimited format we
+will specify our own custom content type. The delimited format will be the default, as the API
+is primarily a streaming API.
+
 ### Migration of existing "REST" API
 
 We will migrate the existing Jetty based "REST" API to the new Vert.x based implementation as-is or with

@@ -341,6 +341,14 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
+      if (left.getDataSource().getName().equals(right.getDataSource().getName())) {
+        throw new KsqlException(
+            "Can not join '" + left.getDataSource().getName().toString(FormatOptions.noEscape())
+                + "' to '" + right.getDataSource().getName().toString(FormatOptions.noEscape())
+                + "': self joins are not yet supported."
+        );
+      }
+
       final ColumnRef leftJoinField = getJoinFieldName(
           comparisonExpression,
           left.getAlias(),

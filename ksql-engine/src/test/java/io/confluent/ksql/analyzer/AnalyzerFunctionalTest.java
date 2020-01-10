@@ -106,7 +106,7 @@ public class AnalyzerFunctionalTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private SerdeOptionsSupplier serdeOptiponsSupplier;
+  private SerdeOptionsSupplier serdeOptionsSupplier;
   @Mock
   private Sink sink;
 
@@ -127,7 +127,7 @@ public class AnalyzerFunctionalTest {
         jsonMetaStore,
         "",
         DEFAULT_SERDE_OPTIONS,
-        serdeOptiponsSupplier
+        serdeOptionsSupplier
     );
 
     when(sink.getName()).thenReturn(SourceName.of("TEST0"));
@@ -388,7 +388,7 @@ public class AnalyzerFunctionalTest {
   public void shouldGetSerdeOptions() {
     // Given:
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
-    when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
+    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
     givenSinkValueFormat(Format.AVRO);
     givenWrapSingleValues(true);
@@ -397,7 +397,7 @@ public class AnalyzerFunctionalTest {
     final Analysis result = analyzer.analyze(query, Optional.of(sink));
 
     // Then:
-    verify(serdeOptiponsSupplier).build(
+    verify(serdeOptionsSupplier).build(
         ImmutableList.of("COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList()),
         Format.AVRO,
         Optional.of(true),
@@ -482,6 +482,26 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getSelectExpressions(), not(hasItem(
         SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
     )));
+  }
+
+  @Test
+  public void shouldThrowOnSelfJoin() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.rowkey = t2.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Can not join 'TEST1' to 'TEST1': self joins are not yet supported.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
 
   @SuppressWarnings("unchecked")

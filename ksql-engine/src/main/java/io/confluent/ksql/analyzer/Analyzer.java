@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
@@ -67,7 +68,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -349,26 +349,64 @@ class Analyzer {
         );
       }
 
-      final ColumnRef leftJoinField = getJoinFieldName(
-          comparisonExpression,
-          left.getAlias(),
-          left.getDataSource().getSchema()
-      );
+      final Set<ColumnRef> colsUsedInLeft = new ExpressionAnalyzer(analysis.getFromSourceSchemas())
+          .analyzeExpression(comparisonExpression.getLeft(), false);
+      final Set<ColumnRef> colsUsedInRight = new ExpressionAnalyzer(analysis.getFromSourceSchemas())
+          .analyzeExpression(comparisonExpression.getRight(), false);
 
-      final ColumnRef rightJoinField = getJoinFieldName(
-          comparisonExpression,
-          right.getAlias(),
-          right.getDataSource().getSchema()
-      );
+      final SourceName leftSourceName = getOnlySourceForJoin(
+          comparisonExpression.getLeft(), comparisonExpression, colsUsedInLeft);
+      final SourceName rightSourceName = getOnlySourceForJoin(
+          comparisonExpression.getRight(), comparisonExpression, colsUsedInRight);
+
+      final boolean flipped = leftSourceName.equals(right.getAlias());
+      if (!validJoin(flipped, left.getAlias(), right.getAlias(), leftSourceName, rightSourceName)) {
+        throw new KsqlException(
+            "Each side of the join must reference exactly one source and not the same source. "
+                + "Left side references " + leftSourceName
+                + " and right references " + rightSourceName
+        );
+      }
 
       analysis.setJoin(new JoinInfo(
-          leftJoinField,
-          rightJoinField,
+          flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
+          flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
           joinType,
           node.getWithinExpression()
       ));
 
       return null;
+    }
+
+    private boolean validJoin(
+        final boolean flipped,
+        final SourceName leftName,
+        final SourceName rightName,
+        final SourceName leftExpressionSource,
+        final SourceName rightExpressionSource
+    ) {
+      final boolean validLeft = flipped || leftExpressionSource.equals(leftName);
+      final boolean validRight = (flipped && rightExpressionSource.equals(leftName))
+              || (!flipped && rightExpressionSource.equals(rightName));
+      return validLeft && validRight;
+    }
+
+    private SourceName getOnlySourceForJoin(
+        final Expression exp,
+        final ComparisonExpression join,
+        final Set<ColumnRef> columnRefs
+    ) {
+      try {
+        return columnRefs.stream()
+            .map(ColumnRef::source)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(MoreCollectors.onlyElement());
+      } catch (final Exception e) {
+        throw new KsqlException("Invalid comparison expression '" + exp + "' in join '" + join
+            + "'. Each side of the join comparision must contain references from exactly one "
+            + "source.");
+      }
     }
 
     private JoinNode.JoinType getJoinType(final Join node) {
@@ -387,86 +425,6 @@ class Analyzer {
           throw new KsqlException("Join type is not supported: " + node.getType().name());
       }
       return joinType;
-    }
-
-    private ColumnReferenceExp checkExpressionType(
-        final ComparisonExpression comparisonExpression,
-        final Expression subExpression) {
-
-      if (!(subExpression instanceof ColumnReferenceExp)) {
-        throw new KsqlException(
-            String.format(
-                "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
-                    + "field comparison.",
-                comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                subExpression,
-                comparisonExpression
-            )
-        );
-      }
-      return (ColumnReferenceExp) subExpression;
-    }
-
-    private ColumnRef getJoinFieldName(
-        final ComparisonExpression comparisonExpression,
-        final SourceName sourceAlias,
-        final LogicalSchema sourceSchema
-    ) {
-      final ColumnReferenceExp left =
-          checkExpressionType(comparisonExpression, comparisonExpression.getLeft());
-
-      Optional<ColumnRef> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
-
-      if (!joinFieldName.isPresent()) {
-        final ColumnReferenceExp right =
-            checkExpressionType(comparisonExpression, comparisonExpression.getRight());
-
-        joinFieldName = getJoinFieldNameFromExpr(right, sourceAlias);
-
-        if (!joinFieldName.isPresent()) {
-          // Should never happen as only QualifiedNameReference are allowed
-          throw new IllegalStateException("Cannot find join field name");
-        }
-      }
-
-      final ColumnRef fieldName = joinFieldName.get();
-
-      final Optional<ColumnRef> joinField =
-          getJoinFieldNameFromSource(fieldName.withoutSource(), sourceAlias, sourceSchema);
-
-      return joinField
-          .orElseThrow(() -> new KsqlException(
-              String.format(
-                  "%s : Invalid join criteria %s. Column %s.%s does not exist.",
-                  comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                  comparisonExpression,
-                  sourceAlias.name(),
-                  fieldName.name().toString(FormatOptions.noEscape())
-              )
-          ));
-    }
-
-    private Optional<ColumnRef> getJoinFieldNameFromExpr(
-        final ColumnReferenceExp nameRef,
-        final SourceName sourceAlias
-    ) {
-      if (nameRef.getReference().source().isPresent()
-          && !nameRef.getReference().source().get().equals(sourceAlias)) {
-        return Optional.empty();
-      }
-
-      final ColumnRef fieldName = nameRef.getReference();
-      return Optional.of(fieldName);
-    }
-
-    private Optional<ColumnRef> getJoinFieldNameFromSource(
-        final ColumnRef fieldName,
-        final SourceName sourceAlias,
-        final LogicalSchema sourceSchema
-    ) {
-      return sourceSchema.findColumn(fieldName)
-          .map(Column::ref)
-          .map(ref -> ref.withSource(sourceAlias));
     }
 
     @Override

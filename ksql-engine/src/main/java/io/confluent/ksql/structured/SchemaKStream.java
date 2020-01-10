@@ -334,6 +334,13 @@ public class SchemaKStream<K> {
       return (SchemaKStream<Struct>) this;
     }
 
+    if (this instanceof SchemaKTable) {
+      throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
+          + "If this is a join, make sure that the criteria uses the TABLE key "
+          + this.keyField.ref().map(ColumnRef::toString).orElse("ROWKEY") + " instead of "
+          + keyExpression);
+    }
+
     final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
         contextStacker,
         sourceStep,

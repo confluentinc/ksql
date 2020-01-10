@@ -38,6 +38,8 @@ import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -47,6 +49,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -171,8 +174,47 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1"))));
-    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))));
+    assertThat(analysis.getJoin().get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1")))));
+    assertThat(analysis.getJoin().get().getRightJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1")))));
+
+    final List<String> selects = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getExpression)
+        .map(Objects::toString)
+        .collect(Collectors.toList());
+
+    assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
+
+    final List<ColumnName> aliases = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getAlias)
+        .collect(Collectors.toList());
+
+    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
+        contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
+  }
+
+  @Test
+  public void testExpressionLeftJoinAnalysis() {
+    // When:
+    final Analysis analysis = analyzeQuery(
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
+            + "FROM test1 t1 LEFT JOIN test2 t2 "
+            + "ON t1.col1 = SUBSTRING(t2.col1, 2) EMIT CHANGES;", jsonMetaStore);
+
+    // Then:
+    assertThat(analysis.getFromDataSources(), hasSize(2));
+    assertThat(analysis.getFromDataSources().get(0).getAlias(), is(SourceName.of("T1")));
+    assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
+
+    assertThat(analysis.getJoin(), is(not(Optional.empty())));
+    assertThat(analysis.getJoin().get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1")))));
+    assertThat(
+        analysis.getJoin().get().getRightJoinExpression(),
+        is(new FunctionCall(
+            FunctionName.of("SUBSTRING"),
+            ImmutableList.of(
+                new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))),
+                new IntegerLiteral(2)
+            ))));
 
     final List<String> selects = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getExpression)
@@ -200,8 +242,8 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY"))));
-    assertThat(join.get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
+    assertThat(join.get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY")))));
+    assertThat(join.get().getRightJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY")))));
   }
 
   @Test
@@ -499,6 +541,71 @@ public class AnalyzerFunctionalTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Can not join 'TEST1' to 'TEST1': self joins are not yet supported.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnJoinWithoutSource() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = 'foo';"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid comparison expression ''foo'' in join "
+        + "'(T1.ROWKEY = 'foo')'. Each side of the join comparision must contain references "
+        + "from exactly one source.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnJoinOnOverlappingSources() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey + t2.rowkey = t1.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid comparison expression '(T1.ROWKEY + T2.ROWKEY)' in "
+        + "join '((T1.ROWKEY + T2.ROWKEY) = T1.ROWKEY)'. Each side of the join comparision must "
+        + "contain references from exactly one source.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnSelfJoinInCondition() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = t1.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Each side of the join must reference exactly one source "
+        + "and not the same source. Left side references `T1` and right references `T1`");
 
     // When:
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));

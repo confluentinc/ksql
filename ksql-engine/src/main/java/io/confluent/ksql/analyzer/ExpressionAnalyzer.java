@@ -16,23 +16,30 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
+import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
+import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,17 +55,27 @@ class ExpressionAnalyzer {
     this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
-  void analyzeExpression(final Expression expression, final boolean allowWindowMetaFields) {
-    final Visitor visitor = new Visitor(allowWindowMetaFields);
+  Set<ColumnRef> analyzeExpression(
+      final Expression expression,
+      final boolean allowWindowMetaFields
+  ) {
+    final Set<ColumnRef> referencedColumns = new HashSet<>();
+    final Visitor visitor = new Visitor(allowWindowMetaFields, referencedColumns);
     visitor.process(expression, null);
+    return referencedColumns;
   }
 
   private final class Visitor extends VisitParentExpressionVisitor<Object, Object> {
 
+    private final Set<ColumnRef> referencedColumns;
     private final boolean allowWindowMetaFields;
 
-    Visitor(final boolean allowWindowMetaFields) {
+    Visitor(
+        final boolean allowWindowMetaFields,
+        final Set<ColumnRef> referencedColumns
+    ) {
       this.allowWindowMetaFields = allowWindowMetaFields;
+      this.referencedColumns = referencedColumns;
     }
 
     public Object visitLikePredicate(final LikePredicate node, final Object context) {
@@ -98,6 +115,55 @@ class ExpressionAnalyzer {
     }
 
     @Override
+    public Object visitInListExpression(final InListExpression node, final Object context) {
+      node.getValues().forEach(exp -> process(exp, null));
+      return null;
+    }
+
+    @Override
+    public Object visitSimpleCaseExpression(final SimpleCaseExpression node, final Object context) {
+      process(node.getOperand(), null);
+      node.getDefaultValue().ifPresent(exp -> process(exp, null));
+      node.getWhenClauses().forEach(when -> {
+        process(when.getOperand(), null);
+        process(when.getResult(), null);
+      });
+      return null;
+    }
+
+    @Override
+    public Object visitArithmeticUnary(final ArithmeticUnaryExpression node, final Object context) {
+      process(node.getValue(), null);
+      return null;
+    }
+
+    @Override
+    public Object visitSearchedCaseExpression(
+        final SearchedCaseExpression node,
+        final Object context
+    ) {
+      node.getDefaultValue().ifPresent(exp -> process(exp, null));
+      node.getWhenClauses().forEach(when -> {
+        process(when.getOperand(), null);
+        process(when.getResult(), null);
+      });
+      return null;
+    }
+
+    @Override
+    public Object visitSubscriptExpression(final SubscriptExpression node, final Object context) {
+      process(node.getBase(), null);
+      process(node.getIndex(), null);
+      return null;
+    }
+
+    @Override
+    public Object visitStructExpression(final CreateStructExpression node, final Object context) {
+      node.getFields().forEach(f -> process(f.getValue(), null));
+      return null;
+    }
+
+    @Override
     public Object visitComparisonExpression(
         final ComparisonExpression node,
         final Object context) {
@@ -122,7 +188,9 @@ class ExpressionAnalyzer {
         final ColumnReferenceExp node,
         final Object context
     ) {
-      throwOnUnknownOrAmbiguousColumn(node.getReference());
+      final ColumnRef reference = node.getReference();
+      throwOnUnknownOrAmbiguousColumn(reference);
+      referencedColumns.add(reference);
       return null;
     }
 

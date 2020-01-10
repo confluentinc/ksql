@@ -32,6 +32,7 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -93,9 +94,9 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(0), instanceOf(DataSourceNode.class));
+                          .get(0), instanceOf(RepartitionNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(1), instanceOf(DataSourceNode.class));
+                          .get(1), instanceOf(RepartitionNode.class));
 
     assertThat(logicalPlan.getSchema().value().size(), equalTo(4));
 
@@ -121,8 +122,8 @@ public class LogicalPlannerTest {
 
     assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
-    assertThat(joinNode.getSources().get(0), instanceOf(DataSourceNode.class));
-    assertThat(joinNode.getSources().get(1), instanceOf(DataSourceNode.class));
+    assertThat(joinNode.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(joinNode.getSources().get(1), instanceOf(RepartitionNode.class));
   }
 
   @Test

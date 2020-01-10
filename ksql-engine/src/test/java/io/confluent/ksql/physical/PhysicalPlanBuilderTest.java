@@ -76,11 +76,11 @@ public class PhysicalPlanBuilderTest {
       + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
-      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
-      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
@@ -343,9 +343,8 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST4) key column (TEST4.ID) is not the column "
-            + "used in the join criteria (TEST4.COL0).");
+    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
+        + "sure that the criteria uses the TABLE key TEST4.ID instead of TEST4.COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "
@@ -361,9 +360,8 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST5) key column (TEST5.ID) is not the column "
-            + "used in the join criteria (TEST5.COL0).");
+    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
+        + "sure that the criteria uses the TABLE key TEST5.ID instead of TEST5.COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "

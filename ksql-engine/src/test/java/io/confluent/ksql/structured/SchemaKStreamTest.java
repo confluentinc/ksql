@@ -391,6 +391,21 @@ public class SchemaKStreamTest {
     assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
+  @Test(expected = UnsupportedOperationException.class)
+  public void shouldFailRepartitionTable() {
+    // Given:
+    final PlanNode planNode = givenInitialKStreamOf("SELECT * FROM test2 EMIT CHANGES;");
+    final RepartitionNode repartitionNode = new RepartitionNode(
+        planNode.getId(),
+        planNode,
+        schemaKTable.schema,
+        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("COL2"))),
+        KeyField.none());
+
+    // When:
+    schemaKTable.selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+  }
+
   @Test
   public void testSelectWithExpression() {
     // Given:

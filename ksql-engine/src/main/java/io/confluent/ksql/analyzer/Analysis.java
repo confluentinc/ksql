@@ -281,30 +281,30 @@ public class Analysis implements ImmutableAnalysis {
   @Immutable
   public static final class JoinInfo {
 
-    private final ColumnRef leftJoinField;
-    private final ColumnRef rightJoinField;
+    private final Expression leftJoinExpression;
+    private final Expression rightJoinExpression;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
 
     JoinInfo(
-        final ColumnRef leftJoinField,
-        final ColumnRef rightJoinField,
+        final Expression leftJoinExpression,
+        final Expression rightJoinExpression,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
     ) {
-      this.leftJoinField =  requireNonNull(leftJoinField, "leftJoinField");
-      this.rightJoinField =  requireNonNull(rightJoinField, "rightJoinField");
+      this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
+      this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
-    public ColumnRef getLeftJoinField() {
-      return leftJoinField;
+    public Expression getLeftJoinExpression() {
+      return leftJoinExpression;
     }
 
-    public ColumnRef getRightJoinField() {
-      return rightJoinField;
+    public Expression getRightJoinExpression() {
+      return rightJoinExpression;
     }
 
     public JoinType getType() {

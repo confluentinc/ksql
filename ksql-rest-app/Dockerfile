@@ -12,5 +12,7 @@ ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/docker/* /usr/bin/docke
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/
 ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/doc/* /usr/share/doc/${ARTIFACT_ID}/
 
+RUN chmod +x /usr/bin/docker/configure
 RUN chmod +x /usr/bin/docker/run
+
 CMD ["/usr/bin/docker/run"]

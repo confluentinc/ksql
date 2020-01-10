@@ -85,7 +85,7 @@ public final class Ksql {
   }
 
   private static String readPassword() {
-    Console console = System.console();
+    final Console console = System.console();
     if (console == null) {
       System.err.println("Could not get console for enter password; use -p option instead.");
       System.exit(-1);

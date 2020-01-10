@@ -162,7 +162,7 @@ public class Options {
     return userName;
   }
 
-  public void setPassword(String password) {
+  public void setPassword(final String password) {
     this.password = password;
   }
 

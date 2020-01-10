@@ -50,19 +50,19 @@ public class OptionsTest {
   }
 
   @Test
-  public void shouldReturnFalseIfPasswordIsNull() throws Exception {
+  public void shouldReturnPasswordNotSetIfPasswordIsNull() throws Exception {
     final Options options = Options.parse("http://foobar");
     assertFalse(options.isPasswordSet());
   }
 
   @Test
-  public void shouldReturnFalseIfPasswordIsEmpty() throws Exception {
+  public void shouldReturnPasswordNotSetIfPasswordIsEmpty() throws Exception {
     final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "");
     assertFalse(options.isPasswordSet());
   }
 
   @Test
-  public void shouldReturnTrueIfPasswordIsNotEmpty() throws Exception {
+  public void shouldReturnPasswordSetIfPasswordIsNotEmpty() throws Exception {
     final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "joe");
     assertTrue(options.isPasswordSet());
   }

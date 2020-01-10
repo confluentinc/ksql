@@ -6,33 +6,32 @@ description: Learn how to install ksqlDB on-premises
 keywords: ksql, install, docker, docker-compose, container, docker image, on-prem
 ---
 
-ksqlDB and Docker stacks
-------------------------
+ksqlDB and Docker containers
+----------------------------
 
-Run ksqlDB locally by using Docker containers. ksqlDB has a server component
-and a separate command-line interface (CLI) component, and both have their own
-Docker images.
+You can run ksqlDB locally by using Docker containers, and you define a ksqlDB
+application by creating a *stack* of containers. A stack is a group of
+containers that run interrelated services. For more information on stacks, see
+[Describing Apps Using Stack Files](https://docs.docker.com/get-started/part4/#describing-apps-using-stack-files).
 
-Build a stack of services and deploy them by using
-[Docker Compose](https://docs.docker.com/compose/). For a local installation,
-you include an {{ site.ak }} broker in the stack and one or more ksqlDB Server
-instances. You can include the ksqlDB CLI in the stack or attach the CLI to a
-ksqlDB Server instance from a separate container.
+The minimal ksqlDB stack has containers for {{ site.aktm }}, {{ site.zk }}, and
+ksqlDB Server. More sophisticated ksqlDB stacks can have {{ site.sr }},
+{{ site.kconnect }}, and other third-party services, like Elasticsearch.
 
-Define the configuration of your local ksqlDB installation by creating a
-[Compose file](https://docs.docker.com/compose/compose-file/), which by
-convention is named `docker-compose.yml`.
+Stacks that have {{ site.sr }} enable using Avro-encoded events in your ksqlDB
+applications. Without {{ site.sr }}, your ksqlDB applications can use only JSON
+or delimited formats.  
 
-To bring up the stack and run ksqlDB, use the
-[docker-compose](https://docs.docker.com/compose/reference/overview/) tool,
-which reads your `docker-compose.yml` file and runs containers for your
-{{ site.ak }} and ksqlDB services. 
-
-Many `docker-compose.yml` files exist for different configurations, and this
-topic shows a few simple stacks that you can extend for your use cases. 
+!!! note
+    ksqlDB Server can connect to a remote {{ site.ak }} cluster that isn't
+    defined in a local stack. In this case, you can run ksqlDB in a standalone
+    container and pass in the connection parameters on the command line.  
 
 Docker images for ksqlDB
 ------------------------
+
+ksqlDB has a server component and a separate command-line interface (CLI)
+component, and both have their own Docker images.
 
 Confluent maintains images on [Docker Hub](https://hub.docker.com/u/confluentinc)
 for the ksqlDB components.
@@ -53,6 +52,73 @@ containers based on these images.
 
 The following sections show how to install Docker and use the docker-compose
 tool to download and run the ksqlDB and related images.
+
+
+
+Create a stack file to define your ksqlDB application 
+-----------------------------------------------------
+
+When you've decided on the services that you want in the stack, you define a
+[Compose file, or "stack" file](https://docs.docker.com/compose/compose-file/),
+which is a YAML file, to configure your ksqlDB application's services. The 
+stack file is frequently named `docker-compose.yml`. 
+
+To start your ksqlDB application, you use the
+[docker-compose CLI](https://docs.docker.com/compose/) to
+run the stack for your application. Run `docker-compose up` to start your
+application and `docker-compose down` to stop it.
+
+!!! note
+    If your stack file is compatible with version 3 or higher,
+    you can use the `docker stack deploy` command:
+    `docker stack deploy -c docker-compose.yml your-ksqldb-app`.
+    For more information, see
+    [docker stack deploy](https://docs.docker.com/engine/reference/commandline/stack_deploy/).
+
+Build a ksqlDB application
+--------------------------
+
+The following steps show how to define and deploy a stack for a ksqlDB
+application.
+
+### 1.  Define the services for your ksqlDB application
+
+Decide which services you need for your ksqlDB application. 
+
+For a local installation, include one or more {{ site.ak }} brokers in the
+stack and one or more ksqlDB Server instances. 
+
+- {{ site.zk }}
+- {{ site.ak }} -- one or more
+- {{ site.sr }} -- optional, but required for Avro
+- ksqlDB Server  -- one or more
+- ksqlDB CLI -- optional
+
+You can include a container for the ksqlDB CLI in the stack, or you can attach
+the CLI to a ksqlDB Server instance later, from a separate container.
+
+
+### 2.  Build a stack
+
+Build a stack of services and deploy them by using
+[Docker Compose](https://docs.docker.com/compose/).
+
+### 3.  
+
+Define the configuration of your local ksqlDB installation by creating a
+[Compose file](https://docs.docker.com/compose/compose-file/), which by
+convention is named `docker-compose.yml`.
+
+3. Bring up the stack and run ksqlDB
+   
+To bring up the stack and run ksqlDB, use the
+[docker-compose](https://docs.docker.com/compose/reference/overview/) tool,
+which reads your `docker-compose.yml` file and runs containers for your
+{{ site.ak }} and ksqlDB services. 
+
+Many `docker-compose.yml` files exist for different configurations, and this
+topic shows a few simple stacks that you can extend for your use cases. 
+
 
 Install Docker
 --------------
@@ -81,7 +147,7 @@ Choose a stack
 --------------
 
 The fastest way to get started with ksqlDB is to use a docker-compose file
-that defines a ksqlDB stack that has the necessary components: 
+that defines a ksqlDB stack with the necessary components: 
 
 - {{ site.zk }}
 - {{ site.ak }}

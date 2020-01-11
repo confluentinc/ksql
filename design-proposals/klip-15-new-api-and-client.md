@@ -75,6 +75,7 @@ The API will have the following characteristics:
 * CORS support
 * HTTP basic auth support
 * TLS
+* Easy to create new clients using the protocol
 
 #### Query streaming
 

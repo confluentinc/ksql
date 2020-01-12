@@ -82,7 +82,7 @@ a large current gap in deploying KSQL pull queries for mission critical use-case
 reducing failure rate of pull queries during server failures.
 
 ## Public APIS
-Add configuration parameter to the `WITH` clause of CTAS statements to specify `acceptable.offset.lag`. Also, add property to the json request to specify the above property.
+We will support two ways to set the maximum acceptable lag (`acceptable.offset.lag`): Via each pull query and via a configuration parameter to the `WITH` clause of CTAS statements. These configs will be available to be set also in the json request.
 
 ## Design
 

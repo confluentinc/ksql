@@ -49,4 +49,21 @@ public class OptionsTest {
     assertFalse(options.getUserNameAndPassword().isPresent());
   }
 
+  @Test
+  public void shouldReturnPasswordNotSetIfPasswordIsNull() throws Exception {
+    final Options options = Options.parse("http://foobar");
+    assertFalse(options.isPasswordSet());
+  }
+
+  @Test
+  public void shouldReturnPasswordNotSetIfPasswordIsEmpty() throws Exception {
+    final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "");
+    assertFalse(options.isPasswordSet());
+  }
+
+  @Test
+  public void shouldReturnPasswordSetIfPasswordIsNotEmpty() throws Exception {
+    final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "joe");
+    assertTrue(options.isPasswordSet());
+  }
 }

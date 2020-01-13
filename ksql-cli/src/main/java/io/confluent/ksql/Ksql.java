@@ -25,6 +25,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -67,6 +69,11 @@ public final class Ksql {
       System.exit(-1);
     }
 
+    // ask for password if not set through command parameters
+    if (!options.getUserName().isEmpty() && !options.isPasswordSet()) {
+      options.setPassword(readPassword());
+    }
+
     try {
       new Ksql(options, System.getProperties(), KsqlRestClient::create, Cli::build).run();
     } catch (final Exception e) {
@@ -75,6 +82,16 @@ public final class Ksql {
       System.err.println(msg);
       System.exit(-1);
     }
+  }
+
+  private static String readPassword() {
+    final Console console = System.console();
+    if (console == null) {
+      System.err.println("Could not get console for enter password; use -p option instead.");
+      System.exit(-1);
+    }
+    
+    return new String(console.readPassword("Enter password: "));
   }
 
   void run() {

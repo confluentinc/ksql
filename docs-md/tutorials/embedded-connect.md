@@ -17,6 +17,25 @@ of computer-friendly driver and rider location events, we derive an enriched
 output stream that the ride sharing app may use to facilitate a rendezvous in
 real time.
 
+When to use embedded Connect
+------------------------------
+
+ksqlDB natively integrates with {{ site.kconnect }} by either communicating
+with an external {{ site.kconnect }} cluster or by running {{ site.kconnect }}
+embedded within the KSQL server process. Each of these modes is best suited
+for the following environments:
+
+* **Embedded** - Suitable for development, testing, and simpler production
+workloads at lower throughputs when there is no need to scale ksqlDB
+independently of {{ site.kconnect }}.
+* **External** - Suitable for all production workloads.
+
+!!! note
+	The {{ site.kconnect }} integration mode is a deployment configuration
+	option. The {{ site.kconnect }} integration interface is identical for both
+	modes, so your `CREATE SOURCE` and `CREATE SINK` statements are independent
+	of the integration mode.
+
 1. Get ksqlDB
 --------------
 

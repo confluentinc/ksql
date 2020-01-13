@@ -9,8 +9,8 @@ keywords: ksql, install, docker, docker-compose, container, docker image, on-pre
 ksqlDB and Docker containers
 ----------------------------
 
-You can run ksqlDB locally by using Docker containers, and you define a ksqlDB
-application by creating a *stack* of containers. A stack is a group of
+You can run ksqlDB locally by using Docker containers, and you can define a
+ksqlDB application by creating a *stack* of containers. A stack is a group of
 containers that run interrelated services. For more information on stacks, see
 [Describing Apps Using Stack Files](https://docs.docker.com/get-started/part4/#describing-apps-using-stack-files).
 
@@ -18,23 +18,23 @@ The minimal ksqlDB stack has containers for {{ site.aktm }}, {{ site.zk }}, and
 ksqlDB Server. More sophisticated ksqlDB stacks can have {{ site.sr }},
 {{ site.kconnect }}, and other third-party services, like Elasticsearch.
 
-Stacks that have {{ site.sr }} enable using Avro-encoded events in your ksqlDB
+Stacks that have {{ site.sr }} can use Avro-encoded events in ksqlDB
 applications. Without {{ site.sr }}, your ksqlDB applications can use only JSON
 or delimited formats.  
 
 !!! note
     ksqlDB Server can connect to a remote {{ site.ak }} cluster that isn't
     defined in a local stack. In this case, you can run ksqlDB in a standalone
-    container and pass in the connection parameters on the command line.  
+    container and pass in the connection parameters on the command line.
 
 Docker images for ksqlDB
 ------------------------
 
 ksqlDB has a server component and a separate command-line interface (CLI)
-component, and both have their own Docker images.
+component. Both components have their own Docker images.
 
 Confluent maintains images on [Docker Hub](https://hub.docker.com/u/confluentinc)
-for the ksqlDB components.
+for ksqlDB components.
 
 - [ksqldb-server](https://hub.docker.com/r/confluentinc/ksqldb-server/):
   ksqlDB Server image
@@ -47,78 +47,12 @@ for the ksqlDB components.
 - [cp-kafka](https://hub.docker.com/r/confluentinc/cp-kafka):
   {{ site.aktm }} image (Community Version)
 
-Install ksqlDB and {{ site.aktm }} by starting a Compose stack that runs
-containers based on these images.
+Install ksqlDB and {{ site.aktm }} by starting a
+[Docker Compose](https://docs.docker.com/compose/) stack that runs containers
+based on these images.
 
 The following sections show how to install Docker and use the docker-compose
 tool to download and run the ksqlDB and related images.
-
-
-
-Create a stack file to define your ksqlDB application 
------------------------------------------------------
-
-When you've decided on the services that you want in the stack, you define a
-[Compose file, or "stack" file](https://docs.docker.com/compose/compose-file/),
-which is a YAML file, to configure your ksqlDB application's services. The 
-stack file is frequently named `docker-compose.yml`. 
-
-To start your ksqlDB application, you use the
-[docker-compose CLI](https://docs.docker.com/compose/) to
-run the stack for your application. Run `docker-compose up` to start your
-application and `docker-compose down` to stop it.
-
-!!! note
-    If your stack file is compatible with version 3 or higher,
-    you can use the `docker stack deploy` command:
-    `docker stack deploy -c docker-compose.yml your-ksqldb-app`.
-    For more information, see
-    [docker stack deploy](https://docs.docker.com/engine/reference/commandline/stack_deploy/).
-
-Build a ksqlDB application
---------------------------
-
-The following steps show how to define and deploy a stack for a ksqlDB
-application.
-
-### 1.  Define the services for your ksqlDB application
-
-Decide which services you need for your ksqlDB application. 
-
-For a local installation, include one or more {{ site.ak }} brokers in the
-stack and one or more ksqlDB Server instances. 
-
-- {{ site.zk }}
-- {{ site.ak }} -- one or more
-- {{ site.sr }} -- optional, but required for Avro
-- ksqlDB Server  -- one or more
-- ksqlDB CLI -- optional
-
-You can include a container for the ksqlDB CLI in the stack, or you can attach
-the CLI to a ksqlDB Server instance later, from a separate container.
-
-
-### 2.  Build a stack
-
-Build a stack of services and deploy them by using
-[Docker Compose](https://docs.docker.com/compose/).
-
-### 3.  
-
-Define the configuration of your local ksqlDB installation by creating a
-[Compose file](https://docs.docker.com/compose/compose-file/), which by
-convention is named `docker-compose.yml`.
-
-3. Bring up the stack and run ksqlDB
-   
-To bring up the stack and run ksqlDB, use the
-[docker-compose](https://docs.docker.com/compose/reference/overview/) tool,
-which reads your `docker-compose.yml` file and runs containers for your
-{{ site.ak }} and ksqlDB services. 
-
-Many `docker-compose.yml` files exist for different configurations, and this
-topic shows a few simple stacks that you can extend for your use cases. 
-
 
 Install Docker
 --------------
@@ -143,61 +77,86 @@ Install the Docker distribution that's compatible with your operating system.
   for your Linux distribution. No memory change is necessary, because Docker
   runs natively and not in a VM.
 
-Choose a stack
---------------
+Create a stack file to define your ksqlDB application 
+-----------------------------------------------------
 
-The fastest way to get started with ksqlDB is to use a docker-compose file
-that defines a ksqlDB stack with the necessary components: 
+When you've decided on the services that you want in the stack, you define a
+[Compose file, or "stack" file](https://docs.docker.com/compose/compose-file/),
+which is a YAML file, to configure your ksqlDB application's services. The 
+stack file is frequently named `docker-compose.yml`. 
 
-- {{ site.zk }}
-- {{ site.ak }}
-- {{ site.sr }} (optional)
-- ksqlDB Server
-- ksqlDB CLI
+To start your ksqlDB application, you use the
+[docker-compose CLI](https://docs.docker.com/compose/) to
+run the stack for your application. Run `docker-compose up` to start your
+application and `docker-compose down` to stop it.
+
+!!! note
+    If your stack file is compatible with version 3 or higher,
+    you can use the `docker stack deploy` command:
+    `docker stack deploy -c docker-compose.yml your-ksqldb-app`.
+    For more information, see
+    [docker stack deploy](https://docs.docker.com/engine/reference/commandline/stack_deploy/).
+
+Build a ksqlDB application
+--------------------------
+
+The following steps describe how to define and deploy a stack for a ksqlDB
+application.
+
+### 1.  Define the services for your ksqlDB application
+
+Decide which services you need for your ksqlDB application. 
+
+For a local installation, include one or more {{ site.ak }} brokers in the
+stack and one or more ksqlDB Server instances. 
+
+- {{ site.zk }} -- one, for cluster metadata
+- {{ site.ak }} -- one or more
+- {{ site.sr }} -- optional, but required for Avro
+- ksqlDB Server  -- one or more
+- ksqlDB CLI -- optional
+- Other services -- like Elasticsearch, optional
 
 !!! note
     A stack that runs {{ site.sr }} can handle Avro-encoded events. Without
     {{ site.sr }}, ksqlDB handles only JSON or delimited schemas for events. 
 
-You can use the following `docker-compose.yml` files to get started with a local
+You can declare a container for the ksqlDB CLI in the stack, or you can attach
+the CLI to a ksqlDB Server instance later, from a separate container.
+
+### 2.  Build the stack
+
+Build a stack of services and deploy them by using
+[Docker Compose](https://docs.docker.com/compose/).
+
+Define the configuration of your local ksqlDB installation by creating a
+[Compose file](https://docs.docker.com/compose/compose-file/), which by
+convention is named `docker-compose.yml`.
+
+### 3. Bring up the stack and run ksqlDB
+   
+To bring up the stack and run ksqlDB, use the
+[docker-compose](https://docs.docker.com/compose/reference/overview/) tool,
+which reads your `docker-compose.yml` file and runs containers for your
+{{ site.ak }} and ksqlDB services. 
+
+ksqlDB Tutorial stack
+---------------------
+
+Many `docker-compose.yml` files exist for different configurations, and this
+topic shows a simple stack that you can extend for your use cases. The
+"tutorial" stack brings up these services:
+
+- {{ site.zk }}
+- {{ site.ak }} -- one broker
+- {{ site.sr }} -- enables Avro
+- ksqlDB Server -- one instance
+
+You can use the following `docker-compose.yml` file to get started with a local
 installation of ksqlDB.
-
-### ksqlDB Quickstart stack
-
-Download the `docker-compose.yml` file from the **Include Kafka** tab of the
-[ksqlDB Quickstart](https://ksqldb.io/quickstart.html).
-
-This `docker-compose.yml` file defines a stack with these features:
-
-- Start one ksqlDB Server instance.
-- Does not start {{ site.sr }}, so Avro schemas aren't available.
-- Start the ksqlDB CLI container automatically.
-- Command to start the ksqlDB CLI in the running container:
-  `docker exec -it ksqldb-cli ksql http://ksqldb-server:8088`
-
-### ksqlDB Tutorial stack
 
 Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
 for the [ksqlDB Tutorial](../../tutorials/basics-docker.md).
-
-This `docker-compose.yml` file defines a stack with these features:
-
-- Start one ksqlDB Server instance.
-- Start {{ site.sr }}.
-- You start the ksqlDB CLI container manually.
-
-### ksqlDB reference stack
-
-Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml)
-for the reference stack in the ksqlDB repo.
-
-This `docker-compose.yml` file defines a stack with these features:
-
-- Start two or more ksqlDB Server instances.
-- Start {{ site.sr }}.
-- Start the ksqlDB CLI container automatically. 
-- Command to start the ksqlDB CLI in the running container:
-  `docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088`
 
 Start the stack
 ---------------
@@ -225,20 +184,6 @@ Start the ksqlDB CLI
 When all of the services in the stack are `Up`, run the following command
 to start the ksqlDB CLI and connect to a ksqlDB Server.
 
-For the ksqlDB reference stack, run the following command to start the ksqlDB
-CLI process inside the running `ksqldb-cli` container.
-
-```bash
-docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
-```
-
-For the ksqlDB Quickstart stack, run the following command to start the ksqlDB
-CLI process inside the running `ksqldb-cli` container.
-
-```bash
-docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
-```
-
 For the ksqlDB Tutorial stack, run the following command to start a container
 from the `ksqldb-cli:latest` image that runs the ksqlDB CLI:
 
@@ -248,11 +193,9 @@ docker run --network tutorials_default --rm --interactive --tty \
     http://ksql-server:8088
 ```
 
-!!! note
-    The `--interactive` and `--tty` options together enable the ksqlDB CLI process
-    to communicate with the console. For more information, see
-    [docker run](https://docs.docker.com/engine/reference/run/#foreground).
-
+The `--interactive` and `--tty` options together enable the ksqlDB CLI process
+to communicate with the console. For more information, see
+[docker run](https://docs.docker.com/engine/reference/run/#foreground).
 
 After the ksqlDB CLI starts, your terminal should resemble the following.
 
@@ -280,16 +223,78 @@ ksql>
 With the ksqlDB CLI running, you can issue SQL statements and queries on the
 `ksql>` command line.
 
+!!! note
+    The ksqlDB CLI connects to one ksqlDB Server at a time. The ksqlDB CLI
+    doesn't support automatic failover to another ksqlDB Server.
 
+### Stacks with ksqlDB CLI containers
 
+Some stacks declare a container for the ksqlDB CLI. To interact with a CLI 
+container that's defined this way, use the `docker exec` command to start the
+`ksql` process within the container.
 
+```bash
+docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
+```
 
-ksqlDB must have access to a running {{ site.ak }} cluster, which can
-be in your data center, in a public cloud, or in {{ site.ccloud }}.
+For the ksqlDB reference stack, run the following command to start the ksqlDB
+CLI process inside the running `ksqldb-cli` container.
+
+```bash
+docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
+```
+
+For the ksqlDB Quickstart stack, run the following command to start the ksqlDB
+CLI process.
+
+```bash
+docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
+```
+
+Specify your ksqlDB Server configuration parameters
+---------------------------------------------------
+
+You can specify the configuration for your ksqlDB Server instances by using
+these approaches:
+
+- **The `environment` key:** In the stack file, populate the `environment` key with
+  your settings. By convention, the ksqlDB setting names are prepended with
+  `KSQL_`. For more information, see the
+  [Configuration Parameter Reference](server-config/config-reference.md).
+- **`--env` option:** On the
+  [docker run](https://docs.docker.com/engine/reference/commandline/run/)
+  command line, specify your settings by using the `--env` option once for each
+  parameter. For more information, see
+  [Configure ksqlDB with Docker](install-ksqldb-with-docker.md).
+- **ksqlDB Server config file:** Add settings to the `ksql-server.properties`
+  file. This requires building your own Docker image for ksqlDB Server. For
+  more information, see [Configuring ksqlDB Server](server-config/index.md).
+ 
+You can also set any property for the {{ site.kstreams }} API, the
+{{ site.ak }} producer, or the {{ site.ak }} consumer.
+
+A recommended approach is to configure a common set of properties
+using the ksqlDB Server configuration file and override specific properties
+as needed, using the environment variables.
+
+ksqlDB must have access to a running {{ site.ak }} cluster, which can be on
+your local machine, in a data center, a public cloud, or {{ site.ccloud }}.
+
+For ksqlDB Server to connect to a {{ site.ak }} cluster, the required
+parameters are `KSQL_LISTENERS` and `KSQL_BOOTSTRAP_SERVERS`, which have the
+following default values:
+
+```yaml
+environment:
+    KSQL_LISTENERS: http://0.0.0.0:8088
+    KSQL_BOOTSTRAP_SERVERS: localhost:9092
+```
 
 ksqlDB runs separately from your {{ site.ak }} cluster, so you specify
 the IP addresses of the cluster's bootstrap servers when you start a
 container for ksqlDB Server.
+
+For more information, see [Configuring ksqlDB Server](server-config/index.md).
 
 To start ksqlDB containers in configurations like "ksqlDB Headless Server"
 and "ksqlDB Interactive Server (Development)", see
@@ -325,31 +330,6 @@ operations, to scale query processing. You can use different resource pools
 to support workload isolation. For example, you could deploy separate pools
 for production and for testing.
 
-The ksqlDB CLI connects to only one ksqlDB Server at a time. The ksqlDB CLI
-doesn't support automatic failover to another ksqlDB Server.
-
-### Specify your ksqlDB server configuration parameters
-
-Specify the configuration parameters for your ksqlDB server. You can also set
-any property for the Kafka Streams API, the Kafka producer, or the Kafka
-consumer. The required parameters are `bootstrap.servers` and `listeners`.
-You can specify the parameters in the ksqlDB properties file or the `KSQL_OPTS`
-environment variable. Properties set with `KSQL_OPTS` take precedence over
-those specified in the properties file.
-
-A recommended approach is to configure a common set of properties
-using the ksqlDB configuration file and override specific properties
-as needed, using the `KSQL_OPTS` environment variable.
-
-Here are the default settings:
-
-```
-    bootstrap.servers=localhost:9092
-    listeners=http://0.0.0.0:8088
-```
-
-For more information, see [Configuring ksqlDB Server](server-config/index.md).
-
 Next Steps
 ----------
 
@@ -359,7 +339,41 @@ You can use ksqlDB with a {{ site.ak }} cluster hosted in {{ site.ccloud }}.
 For more information, see
 [Connect ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
 
-### Full ksqlDB event processing application
+### Experiment with other stacks
+
+You can experiment with other stacks that have different configurations, like the
+"Quickstart" and "reference" stacks.
+
+There are numerous other stack files to explore in the
+[Confluent examples repo](https://github.com/confluentinc/examples).
+
+#### ksqlDB Quickstart stack
+
+Download the `docker-compose.yml` file from the **Include Kafka** tab of the
+[ksqlDB Quickstart](https://ksqldb.io/quickstart.html).
+
+This `docker-compose.yml` file defines a stack with these features:
+
+- Start one ksqlDB Server instance.
+- Does not start {{ site.sr }}, so Avro schemas aren't available.
+- Start the ksqlDB CLI container automatically.
+- Command to start the ksqlDB CLI in the running container:
+  `docker exec -it ksqldb-cli ksql http://ksqldb-server:8088`
+
+#### ksqlDB reference stack
+
+Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml)
+for the reference stack in the ksqlDB repo.
+
+This `docker-compose.yml` file defines a stack with these features:
+
+- Start two or more ksqlDB Server instances.
+- Start {{ site.sr }}.
+- Start the ksqlDB CLI container automatically. 
+- Command to start the ksqlDB CLI in the running container:
+  `docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088`
+
+#### Full ksqlDB event processing application
 
 [The Confluent Platform Demo](https://github.com/confluentinc/cp-demo/)
 shows how to build an event streaming application that processes live edits to
@@ -371,7 +385,7 @@ file shows how to configure a stack with these features:
 - Start a {{ site.kconnect }} instance.
 - Start {{ site.sr }}. 
 - Start containers running Elasticsearch and Kibana.
-- Start ksqlDB Server and ksqlDB CLI. 
+- Start ksqlDB Server and ksqlDB CLI containers.
 
 !!! note
     You need to install
@@ -379,8 +393,13 @@ file shows how to configure a stack with these features:
     to run this application. The {{ site.cp }} images are distinct from the
     images that are used in this topic.
 
-There are numerous other Compose files to explore in the
-[Confluent examples repo](https://github.com/confluentinc/examples).
+#### PostgreSQL stack
 
+
+
+#### Examples repo
+
+There are numerous other stack files to explore in the
+[Confluent examples repo](https://github.com/confluentinc/examples).
 
 Page last revised on: {{ git_revision_date }}

@@ -229,26 +229,19 @@ With the ksqlDB CLI running, you can issue SQL statements and queries on the
 
 ### Stacks with ksqlDB CLI containers
 
-Some stacks declare a container for the ksqlDB CLI. To interact with a CLI 
-container that's defined this way, use the `docker exec` command to start the
-`ksql` process within the container.
+Some stacks declare a container for the ksqlDB CLI but don't specify the
+process that runs in the container. This kind of stack declares a generic
+shell entry point: 
+
+```yaml
+entrypoint: /bin/sh
+```
+
+To interact with a CLI container that's defined this way, use the
+`docker exec` command to start the `ksql` process within the container.
 
 ```bash
 docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
-```
-
-For the ksqlDB reference stack, run the following command to start the ksqlDB
-CLI process inside the running `ksqldb-cli` container.
-
-```bash
-docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
-```
-
-For the ksqlDB Quickstart stack, run the following command to start the ksqlDB
-CLI process.
-
-```bash
-docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
 Specify your ksqlDB Server configuration parameters
@@ -357,8 +350,13 @@ This `docker-compose.yml` file defines a stack with these features:
 - Start one ksqlDB Server instance.
 - Does not start {{ site.sr }}, so Avro schemas aren't available.
 - Start the ksqlDB CLI container automatically.
-- Command to start the ksqlDB CLI in the running container:
-  `docker exec -it ksqldb-cli ksql http://ksqldb-server:8088`
+
+Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
+container.
+
+```bash
+docker exec -it ksqldb-cli ksql http://ksqldb-server:8088`
+```
 
 #### ksqlDB reference stack
 
@@ -370,8 +368,31 @@ This `docker-compose.yml` file defines a stack with these features:
 - Start two or more ksqlDB Server instances.
 - Start {{ site.sr }}.
 - Start the ksqlDB CLI container automatically. 
-- Command to start the ksqlDB CLI in the running container:
-  `docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088`
+  
+Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
+container.
+
+```bash
+docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
+```
+
+#### PostgreSQL stack
+
+The [ksqlDB with Embedded Connect](../../tutorials/embedded-connect.md) tutorial
+shows how to integrate ksqlDB with an external PostgreSQL database to power a
+simple ride sharing app. The `docker-compose.yml` file defines a stack with
+these features:
+
+- Start one ksqlDB Server instance.
+- Start PostgreSQL on port 5432.
+- Start the ksqlDB CLI container automatically.
+
+Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
+container.
+
+```bash
+docker exec ksqldb-cli ksql http://ksqldb-server:8088`
+```
 
 #### Full ksqlDB event processing application
 
@@ -393,13 +414,15 @@ file shows how to configure a stack with these features:
     to run this application. The {{ site.cp }} images are distinct from the
     images that are used in this topic.
 
-#### PostgreSQL stack
-
-
-
 #### Examples repo
 
 There are numerous other stack files to explore in the
 [Confluent examples repo](https://github.com/confluentinc/examples).
+
+!!! note
+    You need to install
+    [Confluent Platform](https://docs.confluent.io/current/installation/docker/installation/index.html)
+    to run these applications. The {{ site.cp }} images are distinct from the
+    images that are used in this topic.
 
 Page last revised on: {{ git_revision_date }}

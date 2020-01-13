@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -33,7 +34,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.GenericKeySerDe.UnwrappedKeySerializer;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -122,7 +122,7 @@ public class GenericKeySerDeTest {
         .when(serdeFactories).validate(FORMAT, WRAPPED_SCHEMA);
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(SchemaNotSupportedException.class);
     expectedException.expectMessage("Key format does not support key schema."
         + System.lineSeparator()
         + "format: JSON"

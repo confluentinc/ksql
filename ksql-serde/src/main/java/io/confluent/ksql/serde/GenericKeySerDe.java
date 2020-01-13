@@ -20,12 +20,12 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.Map;
@@ -116,7 +116,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     try {
       serdeFactories.validate(format, schema);
     } catch (final Exception e) {
-      throw new KsqlException("Key format does not support key schema."
+      throw new SchemaNotSupportedException("Key format does not support key schema."
           + System.lineSeparator()
           + "format: " + format.getFormat()
           + System.lineSeparator()

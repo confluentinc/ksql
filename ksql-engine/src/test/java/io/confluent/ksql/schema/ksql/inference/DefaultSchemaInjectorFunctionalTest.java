@@ -17,10 +17,12 @@ package io.confluent.ksql.schema.ksql.inference;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -66,6 +68,8 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   @Mock
   private SchemaRegistryClient srClient;
+  @Mock
+  private ParsedSchema schema;
   @Mock
   private MetaStore metaStore;
   private DefaultSchemaInjector schemaInjector;
@@ -495,6 +499,9 @@ public class DefaultSchemaInjectorFunctionalTest {
     try {
       when(srClient.getLatestSchemaMetadata(any()))
           .thenReturn(new SchemaMetadata(1, 1, avroSchema.toString()));
+      when(srClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(schema);
+      when(schema.schemaType()).thenReturn("AVRO");
+      when(schema.canonicalString()).thenReturn(avroSchema.toString());
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

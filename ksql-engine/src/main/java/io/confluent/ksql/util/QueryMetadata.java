@@ -62,7 +62,8 @@ public class QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final Long closeTimeout) {
+      final long closeTimeout
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
@@ -78,7 +79,7 @@ public class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
-    this.closeTimeout = Objects.requireNonNull(closeTimeout, "closeTimeout");
+    this.closeTimeout = closeTimeout;
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {

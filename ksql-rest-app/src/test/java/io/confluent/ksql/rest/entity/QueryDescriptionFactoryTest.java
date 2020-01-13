@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.BlockingQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -42,7 +42,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -86,7 +85,7 @@ public class QueryDescriptionFactoryTest {
   @Mock(name = TOPOLOGY_TEXT)
   private TopologyDescription topologyDescription;
   @Mock
-  private Consumer<LimitHandler> limitHandler;
+  private BlockingQueryQueue queryQueue;
   @Mock
   private KsqlTopic sinkTopic;
   private QueryMetadata transientQuery;
@@ -103,9 +102,8 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         TRANSIENT_SCHEMA,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -218,9 +216,8 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         schema,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -253,9 +250,8 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         schema,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,

@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.query;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
@@ -29,41 +32,62 @@ import org.apache.kafka.streams.kstream.Windowed;
 /**
  * A queue of rows for transient queries.
  */
-class TransientQueryQueue {
+class TransientQueryQueue implements BlockingQueryQueue {
 
   private final LimitQueueCallback callback;
-  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
-      new LinkedBlockingQueue<>(100);
+  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final int offerTimeoutMs;
+  private volatile boolean closed = false;
 
   TransientQueryQueue(final KStream<?, GenericRow> kstream, final OptionalInt limit) {
+    this(kstream, limit, 100, 100);
+  }
+
+  @VisibleForTesting
+  TransientQueryQueue(
+      final KStream<?, GenericRow> kstream,
+      final OptionalInt limit,
+      final int queueSizeLimit,
+      final int offerTimeoutMs
+  ) {
     this.callback = limit.isPresent()
         ? new LimitedQueueCallback(limit.getAsInt())
         : new UnlimitedQueueCallback();
+    this.rowQueue = new LinkedBlockingQueue<>(queueSizeLimit);
+    this.offerTimeoutMs = offerTimeoutMs;
 
-    kstream.foreach(new TransientQueryQueue.QueuePopulator<>(rowQueue, callback));
+    kstream.foreach(new QueuePopulator<>());
   }
 
-  BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
-    return rowQueue;
-  }
-
-  void setLimitHandler(final LimitHandler limitHandler) {
+  @Override
+  public void setLimitHandler(final LimitHandler limitHandler) {
     callback.setLimitHandler(limitHandler);
   }
 
+  @Override
+  public KeyValue<String, GenericRow> poll(final long timeout, final TimeUnit unit)
+      throws InterruptedException {
+    return rowQueue.poll(timeout, unit);
+  }
+
+  @Override
+  public void drainTo(final Collection<? super KeyValue<String, GenericRow>> collection) {
+    rowQueue.drainTo(collection);
+  }
+
+  @Override
+  public int size() {
+    return rowQueue.size();
+  }
+
+  @Override
+  public void close() {
+    closed = true;
+  }
+
+  @VisibleForTesting
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-
-    private final BlockingQueue<KeyValue<String, GenericRow>> queue;
-    private final QueueCallback callback;
-
-    QueuePopulator(
-        final BlockingQueue<KeyValue<String, GenericRow>> queue,
-        final QueueCallback callback
-    ) {
-      this.queue = Objects.requireNonNull(queue, "queue");
-      this.callback = Objects.requireNonNull(callback, "callback");
-    }
+  final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
 
     @Override
     public void apply(final K key, final GenericRow row) {
@@ -76,18 +100,22 @@ class TransientQueryQueue {
           return;
         }
 
-        final String keyString = getStringKey(key);
-        queue.put(new KeyValue<>(keyString, row));
+        final KeyValue<String, GenericRow> kv = new KeyValue<>(getStringKey(key), row);
 
-        callback.onQueued();
-      } catch (final InterruptedException exception) {
+        while (!closed) {
+          if (rowQueue.offer(kv, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+            callback.onQueued();
+            break;
+          }
+        }
+      } catch (final InterruptedException e) {
         throw new KsqlException("InterruptedException while enqueueing:" + key);
       }
     }
 
     private String getStringKey(final K key) {
       if (key instanceof Windowed) {
-        final Windowed windowedKey = (Windowed) key;
+        final Windowed<?> windowedKey = (Windowed<?>) key;
         return String.format("%s : %s", windowedKey.key(), windowedKey.window());
       }
 

@@ -27,12 +27,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -131,7 +131,7 @@ public class GenericRowSerDeTest {
         .when(serdesFactories).validate(FORMAT, MUTLI_FIELD_SCHEMA);
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(SchemaNotSupportedException.class);
     expectedException.expectMessage("Value format does not support value schema."
         + System.lineSeparator()
         + "format: JSON"

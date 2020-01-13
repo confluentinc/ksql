@@ -21,12 +21,12 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,7 +106,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     try {
       serdeFactories.validate(format, schema);
     } catch (final Exception e) {
-      throw new KsqlException("Value format does not support value schema."
+      throw new SchemaNotSupportedException("Value format does not support value schema."
           + System.lineSeparator()
           + "format: " + format.getFormat()
           + System.lineSeparator()

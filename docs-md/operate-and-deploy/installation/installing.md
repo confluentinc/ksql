@@ -85,13 +85,13 @@ When you've decided on the services that you want in the stack, you define a
 which is a YAML file, to configure your ksqlDB application's services. The 
 stack file is frequently named `docker-compose.yml`. 
 
-To start your ksqlDB application, you use the
+To start the ksqlDB application, use the
 [docker-compose CLI](https://docs.docker.com/compose/) to
-run the stack for your application. Run `docker-compose up` to start your
+run the stack for the application. Run `docker-compose up` to start the
 application and `docker-compose down` to stop it.
 
 !!! note
-    If your stack file is compatible with version 3 or higher,
+    If the stack file is compatible with version 3 or higher,
     you can use the `docker stack deploy` command:
     `docker stack deploy -c docker-compose.yml your-ksqldb-app`.
     For more information, see
@@ -145,7 +145,8 @@ ksqlDB Tutorial stack
 
 Many `docker-compose.yml` files exist for different configurations, and this
 topic shows a simple stack that you can extend for your use cases. The
-"tutorial" stack brings up these services:
+stack for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) brings up
+these services:
 
 - {{ site.zk }}
 - {{ site.ak }} -- one broker
@@ -337,7 +338,7 @@ To start ksqlDB containers in configurations like "ksqlDB Headless Server"
 and "ksqlDB Interactive Server (Development)", see
 [Configure ksqlDB with Docker](install-ksqldb-with-docker.md).
 
-Supported Versions and Interoperability
+Supported versions and interoperability
 ---------------------------------------
 
 You can use ksqlDB with compatible {{ site.aktm }} and {{ site.cp }}
@@ -348,7 +349,7 @@ versions.
 | Apache Kafka version  | 0.11.0 and later   |
 | {{ site.cp }} version | > 3.3.0 and later  |
 
-Scale Your ksqlDB Server Deployment
+Scale your ksqlDB Server deployment
 -----------------------------------
 
 You can scale ksqlDB by adding more capacity per server (vertically) or by
@@ -367,7 +368,7 @@ operations, to scale query processing. You can use different resource pools
 to support workload isolation. For example, you could deploy separate pools
 for production and for testing.
 
-Next Steps
+Next steps
 ----------
 
 ### Configure ksqlDB for Confluent Cloud
@@ -450,7 +451,7 @@ file shows how to configure a stack with these features:
 - Start ksqlDB Server and ksqlDB CLI containers.
 
 !!! note
-    You need to install
+    You must install
     [Confluent Platform](https://docs.confluent.io/current/installation/docker/installation/index.html)
     to run this application. The {{ site.cp }} images are distinct from the
     images that are used in this topic.
@@ -461,7 +462,7 @@ There are numerous other stack files to explore in the
 [Confluent examples repo](https://github.com/confluentinc/examples).
 
 !!! note
-    You need to install
+    You must install
     [Confluent Platform](https://docs.confluent.io/current/installation/docker/installation/index.html)
     to run these applications. The {{ site.cp }} images are distinct from the
     images that are used in this topic.

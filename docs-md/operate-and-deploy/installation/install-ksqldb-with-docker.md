@@ -121,7 +121,7 @@ docker run -d \
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
 
-### Connect ksqlDB Server to a Secure Kafka Cluster, Like Confluent Cloud
+### Connect ksqlDB Server to a secure Kafka Cluster, like Confluent Cloud
 
 ksqlDB Server runs outside of your {{ site.ak }} clusters, so you need to
 specify in the container environment how ksqlDB Server connects with a

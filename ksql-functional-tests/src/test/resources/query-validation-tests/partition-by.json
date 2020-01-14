@@ -11,7 +11,17 @@
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "REPARTITIONED",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY STRING KEY, NAME STRING, ID BIGINT"
+          }
+        ]
+      }
     },
     {
       "name": "int column",

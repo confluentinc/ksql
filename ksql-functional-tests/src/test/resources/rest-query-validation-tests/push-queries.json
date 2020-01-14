@@ -1,0 +1,87 @@
+{
+  "comments": [
+    "Tests covering Push queries"
+  ],
+  "tests": [
+    {
+      "name": "non-windowed transient stream query - STRING key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[12345, "11", 100]}},
+          {"row":{"columns":[12365, "11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed transient stream query - INT key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[12345, 11, 100]}},
+          {"row":{"columns":[12365, 11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed transient stream query - BIGINT key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` BIGINT, `ID` INTEGER"}},
+          {"row":{"columns":[12345, 11, 100]}},
+          {"row":{"columns":[12365, 11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed transient stream query - DOUBLE key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.0, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11.0, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE, `ID` INTEGER"}},
+          {"row":{"columns":[12345, 11.0, 100]}},
+          {"row":{"columns":[12365, 11.0, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    }
+  ]
+}

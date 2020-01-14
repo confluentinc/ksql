@@ -32,7 +32,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -43,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -59,7 +59,7 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "ConstantConditions"})
 @RunWith(EasyMockRunner.class)
 public class QueryStreamWriterTest {
 
@@ -74,7 +74,7 @@ public class QueryStreamWriterTest {
   @Mock(MockType.NICE)
   private TransientQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
-  private BlockingRowQueue rowQueue;
+  private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;
   private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
   private Capture<LimitHandler> limitHandlerCapture;
@@ -115,11 +115,10 @@ public class QueryStreamWriterTest {
   }
 
   @Test
-  public void shouldWriteAnyPendingRowsBeforeReportingException() {
+  public void shouldWriteAnyPendingRowsBeforeReportingException() throws Exception {
     // Given:
     expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
 
     createWriter();
 
@@ -137,11 +136,10 @@ public class QueryStreamWriterTest {
   }
 
   @Test
-  public void shouldExitAndDrainIfQueryStopsRunning() {
+  public void shouldExitAndDrainIfQueryStopsRunning() throws Exception {
     // Given:
     expect(queryMetadata.isRunning()).andReturn(true).andReturn(false);
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
 
     createWriter();
 
@@ -157,11 +155,10 @@ public class QueryStreamWriterTest {
   }
 
   @Test
-  public void shouldExitAndDrainIfLimitReached() {
+  public void shouldExitAndDrainIfLimitReached() throws Exception {
     // Given:
     expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    expect(rowQueue.drainTo(capture(drainCapture))).andAnswer(rows("Row1", "Row2", "Row3"));
 
     createWriter();
 

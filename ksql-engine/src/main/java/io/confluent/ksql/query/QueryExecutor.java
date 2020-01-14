@@ -154,7 +154,7 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit
   ) {
-    final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
+    final TransientQueryQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
     final String transientQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
     final String applicationId = addTimeSuffix(getQueryApplicationId(
@@ -171,8 +171,9 @@ public final class QueryExecutor {
         streams,
         schema,
         sources,
+        queue::setLimitHandler,
         planSummary,
-        queue,
+        queue.getQueue(),
         applicationId,
         streamsBuilder.build(),
         streamsProperties,

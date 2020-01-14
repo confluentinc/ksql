@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
-import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConstants;
@@ -45,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -216,7 +216,7 @@ public class EndToEndIntegrationTest {
         "SELECT * from pageviews_female EMIT CHANGES;");
 
     final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
-    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
+    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
     // From the mock data, we expect exactly 3 page views from female users.
     final List<String> expectedPages = ImmutableList.of("PAGE_2", "PAGE_5", "PAGE_5");
@@ -402,7 +402,7 @@ public class EndToEndIntegrationTest {
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
   ) throws Exception {
-    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
+    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
 
     TestUtils.waitForCondition(
         () -> rowQueue.size() >= expectedRows,

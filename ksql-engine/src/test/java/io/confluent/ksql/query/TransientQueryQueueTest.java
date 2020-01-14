@@ -56,7 +56,7 @@ public class TransientQueryQueueTest {
   private static final GenericRow ROW_TWO = mock(GenericRow.class);
 
   @Rule
-  public Timeout timeout = Timeout.seconds(10);
+  public final Timeout timeout = Timeout.seconds(10);
 
   @Mock
   private LimitHandler limitHandler;

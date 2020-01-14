@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.BlockingQueryQueue;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -85,7 +85,7 @@ public class QueryDescriptionFactoryTest {
   @Mock(name = TOPOLOGY_TEXT)
   private TopologyDescription topologyDescription;
   @Mock
-  private BlockingQueryQueue queryQueue;
+  private BlockingRowQueue queryQueue;
   @Mock
   private KsqlTopic sinkTopic;
   private QueryMetadata transientQuery;

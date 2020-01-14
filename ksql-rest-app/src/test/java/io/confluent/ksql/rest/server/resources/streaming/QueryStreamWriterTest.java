@@ -32,7 +32,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.BlockingQueryQueue;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -74,7 +74,7 @@ public class QueryStreamWriterTest {
   @Mock(MockType.NICE)
   private TransientQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
-  private BlockingQueryQueue rowQueue;
+  private BlockingRowQueue rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;
   private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
   private Capture<LimitHandler> limitHandlerCapture;

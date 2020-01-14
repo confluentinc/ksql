@@ -17,6 +17,7 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
 import java.util.Collection;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.KeyValue;
 
@@ -27,14 +28,21 @@ import org.apache.kafka.streams.KeyValue;
  * thread that is servicing the client request reads from the queue and writes to the client
  * socket.
  */
-public interface BlockingQueryQueue {
+public interface BlockingRowQueue {
 
+  /**
+   * Sets the limit handler that will be called when any row limit is reached.
+   *
+   * <p>Replaces any previous handler.
+   *
+   * @param limitHandler the handler.
+   */
   void setLimitHandler(LimitHandler limitHandler);
 
   /**
    * Poll the queue for a single row
    *
-   * @see BlockingQueryQueue#poll(long, TimeUnit)
+   * @see BlockingQueue#poll(long, TimeUnit)
    */
   KeyValue<String, GenericRow> poll(long timeout, TimeUnit unit)
       throws InterruptedException;
@@ -42,14 +50,14 @@ public interface BlockingQueryQueue {
   /**
    * Drain the queue to the supplied {@code collection}.
    *
-   * @see BlockingQueryQueue#drainTo(Collection)
+   * @see BlockingQueue#drainTo(Collection)
    */
   void drainTo(Collection<? super KeyValue<String, GenericRow>> collection);
 
   /**
    * The size of the queue.
    *
-   * @see BlockingQueryQueue#size()
+   * @see BlockingQueue#size()
    */
   int size();
 

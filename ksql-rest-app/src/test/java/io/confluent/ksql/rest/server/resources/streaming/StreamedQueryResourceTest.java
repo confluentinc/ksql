@@ -46,7 +46,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.query.BlockingQueryQueue;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -616,7 +616,7 @@ public class StreamedQueryResourceTest {
     );
   }
 
-  private static class TestRowQueue implements BlockingQueryQueue {
+  private static class TestRowQueue implements BlockingRowQueue {
 
     private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
 

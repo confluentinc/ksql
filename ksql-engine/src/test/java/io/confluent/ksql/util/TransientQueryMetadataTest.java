@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.BlockingQueryQueue;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +48,7 @@ public class TransientQueryMetadataTest {
   @Mock
   private Set<SourceName> sourceNames;
   @Mock
-  private BlockingQueryQueue rowQueue;
+  private BlockingRowQueue rowQueue;
   @Mock
   private Topology topology;
   @Mock

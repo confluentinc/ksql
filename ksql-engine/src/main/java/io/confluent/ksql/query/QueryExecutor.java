@@ -151,7 +151,7 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit
   ) {
-    final BlockingQueryQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
+    final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
     final String applicationId = addTimeSuffix(getQueryApplicationId(
         getServiceId(),

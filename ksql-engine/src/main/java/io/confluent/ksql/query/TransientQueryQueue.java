@@ -32,7 +32,7 @@ import org.apache.kafka.streams.kstream.Windowed;
 /**
  * A queue of rows for transient queries.
  */
-class TransientQueryQueue implements BlockingQueryQueue {
+class TransientQueryQueue implements BlockingRowQueue {
 
   private final LimitQueueCallback callback;
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;

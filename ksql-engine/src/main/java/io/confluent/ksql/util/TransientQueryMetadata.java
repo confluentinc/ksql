@@ -16,7 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.BlockingQueryQueue;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
@@ -32,7 +32,7 @@ import org.apache.kafka.streams.Topology;
  */
 public class TransientQueryMetadata extends QueryMetadata {
 
-  private final BlockingQueryQueue rowQueue;
+  private final BlockingRowQueue rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -42,7 +42,7 @@ public class TransientQueryMetadata extends QueryMetadata {
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
-      final BlockingQueryQueue rowQueue,
+      final BlockingRowQueue rowQueue,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -74,7 +74,7 @@ public class TransientQueryMetadata extends QueryMetadata {
     return isRunning.get();
   }
 
-  public BlockingQueryQueue getRowQueue() {
+  public BlockingRowQueue getRowQueue() {
     return rowQueue;
   }
 

@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -47,6 +46,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -70,12 +71,15 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -371,9 +375,8 @@ public class StreamedQueryResourceTest {
             mockKafkaStreams,
             SOME_SCHEMA,
             Collections.emptySet(),
-            limitHandler -> {},
             "",
-            rowQueue,
+            new TestRowQueue(rowQueue),
             "",
             mock(Topology.class),
             Collections.emptyMap(),
@@ -652,5 +655,42 @@ public class StreamedQueryResourceTest {
         serviceContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
     );
+  }
+
+  private static class TestRowQueue implements BlockingRowQueue {
+
+    private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+
+    TestRowQueue(
+        final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue
+    ) {
+      this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+    }
+
+    @Override
+    public void setLimitHandler(final LimitHandler limitHandler) {
+
+    }
+
+    @Override
+    public KeyValue<String, GenericRow> poll(final long timeout, final TimeUnit unit)
+        throws InterruptedException {
+      return rowQueue.poll(timeout, unit);
+    }
+
+    @Override
+    public void drainTo(final Collection<? super KeyValue<String, GenericRow>> collection) {
+      rowQueue.drainTo(collection);
+    }
+
+    @Override
+    public int size() {
+      return rowQueue.size();
+    }
+
+    @Override
+    public void close() {
+
+    }
   }
 }

@@ -102,6 +102,14 @@ public class RestTestExecutor implements Closeable {
   void buildAndExecuteQuery(final RestTestCase testCase) {
     topicInfoCache.clear();
 
+    if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
+      throw new AssertionError("Invalid test case: more expected responses than statements. "
+          + System.lineSeparator()
+          + "statementCount: " + testCase.getStatements().size()
+          + System.lineSeparator()
+          + "responsesCount: " + testCase.getExpectedResponses().size());
+    }
+
     initializeTopics(testCase.getTopics());
 
     final StatementSplit statements = splitStatements(testCase);

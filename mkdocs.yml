@@ -116,7 +116,7 @@ nav:
       - Deploy:
           - Install ksqlDB: operate-and-deploy/installation/index.md
           - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
-          - Install ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
+          - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
           # - Install ksqlDB locally: installation/installing.md # leave in docs.confluent.io
           # - Upgrade ksqlDB: installation/upgrading.md # possibly unnecessary in a Dockerized world
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md

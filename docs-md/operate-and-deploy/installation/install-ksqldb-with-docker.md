@@ -1,9 +1,9 @@
 ---
 layout: page
-title: Install ksqlDB with Docker
-tagline: Run ksqlDB by using Docker containers
+title: Configure ksqlDB with Docker
+tagline: Configure ksqlDB by using Docker containers
 description: Learn how to install ksqlDB in various configurations by using Docker containers
-keywords: ksqldb, docker, container, install
+keywords: ksqldb, docker, container, install, configure, production
 ---
 
 You can deploy ksqlDB by using Docker containers. Confluent maintains images at
@@ -17,7 +17,7 @@ configurations.
 Assign configuration settings in the Docker run command
 -------------------------------------------------------
 
-You can dynamically pass configuration settings into containers by using
+You can pass configuration settings dynamically into containers by using
 environment variables. When you start a container, set up the
 configuration with the `-e` or `--env` flags in the `docker run`
 command.

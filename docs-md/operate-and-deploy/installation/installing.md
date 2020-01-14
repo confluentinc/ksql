@@ -152,11 +152,9 @@ topic shows a simple stack that you can extend for your use cases. The
 - {{ site.sr }} -- enables Avro
 - ksqlDB Server -- one instance
 
-You can use the following `docker-compose.yml` file to get started with a local
-installation of ksqlDB.
-
 Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
-for the [ksqlDB Tutorial](../../tutorials/basics-docker.md).
+for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) to get started with
+a local installation of ksqlDB.
 
 Start the stack
 ---------------
@@ -173,9 +171,32 @@ docker-compose up -d
 
 Your output should resemble:
 
-TODO: Compose output
+```
+Creating network "tutorials_default" with the default driver
+Creating tutorials_zookeeper_1 ... done
+Creating tutorials_kafka_1     ... done
+Creating tutorials_schema-registry_1 ... done
+Creating tutorials_ksql-server_1     ... done
+```
 
-When all of the containers have the `Up` status, the ksqlDB stack is ready
+Run the following command to check the status of the stack.
+
+```bash
+docker-compose ps
+```
+
+Your output should resemble:
+
+```
+           Name                        Command            State                 Ports
+----------------------------------------------------------------------------------------------------
+tutorials_kafka_1             /etc/confluent/docker/run   Up      0.0.0.0:39092->39092/tcp, 9092/tcp
+tutorials_ksql-server_1       /usr/bin/docker/run         Up
+tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
+tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
+```
+
+When all of the containers have the `Up` state, the ksqlDB stack is ready
 to use.
 
 Start the ksqlDB CLI
@@ -244,16 +265,38 @@ To interact with a CLI container that's defined this way, use the
 docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
 ```
 
-Specify your ksqlDB Server configuration parameters
----------------------------------------------------
+Stop your ksqlDB application
+----------------------------
+
+Run the following command to stop the containers in your stack.
+
+```bash
+docker-compose down
+```
+
+Your output should resemble:
+
+```
+Stopping tutorials_ksql-server_1     ... done
+Stopping tutorials_schema-registry_1 ... done
+Stopping tutorials_kafka_1           ... done
+Stopping tutorials_zookeeper_1       ... done
+Removing tutorials_ksql-server_1     ... done
+Removing tutorials_schema-registry_1 ... done
+Removing tutorials_kafka_1           ... done
+Removing tutorials_zookeeper_1       ... done
+Removing network tutorials_default
+```
+
+Specify ksqlDB Server configuration parameters
+----------------------------------------------
 
 You can specify the configuration for your ksqlDB Server instances by using
 these approaches:
 
 - **The `environment` key:** In the stack file, populate the `environment` key with
   your settings. By convention, the ksqlDB setting names are prepended with
-  `KSQL_`. For more information, see the
-  [Configuration Parameter Reference](server-config/config-reference.md).
+  `KSQL_`.
 - **`--env` option:** On the
   [docker run](https://docs.docker.com/engine/reference/commandline/run/)
   command line, specify your settings by using the `--env` option once for each
@@ -263,6 +306,9 @@ these approaches:
   file. This requires building your own Docker image for ksqlDB Server. For
   more information, see [Configuring ksqlDB Server](server-config/index.md).
  
+For a complete list of ksqlDB parameters, see the
+[Configuration Parameter Reference](server-config/config-reference.md).
+
 You can also set any property for the {{ site.kstreams }} API, the
 {{ site.ak }} producer, or the {{ site.ak }} consumer.
 
@@ -272,7 +318,6 @@ as needed, using the environment variables.
 
 ksqlDB must have access to a running {{ site.ak }} cluster, which can be on
 your local machine, in a data center, a public cloud, or {{ site.ccloud }}.
-
 For ksqlDB Server to connect to a {{ site.ak }} cluster, the required
 parameters are `KSQL_LISTENERS` and `KSQL_BOOTSTRAP_SERVERS`, which have the
 following default values:
@@ -285,13 +330,12 @@ environment:
 
 ksqlDB runs separately from your {{ site.ak }} cluster, so you specify
 the IP addresses of the cluster's bootstrap servers when you start a
-container for ksqlDB Server.
-
-For more information, see [Configuring ksqlDB Server](server-config/index.md).
+container for ksqlDB Server. For more information, see
+[Configuring ksqlDB Server](server-config/index.md).
 
 To start ksqlDB containers in configurations like "ksqlDB Headless Server"
 and "ksqlDB Interactive Server (Development)", see
-[Install ksqlDB with Docker](install-ksqldb-with-docker.md).
+[Configure ksqlDB with Docker](install-ksqldb-with-docker.md).
 
 Supported Versions and Interoperability
 ---------------------------------------
@@ -334,11 +378,8 @@ For more information, see
 
 ### Experiment with other stacks
 
-You can experiment with other stacks that have different configurations, like the
+You can try out other stacks that have different configurations, like the
 "Quickstart" and "reference" stacks.
-
-There are numerous other stack files to explore in the
-[Confluent examples repo](https://github.com/confluentinc/examples).
 
 #### ksqlDB Quickstart stack
 
@@ -355,7 +396,7 @@ Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
 container.
 
 ```bash
-docker exec -it ksqldb-cli ksql http://ksqldb-server:8088`
+docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
 #### ksqlDB reference stack
@@ -391,7 +432,7 @@ Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
 container.
 
 ```bash
-docker exec ksqldb-cli ksql http://ksqldb-server:8088`
+docker exec ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
 #### Full ksqlDB event processing application
@@ -414,7 +455,7 @@ file shows how to configure a stack with these features:
     to run this application. The {{ site.cp }} images are distinct from the
     images that are used in this topic.
 
-#### Examples repo
+#### Confluent examples repo
 
 There are numerous other stack files to explore in the
 [Confluent examples repo](https://github.com/confluentinc/examples).

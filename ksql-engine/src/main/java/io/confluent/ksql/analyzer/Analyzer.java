@@ -18,6 +18,7 @@ package io.confluent.ksql.analyzer;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -359,8 +360,7 @@ class Analyzer {
       final SourceName rightSourceName = getOnlySourceForJoin(
           comparisonExpression.getRight(), comparisonExpression, colsUsedInRight);
 
-      final boolean flipped = leftSourceName.equals(right.getAlias());
-      if (!validJoin(flipped, left.getAlias(), right.getAlias(), leftSourceName, rightSourceName)) {
+      if (!validJoin(left.getAlias(), right.getAlias(), leftSourceName, rightSourceName)) {
         throw new KsqlException(
             "Each side of the join must reference exactly one source and not the same source. "
                 + "Left side references " + leftSourceName
@@ -368,6 +368,7 @@ class Analyzer {
         );
       }
 
+      final boolean flipped = leftSourceName.equals(right.getAlias());
       analysis.setJoin(new JoinInfo(
           flipped ? comparisonExpression.getRight() : comparisonExpression.getLeft(),
           flipped ? comparisonExpression.getLeft() : comparisonExpression.getRight(),
@@ -379,16 +380,13 @@ class Analyzer {
     }
 
     private boolean validJoin(
-        final boolean flipped,
         final SourceName leftName,
         final SourceName rightName,
         final SourceName leftExpressionSource,
         final SourceName rightExpressionSource
     ) {
-      final boolean validLeft = flipped || leftExpressionSource.equals(leftName);
-      final boolean validRight = (flipped && rightExpressionSource.equals(leftName))
-              || (!flipped && rightExpressionSource.equals(rightName));
-      return validLeft && validRight;
+      return ImmutableSet.of(leftExpressionSource, rightExpressionSource)
+          .containsAll(ImmutableList.of(leftName, rightName));
     }
 
     private SourceName getOnlySourceForJoin(

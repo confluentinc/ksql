@@ -84,7 +84,8 @@ public class LogicalPlanner {
     }
 
     if (analysis.getPartitionBy().isPresent()) {
-      currentNode = buildRepartitionNode(currentNode, analysis.getPartitionBy().get());
+      currentNode = buildRepartitionNode(
+          "PartitionBy", currentNode, analysis.getPartitionBy().get());
     }
 
     if (!analysis.getTableFunctions().isEmpty()) {
@@ -207,6 +208,7 @@ public class LogicalPlanner {
   }
 
   private RepartitionNode buildRepartitionNode(
+      final String planId,
       final PlanNode sourceNode,
       final Expression partitionBy
   ) {
@@ -240,7 +242,7 @@ public class LogicalPlanner {
     final LogicalSchema schema = buildRepartitionedSchema(sourceNode, partitionBy);
 
     return new RepartitionNode(
-        new PlanNodeId("PartitionBy"),
+        new PlanNodeId(planId),
         sourceNode,
         schema,
         partitionBy,
@@ -289,8 +291,10 @@ public class LogicalPlanner {
         // it is always safe to build the repartition node - this operation will be
         // a no-op if a repartition is not required. if the source is a table, and
         // a repartition is needed, then an exception will be thrown
-        buildRepartitionNode(leftSourceNode, joinInfo.get().getLeftJoinExpression()),
-        buildRepartitionNode(rightSourceNode, joinInfo.get().getRightJoinExpression()),
+        buildRepartitionNode(
+            "LeftSourceKeyed", leftSourceNode, joinInfo.get().getLeftJoinExpression()),
+        buildRepartitionNode(
+            "RightSourceKeyed", rightSourceNode, joinInfo.get().getRightJoinExpression()),
         joinInfo.get().getWithinExpression()
     );
   }

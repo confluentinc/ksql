@@ -205,7 +205,6 @@ public final class ListSourceExecutor {
         SourceDescriptionFactory.create(
             dataSource,
             extended,
-            dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
             getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
             getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
             topicDescription
@@ -223,7 +222,8 @@ public final class ListSourceExecutor {
         .map(q -> new RunningQuery(
             q.getStatementString(),
             ImmutableSet.of(q.getSinkName().name()),
-            q.getQueryId()
+            q.getQueryId(),
+            Optional.of(q.getState())
         ))
         .collect(Collectors.toList());
   }

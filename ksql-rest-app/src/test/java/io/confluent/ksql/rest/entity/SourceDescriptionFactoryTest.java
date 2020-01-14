@@ -118,7 +118,6 @@ public class SourceDescriptionFactoryTest {
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());
@@ -142,7 +141,6 @@ public class SourceDescriptionFactoryTest {
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());
@@ -165,7 +163,6 @@ public class SourceDescriptionFactoryTest {
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());

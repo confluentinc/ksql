@@ -44,6 +44,7 @@ import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
@@ -448,22 +449,40 @@ public class Console implements Closeable {
     }
   }
 
-  private static String formatFieldType(final FieldInfo field, final String keyField) {
-    if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
+  private static String formatFieldType(
+      final FieldInfo field,
+      final Optional<WindowType> windowType,
+      final String keyField
+  ) {
+    if (field.getName().equals("ROWTIME")) {
       return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
-    } else if (keyField != null && keyField.contains("." + field.getName())) {
-      return String.format("%-16s %s", field.getSchema().toTypeString(), "(key)");
-    } else {
-      return field.getSchema().toTypeString();
     }
+
+    if (field.getName().equals("ROWKEY")) {
+      final String wt = windowType
+          .map(v -> " (Window type: " + v + ")")
+          .orElse("");
+
+      return String.format("%-16s %s%s", field.getSchema().toTypeString(), "(system)", wt);
+    }
+
+    if (keyField != null && keyField.contains("." + field.getName())) {
+      return String.format("%-16s %s", field.getSchema().toTypeString(), "(key)");
+    }
+
+    return field.getSchema().toTypeString();
   }
 
-  private void printSchema(final List<FieldInfo> fields, final String keyField) {
+  private void printSchema(
+      final Optional<WindowType> windowType,
+      final List<FieldInfo> fields,
+      final String keyField
+  ) {
     final Table.Builder tableBuilder = new Table.Builder();
     if (!fields.isEmpty()) {
       tableBuilder.withColumnHeaders("Field", "Type");
       fields.forEach(
-          f -> tableBuilder.withRow(f.getName(), formatFieldType(f, keyField)));
+          f -> tableBuilder.withRow(f.getName(), formatFieldType(f, windowType, keyField)));
       tableBuilder.build().print(this);
     }
   }
@@ -474,9 +493,9 @@ public class Console implements Closeable {
                              : source.getTimestamp();
 
     writer().println(String.format("%-20s : %s", "Key field", source.getKey()));
-    writer().println(String.format("%-20s : %s", "Key format", "STRING"));
     writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
-    writer().println(String.format("%-20s : %s", "Value format", source.getFormat()));
+    writer().println(String.format("%-20s : %s", "Key format", source.getKeyFormat()));
+    writer().println(String.format("%-20s : %s", "Value format", source.getValueFormat()));
 
     if (!source.getTopic().isEmpty()) {
       String topicInformation = String.format("%-20s : %s",
@@ -509,7 +528,9 @@ public class Console implements Closeable {
           "-----------------------------------"
       ));
       for (final RunningQuery writeQuery : queries) {
-        writer().println(writeQuery.getId().getId() + " : " + writeQuery.getQueryString());
+        writer().println(writeQuery.getId().getId()
+            + " (" + writeQuery.getState().orElse("N/A")
+            + ") : " + writeQuery.getQuerySingleLine());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
     }
@@ -562,7 +583,7 @@ public class Console implements Closeable {
   private void printSourceDescription(final SourceDescription source) {
     writer().println(String.format("%-20s : %s", "Name", source.getName()));
     if (!source.isExtended()) {
-      printSchema(source.getFields(), source.getKey());
+      printSchema(source.getWindowType(), source.getFields(), source.getKey());
       writer().println(
           "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
       return;
@@ -573,7 +594,7 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Statement", source.getStatement()));
     writer().println("");
 
-    printSchema(source.getFields(), source.getKey());
+    printSchema(source.getWindowType(), source.getFields(), source.getKey());
 
     printQueries(source.getReadQueries(), source.getType(), "read");
 
@@ -638,7 +659,7 @@ public class Console implements Closeable {
       writer().println(String.format("%-20s : %s", "Status", query.getState().get()));
     }
     writer().println();
-    printSchema(query.getFields(), "");
+    printSchema(query.getWindowType(), query.getFields(), "");
     printQuerySources(query);
     printQuerySinks(query);
     printExecutionPlan(query);

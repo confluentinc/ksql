@@ -106,7 +106,6 @@ public final class DescribeConnectorExecutor {
           .map(source -> SourceDescriptionFactory.create(
               source,
               false,
-              source.getKsqlTopic().getValueFormat().getFormat().name(),
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty()))

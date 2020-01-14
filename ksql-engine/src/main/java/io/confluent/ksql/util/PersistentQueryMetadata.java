@@ -64,7 +64,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final Long closeTimeout) {
+      final long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,

@@ -151,7 +151,7 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit
   ) {
-    final TransientQueryQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
+    final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
     final String applicationId = addTimeSuffix(getQueryApplicationId(
         getServiceId(),
@@ -171,15 +171,15 @@ public final class QueryExecutor {
         built.kafkaStreams,
         transientSchema,
         sources,
-        queue::setLimitHandler,
         planSummary,
-        queue.getQueue(),
+        queue,
         applicationId,
         built.topology,
         streamsProperties,
         overrides,
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG));
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+    );
   }
 
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {

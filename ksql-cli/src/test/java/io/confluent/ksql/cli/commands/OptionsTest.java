@@ -15,55 +15,140 @@
 
 package io.confluent.ksql.cli.commands;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.ksql.cli.Options;
-
+import io.confluent.ksql.rest.client.BasicCredentials;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class OptionsTest {
 
-  @Test(expected = ConfigException.class)
-  public void shouldThrowConfigExceptionIfOnlyUsernameIsProvided() throws Exception {
-    final Options options = Options.parse("http://foobar", "-u", "joe");
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Test
+  public void shouldUseDefaultServerIfNoneSupplied() {
+    // When:
+    final Options options = parse();
+
+    // Then:
+    assertThat(options.getServer(), is("http://localhost:8088"));
+  }
+
+  @Test
+  public void shouldWorkWithUserSuppliedServer() {
+    // When:
+    final Options options = parse("custom server");
+
+    // Then:
+    assertThat(options.getServer(), is("custom server"));
+  }
+
+  @Test
+  public void shouldThrowConfigExceptionIfOnlyUsernameIsProvided() {
+    // Given:
+    final Options options = parse("-u", "joe");
+
+    // Expect:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("You must specify both a username and a password");
+
+    // When:
     options.getUserNameAndPassword();
   }
 
-  @Test(expected = ConfigException.class)
-  public void shouldThrowConfigExceptionIfOnlyPasswordIsProvided() throws Exception {
-    final Options options = Options.parse("http://foobar", "-p", "joe");
+  @Test
+  public void shouldThrowConfigExceptionIfOnlyPasswordIsProvided() {
+    // Given:
+    final Options options = parse("http://foobar", "-p", "joe");
+
+    // Expect:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("You must specify both a username and a password");
+
+    // When:
     options.getUserNameAndPassword();
   }
 
   @Test
-  public void shouldReturnUserPasswordPairWhenBothProvided() throws Exception {
-    final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "joe");
-    assertTrue(options.getUserNameAndPassword().isPresent());
+  public void shouldReturnUserPasswordPairWhenBothProvided() {
+    // When:
+    final Options options = parse("http://foobar", "-u", "joe", "-p", "pp");
+
+    // Then:
+    assertThat(options.getUserNameAndPassword(),
+        is(Optional.of(BasicCredentials.of("joe", "pp"))));
   }
 
   @Test
-  public void shouldReturnEmptyOptionWhenUserAndPassNotPresent() throws Exception {
-    final Options options = Options.parse("http://foobar");
-    assertFalse(options.getUserNameAndPassword().isPresent());
+  public void shouldReturnEmptyOptionWhenUserAndPassNotPresent() {
+    // When:
+    final Options options = parse();
+
+    // Then:
+    assertThat(options.getUserNameAndPassword(), is(Optional.empty()));
   }
 
   @Test
-  public void shouldReturnPasswordNotSetIfPasswordIsNull() throws Exception {
-    final Options options = Options.parse("http://foobar");
-    assertFalse(options.isPasswordSet());
+  public void shouldNotRequirePasswordIfUserNameNotSet() {
+    // When:
+    final Options options = parse();
+
+    // Then:
+    assertThat(options.requiresPassword(), is(false));
   }
 
   @Test
-  public void shouldReturnPasswordNotSetIfPasswordIsEmpty() throws Exception {
-    final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "");
-    assertFalse(options.isPasswordSet());
+  public void shouldNotRequirePasswordIfUserNameAndPasswordSupplied() {
+    // When:
+    final Options options = parse("-u", "joe", "-p", "oo");
+
+    // Then:
+    assertThat(options.requiresPassword(), is(false));
   }
 
   @Test
-  public void shouldReturnPasswordSetIfPasswordIsNotEmpty() throws Exception {
-    final Options options = Options.parse("http://foobar", "-u", "joe", "-p", "joe");
-    assertTrue(options.isPasswordSet());
+  public void shouldRequirePasswordIfUserNameSuppliedButNotPassword() {
+    // When:
+    final Options options = parse("-u", "joe");
+
+    // Then:
+    assertThat(options.requiresPassword(), is(true));
+  }
+
+  @Test
+  public void shouldNotRequirePasswordIfUserNameAndPasswordSuppliedButEmpty() {
+    // When:
+    final Options options = parse("-u", "joe", "-p", "");
+
+    // Then:
+    assertThat(options.requiresPassword(), is(true));
+  }
+
+  @Test
+  public void shouldNotTrimPasswords() {
+    // When:
+    final Options options = parse("-u", "joe", "-p", "  ");
+
+    // Then:
+    assertThat(options.getUserNameAndPassword().map(BasicCredentials::password),
+        is(Optional.of("  ")));
+  }
+
+  private static Options parse(final String... args) {
+    try {
+      final Options parsed = Options.parse(args);
+      assertThat(parsed, is(notNullValue()));
+      return parsed;
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to parse options: " + StringUtils.join(args, ","), e);
+    }
   }
 }

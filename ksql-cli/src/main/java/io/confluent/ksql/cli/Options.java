@@ -21,7 +21,6 @@ import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
-import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
@@ -47,13 +46,12 @@ public class Options {
   @Inject
   public HelpOption<?> help;
 
-  @SuppressWarnings("unused") // Accessed via reflection
+  @SuppressWarnings({"unused", "FieldMayBeFinal", "FieldCanBeLocal"}) // Accessed via reflection
   @Once
-  @Required
   @Arguments(
       title = "server",
       description = "The address of the Ksql server to connect to (ex: http://confluent.io:9098)")
-  private String server;
+  private String server = "http://localhost:8088";
 
   private static final String CONFIGURATION_FILE_OPTION_NAME = "--config-file";
 
@@ -65,7 +63,7 @@ public class Options {
   private String configFile;
 
 
-  @SuppressWarnings("unused") // Accessed via reflection
+  @SuppressWarnings({"unused", "FieldMayBeFinal"}) // Accessed via reflection
   @Option(
       name = {USERNAME_OPTION, USERNAME_SHORT_OPTION},
       description =
@@ -75,7 +73,7 @@ public class Options {
               + "/"
               + PASSWORD_OPTION
               + " flag")
-  private String userName;
+  private String userName = "";
 
   @SuppressWarnings("unused") // Accessed via reflection
   @Option(
@@ -87,7 +85,7 @@ public class Options {
               + "/"
               + USERNAME_OPTION
               + " flag")
-  private String password;
+  private String password = "";
 
   @SuppressWarnings("unused") // Accessed via reflection
   @Option(
@@ -158,20 +156,24 @@ public class Options {
     return OutputFormat.valueOf(outputFormat);
   }
 
-  public String getUserName() {
-    return userName;
+  public boolean requiresPassword() {
+    if (userName.isEmpty()) {
+      return false;
+    }
+
+    return password.trim().isEmpty();
   }
 
   public void setPassword(final String password) {
+    if (password.isEmpty()) {
+      throw new IllegalArgumentException("Password must not be empty");
+    }
+
     this.password = password;
   }
 
-  public boolean isPasswordSet() {
-    return (password != null && !password.trim().isEmpty());
-  }
-
   public Optional<BasicCredentials> getUserNameAndPassword() {
-    if ((userName == null && password != null) || (password == null && userName != null)) {
+    if (userName.isEmpty() != password.isEmpty()) {
       throw new ConfigException(
           "You must specify both a username and a password. If you don't want to use an "
               + "authenticated session, don't specify either of the "
@@ -181,7 +183,7 @@ public class Options {
               + " flags on the command line");
     }
 
-    if (userName == null) {
+    if (userName.isEmpty()) {
       return Optional.empty();
     }
 

@@ -455,6 +455,7 @@ public class RestTestExecutor implements Closeable {
   ) {
     // Special handling for pull queries is required, as they depend on materialized state stores
     // being warmed up.  Initial requests may return no rows.
+    
     if (querySql.contains("EMIT CHANGES")) {
       // Push, not pull query:
       return;

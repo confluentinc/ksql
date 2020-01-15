@@ -59,8 +59,12 @@ public final class ListTopicsExecutor {
   ) {
     final KafkaTopicClient client = serviceContext.getTopicClient();
 
-    final Map<String, TopicDescription> kafkaTopicDescriptions
-        = client.describeTopics(client.listNonInternalTopicNames());
+    final Map<String, TopicDescription> kafkaTopicDescriptions;
+    if (statement.getStatement().getShowAll()) {
+      kafkaTopicDescriptions = client.describeTopics(client.listTopicNames());
+    } else {
+      kafkaTopicDescriptions = client.describeTopics(client.listNonInternalTopicNames());
+    }
 
     final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
         filterKsqlInternalTopics(kafkaTopicDescriptions, statement.getConfig()));

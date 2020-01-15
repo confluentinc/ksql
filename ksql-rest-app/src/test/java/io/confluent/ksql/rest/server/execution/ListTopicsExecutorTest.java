@@ -62,10 +62,11 @@ public class ListTopicsExecutorTest {
   }
 
   @Test
-  public void shouldListKafkaTopics() {
+  public void shouldListKafkaTopicsWithoutInternalTopics() {
     // Given:
     engine.givenKafkaTopic("topic1");
     engine.givenKafkaTopic("topic2");
+    engine.givenKafkaTopic("_confluent_any_topic");
 
     // When:
     final KafkaTopicsList topicsList =
@@ -80,6 +81,30 @@ public class ListTopicsExecutorTest {
     assertThat(topicsList.getTopics(), containsInAnyOrder(
         new KafkaTopicInfo("topic1", ImmutableList.of(1)),
         new KafkaTopicInfo("topic2", ImmutableList.of(1))
+    ));
+  }
+
+  @Test
+  public void shouldListKafkaTopicsIncludingInternalTopics() {
+    // Given:
+    engine.givenKafkaTopic("topic1");
+    engine.givenKafkaTopic("topic2");
+    engine.givenKafkaTopic("_confluent_any_topic");
+
+    // When:
+    final KafkaTopicsList topicsList =
+        (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
+            engine.configure("LIST ALL TOPICS;"),
+            ImmutableMap.of(),
+            engine.getEngine(),
+            serviceContext
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(topicsList.getTopics(), containsInAnyOrder(
+        new KafkaTopicInfo("topic1", ImmutableList.of(1)),
+        new KafkaTopicInfo("topic2", ImmutableList.of(1)),
+        new KafkaTopicInfo("_confluent_any_topic", ImmutableList.of(1))
     ));
   }
 

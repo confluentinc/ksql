@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Duration;
@@ -45,6 +46,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
+  private static final QueryId QUERY_ID = new QueryId(QUERY_APPLICATION_ID);
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();
@@ -74,7 +76,8 @@ public class QueryMetadataTest {
         Collections.emptyMap(),
         Collections.emptyMap(),
         closeCallback,
-        closeTimeout);
+        closeTimeout,
+        QUERY_ID);
   }
 
   @Test

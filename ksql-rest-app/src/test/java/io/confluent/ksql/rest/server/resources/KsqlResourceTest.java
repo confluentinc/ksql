@@ -1960,7 +1960,8 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            Optional.of(md.getState())
+            Optional.of(md.getState()),
+            RunningQuery.QueryType.PUSH
         ))
         .collect(Collectors.toList());
   }

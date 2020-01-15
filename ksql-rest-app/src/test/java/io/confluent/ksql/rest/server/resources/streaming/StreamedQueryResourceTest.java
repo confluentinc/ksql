@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -386,7 +387,8 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             Collections.emptyMap(),
             queryCloseCallback,
-            closeTimeout);
+            closeTimeout,
+            new QueryId(""));
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.RunningQuery.QueryType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,8 +43,9 @@ public class QueryDescription {
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
   private final Optional<String> state;
+  private final QueryType queryType;
 
-  @SuppressWarnings("WeakerAccess") // Invoked via reflection
+  @SuppressWarnings({"WeakerAccess", "checkstyle:ParameterNumber"}) // Invoked via reflection
   @JsonCreator
   public QueryDescription(
       @JsonProperty("id") final QueryId id,
@@ -55,7 +57,8 @@ public class QueryDescription {
       @JsonProperty("topology") final String topology,
       @JsonProperty("executionPlan") final String executionPlan,
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("state") final Optional<String> state,
+      @JsonProperty("queryType") final QueryType queryType
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -68,6 +71,7 @@ public class QueryDescription {
     this.overriddenProperties = ImmutableMap.copyOf(Objects
         .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.state = Objects.requireNonNull(state, "state");
+    this.queryType = Objects.requireNonNull(queryType, "queryType");
   }
 
   public QueryId getId() {
@@ -108,6 +112,10 @@ public class QueryDescription {
 
   public Optional<String> getState() {
     return state;
+  }
+
+  public QueryType getQueryType() {
+    return queryType;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

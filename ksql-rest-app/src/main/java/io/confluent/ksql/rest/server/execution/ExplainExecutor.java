@@ -128,7 +128,7 @@ public final class ExplainExecutor {
     final PersistentQueryMetadata metadata = executionContext
         .getPersistentQuery(new QueryId(queryId))
         .orElseThrow(() -> new KsqlException(
-            "Query with id:" + queryId + " does not exist, "
+            "Persistent Query with id:" + queryId + " does not exist, "
                 + "use SHOW QUERIES to view the full set of queries."));
 
     return QueryDescriptionFactory.forQueryMetadata(metadata);

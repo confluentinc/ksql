@@ -27,11 +27,17 @@ import java.util.Set;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RunningQuery {
 
+  public enum QueryType {
+    PUSH,
+    TRANSIENT
+  }
+
   private final String queryString;
   private final Set<String> sinks;
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
   private final Optional<String> state;
+  private final QueryType queryType;
 
   @JsonCreator
   public RunningQuery(
@@ -39,13 +45,15 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("state") final Optional<String> state,
+      @JsonProperty("queryType") final QueryType queryType
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.state = Objects.requireNonNull(state, "state");
+    this.queryType = Objects.requireNonNull(queryType, "queryType");
   }
 
   public String getQueryString() {
@@ -67,6 +75,10 @@ public class RunningQuery {
 
   public QueryId getId() {
     return id;
+  }
+
+  public QueryType getQueryType() {
+    return queryType;
   }
 
   public Optional<String> getState() {

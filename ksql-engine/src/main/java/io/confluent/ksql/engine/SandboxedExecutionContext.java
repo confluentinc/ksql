@@ -80,6 +80,16 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public Optional<TransientQueryMetadata> getTransientQuery(final String queryId) {
+    return engineContext.getTransientQuery(queryId);
+  }
+
+  @Override
+  public List<TransientQueryMetadata> getTransientQueries() {
+    return ImmutableList.copyOf(engineContext.getTransientQueries().values());
+  }
+
+  @Override
   public List<ParsedStatement> parse(final String sql) {
     return engineContext.parse(sql);
   }

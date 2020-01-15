@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Objects;
@@ -48,7 +49,8 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final long closeTimeout) {
+      final long closeTimeout,
+      final QueryId queryId) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -61,7 +63,8 @@ public class TransientQueryMetadata extends QueryMetadata {
         streamsProperties,
         overriddenProperties,
         closeCallback,
-        closeTimeout
+        closeTimeout,
+        queryId
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
 

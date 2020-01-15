@@ -20,6 +20,7 @@ import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryMetadataTest {
 
-  private static final String QUERY_ID = "queryId";
+  private static final String QUERY_APPLICATION_ID = "queryApplicationId";
+  private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final String EXECUTION_PLAN = "execution plan";
   private static final String SQL = "sql";
   private static final long CLOSE_TIMEOUT = 10L;
@@ -68,12 +70,13 @@ public class TransientQueryMetadataTest {
         sourceNames,
         EXECUTION_PLAN,
         rowQueue,
-        QUERY_ID,
+        QUERY_APPLICATION_ID,
         topology,
         props,
         overrides,
         closeCallback,
-        CLOSE_TIMEOUT
+        CLOSE_TIMEOUT,
+        QUERY_ID
     );
   }
 

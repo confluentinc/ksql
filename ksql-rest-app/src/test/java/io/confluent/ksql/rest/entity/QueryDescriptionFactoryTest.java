@@ -114,7 +114,8 @@ public class QueryDescriptionFactoryTest {
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        QUERY_ID);
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
 
@@ -141,13 +142,9 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
-  public void shouldHaveEmptyQueryIdFromTransientQuery() {
-    assertThat(transientQueryDescription.getId().getId(), is(isEmptyString()));
-  }
-
-  @Test
-  public void shouldHaveQueryIdForPersistentQuery() {
+  public void shouldHaveQueryIdForQueries() {
     assertThat(persistentQueryDescription.getId().getId(), is(QUERY_ID.getId()));
+    assertThat(transientQueryDescription.getId().getId(), is(QUERY_ID.getId()));
   }
 
   @Test
@@ -197,13 +194,9 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
-  public void shouldReportPersistentQueriesStatus() {
+  public void shouldReportQueriesStatus() {
     assertThat(persistentQueryDescription.getState(), is(Optional.of("RUNNING")));
-  }
-
-  @Test
-  public void shouldNotReportTransientQueriesStatus() {
-    assertThat(transientQueryDescription.getState(), is(Optional.empty()));
+    assertThat(transientQueryDescription.getState(), is(Optional.of("RUNNING")));
   }
 
   @Test
@@ -228,7 +221,8 @@ public class QueryDescriptionFactoryTest {
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        QUERY_ID);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
@@ -262,7 +256,8 @@ public class QueryDescriptionFactoryTest {
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        QUERY_ID);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);

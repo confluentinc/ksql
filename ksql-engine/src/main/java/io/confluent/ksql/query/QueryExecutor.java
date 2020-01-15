@@ -153,11 +153,12 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
-    final String applicationId = addTimeSuffix(getQueryApplicationId(
+    final QueryId queryIdWithTimeSuffix = new QueryId(addTimeSuffix(queryId.getId()));
+    final String applicationId = getQueryApplicationId(
         getServiceId(),
         ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
         queryId
-    ));
+    );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
 
@@ -178,7 +179,8 @@ public final class QueryExecutor {
         streamsProperties,
         overrides,
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        queryIdWithTimeSuffix
     );
   }
 

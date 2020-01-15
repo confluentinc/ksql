@@ -130,6 +130,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
   }
 
+  @Override
+  public Optional<TransientQueryMetadata> getTransientQuery(final String queryId) {
+    return primaryContext.getTransientQuery(queryId);
+  }
+  
+  public List<TransientQueryMetadata> getTransientQueries() {
+    return ImmutableList.copyOf(primaryContext.getTransientQueries().values());
+  }
+
   public boolean hasActiveQueries() {
     return !primaryContext.getPersistentQueries().isEmpty();
   }

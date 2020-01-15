@@ -123,7 +123,8 @@ final class EngineExecutor {
         overriddenProperties,
         serviceContext
     );
-    return executor.buildTransientQuery(
+
+    final TransientQueryMetadata queryMetadata = executor.buildTransientQuery(
         statement.getStatementText(),
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
@@ -134,6 +135,9 @@ final class EngineExecutor {
         outputNode.getSchema(),
         outputNode.getLimit()
     );
+
+    engineContext.registerQuery(queryMetadata);
+    return queryMetadata;
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty

@@ -78,6 +78,21 @@ public interface KsqlExecutionContext {
   List<PersistentQueryMetadata> getPersistentQueries();
 
   /**
+   * Retrieves the list of all running transient queries.
+   *
+   * @return the list of all transient queries
+   */
+  List<TransientQueryMetadata> getTransientQueries();
+
+  /**
+   * Retrieve the details of a transient query.
+   *
+   * @param queryId the string id of the query to retrieve.
+   * @return the query's details or else {@code Optional.empty()} if no found.
+   */
+  Optional<TransientQueryMetadata> getTransientQuery(String queryId);
+
+  /**
    * Parse the statement(s) in supplied {@code sql}.
    *
    * <p>Note: the state of the execution context will not be changed.

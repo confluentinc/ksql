@@ -39,6 +39,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +64,7 @@ final class EngineContext {
   private final KsqlParser parser;
   private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
+  private final Map<String, TransientQueryMetadata> transientQueries;
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -95,6 +98,7 @@ final class EngineContext {
     this.outerOnQueryCloseCallback = requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
     this.ddlCommandExec = new DdlCommandExec(metaStore);
     this.persistentQueries = new ConcurrentHashMap<>();
+    this.transientQueries = new ConcurrentHashMap<>();
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
   }
@@ -122,6 +126,14 @@ final class EngineContext {
 
   Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
     return Collections.unmodifiableMap(persistentQueries);
+  }
+
+  Optional<TransientQueryMetadata> getTransientQuery(final String queryId) {
+    return Optional.ofNullable(transientQueries.get(queryId));
+  }
+  
+  Map<String, TransientQueryMetadata> getTransientQueries() {
+    return Collections.unmodifiableMap(transientQueries);
   }
 
   MutableMetaStore getMetaStore() {
@@ -208,13 +220,21 @@ final class EngineContext {
       final QueryId queryId = persistentQuery.getQueryId();
 
       if (persistentQueries.putIfAbsent(queryId, persistentQuery) != null) {
-        throw new IllegalStateException("Query already registered:" + queryId);
+        throw new IllegalStateException("Persistent query already registered:" + queryId);
       }
 
       metaStore.updateForPersistentQuery(
           queryId.getId(),
           persistentQuery.getSourceNames(),
           ImmutableSet.of(persistentQuery.getSinkName()));
+    }
+
+    if (query instanceof TransientQueryMetadata) {
+      final TransientQueryMetadata transientQueryMetadata = (TransientQueryMetadata) query;
+      final String applicationId = transientQueryMetadata.getQueryApplicationId();
+      if (transientQueries.put(applicationId, transientQueryMetadata) != null) {
+        throw new IllegalStateException("Transient query already registered:" + applicationId);
+      }
     }
   }
 
@@ -223,6 +243,10 @@ final class EngineContext {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       persistentQueries.remove(persistentQuery.getQueryId());
       metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
+    }
+
+    if (query instanceof TransientQueryMetadata) {
+      transientQueries.remove(query.getQueryApplicationId());
     }
 
     outerOnQueryCloseCallback.accept(serviceContext, query);

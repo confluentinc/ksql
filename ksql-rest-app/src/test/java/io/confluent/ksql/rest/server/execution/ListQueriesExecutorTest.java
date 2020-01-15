@@ -40,6 +40,8 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
+
+import io.confluent.ksql.util.TransientQueryMetadata;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,10 +69,12 @@ public class ListQueriesExecutorTest {
   public void shouldListQueriesBasic() {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
-    final PersistentQueryMetadata metadata = givenPersistentQuery("id");
+    final PersistentQueryMetadata persistentQueryMetadata = givenPersistentQuery("id");
+    final TransientQueryMetadata transientQueryMetadata = givenTransientQuery("transient");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQueryMetadata));
+    when(engine.getTransientQueries()).thenReturn(ImmutableList.of(transientQueryMetadata));
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
@@ -82,11 +86,19 @@ public class ListQueriesExecutorTest {
 
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
-            metadata.getStatementString(),
-            ImmutableSet.of(metadata.getSinkName().name()),
-            ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
-            metadata.getQueryId(),
-            Optional.of(metadata.getState())
+          persistentQueryMetadata.getStatementString(),
+            ImmutableSet.of(persistentQueryMetadata.getSinkName().name()),
+            ImmutableSet.of(persistentQueryMetadata.getResultTopic().getKafkaTopicName()),
+            persistentQueryMetadata.getQueryId(),
+            Optional.of(persistentQueryMetadata.getState()),
+            RunningQuery.QueryType.PUSH
+        ), new RunningQuery(
+            transientQueryMetadata.getStatementString(),
+            ImmutableSet.of(),
+            ImmutableSet.of(),
+            transientQueryMetadata.getQueryId(),
+            Optional.of(transientQueryMetadata.getState()),
+            RunningQuery.QueryType.TRANSIENT
         )));
   }
 
@@ -94,11 +106,14 @@ public class ListQueriesExecutorTest {
   public void shouldListQueriesExtended() {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
-    final PersistentQueryMetadata metadata = givenPersistentQuery("id");
-    when(metadata.getState()).thenReturn("Running");
+    final PersistentQueryMetadata persistentQueryMetadata = givenPersistentQuery("id");
+    final TransientQueryMetadata transientQueryMetadata = givenTransientQuery("transient");
+    when(persistentQueryMetadata.getState()).thenReturn("Running");
+    when(transientQueryMetadata.getState()).thenReturn("Running");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQueryMetadata));
+    when(engine.getTransientQueries()).thenReturn(ImmutableList.of(transientQueryMetadata));
 
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
@@ -109,7 +124,8 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(metadata)));
+        QueryDescriptionFactory.forQueryMetadata(persistentQueryMetadata),
+        QueryDescriptionFactory.forQueryMetadata(transientQueryMetadata)));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -127,6 +143,18 @@ public class ListQueriesExecutorTest {
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
+
+    return metadata;
+  }
+
+  public static TransientQueryMetadata givenTransientQuery(final String id) {
+    final TransientQueryMetadata metadata = mock(TransientQueryMetadata.class);
+    when(metadata.getStatementString()).thenReturn("transient sql");
+    when(metadata.getQueryId()).thenReturn(new QueryId(id));
+    when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
+    when(metadata.getState()).thenReturn("Stuck");
+    when(metadata.getTopologyDescription()).thenReturn("transient topology");
+    when(metadata.getExecutionPlan()).thenReturn("transient plan");
 
     return metadata;
   }

@@ -45,11 +45,11 @@ public final class QueryDescriptionFactory {
     }
 
     return create(
-        new QueryId(""),
+        queryMetadata.getQueryId(),
         queryMetadata,
         Optional.empty(),
         Collections.emptySet(),
-        Optional.empty()
+        Optional.of(queryMetadata.getState())
     );
   }
 
@@ -70,7 +70,8 @@ public final class QueryDescriptionFactory {
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
-        state
+        state,
+        sinks.isEmpty() ? RunningQuery.QueryType.TRANSIENT : RunningQuery.QueryType.PUSH
     );
   }
 }

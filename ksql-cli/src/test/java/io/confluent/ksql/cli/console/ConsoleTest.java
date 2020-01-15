@@ -287,7 +287,11 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar")));
+            "select * from t1 emit changes", Collections.emptySet(), Collections.emptySet(), new QueryId("0"), Optional.of("Foobar"), RunningQuery.QueryType.TRANSIENT));
+    queries.add(
+        new RunningQuery(
+            "create stream pageviews as select * from pageview", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("1"), Optional.of("BarFoo"), RunningQuery.QueryType.PUSH));
+
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -303,20 +307,29 @@ public class ConsoleTest {
           + "  \"@type\" : \"queries\",\n"
           + "  \"statementText\" : \"e\",\n"
           + "  \"queries\" : [ {\n"
-          + "    \"queryString\" : \"select * from t1\",\n"
-          + "    \"sinks\" : [ \"Test\" ],\n"
-          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
+          + "    \"queryString\" : \"select * from t1 emit changes\",\n"
+          + "    \"sinks\" : [ ],\n"
+          + "    \"sinkKafkaTopics\" : [ ],\n"
           + "    \"id\" : \"0\",\n"
-          + "    \"state\" : \"Foobar\"\n"
+          + "    \"state\" : \"Foobar\",\n" 
+          + "    \"queryType\" : \"TRANSIENT\"\n"
+          + "  }, {\n"
+          + "    \"queryString\" : \"create stream pageviews as select * from pageview\",\n"
+          + "    \"sinks\" : [ \"Test\" ],\n" 
+          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
+          + "    \"id\" : \"1\",\n"
+          + "    \"state\" : \"BarFoo\",\n"
+          + "    \"queryType\" : \"PUSH\"\n"
           + "  } ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     \n"
-          + "---------------------------------------------------------------------\n"
-          + " 0        | Foobar | Test      | Test topic       | select * from t1 \n"
-          + "---------------------------------------------------------------------\n"
+          + " Query ID | Status | Query Type | Sink Name | Sink Kafka Topic | Query String                                      \n"
+          + "----------------------------------------------------------------------------------------------------\n"
+          + " 0        | Foobar | TRANSIENT  |           |                  | select * from t1 emit changes                     \n"
+          + " 1        | BarFoo | PUSH       | Test      | Test topic       | create stream pageviews as select * from pageview \n"
+          + "----------------------------------------------------------------------------------------------------\n"
           + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
     }
   }
@@ -338,10 +351,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"), RunningQuery.QueryType.PUSH)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"), RunningQuery.QueryType.PUSH)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -387,14 +400,16 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"queryType\" : \"PUSH\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"queryType\" : \"PUSH\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"
@@ -993,10 +1008,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"), RunningQuery.QueryType.PUSH)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"), RunningQuery.QueryType.PUSH)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1041,14 +1056,16 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"queryType\" : \"PUSH\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"queryType\" : \"PUSH\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"

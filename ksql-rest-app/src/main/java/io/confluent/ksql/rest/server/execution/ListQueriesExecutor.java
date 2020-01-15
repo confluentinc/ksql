@@ -19,18 +19,26 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
 public final class ListQueriesExecutor {
 
-  private ListQueriesExecutor() { }
+  private ListQueriesExecutor() { 
+    
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
@@ -40,25 +48,45 @@ public final class ListQueriesExecutor {
   ) {
     final ListQueries listQueries = statement.getStatement();
     if (listQueries.getShowExtended()) {
+      final List<QueryDescription> descriptions = executionContext.getPersistentQueries().stream()
+          .map(QueryDescriptionFactory::forQueryMetadata)
+          .collect(Collectors.toList());
+      descriptions.addAll(executionContext.getTransientQueries().stream()
+          .map(QueryDescriptionFactory::forQueryMetadata)
+          .collect(Collectors.toList()));
+
       return Optional.of(new QueryDescriptionList(
           statement.getStatementText(),
-          executionContext.getPersistentQueries().stream()
-              .map(QueryDescriptionFactory::forQueryMetadata)
-              .collect(Collectors.toList())));
+          descriptions
+      ));
     }
 
-    return Optional.of(new io.confluent.ksql.rest.entity.Queries(
-        statement.getStatementText(),
-        executionContext.getPersistentQueries()
-            .stream()
-            .map(q -> new RunningQuery(
-                    q.getStatementString(),
-                    ImmutableSet.of(q.getSinkName().name()),
-                    ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
-                    q.getQueryId(),
-                    Optional.of(q.getState())
-                ))
-            .collect(Collectors.toList())));
-  }
+    final List<RunningQuery> runningQueries = executionContext.getPersistentQueries()
+        .stream()
+        .map(
+            q -> new RunningQuery(
+                q.getStatementString(),
+                ImmutableSet.of(q.getSinkName().name()),
+                ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+                q.getQueryId(),
+                Optional.of(q.getState()),
+                RunningQuery.QueryType.PUSH))
+        .collect(Collectors.toList());
+    
+    runningQueries.addAll(executionContext.getTransientQueries()
+        .stream()
+        .map(
+            q -> new RunningQuery(
+                q.getStatementString(),
+                Collections.emptySet(),
+                Collections.emptySet(),
+                q.getQueryId(),
+                Optional.of(q.getState()),
+                RunningQuery.QueryType.TRANSIENT))
+        .collect(Collectors.toList()));
 
+    return Optional.of(new Queries(
+        statement.getStatementText(),
+        runningQueries));
+  }
 }

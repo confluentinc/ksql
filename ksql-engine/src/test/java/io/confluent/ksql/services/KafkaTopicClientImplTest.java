@@ -104,9 +104,7 @@ public class KafkaTopicClientImplTest {
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-changelog");
-  private static final String confluentInternalTopic =
-      String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
-          "confluent-control-center");
+  private static final String confluentInternalTopic = "_confluent-confluent-control-center";
   private Node node;
   @Mock
   private AdminClient adminClient;

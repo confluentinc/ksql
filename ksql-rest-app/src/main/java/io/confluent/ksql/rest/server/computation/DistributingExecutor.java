@@ -16,6 +16,8 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -26,7 +28,9 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -88,6 +92,13 @@ public class DistributingExecutor {
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, securityContext.getServiceContext())
         .inject(statement);
+
+    if (injected.getStatement() instanceof InsertInto) {
+      throwIfInsertOnInternalTopic(
+          executionContext.getMetaStore(),
+          (InsertInto)injected.getStatement()
+      );
+    }
 
     checkAuthorization(injected, securityContext, executionContext);
 
@@ -157,6 +168,22 @@ public class DistributingExecutor {
               statement));
     } catch (final Exception e) {
       throw new KsqlServerException("The KSQL server is not permitted to execute the command", e);
+    }
+  }
+
+  private void throwIfInsertOnInternalTopic(
+      final MetaStore metaStore,
+      final InsertInto insertInto
+  ) {
+    final DataSource<?> dataSource = metaStore.getSource(insertInto.getTarget());
+    if (dataSource == null) {
+      throw new KsqlException("Cannot insert into an unknown stream/table: "
+          + insertInto.getTarget());
+    }
+
+    if (ReservedInternalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert into the reserved internal topic: "
+          + dataSource.getKafkaTopicName());
     }
   }
 }

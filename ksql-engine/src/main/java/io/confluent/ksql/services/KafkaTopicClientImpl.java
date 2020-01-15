@@ -25,6 +25,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -178,8 +179,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listNonInternalTopicNames() {
     return listTopicNames().stream()
-        .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-            || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+        .filter(topic -> !ReservedInternalTopics.isInternalTopic(topic))
         .collect(Collectors.toSet());
   }
 

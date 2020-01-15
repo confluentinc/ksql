@@ -23,7 +23,6 @@ public final class KsqlConstants {
   public static final String CONFLUENT_AUTHOR = "Confluent";
 
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
-  public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";

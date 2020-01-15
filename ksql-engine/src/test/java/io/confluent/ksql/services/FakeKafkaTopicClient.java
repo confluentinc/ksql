@@ -20,7 +20,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 import com.google.common.collect.Sets;
 import io.confluent.ksql.topic.TopicProperties;
-import io.confluent.ksql.util.KsqlConstants;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
@@ -158,8 +160,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Set<String> listNonInternalTopicNames() {
     return topicMap.keySet().stream()
-        .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+        .filter(topic -> !ReservedInternalTopics.isInternalTopic(topic))
         .collect(Collectors.toSet());
   }
 

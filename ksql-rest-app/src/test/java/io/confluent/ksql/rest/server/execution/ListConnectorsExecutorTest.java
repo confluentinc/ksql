@@ -71,6 +71,16 @@ public class ListConnectorsExecutorTest {
       ConnectorType.SOURCE
   );
 
+  private static final ConnectorStateInfo STATUS_WARNING = new ConnectorStateInfo(
+      "connector",
+      new ConnectorState("RUNNING", "foo", "bar"),
+      ImmutableList.of(
+          new TaskState(0, "FAILED", "", ""),
+          new TaskState(1, "FAILED", "", "")
+      ),
+      ConnectorType.SOURCE
+  );
+
   @Mock
   private KsqlExecutionContext engine;
   @Mock
@@ -113,6 +123,36 @@ public class ListConnectorsExecutorTest {
         ImmutableList.of(),
         ImmutableList.of(
             new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS, "RUNNING (1/2 tasks RUNNING)")
+        )
+    )));
+  }
+
+  @Test
+  public void shouldLabelConnectorsWithNoRunningTasksAsWarning() {
+    // Given:
+    when(connectClient.status("connector"))
+        .thenReturn(ConnectResponse.success(STATUS_WARNING, HttpStatus.SC_OK));
+    when(connectClient.connectors())
+        .thenReturn(ConnectResponse.success(ImmutableList.of("connector"), HttpStatus.SC_OK));
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
+
+    // When:
+    final Optional<KsqlEntity> entity = ListConnectorsExecutor
+        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    assertThat("expected response!", entity.isPresent());
+    final ConnectorList connectorList = (ConnectorList) entity.get();
+
+    assertThat(connectorList, is(new ConnectorList(
+        "",
+        ImmutableList.of(),
+        ImmutableList.of(
+            new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS, "WARNING (0/2 tasks RUNNING)")
         )
     )));
   }

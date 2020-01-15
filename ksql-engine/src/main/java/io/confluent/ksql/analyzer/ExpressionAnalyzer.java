@@ -15,24 +15,16 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.Cast;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
-import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
-import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.NotExpression;
-import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,99 +40,46 @@ class ExpressionAnalyzer {
     this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
-  void analyzeExpression(final Expression expression, final boolean allowWindowMetaFields) {
-    final Visitor visitor = new Visitor(allowWindowMetaFields);
-    visitor.process(expression, null);
+  Set<ColumnRef> analyzeExpression(
+      final Expression expression,
+      final boolean allowWindowMetaFields
+  ) {
+    final Set<ColumnRef> referencedColumns = new HashSet<>();
+    final ColumnExtractor extractor = new ColumnExtractor(allowWindowMetaFields, referencedColumns);
+    extractor.process(expression, null);
+    return referencedColumns;
   }
 
-  private final class Visitor extends VisitParentExpressionVisitor<Object, Object> {
+  private final class ColumnExtractor extends TraversalExpressionVisitor<Object> {
 
+    private final Set<ColumnRef> referencedColumns;
     private final boolean allowWindowMetaFields;
 
-    Visitor(final boolean allowWindowMetaFields) {
+    ColumnExtractor(
+        final boolean allowWindowMetaFields,
+        final Set<ColumnRef> referencedColumns
+    ) {
       this.allowWindowMetaFields = allowWindowMetaFields;
-    }
-
-    public Object visitLikePredicate(final LikePredicate node, final Object context) {
-      process(node.getValue(), null);
-      return null;
-    }
-
-    public Object visitFunctionCall(final FunctionCall node, final Object context) {
-      for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, null);
-      }
-      return null;
-    }
-
-    public Object visitArithmeticBinary(
-        final ArithmeticBinaryExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
-    }
-
-    public Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
-      return process(node.getValue(), context);
-    }
-
-    public Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
-      return process(node.getValue(), context);
-    }
-
-    public Object visitLogicalBinaryExpression(
-        final LogicalBinaryExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
+      this.referencedColumns = referencedColumns;
     }
 
     @Override
-    public Object visitComparisonExpression(
-        final ComparisonExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
-    }
-
-    @Override
-    public Object visitNotExpression(final NotExpression node, final Object context) {
-      return process(node.getValue(), null);
-    }
-
-    @Override
-    public Object visitCast(final Cast node, final Object context) {
-      process(node.getExpression(), context);
-      return null;
-    }
-
-    @Override
-    public Object visitColumnReference(
+    public Void visitColumnReference(
         final ColumnReferenceExp node,
         final Object context
     ) {
-      throwOnUnknownOrAmbiguousColumn(node.getReference());
+      final ColumnRef reference = node.getReference();
+      referencedColumns.add(getQualifiedColumnRef(reference));
       return null;
     }
 
-    @Override
-    public Object visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Object context
-    ) {
-      process(node.getBase(), context);
-      return null;
-    }
-
-    private void throwOnUnknownOrAmbiguousColumn(final ColumnRef name) {
+    private ColumnRef getQualifiedColumnRef(final ColumnRef name) {
       final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(name);
 
       if (sourcesWithField.isEmpty()) {
         if (allowWindowMetaFields && name.name().equals(SchemaUtil.WINDOWSTART_NAME)) {
-          return;
+          // window start doesn't need a qualifier as it's a special hacky column
+          return name;
         }
 
         throw new KsqlException("Column '" + name.toString(FormatOptions.noEscape())
@@ -156,6 +95,8 @@ class ExpressionAnalyzer {
         throw new KsqlException("Column '" + name.name().name() + "' is ambiguous. "
             + "Could be any of: " + possibilities);
       }
+
+      return name.withSource(Iterables.getOnlyElement(sourcesWithField));
     }
   }
 }

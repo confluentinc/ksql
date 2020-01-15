@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.analyzer;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -33,6 +36,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -127,6 +131,25 @@ public class ExpressionAnalyzerTest {
 
     // When:
     analyzer.analyzeExpression(expression, true);
+  }
+
+  @Test
+  public void shouldAddQualifier() {
+    // Given:
+    final Expression expression = new ColumnReferenceExp(
+        ColumnRef.withoutSource(ColumnName.of("else"))
+    );
+
+    when(sourceSchemas.sourcesWithField(any()))
+        .thenReturn(ImmutableSet.of(SourceName.of("something")));
+
+    // When:
+    final Set<ColumnRef> columnRefs = analyzer.analyzeExpression(expression, true);
+
+    // Then:
+    assertThat(
+        Iterables.getOnlyElement(columnRefs),
+        is(ColumnRef.of(SourceName.of("something"), ColumnName.of("else"))));
   }
 
   @Test

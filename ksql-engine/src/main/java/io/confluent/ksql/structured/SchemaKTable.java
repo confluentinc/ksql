@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -132,6 +133,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public SchemaKStream<Struct> selectKey(final Expression keyExpression,
+      final Stacker contextStacker) {
+    if (!needsRepartition(keyExpression)) {
+      return (SchemaKStream<Struct>) this;
+    }
+
+    throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
+        + "If this is a join, make sure that the criteria uses the TABLE key "
+        + this.keyField.ref().map(ColumnRef::toString).orElse("ROWKEY") + " instead of "
+        + keyExpression);
   }
 
   @Override

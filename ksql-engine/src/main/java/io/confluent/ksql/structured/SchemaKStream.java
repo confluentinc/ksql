@@ -360,7 +360,7 @@ public class SchemaKStream<K> {
     return getSchema().isMetaColumn(columnRef.name()) ? KeyField.none() : newKeyField;
   }
 
-  private boolean needsRepartition(final Expression expression) {
+  protected boolean needsRepartition(final Expression expression) {
     if (!(expression instanceof ColumnReferenceExp)) {
       return true;
     }

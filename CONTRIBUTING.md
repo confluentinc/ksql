@@ -18,7 +18,8 @@ $ ./bin/ksql
 ```
 
 This will start the KSQL server in the background and the KSQL CLI in the
-foreground.
+foreground. Check the `logs` folder for the log files that the server writes 
+including any errors.
 
 If you would rather have the KSQL server logs spool to the console, then
 drop the `-daemon` switch, and start the CLI in a second console.

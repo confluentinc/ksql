@@ -15,10 +15,18 @@
 
 package io.confluent.ksql.rest;
 
+import io.confluent.ksql.util.KsqlConfig;
+
 public class DefaultErrorMessages implements ErrorMessages {
 
   @Override
   public String kafkaAuthorizationErrorMessage(final Exception e) {
     return e.getMessage();
+  }
+
+  @Override
+  public String schemaRegistryUnconfiguredErrorMessage() {
+    return "KSQL is not configured to use a schema registry. To enable it, please set "
+        + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
   }
 }

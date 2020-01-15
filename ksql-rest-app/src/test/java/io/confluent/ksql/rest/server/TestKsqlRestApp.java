@@ -27,6 +27,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -445,7 +446,7 @@ public class TestKsqlRestApp extends ExternalResource {
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
       this.securityContextBinder = (config, securityExtension) ->
         new KsqlSecurityContextBinder(config, securityExtension,
-            new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
+            new KsqlSchemaRegistryClientFactory(config, new DefaultErrorMessages(), Collections.emptyMap())::get);
     }
 
     @SuppressWarnings("unused") // Part of public API

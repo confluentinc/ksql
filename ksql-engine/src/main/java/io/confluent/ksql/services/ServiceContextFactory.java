@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -35,7 +36,10 @@ public final class ServiceContextFactory {
     return create(
         ksqlConfig,
         new DefaultKafkaClientSupplier(),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get,
+        new KsqlSchemaRegistryClientFactory(
+            ksqlConfig,
+            new DefaultErrorMessages(),
+            Collections.emptyMap())::get,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
                                        Optional.empty()),
         ksqlClientSupplier

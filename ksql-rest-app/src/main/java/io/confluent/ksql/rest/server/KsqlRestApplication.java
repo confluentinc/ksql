@@ -465,7 +465,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, restConfig.getConfiguredInstance(
+                KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
+                ErrorMessages.class
+        ),Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
             schemaRegistryClientFactory));

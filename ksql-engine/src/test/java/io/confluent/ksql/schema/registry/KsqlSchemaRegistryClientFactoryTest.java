@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.schema.registry;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Map;
@@ -61,6 +61,8 @@ public class KsqlSchemaRegistryClientFactoryTest {
   private SslFactory sslFactory;
   @Mock
   private SslEngineBuilder sslEngineBuilder;
+  @Mock
+  private ErrorMessages errorMessages;
 
   @Mock
   private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
@@ -74,10 +76,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     when(sslFactory.sslEngineBuilder()).thenReturn(sslEngineBuilder);
     when(sslEngineBuilder.sslContext()).thenReturn(SSL_CONTEXT);
-  }
-
-  @Test
-  public void should() {
   }
 
   @Test
@@ -130,11 +128,33 @@ public class KsqlSchemaRegistryClientFactoryTest {
   }
 
   @Test
+  public void shouldUseDefaultSchemaRegistryClientWhenUrlNotSpecified() {
+    // Given
+    final KsqlConfig config1 = config();
+
+    final Map<String, Object> schemaRegistryClientConfigs = ImmutableMap.of(
+        "ksql.schema.registry.url", "     "
+    );
+    final KsqlConfig config2 = new KsqlConfig(schemaRegistryClientConfigs);
+
+    // When:
+    SchemaRegistryClient client1 = new KsqlSchemaRegistryClientFactory(
+        config1, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+    SchemaRegistryClient client2 = new KsqlSchemaRegistryClientFactory(
+        config2, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+
+    // Then:
+    assertThat(client1, instanceOf(DefaultSchemaRegistryClient.class));
+    assertThat(client2, instanceOf(DefaultSchemaRegistryClient.class));
+  }
+
+  @Test
   public void shouldPassBasicAuthCredentialsToSchemaRegistryClient() {
     // Given
     final Map<String, Object> schemaRegistryClientConfigs = ImmutableMap.of(
         "ksql.schema.registry.basic.auth.credentials.source", "USER_INFO",
-        "ksql.schema.registry.basic.auth.user.info", "username:password"
+        "ksql.schema.registry.basic.auth.user.info", "username:password",
+        "ksql.schema.registry.url", "some url"
     );
 
     final KsqlConfig config = new KsqlConfig(schemaRegistryClientConfigs);
@@ -145,7 +165,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     new KsqlSchemaRegistryClientFactory(
-        config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));

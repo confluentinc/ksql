@@ -361,9 +361,9 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
-            DEFAULT_SCHEMA_REGISTRY_URL,
+            "",
             ConfigDef.Importance.MEDIUM,
-            "The URL for the schema registry, defaults to http://localhost:8081"
+            "The URL for the schema registry"
         ).define(
             CONNECT_URL_PROPERTY,
             ConfigDef.Type.STRING,

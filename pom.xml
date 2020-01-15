@@ -379,6 +379,12 @@
                 <version>${clearspring-analytics.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+
             <!-- Required for running tests -->
             <dependency>
                 <groupId>junit</groupId>

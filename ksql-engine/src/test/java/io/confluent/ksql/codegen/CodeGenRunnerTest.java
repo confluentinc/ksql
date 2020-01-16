@@ -121,6 +121,7 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
+    private static final int DECIMAL_INDEX = 16;
     private static final int INVALID_JAVA_IDENTIFIER_INDEX = 17;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
@@ -432,6 +433,12 @@ public class CodeGenRunnerTest {
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(true));
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(false));
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(false));
+
+        // decimal
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("1.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("0.1"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("2.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, null, new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
     }
 
     @Test
@@ -453,6 +460,12 @@ public class CodeGenRunnerTest {
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(false));
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(true));
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(true));
+
+        // decimal
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("1.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("0.1"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("2.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, null, new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
     }
 
     @Test
@@ -489,11 +502,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenArrayValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with ARRAY values. "
-            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter:");
+        expectedException.expectMessage("expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with ARRAY values")));
+            equalTo("Cannot compare ARRAY values")));
 
         // When:
         evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
@@ -503,11 +515,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenMapValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with MAP values. "
-            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter: ");
+        expectedException.expectMessage("expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with MAP values")));
+            equalTo("Cannot compare MAP values")));
 
         // When:
         evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
@@ -517,11 +528,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenBooleanValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with BOOLEAN values. "
-            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter: ");
+        expectedException.expectMessage("expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
+            equalTo("Unexpected boolean comparison: >=")));
 
         // When:
         evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");
@@ -594,7 +604,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleMathUdfs() {
         // Given:
         final String query =
-            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
+            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34E0), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15L, 3, 1.5);
 
@@ -968,12 +978,24 @@ public class CodeGenRunnerTest {
     }
 
     private boolean evalBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        final String simpleQuery;
+        if (val instanceof Double) {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %e AND %E EMIT CHANGES;", col, min, max);
+        } else {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        }
+
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalNotBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        final String simpleQuery;
+        if (val instanceof Double) {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %e AND %E EMIT CHANGES;", col, min, max);
+        } else {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        }
+
         return evalBetweenClause(simpleQuery, col, val);
     }
 

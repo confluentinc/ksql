@@ -88,8 +88,8 @@ public class ExpressionFormatterTest {
   public void shouldFormatSubscriptExpression() {
     assertThat(ExpressionFormatter.formatExpression(new SubscriptExpression(
             new StringLiteral("abc"),
-            new DoubleLiteral(3.0))),
-        equalTo("'abc'[3.0]"));
+            new IntegerLiteral(3))),
+        equalTo("'abc'[3]"));
   }
 
   @Test
@@ -131,13 +131,34 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatDoubleLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2.0"));
+  public void shouldFormatDoubleLiteralWithSmallScale() {
+    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2E0"));
+  }
+
+  @Test
+  public void shouldFormatDoubleLiteralWithLargeScale() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(1234.56789876d)),
+        equalTo("1.23456789876E3"));
+  }
+
+  @Test
+  public void shouldFormatMaxDoubleLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(Double.MAX_VALUE)),
+        equalTo("1.7976931348623157E308"));
+  }
+
+  @Test
+  public void shouldFormatMinDoubleLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(Double.MIN_VALUE)),
+        equalTo("4.9E-324"));
   }
 
   @Test
   public void shouldFormatDecimalLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral("3.5")), equalTo("DECIMAL '3.5'"));
+    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral("3.5")), equalTo("3.5"));
   }
 
   @Test

@@ -68,6 +68,7 @@ import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
@@ -1086,6 +1087,11 @@ public class AstBuilder {
     @Override
     public Node visitIntegerLiteral(final SqlBaseParser.IntegerLiteralContext context) {
       return ParserUtil.visitIntegerLiteral(context);
+    }
+
+    @Override
+    public Node visitFloatLiteral(final FloatLiteralContext context) {
+      return ParserUtil.parseFloatLiteral(context);
     }
 
     @Override

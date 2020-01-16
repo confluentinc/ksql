@@ -175,7 +175,7 @@
       "name": "sum with constant double arg",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE S2 as SELECT id, sum(1.0) AS sum_val FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, sum(1E0) AS sum_val FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},

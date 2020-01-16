@@ -311,8 +311,9 @@ sourceName
     ;
 
 number
-    : DECIMAL_VALUE  #decimalLiteral
-    | INTEGER_VALUE  #integerLiteral
+    : DECIMAL_VALUE         #decimalLiteral
+    | FLOATING_POINT_VALUE  #floatLiteral
+    | INTEGER_VALUE         #integerLiteral
     ;
 
 literal
@@ -488,7 +489,10 @@ INTEGER_VALUE
 DECIMAL_VALUE
     : DIGIT+ '.' DIGIT*
     | '.' DIGIT+
-    | DIGIT+ ('.' DIGIT*)? EXPONENT
+    ;
+
+FLOATING_POINT_VALUE
+    : DIGIT+ ('.' DIGIT*)? EXPONENT
     | '.' DIGIT+ EXPONENT
     ;
 

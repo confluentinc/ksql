@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +30,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,6 +130,15 @@ public class QueryMetadata {
 
   public Topology getTopology() {
     return topology;
+  }
+
+  public Collection<StreamsMetadata> getAllMetadata() {
+    try {
+      return kafkaStreams.allMetadata();
+    } catch (IllegalStateException e) {
+      LOG.error(e.getMessage());
+    }
+    return ImmutableList.of();
   }
 
   public Map<String, Object> getStreamsProperties() {

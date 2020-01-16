@@ -413,7 +413,7 @@ public class TestKsqlRestApp extends ExternalResource {
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
-
+    configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
     configMap.putAll(additionalProps);
     return configMap;
   }

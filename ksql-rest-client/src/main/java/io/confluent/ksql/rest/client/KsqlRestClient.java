@@ -20,9 +20,11 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
+import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.Closeable;
@@ -33,7 +35,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 
 public class KsqlRestClient implements Closeable {
 
@@ -84,6 +88,17 @@ public class KsqlRestClient implements Closeable {
 
   public RestResponse<HealthCheckResponse> getServerHealth() {
     return target().getServerHealth();
+  }
+
+  public Future<Response> makeAsyncHeartbeatRequest(
+      final HostInfoEntity host,
+      final long timestamp
+  ) {
+    return target().postAsyncHeartbeatRequest(host, timestamp);
+  }
+
+  public RestResponse<ClusterStatusResponse> makeClusterStatusRequest() {
+    return target().getClusterStatus();
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {

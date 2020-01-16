@@ -126,6 +126,8 @@ public class KsqlRestApplicationTest {
   private PreparedStatement<?> preparedStatement;
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  @Mock
+  private HeartbeatAgent heartbeatAgent;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -219,7 +221,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCreateLogStreamThroughKsqlResource() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     verify(ksqlResource).handleKsqlStatements(
@@ -237,7 +239,7 @@ public class KsqlRestApplicationTest {
         .thenReturn(false);
 
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     verify(ksqlResource, never()).handleKsqlStatements(
@@ -249,7 +251,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(commandQueue, commandRunner, ksqlResource);
@@ -267,7 +269,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCreateLogTopicBeforeSendingCreateStreamRequest() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(topicClient, ksqlResource);
@@ -283,7 +285,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldInitializeCommandStoreCorrectly() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue, commandRunner);
@@ -295,7 +297,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldReplayCommandsBeforeSettingReady() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(commandRunner, serverState);
@@ -306,7 +308,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldSendCreateStreamRequestBeforeSettingReady() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(ksqlResource, serverState);
@@ -328,7 +330,7 @@ public class KsqlRestApplicationTest {
     });
 
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serviceContext);
@@ -350,7 +352,7 @@ public class KsqlRestApplicationTest {
     });
 
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
@@ -367,7 +369,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureRocksDBConfigSetter() {
     // When:
-    app.startKsql();
+    app.startKsql(ksqlConfig);
 
     // Then:
     verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
@@ -431,7 +433,8 @@ public class KsqlRestApplicationTest {
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
-        rocksDBConfigSetterHandler
+        rocksDBConfigSetterHandler,
+        Optional.of(heartbeatAgent)
     );
   }
 }

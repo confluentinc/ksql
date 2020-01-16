@@ -116,6 +116,40 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS_DOC =
       "How long to wait for the command runner to process a command from the command topic "
           + "before reporting an error metric.";
+  public static final String KSQL_HEARTBEAT_ENABLE_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.enable";
+  private static final String KSQL_HEARTBEAT_ENABLE_DOC =
+      "Whether the heartheat mechanism is enabled or not. It is disabled by default.";
+
+  public static final String KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.send.interval.ms";
+  private static final String KSQL_HEARTBEAT_SEND_INTERVAL_MS_DOC =
+      "Interval at which heartbeats are broadcasted to servers.";
+
+  public static final String KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.check.interval.ms";
+  private static final String KSQL_HEARTBEAT_CHECK_INTERVAL_MS_DOC =
+      "Interval at which server processes received heartbeats.";
+
+  public static final String KSQL_HEARTBEAT_WINDOW_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.window.ms";
+  private static final String KSQL_HEARTBEAT_WINDOW_MS_DOC =
+      "Size of time window across which to count missed heartbeats.";
+
+  public static final String KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.missed.threshold.ms";
+  private static final String KSQL_HEARTBEAT_MISSED_THRESHOLD_DOC =
+      "Minimum number of consecutive missed heartbeats that flag a server as down.";
+
+  public static final String KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.discover.interval.ms";
+  private static final String KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_DOC =
+      "Interval at which server attempts to discover what other ksql servers exist in the cluster.";
+
+  public static final String KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG =
+      KSQL_CONFIG_PREFIX + "heartbeat.thread.pool.size";
+  private static final String KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC =
+      "Size of thread pool used for sending / processing heartbeats and cluster discovery.";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -182,6 +216,48 @@ public class KsqlRestConfig extends RestConfig {
         DefaultErrorMessages.class,
         Importance.LOW,
         KSQL_SERVER_ERRORS_DOC
+    ).define(
+        KSQL_HEARTBEAT_ENABLE_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_ENABLE_DOC
+    ).define(
+        KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG,
+        Type.LONG,
+        100L,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_SEND_INTERVAL_MS_DOC
+    ).define(
+        KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG,
+        Type.LONG,
+        200L,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_CHECK_INTERVAL_MS_DOC
+    ).define(
+        KSQL_HEARTBEAT_WINDOW_MS_CONFIG,
+        Type.LONG,
+        2000L,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_WINDOW_MS_DOC
+    ).define(
+        KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG,
+        Type.LONG,
+        3L,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_MISSED_THRESHOLD_DOC
+    ).define(
+        KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG,
+        Type.LONG,
+        2000L,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_DOC
+    ).define(
+        KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG,
+        Type.INT,
+        3,
+        Importance.MEDIUM,
+        KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC
     );
   }
 

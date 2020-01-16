@@ -18,15 +18,19 @@ package io.confluent.ksql.rest.client;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
+import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.ws.rs.ProcessingException;
@@ -47,6 +51,8 @@ public final class KsqlTarget {
   private static final String STATUS_PATH = "/status";
   private static final String KSQL_PATH = "/ksql";
   private static final String QUERY_PATH = "/query";
+  private static final String HEARTBEAT_PATH = "/heartbeat";
+  private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
 
   private final WebTarget target;
   private final LocalProperties localProperties;
@@ -72,6 +78,21 @@ public final class KsqlTarget {
 
   public RestResponse<HealthCheckResponse> getServerHealth() {
     return get("/healthcheck", HealthCheckResponse.class);
+  }
+
+  public Future<Response> postAsyncHeartbeatRequest(
+      final HostInfoEntity host,
+      final long timestamp
+  ) {
+    return postAsync(
+        HEARTBEAT_PATH,
+        new HeartbeatMessage(host, timestamp),
+        Optional.empty()
+    );
+  }
+
+  public RestResponse<ClusterStatusResponse> getClusterStatus() {
+    return get(CLUSTERSTATUS_PATH, ClusterStatusResponse.class);
   }
 
   public RestResponse<CommandStatuses> getStatuses() {
@@ -174,6 +195,30 @@ public final class KsqlTarget {
       if (response != null && closeResponse) {
         response.close();
       }
+    }
+  }
+
+  private Future<Response> postAsync(
+      final String path,
+      final Object jsonEntity,
+      final Optional<Integer> readTimeoutMs
+  ) {
+    try {
+      // Performs an asynchronous request
+      return target
+          .path(path)
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .property(ClientProperties.READ_TIMEOUT, readTimeoutMs.orElse(0))
+          .headers(headers())
+          .async()
+          .post(Entity.json(jsonEntity));
+    } catch (final ProcessingException e) {
+      if (shouldRetry(readTimeoutMs, e)) {
+        return postAsync(path, jsonEntity, calcReadTimeout(readTimeoutMs));
+      }
+      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
+    } catch (final Exception e) {
+      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
     }
   }
 

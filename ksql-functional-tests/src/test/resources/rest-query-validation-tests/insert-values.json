@@ -237,7 +237,7 @@
     {
       "name": "should handle arbitrary nested expressions",
       "statements": [
-        "CREATE STREAM TEST (I INT, A ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (I INT, A ARRAY<ARRAY<BIGINT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (I, A) VALUES (-1, ARRAY[ARRAY[1]]);"
       ],
       "inputs": [
@@ -249,7 +249,7 @@
     {
       "name": "should handle map expressions",
       "statements": [
-        "CREATE STREAM TEST (I INT, A MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (I INT, A MAP<VARCHAR, BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (I, A) VALUES (-1, MAP('a':=0, 'b':=1));"
       ],
       "inputs": [

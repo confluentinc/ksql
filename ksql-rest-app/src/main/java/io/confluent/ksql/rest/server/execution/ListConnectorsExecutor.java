@@ -129,7 +129,11 @@ public final class ListConnectorsExecutor {
         .filter(State.RUNNING.name()::equals)
         .count();
 
-    return String.format("RUNNING (%s/%s tasks RUNNING)",
+    final String status = connectorState.tasks().size() > 0 && numRunningTasks == 0
+        ? "WARNING"
+        : "RUNNING";
+    return String.format("%s (%s/%s tasks RUNNING)",
+        status,
         numRunningTasks,
         connectorState.tasks().size());
   }

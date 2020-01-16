@@ -62,11 +62,11 @@ import org.slf4j.LoggerFactory;
  * <p>The services are started in the following order by defining their startup delay:
  * First, the cluster membership service starts, then the sending of the heartbeats and last the
  * processing of the received heartbeats. This provides some buffer for the cluster to be discovered
- * before the processing of heartbeats starts. However, it doesn't not guarantee that a remote
+ * before the processing of heartbeats starts. However, it does not guarantee that a remote
  * server will not be classified as dead immediately after discovered (although we optimistically
  * consider all newly discovered servers as alive) if there is lag in the sending/receiving of
  * heartbeats. That's why the service that sends heartbeats sends to both alive and dead servers:
- * avoid situations where a remote server is classified as down prematurely.</p>
+ * avoid situations where a remote server is classified as dead prematurely.</p>
  *
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling

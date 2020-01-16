@@ -75,6 +75,44 @@
         {"topic": "OUTPUT", "key": "john", "value": "2"},
         {"topic": "OUTPUT", "key": "john", "value": "1"}
       ]
+    },
+    {
+      "name": "should count back to zero",
+      "statements": [
+        "CREATE TABLE INPUT (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT as SELECT COUNT() FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "3"},
+        {"topic": "test_topic", "key": "2", "value": "3"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": "2"},
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": "0"}
+      ]
+    },
+    {
+      "name": "should support removing zero counts from table",
+      "statements": [
+        "CREATE TABLE INPUT (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT as SELECT COUNT() FROM INPUT GROUP BY ID HAVING COUNT() > 0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "3"},
+        {"topic": "test_topic", "key": "2", "value": "3"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": "2"},
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": null}
+      ]
     }
   ]
 }

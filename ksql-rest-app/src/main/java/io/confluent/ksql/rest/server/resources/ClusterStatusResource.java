@@ -16,16 +16,24 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.GET;
@@ -33,6 +41,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.streams.state.HostInfo;
+import org.apache.kafka.streams.state.StreamsMetadata;
 
 /**
  * Endpoint that reports the view of the cluster that this server has.
@@ -44,15 +54,19 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class ClusterStatusResource {
 
+  private final KsqlEngine engine;
   private final HeartbeatAgent heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
   private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
       new HostStoreLags(ImmutableMap.of(), 0);
 
-  public ClusterStatusResource(final HeartbeatAgent heartbeatAgent,
-                               final Optional<LagReportingAgent> lagReportingAgent) {
-    this.heartbeatAgent = heartbeatAgent;
-    this.lagReportingAgent = lagReportingAgent;
+  public ClusterStatusResource(
+      final KsqlEngine engine,
+      final HeartbeatAgent heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent) {
+    this.engine = Objects.requireNonNull(engine, "engine");
+    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.lagReportingAgent = Objects.requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
   @GET
@@ -77,9 +91,48 @@ public class ClusterStatusResource {
     return new ClusterStatusResponse(response);
   }
 
+
   private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
     return lagReportingAgent
       .flatMap(agent -> agent.getLagPerHost(ksqlHost))
         .orElse(EMPTY_HOST_STORE_LAGS);
+
+  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHost ksqlHost) {
+    final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
+    if (currentQueries.isEmpty()) {
+      // empty response
+      return Collections.emptyMap();
+    }
+
+    final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
+    for (PersistentQueryMetadata persistentMetadata: currentQueries) {
+      for (StreamsMetadata streamsMetadata : persistentMetadata.getAllMetadata()) {
+        if (streamsMetadata == null || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost))) {
+          continue;
+        }
+        if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE) {
+          continue;
+        }
+        final ActiveStandbyEntity entity = new ActiveStandbyEntity(
+            streamsMetadata.stateStoreNames(),
+            streamsMetadata.topicPartitions()
+                .stream()
+                .map(topicPartition -> new TopicPartitionEntity(
+                    topicPartition.topic(), topicPartition.partition()))
+                .collect(Collectors.toSet()),
+            streamsMetadata.standbyStateStoreNames(),
+            streamsMetadata.standbyTopicPartitions()
+                .stream()
+                .map(topicPartition -> new TopicPartitionEntity(
+                    topicPartition.topic(), topicPartition.partition()))
+                .collect(Collectors.toSet()));
+        perQueryMap.put((persistentMetadata).getQueryApplicationId(), entity);
+      }
+    }
+    return perQueryMap;
+  }
+
+  private HostInfo asHostInfo(final KsqlHost ksqlHost) {
+    return new HostInfo(ksqlHost.host(), ksqlHost.port());
   }
 }

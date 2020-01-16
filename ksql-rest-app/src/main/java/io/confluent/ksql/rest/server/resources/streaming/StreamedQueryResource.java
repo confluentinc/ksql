@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -29,6 +30,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -81,6 +83,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
+  private final Optional<HeartbeatAgent> heartbeatAgent;
+  private final RoutingFilter routingFilters;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -89,7 +93,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilter routingFilters
   ) {
     this(
         ksqlEngine,
@@ -99,12 +105,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueueCatchupTimeout,
         activenessRegistrar,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        heartbeatAgent,
+        routingFilters
     );
   }
 
   @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   StreamedQueryResource(
+      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
@@ -112,7 +122,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilter routingFilters
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -125,7 +137,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
-    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
   }
 
   @Override
@@ -230,10 +244,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> streamsProperties
   ) {
     final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
+        ConfiguredStatement.of(statement,streamsProperties, ksqlConfig);
 
-    final TableRowsEntity entity = PullQueryExecutor
-        .execute(configured, ksqlEngine, serviceContext);
+    final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
+        ksqlEngine, heartbeatAgent, routingFilters);
+    final TableRowsEntity entity = pullQueryExecutor
+        .execute(configured, serviceContext);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 

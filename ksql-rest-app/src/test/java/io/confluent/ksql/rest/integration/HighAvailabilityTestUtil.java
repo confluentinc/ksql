@@ -21,22 +21,22 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
-
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-
       final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
 
       if (res.isErroneous()) {
         throw new AssertionError("Erroneous result: " + res.getErrorMessage());
       }
-
       return res.getResponse();
     }
   }
@@ -91,6 +91,30 @@ class HighAvailabilityTestUtil {
     }
   }
 
+  static void waitForStreamsMetadataToInitialize(
+      final TestKsqlRestApp restApp, List<KsqlHostEntity> hosts, String queryId
+  ) {
+    while (true) {
+      ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(restApp);
+      List<KsqlHostEntity> initialized = hosts.stream()
+          .filter(hostInfo -> Optional.ofNullable(
+              clusterStatusResponse
+                  .getClusterStatus()
+                  .get(hostInfo))
+              .map(hostStatusEntity -> hostStatusEntity
+                  .getActiveStandbyPerQuery()
+                  .get(queryId)).isPresent())
+            .collect(Collectors.toList());
+      if(initialized.size() == hosts.size())
+        break;
+    }
+    try {
+      Thread.sleep(200);
+    } catch (final Exception e) {
+      // Meh
+    }
+  }
+
   static boolean remoteServerIsDown(
       final KsqlHostEntity remoteServer,
       final Map<KsqlHostEntity, HostStatusEntity> clusterStatus
@@ -124,7 +148,6 @@ class HighAvailabilityTestUtil {
       final int numServers,
       final Map<KsqlHostEntity, HostStatusEntity> clusterStatus
   ) {
-
     return clusterStatus.size() >= numServers;
   }
 
@@ -138,4 +161,6 @@ class HighAvailabilityTestUtil {
       restClient.makeAsyncHeartbeatRequest(hostInfoEntity, timestamp);
     }
   }
+
 }
+

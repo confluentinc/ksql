@@ -58,7 +58,12 @@ public interface SimpleKsqlClient {
   RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
 
   /**
+<<<<<<< HEAD
    * Send lag information to remote Ksql server.
+=======
+   * Send a request to remote Ksql server to inquire to inquire about which state stores the
+   * remote server maintains as an active and standby.
+>>>>>>> 9247ecc7c... fixed broken test after kafka merge
    * @param serverEndPoint the remote destination.
    * @param lagReportingMessage the host lag data
    */

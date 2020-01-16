@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -163,6 +164,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
 
+
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -191,6 +193,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent
+
   ) {
     super(restConfig);
 
@@ -216,6 +219,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
+
   }
 
   @Override
@@ -229,7 +233,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
     if (heartbeatAgent.isPresent()) {
       config.register(new HeartbeatResource(heartbeatAgent.get()));
-      config.register(new ClusterStatusResource(heartbeatAgent.get(), lagReportingAgent));
+      config.register(new ClusterStatusResource(
+          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
     }
     if (lagReportingAgent.isPresent()) {
       config.register(new LagReportingResource(lagReportingAgent.get()));
@@ -472,6 +477,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           ErrorMessages.class
       ));
 
+      final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+      if (ksqlConfigNoPort.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STALE_READS)) {
+        filterBuilder.add(new ActiveHostFilter());
+      }
+      filterBuilder.add(new LivenessFilter());
+      final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
+
       container.addEndpoint(
           ServerEndpointConfig.Builder
               .create(
@@ -496,7 +508,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                       errorHandler,
                       securityExtension,
                       serverState,
-                      serviceContext.getSchemaRegistryClientFactory()
+                      serviceContext.getSchemaRegistryClientFactory(),
+                      heartbeatAgent,
+                      routingFilters
                   );
                 }
               })
@@ -528,6 +542,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
   }
 
+  @SuppressWarnings("checkstyle:MethodLength")
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -597,6 +612,17 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ErrorMessages.class
     ));
 
+    final Optional<LagReportingAgent> lagReportingAgent =
+        initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
+    final Optional<HeartbeatAgent> heartbeatAgent =
+        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
+    final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STALE_READS)) {
+      filterBuilder.add(new ActiveHostFilter());
+    }
+    filterBuilder.add(new LivenessFilter());
+    final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -605,7 +631,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        heartbeatAgent,
+        routingFilters
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -648,11 +676,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
-
-    final Optional<LagReportingAgent> lagReportingAgent =
-        initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
-    final Optional<HeartbeatAgent> heartbeatAgent =
-        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
 
     return new KsqlRestApplication(
         serviceContext,

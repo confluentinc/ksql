@@ -13,25 +13,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
-
-/**
- * Immutable representation of {@link org.apache.kafka.streams.state.HostInfo HostInfo}
- * from KStreams.
- */
 @Immutable
-public class KsqlHost {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class TopicPartitionEntity {
 
-  private final String host;
-  private final int port;
+  private String topic;
+  private int partition;
 
-  public KsqlHost(final String host, final int port) {
-    this.host = host;
-    this.port = port;
+  @JsonCreator
+  public TopicPartitionEntity(
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partition") final int partition
+  ) {
+    this.topic = topic;
+    this.partition = partition;
+  }
+
+  public String getTopic() {
+    return topic;
+  }
+
+  public int getPartition() {
+    return partition;
   }
 
   @Override
@@ -39,29 +50,26 @@ public class KsqlHost {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
 
-    final KsqlHost host = (KsqlHost) o;
-    return this.host.equals(host.host) && port == host.port;
+    final TopicPartitionEntity that = (TopicPartitionEntity) o;
+    return topic.equals(that.topic)
+        && partition == that.partition;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(host, port);
-  }
-
-  public String host() {
-    return host;
-  }
-
-  public int port() {
-    return port;
+    return Objects.hash(topic, partition);
   }
 
   @Override
   public String toString() {
-    return "KsqlHost{host='" + this.host + '\'' + ", port=" + this.port + '}';
+    return "TopicPartition{"
+        + "topic=" + topic
+        + ", partition=" + partition
+        + '}';
   }
 }

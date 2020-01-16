@@ -17,22 +17,35 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.materialization.Locator;
+import io.confluent.ksql.execution.streams.materialization.MaterializationException;
+import io.confluent.ksql.util.HostStatus;
+import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.net.URL;
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Kafka Streams implementation of {@link Locator}.
  */
 final class KsLocator implements Locator {
 
+  private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
   private final Serializer<Struct> keySerializer;
@@ -51,27 +64,61 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  public Optional<KsqlNode> locate(final Struct key) {
-    final StreamsMetadata metadata = kafkaStreams
-        .metadataForKey(stateStoreName, key, keySerializer);
+  public List<KsqlNode> locate(
+      final Struct key,
+      final Map<KsqlHost, HostStatus> allHostsStatus,
+      final RoutingFilter routingFilters
+  ) {
+    final KeyQueryMetadata metadata = kafkaStreams
+        .queryMetadataForKey(stateStoreName, key, keySerializer);
 
-    if (metadata == StreamsMetadata.NOT_AVAILABLE) {
-      return Optional.empty();
+    // Fail fast if Streams not ready. Let client handle it
+    if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
+      LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
+                stateStoreName, key);
+      throw new MaterializationException(String.format(
+          "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
     }
 
-    final HostInfo hostInfo = metadata.hostInfo();
-    return Optional.of(asNode(hostInfo));
+    final HostInfo activeHost = metadata.getActiveHost();
+    final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
+    LOG.info("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
+
+    final Stream<KsqlHost> active = Stream.of(asKsqlHost((activeHost)));
+    final Stream<KsqlHost> standby = standByHosts
+        .stream()
+        .map(this::asKsqlHost);
+    final Stream<KsqlHost> hostStream = Stream.concat(active, standby);
+
+    // Filter out hosts based on liveness and lag filters.
+    // The list is ordered by routing preference: active node is first, then standby nodes
+    // in order of increasing lag.
+    // If heartbeat is not enabled, all hosts are considered alive.
+    final List<KsqlNode> filteredHosts = hostStream
+        .filter(hostInfo -> routingFilters.filter(
+              allHostsStatus, activeHost, hostInfo, stateStoreName, metadata.getPartition()))
+        .map(this::asNode)
+        .collect(Collectors.toList());
+
+    LOG.info("Filtered and ordered hosts: {}", filteredHosts);
+    System.out.println("Filtered hosts= " + filteredHosts);
+    return filteredHosts;
   }
 
-  private KsqlNode asNode(final HostInfo hostInfo) {
+  @VisibleForTesting
+  KsqlHost asKsqlHost(final HostInfo hostInfo) {
+    return new KsqlHost(hostInfo.host(), hostInfo.port());
+  }
+
+  @VisibleForTesting
+  KsqlNode asNode(final KsqlHost host) {
     return new Node(
-        isLocalHost(hostInfo),
-        buildLocation(hostInfo)
+        isLocalHost(host),
+        buildLocation(host)
     );
   }
 
-  private boolean isLocalHost(final HostInfo hostInfo) {
+  private boolean isLocalHost(final KsqlHost hostInfo) {
     if (hostInfo.port() != localHost.getPort()) {
       return false;
     }
@@ -80,7 +127,7 @@ final class KsLocator implements Locator {
         || hostInfo.host().equalsIgnoreCase("localhost");
   }
 
-  private URI buildLocation(final HostInfo remoteInfo) {
+  private URI buildLocation(final KsqlHost remoteInfo) {
     try {
       return new URL(
           localHost.getProtocol(),
@@ -114,5 +161,34 @@ final class KsLocator implements Locator {
     public URI location() {
       return location;
     }
+
+    @Override
+    public String toString() {
+      return "Node{"
+          + "local = " + local
+          + ", location = " + location
+          + "}";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      final Node that = (Node) o;
+      return local == that.local
+          && location.equals(that.location);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(local, location);
+    }
+
   }
 }

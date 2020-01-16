@@ -18,12 +18,10 @@ package io.confluent.ksql.rest.server.resources;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
-import io.confluent.ksql.rest.server.LagReportingAgent;
 import java.util.Optional;
 import javax.ws.rs.core.Response;
 import org.junit.Before;
@@ -38,16 +36,16 @@ public class ClusterStatusResourceTest {
   @Mock
   private HeartbeatAgent heartbeatAgent;
   @Mock
-  private LagReportingAgent lagReportingAgent;
-
+  private KsqlEngine ksqlEngine;
 
   private ClusterStatusResource clusterStatusResource;
 
   @Before
   public void setUp() {
-    clusterStatusResource = new ClusterStatusResource(heartbeatAgent,
-        Optional.of(lagReportingAgent));
-    when(lagReportingAgent.getAllLags()).thenReturn(ImmutableMap.of());
+    clusterStatusResource = new ClusterStatusResource(
+        ksqlEngine,
+        heartbeatAgent,
+        Optional.empty());
   }
 
   @Test

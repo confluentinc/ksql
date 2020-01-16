@@ -28,9 +28,9 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
-import io.confluent.ksql.rest.server.resources.streaming.PullQueryPublisher.TheQueryExecutor;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
@@ -64,7 +64,7 @@ public class PullQueryPublisherTest {
   @Mock
   private Subscriber<Collection<StreamedRow>> subscriber;
   @Mock
-  private TheQueryExecutor pullQueryExecutor;
+  private PullQueryExecutor pullQueryExecutor;
   @Mock
   private TableRowsEntity entity;
   @Captor
@@ -75,10 +75,12 @@ public class PullQueryPublisherTest {
 
   @Before
   public void setUp() {
-    publisher = new PullQueryPublisher(engine, serviceContext, statement, pullQueryExecutor);
+    publisher = new PullQueryPublisher(
+        serviceContext,
+        statement,
+        pullQueryExecutor);
 
-    when(pullQueryExecutor.execute(any(), any(), any())).thenReturn(entity);
-
+    when(pullQueryExecutor.execute(any(), any())).thenReturn(entity);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -102,7 +104,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, engine, serviceContext);
+    verify(pullQueryExecutor).execute(statement, serviceContext);
   }
 
   @Test
@@ -115,7 +117,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, engine, serviceContext);
+    verify(pullQueryExecutor).execute(statement, serviceContext);
   }
 
   @Test
@@ -149,9 +151,8 @@ public class PullQueryPublisherTest {
   public void shouldCallOnErrorOnFailure() {
     // Given:
     givenSubscribed();
-
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any())).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);

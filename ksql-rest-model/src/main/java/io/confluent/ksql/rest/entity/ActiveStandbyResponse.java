@@ -1,8 +1,8 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -27,18 +27,18 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
-public final class ClusterStatusResponse {
+public class ActiveStandbyResponse {
 
-  private final ImmutableMap<KsqlHostEntity, HostStatusEntity> clusterStatus;
+  private final ImmutableMap<String, ActiveStandbyEntity> perQueryInfo;
 
   @JsonCreator
-  public ClusterStatusResponse(
-      @JsonProperty("clusterStatus") final Map<KsqlHostEntity, HostStatusEntity> clusterStatus) {
-    this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
+  public ActiveStandbyResponse(
+      @JsonProperty("perQueryInfo") final Map<String, ActiveStandbyEntity> perQueryInfo) {
+    this.perQueryInfo = ImmutableMap.copyOf(requireNonNull(perQueryInfo, "perQueryInfo"));
   }
 
-  public Map<KsqlHostEntity, HostStatusEntity> getClusterStatus() {
-    return clusterStatus;
+  public Map<String, ActiveStandbyEntity> getPerQueryInfo() {
+    return perQueryInfo;
   }
 
   @Override
@@ -51,17 +51,13 @@ public final class ClusterStatusResponse {
       return false;
     }
 
-    final ClusterStatusResponse that = (ClusterStatusResponse) o;
-    return Objects.equals(clusterStatus, that.clusterStatus);
+    final ActiveStandbyResponse that = (ActiveStandbyResponse) o;
+    return Objects.equals(perQueryInfo, that.perQueryInfo);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterStatus);
+    return Objects.hash(perQueryInfo);
   }
 
-  @Override
-  public String toString() {
-    return "ClusterStatus = " + clusterStatus;
-  }
 }

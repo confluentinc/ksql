@@ -70,10 +70,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return authHeader
-        .map(target::authorizationHeader)
-        .orElse(target)
-        .postKsqlRequest(sql, Optional.empty());
+    return getTarget(target, authHeader).postKsqlRequest(sql, Optional.empty());
   }
 
   @Override
@@ -84,9 +81,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    final RestResponse<QueryStream> resp = authHeader
-        .map(target::authorizationHeader)
-        .orElse(target)
+    final RestResponse<QueryStream> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, Optional.empty());
 
     if (resp.isErroneous()) {
@@ -111,9 +106,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    authHeader
-        .map(target::authorizationHeader)
-        .orElse(target)
+    getTarget(target, authHeader)
         .postAsyncHeartbeatRequest(new KsqlHostEntity(host.host(), host.port()), timestamp);
   }
 
@@ -122,10 +115,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return authHeader
-        .map(target::authorizationHeader)
-        .orElse(target)
-        .getClusterStatus();
+    return getTarget(target, authHeader).getClusterStatus();
   }
 
   @Override
@@ -136,9 +126,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    authHeader
+    getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage);
+  }
+
+  private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
+    return authHeader
         .map(target::authorizationHeader)
-        .orElse(target)
-        .postAsyncLagReportingRequest(lagReportingMessage);
+        .orElse(target);
   }
 }

@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
+import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
@@ -43,10 +45,25 @@ public class LagReportingAgentTest {
   private static KsqlHost HOST2 = new KsqlHost("host2", 1234);
   private static KsqlHostEntity HOST_ENTITY1 = new KsqlHostEntity("host1", 1234);
   private static KsqlHostEntity HOST_ENTITY2 = new KsqlHostEntity("host2", 1234);
+  private static KsqlHost HI1 = new KsqlHost("host1", 1234);
+  private static KsqlHost HI2 = new KsqlHost("host2", 1234);
+  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
+      new HostStoreLags(ImmutableMap.of(), 0);
+  private static final ImmutableMap<String, ActiveStandbyEntity> EMPTY_ACTIVE_STANDBY_PER_QUERY =
+      ImmutableMap.of();
   private static HostStatus HOST1_STATUS_ALIVE = new HostStatus(true, 0L);
   private static HostStatus HOST2_STATUS_ALIVE = new HostStatus(true, 0L);
   private static HostStatus HOST1_STATUS_DEAD = new HostStatus(false, 0L);
   private static HostStatus HOST2_STATUS_DEAD = new HostStatus(false, 0L);
+  private static HostStatusEntity HOST1_STATUS_ALIVE_ENTITY = new HostStatusEntity(
+      true, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
+  private static HostStatusEntity HOST2_STATUS_ALIVE_ENTITY = new HostStatusEntity(
+      true, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
+  private static HostStatusEntity HOST1_STATUS_DEAD_ENTITY = new HostStatusEntity(
+      false, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
+  private static HostStatusEntity HOST2_STATUS_DEAD_ENTITY = new HostStatusEntity(
+      false, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
+
 
   private static ImmutableMap<KsqlHost, HostStatus> HOSTS_ALIVE
       = ImmutableMap.<KsqlHost, HostStatus>builder()

@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -29,8 +30,10 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
@@ -90,7 +93,7 @@ public class WSQueryEndpoint {
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher pushQueryPublisher;
-  private final QueryPublisher pullQueryPublisher;
+  private final IPullQueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
@@ -100,6 +103,8 @@ public class WSQueryEndpoint {
   private final ServerState serverState;
   private final Errors errorHandler;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final Optional<HeartbeatAgent> heartbeatAgent;
+  private final RoutingFilter routingFilters;
 
   private WebSocketSubscriber<?> subscriber;
   private KsqlSecurityContext securityContext;
@@ -119,7 +124,9 @@ public class WSQueryEndpoint {
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilter routingFilters
   ) {
     this(ksqlConfig,
         mapper,
@@ -138,7 +145,10 @@ public class WSQueryEndpoint {
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
         serverState,
-        schemaRegistryClientFactory);
+        schemaRegistryClientFactory,
+        heartbeatAgent,
+        routingFilters
+    );
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -151,7 +161,7 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher pushQueryPublisher,
-      final QueryPublisher pullQueryPublisher,
+      final IPullQueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
@@ -161,7 +171,9 @@ public class WSQueryEndpoint {
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final ServerState serverState,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilter routingFilters
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -188,6 +200,8 @@ public class WSQueryEndpoint {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
+    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
   }
 
   @SuppressWarnings("unused")
@@ -392,17 +406,25 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    final QueryPublisher queryPublisher = query.isPullQuery()
-        ? pullQueryPublisher
-        : pushQueryPublisher;
-
-    queryPublisher.start(
-        ksqlEngine,
-        info.securityContext.getServiceContext(),
-        exec,
-        configured,
-        streamSubscriber
-    );
+    if (query.isPullQuery()) {
+      pullQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber,
+          heartbeatAgent,
+          routingFilters
+      );
+    } else {
+      pushQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber
+      );
+    }
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
@@ -453,10 +475,16 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilter routingFilters
+
   ) {
-    new PullQueryPublisher(ksqlEngine, serviceContext, query)
-        .subscribe(streamSubscriber);
+    new PullQueryPublisher(
+        serviceContext,
+        query,
+        new PullQueryExecutor(ksqlEngine, heartbeatAgent, routingFilters)
+    ).subscribe(streamSubscriber);
   }
 
   private static void startPrintPublisher(
@@ -480,6 +508,20 @@ public class WSQueryEndpoint {
         WebSocketSubscriber<StreamedRow> subscriber);
 
   }
+
+  interface IPullQueryPublisher {
+
+    void start(
+        KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
+        ListeningScheduledExecutorService exec,
+        ConfiguredStatement<Query> query,
+        WebSocketSubscriber<StreamedRow> subscriber,
+        Optional<HeartbeatAgent> heartbeatAgent,
+        RoutingFilter routingFilters);
+
+  }
+
 
   interface PrintTopicPublisher {
 

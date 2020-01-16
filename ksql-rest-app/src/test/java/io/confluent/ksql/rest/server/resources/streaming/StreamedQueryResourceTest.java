@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
@@ -53,6 +54,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.RoutingFilters;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -178,7 +180,9 @@ public class StreamedQueryResourceTest {
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        Optional.empty(),
+        new RoutingFilters(ImmutableList.of())
     );
 
     testResource.configure(VALID_CONFIG);
@@ -204,7 +208,9 @@ public class StreamedQueryResourceTest {
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        Optional.empty(),
+        new RoutingFilters(ImmutableList.of())
     );
 
     // Then:

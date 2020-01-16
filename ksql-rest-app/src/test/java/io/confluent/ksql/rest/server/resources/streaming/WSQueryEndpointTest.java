@@ -50,8 +50,10 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.RoutingFilters;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.IPullQueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
@@ -139,7 +141,7 @@ public class WSQueryEndpointTest {
   @Mock
   private QueryPublisher pushQueryPublisher;
   @Mock
-  private QueryPublisher pullQueryPublisher;
+  private IPullQueryPublisher pullQueryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
   @Mock
@@ -207,7 +209,9 @@ public class WSQueryEndpointTest {
         serviceContextFactory,
         defaultServiceContextProvider,
         serverState,
-        schemaRegistryClientSupplier
+        schemaRegistryClientSupplier,
+        Optional.empty(),
+        new RoutingFilters(ImmutableList.of())
     );
   }
 
@@ -439,6 +443,8 @@ public class WSQueryEndpointTest {
         eq(serviceContext),
         eq(exec),
         eq(configuredStatement),
+        any(),
+        any(),
         any());
   }
 

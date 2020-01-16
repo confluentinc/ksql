@@ -47,6 +47,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
@@ -95,12 +97,12 @@ public class KafkaTopicClientImplTest {
   private static final String topicName2 = "topic2";
   private static final String topicName3 = "topic3";
   private static final String internalTopic1 = String.format("%s%s_%s",
-      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-repartition");
   private static final String internalTopic2 = String.format("%s%s_%s",
-      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-changelog");
@@ -324,7 +326,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final String applicationId = String.format("%s%s",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
         "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
     verify(adminClient);

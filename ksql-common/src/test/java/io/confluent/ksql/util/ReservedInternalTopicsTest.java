@@ -86,4 +86,16 @@ public class ReservedInternalTopicsTest {
       assertThat(isReserved, is(false));
     });
   }
+
+  @Test
+  public void shouldReturnTrueOnKsqlInternalTopics() {
+    // Given
+    final String ksqlInternalTopic = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "_test";
+
+    // When
+    final boolean isReserved = ReservedInternalTopics.isInternalTopic(ksqlInternalTopic);
+
+    // Then
+    assertThat(isReserved, is(true));
+  }
 }

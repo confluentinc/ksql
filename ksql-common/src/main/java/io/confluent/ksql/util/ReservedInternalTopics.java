@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 public final class ReservedInternalTopics {
+  public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+
   private static final Set<String> ALL_INTERNAL_TOPICS_PREFIXES = ImmutableSet.of(
       // Confluent
       "_confluent",
@@ -52,10 +54,11 @@ public final class ReservedInternalTopics {
   }
 
   private static boolean isPrefix(final String topicName) {
-    return ALL_INTERNAL_TOPICS_PREFIXES.stream()
-        .filter(topicName::startsWith)
-        .findAny()
-        .isPresent();
+    return topicName.startsWith(KSQL_INTERNAL_TOPIC_PREFIX)
+        || ALL_INTERNAL_TOPICS_PREFIXES.stream()
+            .filter(topicName::startsWith)
+            .findAny()
+            .isPresent();
   }
 
   private static boolean isLiteral(final String topicName) {

@@ -34,8 +34,10 @@ public class ListTopicsTest {
             new ListTopics(Optional.of(OTHER_LOCATION), true, true)
         )
         .addEqualityGroup(
-            new ListTopics(Optional.of(SOME_LOCATION), false, false),
-            new ListTopics(Optional.of(OTHER_LOCATION), false,false)
+            new ListTopics(Optional.of(SOME_LOCATION), false, true)
+        )
+        .addEqualityGroup(
+            new ListTopics(Optional.of(SOME_LOCATION), true,false)
         )
         .testEquals();
   }

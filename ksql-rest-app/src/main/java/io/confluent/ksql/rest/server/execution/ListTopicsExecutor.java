@@ -29,7 +29,7 @@ import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -119,7 +119,7 @@ public final class ListTopicsExecutor {
       final KsqlConfig ksqlConfig
   ) {
     final Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    final String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    final String serviceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String persistentQueryPrefix = ksqlConfig.getString(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);

@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public final class KsqlInternalTopicUtils {
   public static String getTopicName(final KsqlConfig ksqlConfig, final String topicSuffix) {
     return String.format(
         "%s%s_%s",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         topicSuffix
     );

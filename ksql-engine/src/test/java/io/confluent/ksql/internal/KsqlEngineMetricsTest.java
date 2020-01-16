@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -66,7 +68,8 @@ public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
-  private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
+  private static final String metricNamePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+      + KSQL_SERVICE_ID;
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
 
   @Mock

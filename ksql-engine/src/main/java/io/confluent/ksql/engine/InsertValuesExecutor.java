@@ -148,21 +148,7 @@ public class InsertValuesExecutor {
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
-
-    final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
-    if (dataSource == null) {
-      throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + insertValues.getTarget());
-    }
-
-    if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
-      throw new KsqlException("Cannot insert values into windowed stream/table!");
-    }
-
-    if (ReservedInternalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
-      throw new KsqlException("Cannot insert values into the reserved internal topic: "
-          + dataSource.getKafkaTopicName());
-    }
+    final DataSource dataSource = getDataSource(metaStore, insertValues);
 
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
@@ -185,6 +171,25 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
+  }
+
+  private DataSource getDataSource(final MetaStore metaStore, final InsertValues insertValues) {
+    final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
+    if (dataSource == null) {
+      throw new KsqlException("Cannot insert values into an unknown stream/table: "
+          + insertValues.getTarget());
+    }
+
+    if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
+      throw new KsqlException("Cannot insert values into windowed stream/table!");
+    }
+
+    if (ReservedInternalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert values into the reserved internal topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    return dataSource;
   }
 
   private ProducerRecord<byte[], byte[]> buildRecord(

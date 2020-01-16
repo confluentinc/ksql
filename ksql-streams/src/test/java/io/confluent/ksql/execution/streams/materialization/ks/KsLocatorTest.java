@@ -77,6 +77,7 @@ public class KsLocatorTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void shouldRequestMetadata() {
     // When:
     locator.locate(SOME_KEY);
@@ -183,7 +184,7 @@ public class KsLocatorTest {
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(false)));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "deprecation"})
   private void givenOwnerMetadata(final Optional<HostInfo> hostInfo) {
     final StreamsMetadata metadata = hostInfo
         .map(hi -> {

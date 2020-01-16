@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -125,5 +126,16 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .map(target::authorizationHeader)
         .orElse(target)
         .getClusterStatus();
+  }
+
+  @Override
+  public void makeAsyncLagReportRequest(URI serverEndPoint, LagReportingRequest lagReportingRequest) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint);
+
+    authHeader
+        .map(target::authorizationHeader)
+        .orElse(target)
+        .postAsyncLagReportingRequest(lagReportingRequest);
   }
 }

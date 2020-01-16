@@ -64,6 +64,7 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.server.services.LagReportingResource;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -159,6 +160,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private final Optional<HeartbeatAgent> heartbeatAgent;
+  private final Optional<LagReportingAgent> lagReportingAgent;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -186,7 +188,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
-      final Optional<HeartbeatAgent> heartbeatAgent
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent
   ) {
     super(restConfig);
 
@@ -211,6 +214,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
   @Override
@@ -225,6 +229,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (heartbeatAgent.isPresent()) {
       config.register(new HeartbeatResource(heartbeatAgent.get()));
       config.register(new ClusterStatusResource(heartbeatAgent.get()));
+    }
+    if (lagReportingAgent.isPresent()) {
+      config.register(new LagReportingResource(lagReportingAgent.get()));
     }
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
@@ -628,6 +635,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     final Optional<HeartbeatAgent> heartbeatAgent =
         initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext);
+    final Optional<LagReportingAgent> lagReportingAgent =
+        initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
 
     return new KsqlRestApplication(
         serviceContext,
@@ -648,7 +657,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         preconditions,
         configurables,
         rocksDBConfigSetterHandler,
-        heartbeatAgent
+        heartbeatAgent,
+        lagReportingAgent
     );
   }
 
@@ -674,6 +684,28 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
              .threadPoolSize(restConfig.getInt(
                  KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG))
              .build(ksqlEngine, serviceContext));
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<LagReportingAgent> initializeLagReportingAgent(
+      final KsqlRestConfig restConfig,
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext
+  ) {
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG)) {
+      final LagReportingAgent.Builder builder = LagReportingAgent.builder();
+      return Optional.of(
+          builder
+              .lagSendIntervalMs(restConfig.getLong(
+                  KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG))
+              .lagDataExpirationMs(restConfig.getLong(
+                  KsqlRestConfig.KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG))
+              .discoverClusterInterval(restConfig.getLong(
+                  KsqlRestConfig.KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_CONFIG))
+              .threadPoolSize(restConfig.getInt(
+                  KsqlRestConfig.KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG))
+              .build(ksqlEngine, serviceContext));
     }
     return Optional.empty();
   }

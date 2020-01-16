@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -139,6 +140,16 @@ public class QueryMetadata {
       LOG.error(e.getMessage());
     }
     return ImmutableList.of();
+  }
+
+  public Map<String, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
+    Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
+    try {
+      storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags();
+    } catch (IllegalStateException e) {
+      LOG.error(e.getMessage());
+    }
+    return storeToPartitionToLagMap;
   }
 
   public Map<String, Object> getStreamsProperties() {

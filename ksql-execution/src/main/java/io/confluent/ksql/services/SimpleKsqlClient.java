@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
@@ -55,4 +56,14 @@ public interface SimpleKsqlClient {
    * @return response containing the cluster status.
    */
   RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
+
+  /**
+   * Send lag information to remote Ksql server.
+   * @param serverEndPoint the remote destination.
+   * @param lagReportingRequest the host lag data
+   */
+  void makeAsyncLagReportRequest(
+      URI serverEndPoint,
+      LagReportingRequest lagReportingRequest
+  );
 }

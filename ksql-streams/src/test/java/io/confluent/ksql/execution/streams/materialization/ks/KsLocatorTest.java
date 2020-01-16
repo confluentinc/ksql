@@ -76,6 +76,7 @@ public class KsLocatorTest {
         .testConstructors(KsLocator.class, Visibility.PACKAGE);
   }
 
+  @SuppressWarnings({"deprecation"})
   @Test
   @SuppressWarnings("deprecation")
   public void shouldRequestMetadata() {

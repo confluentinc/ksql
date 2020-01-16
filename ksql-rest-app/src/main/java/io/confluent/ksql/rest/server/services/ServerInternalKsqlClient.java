@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -85,6 +86,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
 
   @Override
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void makeAsyncLagReportRequest(
+      URI serverEndPoint,
+      LagReportingRequest lagReportingRequest
+  ) {
     throw new UnsupportedOperationException();
   }
 }

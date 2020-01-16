@@ -128,6 +128,8 @@ public class KsqlRestApplicationTest {
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private HeartbeatAgent heartbeatAgent;
+  @Mock
+  private LagReportingAgent lagReportingAgent;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -434,7 +436,8 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
-        Optional.of(heartbeatAgent)
+        Optional.of(heartbeatAgent),
+        Optional.of(lagReportingAgent)
     );
   }
 }

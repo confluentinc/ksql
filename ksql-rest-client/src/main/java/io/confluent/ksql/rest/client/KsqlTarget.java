@@ -24,8 +24,10 @@ import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagListResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
@@ -53,6 +55,8 @@ public final class KsqlTarget {
   private static final String QUERY_PATH = "/query";
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
+  private static final String LAG_REPORT_PATH = "/lag/report";
+  private static final String LAG_LIST_PATH = "/lag/list";
 
   private final WebTarget target;
   private final LocalProperties localProperties;
@@ -93,6 +97,20 @@ public final class KsqlTarget {
 
   public RestResponse<ClusterStatusResponse> getClusterStatus() {
     return get(CLUSTERSTATUS_PATH, ClusterStatusResponse.class);
+  }
+
+  public Future<Response> postAsyncLagReportingRequest(
+      final LagReportingRequest lagReportingRequest
+  ) {
+    return postAsync(
+        LAG_REPORT_PATH,
+        lagReportingRequest,
+        Optional.empty()
+    );
+  }
+
+  public RestResponse<LagListResponse> getLagList() {
+    return get(LAG_LIST_PATH, LagListResponse.class);
   }
 
   public RestResponse<CommandStatuses> getStatuses() {

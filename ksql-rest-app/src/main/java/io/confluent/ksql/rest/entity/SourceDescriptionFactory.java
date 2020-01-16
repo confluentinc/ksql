@@ -32,13 +32,13 @@ public final class SourceDescriptionFactory {
   public static SourceDescription create(
       final DataSource<?> dataSource,
       final boolean extended,
-      final String format,
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
+        dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
         readQueries,
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
@@ -54,7 +54,8 @@ public final class SourceDescriptionFactory {
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), true) : ""),
         extended,
-        format,
+        dataSource.getKsqlTopic().getKeyFormat().getFormat().name(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
         dataSource.getKafkaTopicName(),
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),

@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -37,6 +38,7 @@ public final class QueryDescriptionFactory {
       return create(
           persistentQuery.getQueryId(),
           persistentQuery,
+          persistentQuery.getResultTopic().getKeyFormat().getWindowType(),
           ImmutableSet.of(persistentQuery.getSinkName()),
           Optional.of(persistentQuery.getState())
       );
@@ -45,6 +47,7 @@ public final class QueryDescriptionFactory {
     return create(
         new QueryId(""),
         queryMetadata,
+        Optional.empty(),
         Collections.emptySet(),
         Optional.empty()
     );
@@ -53,12 +56,14 @@ public final class QueryDescriptionFactory {
   private static QueryDescription create(
       final QueryId id,
       final QueryMetadata queryMetadata,
+      final Optional<WindowType> windowType,
       final Set<SourceName> sinks,
       final Optional<String> state
   ) {
     return new QueryDescription(
         id,
         queryMetadata.getStatementString(),
+        windowType,
         EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
         queryMetadata.getSourceNames().stream().map(SourceName::name).collect(Collectors.toSet()),
         sinks.stream().map(SourceName::name).collect(Collectors.toSet()),

@@ -20,9 +20,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.confluent.ksql.model.WindowType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("description")
@@ -30,6 +32,7 @@ import java.util.Objects;
 public class SourceDescription {
 
   private final String name;
+  private final Optional<WindowType> windowType;
   private final List<RunningQuery> readQueries;
   private final List<RunningQuery> writeQueries;
   private final List<FieldInfo> fields;
@@ -39,7 +42,8 @@ public class SourceDescription {
   private final String statistics;
   private final String errorStats;
   private final boolean extended;
-  private final String format;
+  private final String keyFormat;
+  private final String valueFormat;
   private final String topic;
   private final int partitions;
   private final int replication;
@@ -49,6 +53,7 @@ public class SourceDescription {
   @JsonCreator
   public SourceDescription(
       @JsonProperty("name") final String name,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
       @JsonProperty("readQueries") final List<RunningQuery> readQueries,
       @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
       @JsonProperty("fields") final List<FieldInfo> fields,
@@ -58,7 +63,8 @@ public class SourceDescription {
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
       @JsonProperty("extended") final boolean extended,
-      @JsonProperty("format") final String format,
+      @JsonProperty("keyFormat") final String keyFormat,
+      @JsonProperty("valueFormat") final String valueFormat,
       @JsonProperty("topic") final String topic,
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
@@ -66,6 +72,7 @@ public class SourceDescription {
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
+    this.windowType = Objects.requireNonNull(windowType, "windowType");
     this.readQueries =
         Collections.unmodifiableList(Objects.requireNonNull(readQueries, "readQueries"));
     this.writeQueries =
@@ -77,8 +84,9 @@ public class SourceDescription {
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
     this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
-    this.extended = Objects.requireNonNull(extended, "extended");
-    this.format = Objects.requireNonNull(format, "format");
+    this.extended = extended;
+    this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
     this.topic = Objects.requireNonNull(topic, "topic");
     this.partitions = partitions;
     this.replication = replication;
@@ -87,6 +95,10 @@ public class SourceDescription {
 
   public String getStatement() {
     return statement;
+  }
+
+  public Optional<WindowType> getWindowType() {
+    return windowType;
   }
 
   public int getPartitions() {
@@ -113,8 +125,12 @@ public class SourceDescription {
     return type;
   }
 
-  public String getFormat() {
-    return format;
+  public String getKeyFormat() {
+    return keyFormat;
+  }
+
+  public String getValueFormat() {
+    return valueFormat;
   }
 
   public String getTopic() {
@@ -145,62 +161,41 @@ public class SourceDescription {
     return errorStats;
   }
 
-  private boolean equals2(final SourceDescription that) {
-    if (!Objects.equals(topic, that.topic)) {
-      return false;
-    }
-    if (!Objects.equals(key, that.key)) {
-      return false;
-    }
-    if (!Objects.equals(writeQueries, that.writeQueries)) {
-      return false;
-    }
-    if (!Objects.equals(readQueries, that.readQueries)) {
-      return false;
-    }
-    if (!Objects.equals(timestamp, that.timestamp)) {
-      return false;
-    }
-    if (!Objects.equals(statistics, that.statistics)) {
-      return false;
-    }
-    if (!Objects.equals(errorStats, that.errorStats)) {
-      return false;
-    }
-    return Objects.equals(statement, that.statement);
-  }
-
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SourceDescription)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     final SourceDescription that = (SourceDescription) o;
-    if (!Objects.equals(name, that.name)) {
-      return false;
-    }
-    if (!Objects.equals(fields, that.fields)) {
-      return false;
-    }
-    if (!Objects.equals(extended, that.extended)) {
-      return false;
-    }
-    if (!Objects.equals(type, that.type)) {
-      return false;
-    }
-    if (!Objects.equals(format, that.format)) {
-      return false;
-    }
-    return equals2(that);
+    return extended == that.extended
+        && partitions == that.partitions
+        && replication == that.replication
+        && Objects.equals(name, that.name)
+        && Objects.equals(windowType, that.windowType)
+        && Objects.equals(readQueries, that.readQueries)
+        && Objects.equals(writeQueries, that.writeQueries)
+        && Objects.equals(fields, that.fields)
+        && Objects.equals(type, that.type)
+        && Objects.equals(key, that.key)
+        && Objects.equals(timestamp, that.timestamp)
+        && Objects.equals(statistics, that.statistics)
+        && Objects.equals(errorStats, that.errorStats)
+        && Objects.equals(keyFormat, that.keyFormat)
+        && Objects.equals(valueFormat, that.valueFormat)
+        && Objects.equals(topic, that.topic)
+        && Objects.equals(statement, that.statement);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         name,
+        windowType,
         readQueries,
         writeQueries,
         fields,
@@ -210,7 +205,8 @@ public class SourceDescription {
         statistics,
         errorStats,
         extended,
-        format,
+        keyFormat,
+        valueFormat,
         topic,
         partitions,
         replication,

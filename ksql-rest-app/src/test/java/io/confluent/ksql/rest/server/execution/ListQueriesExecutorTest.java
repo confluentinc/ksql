@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.Queries;
@@ -33,8 +34,12 @@ import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,7 +84,9 @@ public class ListQueriesExecutorTest {
         new RunningQuery(
             metadata.getStatementString(),
             ImmutableSet.of(metadata.getSinkName().name()),
-            metadata.getQueryId())));
+            metadata.getQueryId(),
+            Optional.of(metadata.getState())
+        )));
   }
 
   @Test
@@ -107,9 +114,17 @@ public class ListQueriesExecutorTest {
   @SuppressWarnings("SameParameterValue")
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
+    when(metadata.getStatementString()).thenReturn("sql");
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
+    when(metadata.getState()).thenReturn("Running");
+    when(metadata.getTopologyDescription()).thenReturn("topology");
+    when(metadata.getExecutionPlan()).thenReturn("plan");
+
+    final KsqlTopic sinkTopic = mock(KsqlTopic.class);
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
+    when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;
   }

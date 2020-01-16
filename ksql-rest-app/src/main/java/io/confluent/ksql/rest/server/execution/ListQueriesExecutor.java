@@ -51,11 +51,12 @@ public final class ListQueriesExecutor {
         statement.getStatementText(),
         executionContext.getPersistentQueries()
             .stream()
-            .map(
-                q -> new RunningQuery(
+            .map(q -> new RunningQuery(
                     q.getStatementString(),
                     ImmutableSet.of(q.getSinkName().name()),
-                    q.getQueryId()))
+                    q.getQueryId(),
+                    Optional.of(q.getState())
+                ))
             .collect(Collectors.toList())));
   }
 

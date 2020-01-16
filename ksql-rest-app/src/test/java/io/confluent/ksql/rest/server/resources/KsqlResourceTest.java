@@ -473,11 +473,11 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2"))),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
   }
@@ -502,11 +502,11 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1"))),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
   }
@@ -547,7 +547,6 @@ public class KsqlResourceTest {
     final SourceDescription expectedDescription = SourceDescriptionFactory.create(
         ksqlEngine.getMetaStore().getSource(SourceName.of("DESCRIBED_STREAM")),
         false,
-        "JSON",
         Collections.singletonList(queries.get(1)),
         Collections.singletonList(queries.get(0)),
         Optional.empty()
@@ -1959,7 +1958,9 @@ public class KsqlResourceTest {
         .map(md -> new RunningQuery(
             md.getStatementString(),
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
-            md.getQueryId()))
+            md.getQueryId(),
+            Optional.of(md.getState())
+        ))
         .collect(Collectors.toList());
   }
 

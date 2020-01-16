@@ -71,13 +71,6 @@ encapsulate a street address and a postal code:
      orderId BIGINT,
      address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 
-
-You can create a struct in a query by specifying the names of the columns
-and expressions that construct the values, separated by ``,`` and wrapped with
-curly braces. For example: ``SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals``
-creates a schema ``col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>``, assuming ``col0`` was a string and
-``col1`` was an integer.
-
 Access the fields in a ``STRUCT`` by using the dereference operator (``->``):
 
 .. code:: sql
@@ -86,8 +79,20 @@ Access the fields in a ``STRUCT`` by using the dereference operator (``->``):
 
 For more info, see :ref:`operators`.
 
-.. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
-   but you can copy existing ``STRUCT`` fields as-is.
+You can create a ``STRUCT`` in a query by specifying the names of the columns
+and expressions that construct the values, separated by commas. The following
+example SELECT statement creates a schema that has a ``STRUCT``.
+
+.. code:: sql
+
+   SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
+
+If ``col0`` is a string and ``col1`` is an integer, the resulting schema is:
+
+.. code:: sql
+
+   col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
+
 
 .. _ksql-time-units:
 

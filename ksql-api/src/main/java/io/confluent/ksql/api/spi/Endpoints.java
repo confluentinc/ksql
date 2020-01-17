@@ -25,8 +25,27 @@ import org.reactivestreams.Subscriber;
  */
 public interface Endpoints {
 
+  /**
+   * Create a publisher that will publish the results of the query. This will be subscribed to from
+   * the API server and the subscriber will write the results to the HTTP response
+   *
+   * @param sql        The sql of the query
+   * @param push       If true then push query otherwise pull query
+   * @param properties Optional properties for the query
+   * @return The publisher
+   */
   QueryPublisher createQueryPublisher(String sql, boolean push, JsonObject properties);
 
+  /**
+   * Create a subscriber which will receive a stream of inserts from the API server and process
+   * them. This method takes an optional acksSubsciber - if specified this is used to receive a
+   * stream of acks from the back-end representing completion of the processing of the inserts
+   *
+   * @param target         The target to insert into
+   * @param properties     Optional properties
+   * @param acksSubscriber Optional subscriber of acks
+   * @return The inserts subscriber
+   */
   InsertsSubscriber createInsertsSubscriber(String target, JsonObject properties,
       Subscriber<Void> acksSubscriber);
 

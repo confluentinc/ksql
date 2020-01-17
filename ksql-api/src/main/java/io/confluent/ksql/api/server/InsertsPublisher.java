@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import io.vertx.core.json.JsonObject;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Queue;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -34,7 +35,7 @@ public class InsertsPublisher implements Publisher<JsonObject> {
 
   @Override
   public void subscribe(final Subscriber<? super JsonObject> subscriber) {
-    this.subscriber = subscriber;
+    this.subscriber = Objects.requireNonNull(subscriber);
     subscriber.onSubscribe(new InsertsSubscription());
   }
 

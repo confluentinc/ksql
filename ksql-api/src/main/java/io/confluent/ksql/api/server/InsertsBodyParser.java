@@ -23,6 +23,7 @@ import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Objects;
 
 /**
  * This class handles the parsing of the request body for a stream of inserts. The user can send a
@@ -43,8 +44,8 @@ public class InsertsBodyParser {
   private AcksSubscriber acksSubscriber;
 
   public InsertsBodyParser(final Endpoints endpoints, final RoutingContext routingContext) {
-    this.endpoints = endpoints;
-    this.routingContext = routingContext;
+    this.endpoints = Objects.requireNonNull(endpoints);
+    this.routingContext = Objects.requireNonNull(routingContext);
     routingContext.response().endHandler(v -> {
       if (publisher != null) {
         publisher.close();

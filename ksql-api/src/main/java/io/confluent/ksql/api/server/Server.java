@@ -26,8 +26,8 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.JsonObject;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,16 +44,16 @@ public class Server {
   private final JsonObject config;
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
-  private final Map<String, QuerySubscriber> queries = new ConcurrentHashMap<>();
+  private final Map<QueryID, QuerySubscriber> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
 
   public Server(final Vertx vertx, final JsonObject config, final Endpoints endpoints,
       final HttpServerOptions httpServerOptions) {
-    this.vertx = vertx;
-    this.config = config;
-    this.endpoints = endpoints;
-    this.httpServerOptions = httpServerOptions;
+    this.vertx = Objects.requireNonNull(vertx);
+    this.config = Objects.requireNonNull(config);
+    this.endpoints = Objects.requireNonNull(endpoints);
+    this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
   }
 
   public synchronized void start() {
@@ -93,26 +93,27 @@ public class Server {
     }
   }
 
-  String registerQuery(final QuerySubscriber querySubscriber) {
-    String uuid = UUID.randomUUID().toString();
-    queries.put(uuid, querySubscriber);
-    return uuid;
+  QueryID registerQuery(final QuerySubscriber querySubscriber) {
+    Objects.requireNonNull(querySubscriber);
+    QueryID queryID = new QueryID();
+    queries.put(queryID, querySubscriber);
+    return queryID;
   }
 
-  QuerySubscriber removeQuery(final String queryID) {
+  QuerySubscriber removeQuery(final QueryID queryID) {
     return queries.remove(queryID);
   }
 
-  public Set<String> getQueryIDs() {
+  public Set<QueryID> getQueryIDs() {
     return new HashSet<>(queries.keySet());
   }
 
   void registerQueryConnection(final HttpConnection connection) {
-    this.connections.add(connection);
+    this.connections.add(Objects.requireNonNull(connection));
   }
 
   void removeQueryConnection(final HttpConnection connection) {
-    connections.remove(connection);
+    connections.remove(Objects.requireNonNull(connection));
   }
 
   public int queryConnectionCount() {

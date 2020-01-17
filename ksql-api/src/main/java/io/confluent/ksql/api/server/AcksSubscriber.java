@@ -20,6 +20,7 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -45,11 +46,12 @@ public class AcksSubscriber implements Subscriber<Void> {
   private long acksSent;
 
   public AcksSubscriber(final HttpServerResponse response) {
-    this.response = response;
+    this.response = Objects.requireNonNull(response);
   }
 
   @Override
   public synchronized void onSubscribe(final Subscription subscription) {
+    Objects.requireNonNull(subscription);
     if (this.subscription != null) {
       throw new IllegalStateException("Already subscribed");
     }

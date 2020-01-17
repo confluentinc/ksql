@@ -25,10 +25,20 @@ import org.reactivestreams.Publisher;
  */
 public interface QueryPublisher extends Publisher<JsonArray> {
 
+  /**
+   * @return Array representing the names of the columns of the query results
+   */
   JsonArray getColumnNames();
 
+  /**
+   * @return Array representing the types of the columns in the query results
+   */
   JsonArray getColumnTypes();
 
+  /**
+   * @return For a pull query must return the number of rows in the results otherwise for a pull
+   * query must return -1
+   */
   int getRowCount();
 
 }

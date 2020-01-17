@@ -20,6 +20,7 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   private static final int BATCH_SIZE = 4;
 
   public QuerySubscriber(final HttpServerResponse response) {
-    this.response = response;
+    this.response = Objects.requireNonNull(response);
   }
 
   @Override
@@ -48,7 +49,7 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
     if (this.subscription != null) {
       throw new IllegalStateException("Already subscribed");
     }
-    this.subscription = subscription;
+    this.subscription = Objects.requireNonNull(subscription);
     checkRequestTokens();
   }
 
@@ -90,6 +91,8 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   }
 
   public synchronized void close() {
-    subscription.cancel();
+    if (subscription != null) {
+      subscription.cancel();
+    }
   }
 }

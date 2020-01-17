@@ -123,12 +123,12 @@ public class ServerVerticle extends AbstractVerticle {
     QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
     QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
 
-    String queryID = server.registerQuery(querySubscriber);
+    QueryID queryID = server.registerQuery(querySubscriber);
     connectionQueries.addQuery(queryID);
     JsonObject metadata = new JsonObject();
     metadata.put("columnNames", queryPublisher.getColumnNames());
     metadata.put("columnTypes", queryPublisher.getColumnTypes());
-    metadata.put("queryID", queryID);
+    metadata.put("queryID", queryID.toString());
     if (!push) {
       metadata.put("rowCount", queryPublisher.getRowCount());
     }
@@ -139,7 +139,7 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.response().endHandler(v -> closeQuery(queryID, routingContext));
   }
 
-  private boolean closeQuery(final String queryID, final RoutingContext routingContext) {
+  private boolean closeQuery(final QueryID queryID, final RoutingContext routingContext) {
     QuerySubscriber querySubscriber = server.removeQuery(queryID);
     if (querySubscriber == null) {
       return false;
@@ -153,12 +153,13 @@ public class ServerVerticle extends AbstractVerticle {
 
   private void handleCloseQuery(final RoutingContext routingContext) {
     JsonObject requestBody = routingContext.getBodyAsJson();
-    String queryID = requestBody.getString("queryID");
-    if (queryID == null) {
+    String queryIDArg = requestBody.getString("queryID");
+    if (queryIDArg == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
           "No queryID in arguments");
       return;
     }
+    QueryID queryID = new QueryID(queryIDArg);
     if (!closeQuery(queryID, routingContext)) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
           "No query with id " + queryID);
@@ -174,23 +175,23 @@ public class ServerVerticle extends AbstractVerticle {
   private class ConnectionQueries implements Handler<Void> {
 
     private final HttpConnection conn;
-    private final Set<String> queries = new HashSet<>();
+    private final Set<QueryID> queries = new HashSet<>();
 
     public ConnectionQueries(final HttpConnection conn) {
       this.conn = conn;
     }
 
-    public void addQuery(final String queryID) {
+    public void addQuery(final QueryID queryID) {
       queries.add(queryID);
     }
 
-    public void removeQuery(String queryID) {
+    public void removeQuery(QueryID queryID) {
       queries.remove(queryID);
     }
 
     @Override
     public void handle(final Void v) {
-      for (String queryID : queries) {
+      for (QueryID queryID : queries) {
         QuerySubscriber querySubscriber = server.removeQuery(queryID);
         querySubscriber.close();
       }

@@ -20,6 +20,7 @@ import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -83,7 +84,7 @@ public class InsertsBodyParser {
       acksSubscriber = acks ? new AcksSubscriber(routingContext.response()) : null;
       final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
-      publisher = new InsertsPublisher();
+      publisher = new InsertsPublisher(Vertx.currentContext());
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
       final JsonObject row = new JsonObject(buff);

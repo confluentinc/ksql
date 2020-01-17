@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.LinkedList;
 import java.util.Objects;
@@ -29,40 +30,76 @@ import org.reactivestreams.Subscription;
  */
 public class InsertsPublisher implements Publisher<JsonObject> {
 
+  private final Context ctx;
   private final Queue<JsonObject> buffer = new LinkedList<>();
+
+  private final long maxElements; // Really just to satisfy the TCK
+  private long delivered;
+
   private long demand;
   private Subscriber<? super JsonObject> subscriber;
 
-  @Override
+  public InsertsPublisher(final Context ctx) {
+    this(ctx, Long.MAX_VALUE);
+  }
+
+  public InsertsPublisher(final Context ctx, final long maxElements) {
+    this.ctx = ctx;
+    this.maxElements = maxElements;
+  }
+
   public synchronized void subscribe(final Subscriber<? super JsonObject> subscriber) {
     this.subscriber = Objects.requireNonNull(subscriber);
     subscriber.onSubscribe(new InsertsSubscription());
   }
 
   public synchronized void receiveRow(final JsonObject row) {
-    if (subscriber == null) {
-      return;
-    }
-    if (demand > 0) {
-      demand--;
-      subscriber.onNext(row);
+    if (demand > 0 && subscriber != null) {
+      deliverRow(row);
     } else {
       buffer.add(row);
+      System.out.println("Added row to buffer");
     }
   }
 
   synchronized void acceptTokens(final long number) {
+    System.out.println("Accepting tokens " + number);
     demand += number;
-    for (int i = 0; i < buffer.size(); i++) {
+    while (demand > 0 && !buffer.isEmpty()) {
       final JsonObject row = buffer.poll();
-      demand--;
-      subscriber.onNext(row);
+      deliverRow(row);
     }
   }
 
+  private void deliverRow(final JsonObject row) {
+    System.out.println("Delivering row");
+    demand--;
+    callOnNext(row, subscriber);
+    delivered++;
+    if (maxElements != Long.MAX_VALUE && delivered == maxElements) {
+      System.out.println("Calling on complete");
+      callOnComplete(subscriber);
+    }
+  }
+
+  private void callOnNext(final JsonObject row, final Subscriber<? super JsonObject> subscriber) {
+    ctx.runOnContext(v -> subscriber.onNext(row));
+  }
+
+  private void callOnComplete(final Subscriber<? super JsonObject> subscriber) {
+    ctx.runOnContext(v -> subscriber.onComplete());
+  }
+
+  synchronized void cancel() {
+  }
+
   synchronized void close() {
-    subscriber.onComplete();
+    callOnComplete(subscriber);
     subscriber = null;
+  }
+
+  private synchronized void callOnError(final Throwable t) {
+    subscriber.onError(t);
   }
 
   private class InsertsSubscription implements Subscription {
@@ -70,14 +107,15 @@ public class InsertsPublisher implements Publisher<JsonObject> {
     @Override
     public void request(final long l) {
       if (l <= 0) {
-        throw new IllegalArgumentException("Tokens must be > 0 " + l);
+        callOnError(new IllegalArgumentException(
+            "3.9 Subscriber cannot request less then 1 for the number of elements."));
       }
       acceptTokens(l);
     }
 
     @Override
     public void cancel() {
-      close();
+      InsertsPublisher.this.cancel();
     }
   }
 }

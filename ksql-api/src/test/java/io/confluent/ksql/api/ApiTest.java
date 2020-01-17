@@ -403,7 +403,7 @@ public class ApiTest {
     assertEquals(200, response.statusCode());
     assertEquals("OK", response.statusMessage());
 
-    assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
+    waitUntil(() -> rows.equals(testEndpoints.getInsertsSubscriber().getRowsInserted()));
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
     assertEquals("test-stream", testEndpoints.getLastTarget());
   }
@@ -429,7 +429,7 @@ public class ApiTest {
     assertEquals(rows.size(), insertsResponse.acks.size());
 
     assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
-    assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+    waitUntil(() -> testEndpoints.getInsertsSubscriber().isCompleted());
     assertEquals("test-stream", testEndpoints.getLastTarget());
   }
 

@@ -51,6 +51,7 @@ final class KsLocator implements Locator {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public Optional<KsqlNode> locate(final Struct key) {
     final StreamsMetadata metadata = kafkaStreams
         .metadataForKey(stateStoreName, key, keySerializer);

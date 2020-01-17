@@ -64,29 +64,29 @@ public class InsertsBodyParser {
 
   public void handleBodyBuffer(final Buffer buff) {
     if (!readArguments) {
-      JsonObject args = new JsonObject(buff);
+      final JsonObject args = new JsonObject(buff);
       readArguments = true;
-      String target = args.getString("target");
+      final String target = args.getString("target");
       if (target == null) {
         handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
             "No target in arguments");
         return;
       }
-      Boolean acks = args.getBoolean("acks");
+      final Boolean acks = args.getBoolean("acks");
       if (acks == null) {
         handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
             "No acks in arguments");
         return;
       }
-      JsonObject properties = args.getJsonObject("properties");
+      final JsonObject properties = args.getJsonObject("properties");
       routingContext.request().endHandler(this::handleBodyEnd);
       acksSubscriber = acks ? new AcksSubscriber(routingContext.response()) : null;
-      InsertsSubscriber insertsSubscriber = endpoints
+      final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
       publisher = new InsertsPublisher();
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
-      JsonObject row = new JsonObject(buff);
+      final JsonObject row = new JsonObject(buff);
       publisher.receiveRow(row);
       rowsReceived++;
     }

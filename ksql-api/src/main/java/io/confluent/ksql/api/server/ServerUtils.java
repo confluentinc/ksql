@@ -23,13 +23,17 @@ import org.slf4j.LoggerFactory;
 /**
  * static util methods used in the server
  */
-public class ServerUtils {
+public final class ServerUtils {
 
   private static final Logger log = LoggerFactory.getLogger(ServerUtils.class);
 
+  private ServerUtils() {
+  }
+
   public static void handleError(final HttpServerResponse response, final int statusCode,
       final int errorCode, final String errMsg) {
-    JsonObject errResponse = new JsonObject().put("status", "error").put("errorCode", errorCode)
+    final JsonObject errResponse = new JsonObject().put("status", "error")
+        .put("errorCode", errorCode)
         .put("message", errMsg);
     response.setStatusCode(statusCode).end(errResponse.toBuffer());
   }

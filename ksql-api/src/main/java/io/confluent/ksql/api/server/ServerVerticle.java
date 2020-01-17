@@ -67,7 +67,7 @@ public class ServerVerticle extends AbstractVerticle {
   public void start(final Promise<Void> startPromise) {
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
-    Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
+    final Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
     Utils.connectPromise(listenFuture.map(s -> null), startPromise);
     httpServer.listen(listenFuture);
     vertx.getOrCreateContext().exceptionHandler(ServerUtils::unhandledExceptonHandler);
@@ -83,7 +83,7 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private Router setupRouter() {
-    Router router = Router.router(vertx);
+    final Router router = Router.router(vertx);
     router.route(HttpMethod.POST, "/query-stream").handler(BodyHandler.create())
         .handler(this::handleQueryStream);
     router.route(HttpMethod.POST, "/inserts-stream").handler(this::handleInsertsStream);
@@ -93,14 +93,14 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleInsertsStream(final RoutingContext routingContext) {
-    RecordParser recordParser = RecordParser
+    final RecordParser recordParser = RecordParser
         .newDelimited("\n", new InsertsBodyParser(endpoints, routingContext)::handleBodyBuffer);
     routingContext.request()
         .handler(recordParser);
   }
 
   private void handleQueryStream(final RoutingContext routingContext) {
-    HttpConnection conn = routingContext.request().connection();
+    final HttpConnection conn = routingContext.request().connection();
     ConnectionQueries connectionQueries = connectionsMap.get(conn);
     if (connectionQueries == null) {
       connectionQueries = new ConnectionQueries(conn);
@@ -108,24 +108,24 @@ public class ServerVerticle extends AbstractVerticle {
       conn.closeHandler(connectionQueries);
       server.registerQueryConnection(conn);
     }
-    JsonObject requestBody = routingContext.getBodyAsJson();
-    String sql = requestBody.getString("sql");
+    final JsonObject requestBody = routingContext.getBodyAsJson();
+    final String sql = requestBody.getString("sql");
     if (sql == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
       return;
     }
-    Boolean push = requestBody.getBoolean("push");
+    final Boolean push = requestBody.getBoolean("push");
     if (push == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No push in arguments");
       return;
     }
-    JsonObject properties = requestBody.getJsonObject("properties");
-    QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
-    QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
+    final JsonObject properties = requestBody.getJsonObject("properties");
+    final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
+    final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
 
-    QueryID queryID = server.registerQuery(querySubscriber);
+    final QueryID queryID = server.registerQuery(querySubscriber);
     connectionQueries.addQuery(queryID);
-    JsonObject metadata = new JsonObject();
+    final JsonObject metadata = new JsonObject();
     metadata.put("columnNames", queryPublisher.getColumnNames());
     metadata.put("columnTypes", queryPublisher.getColumnTypes());
     metadata.put("queryID", queryID.toString());
@@ -140,26 +140,26 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private boolean closeQuery(final QueryID queryID, final RoutingContext routingContext) {
-    QuerySubscriber querySubscriber = server.removeQuery(queryID);
+    final QuerySubscriber querySubscriber = server.removeQuery(queryID);
     if (querySubscriber == null) {
       return false;
     }
-    HttpConnection conn = routingContext.request().connection();
-    ConnectionQueries connectionQueries = connectionsMap.get(conn);
+    final HttpConnection conn = routingContext.request().connection();
+    final ConnectionQueries connectionQueries = connectionsMap.get(conn);
     connectionQueries.removeQuery(queryID);
     querySubscriber.close();
     return true;
   }
 
   private void handleCloseQuery(final RoutingContext routingContext) {
-    JsonObject requestBody = routingContext.getBodyAsJson();
-    String queryIDArg = requestBody.getString("queryID");
+    final JsonObject requestBody = routingContext.getBodyAsJson();
+    final String queryIDArg = requestBody.getString("queryID");
     if (queryIDArg == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
           "No queryID in arguments");
       return;
     }
-    QueryID queryID = new QueryID(queryIDArg);
+    final QueryID queryID = new QueryID(queryIDArg);
     if (!closeQuery(queryID, routingContext)) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
           "No query with id " + queryID);
@@ -185,14 +185,14 @@ public class ServerVerticle extends AbstractVerticle {
       queries.add(queryID);
     }
 
-    public void removeQuery(QueryID queryID) {
+    public void removeQuery(final QueryID queryID) {
       queries.remove(queryID);
     }
 
     @Override
     public void handle(final Void v) {
       for (QueryID queryID : queries) {
-        QuerySubscriber querySubscriber = server.removeQuery(queryID);
+        final QuerySubscriber querySubscriber = server.removeQuery(queryID);
         querySubscriber.close();
       }
       connectionsMap.remove(conn);

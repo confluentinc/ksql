@@ -22,9 +22,12 @@ import io.vertx.core.Promise;
  * General purpose utils (not limited to the server, could be used by client too) for the API
  * module.
  */
-public class Utils {
+public final class Utils {
 
-  public static <T> void connectPromise(final Future<T> future, Promise<T> promise) {
+  private Utils() {
+  }
+
+  public static <T> void connectPromise(final Future<T> future, final Promise<T> promise) {
     future.setHandler(ar -> {
       if (ar.succeeded()) {
         promise.complete(ar.result());

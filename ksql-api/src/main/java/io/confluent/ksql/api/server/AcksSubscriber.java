@@ -98,7 +98,7 @@ public class AcksSubscriber implements Subscriber<Void> {
   @Override
   public synchronized void onError(final Throwable t) {
     log.error("Error in processing inserts", t);
-    JsonObject err = new JsonObject().put("status", "error")
+    final JsonObject err = new JsonObject().put("status", "error")
         .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
         .put("message", "Error in processing inserts");
     subscription.cancel();

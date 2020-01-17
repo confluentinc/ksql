@@ -79,7 +79,7 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   @Override
   public synchronized void onError(final Throwable t) {
     log.error("Error in processing query", t);
-    JsonObject err = new JsonObject().put("status", "error")
+    final JsonObject err = new JsonObject().put("status", "error")
         .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
         .put("message", "Error in processing query");
     response.end(err.toBuffer());

@@ -36,8 +36,7 @@ public interface QueryPublisher extends Publisher<JsonArray> {
   JsonArray getColumnTypes();
 
   /**
-   * @return For a pull query must return the number of rows in the results otherwise for a pull
-   * query must return -1
+   * @return For a pull query must return the number of rows in the results otherwise -1
    */
   int getRowCount();
 

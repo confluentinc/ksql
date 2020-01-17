@@ -60,8 +60,8 @@ public class Server {
     if (deploymentID != null) {
       throw new IllegalStateException("Already started");
     }
-    DeploymentOptions options = new DeploymentOptions();
-    Integer verticleInstances = config.getInteger("verticle-instances");
+    final DeploymentOptions options = new DeploymentOptions();
+    final Integer verticleInstances = config.getInteger("verticle-instances");
     if (verticleInstances == null) {
       options.setInstances(Runtime.getRuntime().availableProcessors() * 2);
     } else {
@@ -69,7 +69,7 @@ public class Server {
     }
     log.info("Deploying " + options.getInstances() + " instances of server verticle");
     options.setConfig(config);
-    VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
+    final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
     vertx.deployVerticle(
         () -> new ServerVerticle(endpoints, httpServerOptions, this), options, future);
     try {
@@ -84,7 +84,7 @@ public class Server {
     if (deploymentID == null) {
       throw new IllegalStateException("Not started");
     }
-    VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
+    final VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
     vertx.undeploy(deploymentID, future);
     try {
       future.get();
@@ -95,7 +95,7 @@ public class Server {
 
   QueryID registerQuery(final QuerySubscriber querySubscriber) {
     Objects.requireNonNull(querySubscriber);
-    QueryID queryID = new QueryID();
+    final QueryID queryID = new QueryID();
     queries.put(queryID, querySubscriber);
     return queryID;
   }

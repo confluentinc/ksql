@@ -18,7 +18,10 @@ package io.confluent.ksql.api.server;
 /**
  * The error codes that signify different types of errors that can occur in the API
  */
-public class ErrorCodes {
+public final class ErrorCodes {
+
+  private ErrorCodes() {
+  }
 
   public static final int ERROR_CODE_MISSING_PARAM = 50001;
   public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50002;

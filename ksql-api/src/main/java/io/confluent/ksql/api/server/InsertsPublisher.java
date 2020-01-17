@@ -34,7 +34,7 @@ public class InsertsPublisher implements Publisher<JsonObject> {
   private Subscriber<? super JsonObject> subscriber;
 
   @Override
-  public void subscribe(final Subscriber<? super JsonObject> subscriber) {
+  public synchronized void subscribe(final Subscriber<? super JsonObject> subscriber) {
     this.subscriber = Objects.requireNonNull(subscriber);
     subscriber.onSubscribe(new InsertsSubscription());
   }
@@ -54,7 +54,7 @@ public class InsertsPublisher implements Publisher<JsonObject> {
   synchronized void acceptTokens(final long number) {
     demand += number;
     for (int i = 0; i < buffer.size(); i++) {
-      JsonObject row = buffer.poll();
+      final JsonObject row = buffer.poll();
       demand--;
       subscriber.onNext(row);
     }

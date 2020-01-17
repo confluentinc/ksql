@@ -14,13 +14,13 @@ Synopsis
 
 ```sql
 INSERT INTO <stream_name|table_name> [(column_name [, ...]])]
-  VALUES (value [,...]);
+  VALUES (value [,...])[, (value [,...])];
 ```
 
 Description
 -----------
 
-Produce a row into an existing stream or table and its underlying topic
+Produce rows into an existing stream or table and its underlying topic
 based on explicitly specified values. The first `column_name` of every
 schema is `ROWKEY`, which defines the corresponding Kafka key. If the
 source specifies a `key` and that column is present in the column names
@@ -56,6 +56,9 @@ INSERT INTO foo (KEY_COL, COL_A) VALUES ('key', 'A');
 
 -- inserts (current_time(), "key", "key", null)
 INSERT INTO foo (KEY_COL) VALUES ('key');
+
+-- inserts multimple rows (current_time(), "key", "key", null), (current_time(), "key2", "key2", null)
+INSERT INTO foo (KEY_COL) VALUES ('key'), ('key2');
 ```
 
 The values are serialized by using the `value_format` specified in the

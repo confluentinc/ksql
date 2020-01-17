@@ -61,7 +61,7 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
     | INSERT INTO sourceName query                                          #insertInto
-    | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
+    | INSERT INTO sourceName (columns)? VALUES values(',' values)*          #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
     | DROP CONNECTOR identifier                                             #dropConnector

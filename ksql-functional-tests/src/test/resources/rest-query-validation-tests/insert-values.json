@@ -7,12 +7,13 @@
       "name": "explicitly supply all column values",
       "statements": [
         "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWTIME, ROWKEY, ID) VALUES (1234, 'key', 10);"
+        "INSERT INTO TEST (ROWTIME, ROWKEY, ID) VALUES (1234, 'key', 10), (5678, 'lfz', 11);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}},
+        {"topic": "test_topic", "timestamp": 5678, "key": "lfz", "value": {"ID": 11}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
@@ -34,24 +35,26 @@
       "name": "explicitly supply default set of column values",
       "statements": [
         "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('key', 10);"
+        "INSERT INTO TEST (ROWKEY, ID) VALUES ('key', 10), ('lzf', 11);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "key", "value": {"ID": 10}}
+        {"topic": "test_topic", "key": "key", "value": {"ID": 10}},
+        {"topic": "test_topic", "key": "lzf", "value": {"ID": 11}}
       ]
     },
     {
       "name": "implicitly supply default set of column values",
       "statements": [
         "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST VALUES ('key', 10);"
+        "INSERT INTO TEST VALUES ('key', 10), ('lzf', 11);"
       ],
       "inputs": [
       ],
       "outputs": [
-        {"topic": "test_topic", "key": "key", "value": {"ID": 10}}
+        {"topic": "test_topic", "key": "key", "value": {"ID": 10}},
+        {"topic": "test_topic", "key": "lzf", "value": {"ID": 11}}
       ]
     },
     {
@@ -194,7 +197,19 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to prepare statement: Expected number columns and values to match: [ROWKEY, ID], ['10']",
+        "message": "Failed to prepare statement: Expected number columns and values to match  (row 0): [ROWKEY, ID], ['10']",
+        "status": 400
+      }
+    },
+    {
+      "name": "should fail on mismatch between explicit columns and value counts on second row",
+      "statements": [
+        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES ('key', 10), ('10');"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Failed to prepare statement: Expected number columns and values to match (row 1): [ROWKEY, ID], ['10']",
         "status": 400
       }
     },
@@ -206,7 +221,19 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to insert values into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
+        "message": "Failed to insert values (row 0) into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
+        "status": 400
+      }
+    },
+    {
+      "name": "should fail on mismatch between rowkey and key values when stream has key on second row",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (ROWKEY, ID) VALUES ('key', 5), (10, 5);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Failed to insert values (row 1) into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
         "status": 400
       }
     },

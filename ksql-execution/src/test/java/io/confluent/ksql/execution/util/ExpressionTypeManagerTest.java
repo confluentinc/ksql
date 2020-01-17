@@ -33,11 +33,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -48,6 +51,7 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -313,6 +317,145 @@ public class ExpressionTypeManagerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field 'ZIP' in 'TEST1.COL6'.");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldEvaluateTypeForCreateArrayExpression() {
+    // Given:
+    Expression expression = new CreateArrayExpression(
+        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)))
+    );
+
+    // When:
+    final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(type, is(SqlTypes.array(SqlTypes.BIGINT)));
+  }
+
+
+  @Test
+  public void shouldEvaluateTypeForCreateArrayExpressionWithNull() {
+    // Given:
+    Expression expression = new CreateArrayExpression(
+        ImmutableList.of(
+            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new NullLiteral()
+        )
+    );
+
+    // When:
+    final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(type, is(SqlTypes.array(SqlTypes.BIGINT)));
+  }
+
+  @Test
+  public void shouldThrowOnArrayAllNulls() {
+    // Given:
+    Expression expression = new CreateArrayExpression(
+        ImmutableList.of(
+            new NullLiteral()
+        )
+    );
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot construct an array with all NULL elements");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldThrowOnArrayMultipleTypes() {
+    // Given:
+    Expression expression = new CreateArrayExpression(
+        ImmutableList.of(
+            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new StringLiteral("foo")
+        )
+    );
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot construct an array with mismatching types");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldEvaluateTypeForCreateMapExpression() {
+    // Given:
+    Expression expression = new CreateMapExpression(
+        ImmutableMap.of(
+            COL1, new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+        )
+    );
+
+    // When:
+    final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(type, is(SqlTypes.map(SqlTypes.BIGINT)));
+  }
+
+  @Test
+  public void shouldThrowOnMapOfNonStringKeys() {
+    // Given:
+    Expression expression = new CreateMapExpression(
+        ImmutableMap.of(
+            new IntegerLiteral(1),
+            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+        )
+    );
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Only STRING keys are supported in maps");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldThrowOnMapOfMultipleTypes() {
+    // Given:
+    Expression expression = new CreateMapExpression(
+        ImmutableMap.of(
+            new StringLiteral("foo"),
+            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new StringLiteral("bar"),
+            new StringLiteral("bar")
+        )
+    );
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot construct a map with mismatching value types");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldThrowOnMapOfNullValues() {
+    // Given:
+    Expression expression = new CreateMapExpression(
+        ImmutableMap.of(
+            new StringLiteral("foo"),
+            new NullLiteral()
+        )
+    );
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot construct MAP with NULL values");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);

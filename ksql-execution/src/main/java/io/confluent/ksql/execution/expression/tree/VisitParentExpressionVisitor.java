@@ -167,6 +167,16 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
+  public R visitCreateArrayExpression(final CreateArrayExpression node, final C context) {
+    return visitExpression(node, context);
+  }
+
+  @Override
+  public R visitCreateMapExpression(final CreateMapExpression node, final C context) {
+    return visitExpression(node, context);
+  }
+
+  @Override
   public R visitStructExpression(final CreateStructExpression node, final C context) {
     return visitExpression(node, context);
   }

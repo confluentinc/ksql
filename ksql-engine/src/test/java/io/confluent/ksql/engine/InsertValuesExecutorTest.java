@@ -31,6 +31,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -470,46 +471,48 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_ARRAY_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),
         ImmutableList.of(
             new FunctionCall(
-                FunctionName.of("AS_ARRAY"),
-                ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))))
+                FunctionName.of("SUBSTRING"),
+                ImmutableList.of(new StringLiteral("foo"), new IntegerLiteral(2))))
     );
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableList.of(1, 2))));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("oo")));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_MAP_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),
         ImmutableList.of(
             new FunctionCall(
-                FunctionName.of("AS_MAP"),
+                FunctionName.of("SUBSTRING"),
                 ImmutableList.of(
-                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new StringLiteral("foo"))),
-                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new IntegerLiteral(1)))
-                ))
-        )
+                    new FunctionCall(
+                        FunctionName.of("SUBSTRING"),
+                        ImmutableList.of(new StringLiteral("foo"), new IntegerLiteral(2))
+                    ),
+                    new IntegerLiteral(2))
+            ))
     );
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableMap.of("foo", 1))));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("o")));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

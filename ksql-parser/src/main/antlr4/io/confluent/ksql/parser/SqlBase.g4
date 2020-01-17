@@ -254,6 +254,7 @@ primaryExpression
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
     | CAST '(' expression AS type ')'                                                     #cast
     | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
+    | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
     | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall

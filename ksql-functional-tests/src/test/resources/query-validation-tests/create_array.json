@@ -1,0 +1,68 @@
+{
+  "comments": [
+    "Tests covering AS_LIST functionality with generics"
+  ],
+  "tests": [
+    {
+      "name": "construct a list from two elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[a, b, 3] as l FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"a":  1, "b":  2}},
+        {"topic": "test_topic", "value": {"a": null, "b":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"L": [1, 2, 3]}},
+        {"topic": "OUTPUT", "value": {"L": [null, null, 3]}}
+      ]
+    },
+    {
+      "name": "construct a list from null casted elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[CAST(NULL AS INT)] as l FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"a":  1, "b":  2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"L": [null]}}
+      ]
+    },
+    {
+      "name": "construct a list from no elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[] as l FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Array constructor cannot be empty. Please supply at least one element (see https://github.com/confluentinc/ksql/issues/4239)."
+      }
+    },
+    {
+      "name": "construct a list from null non-casted elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[NULL] as l FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot construct an array with all NULL elements (see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may cast a NULL value to the desired type."
+      }
+    },
+    {
+      "name": "construct a list from mismatching elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[1, 1.0] as l FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot construct an array with mismatching types ([INTEGER, DOUBLE]) from expression ARRAY[1, 1.0]"
+      }
+    }
+  ]
+}

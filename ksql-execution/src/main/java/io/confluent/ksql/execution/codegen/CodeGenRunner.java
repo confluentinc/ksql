@@ -16,6 +16,8 @@
 package io.confluent.ksql.execution.codegen;
 
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -38,6 +40,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -182,6 +185,21 @@ public class CodeGenRunner {
         process(node.getBase(), context);
       }
       process(node.getIndex(), context);
+      return null;
+    }
+
+    @Override
+    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final Void context) {
+      exp.getValues().forEach(val -> process(val, context));
+      return null;
+    }
+
+    @Override
+    public Void visitCreateMapExpression(final CreateMapExpression exp, final Void context) {
+      for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
+        process(entry.getKey(), context);
+        process(entry.getValue(), context);
+      }
       return null;
     }
 

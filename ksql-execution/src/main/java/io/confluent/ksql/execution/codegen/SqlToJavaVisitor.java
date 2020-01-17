@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
+import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -31,6 +32,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -82,6 +85,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -104,13 +108,15 @@ public class SqlToJavaVisitor {
       "java.util.List",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
+      "com.google.common.collect.ImmutableMap",
       "java.util.function.Supplier",
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
       RoundingMode.class.getCanonicalName(),
       SchemaBuilder.class.getCanonicalName(),
-      Struct.class.getCanonicalName()
+      Struct.class.getCanonicalName(),
+      ArrayBuilder.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -747,6 +753,45 @@ public class SqlToJavaVisitor {
         default:
           throw new UnsupportedOperationException();
       }
+    }
+
+    @Override
+    public Pair<String, SqlType> visitCreateArrayExpression(
+        final CreateArrayExpression exp,
+        final Void context
+    ) {
+      final StringBuilder array = new StringBuilder("new ArrayBuilder(");
+      array.append(exp.getValues().size());
+      array.append((')'));
+
+      for (Expression value : exp.getValues()) {
+        array.append(".add(");
+        array.append(process(value, context).getLeft());
+        array.append(")");
+      }
+      return new Pair<>(
+          "((List)" + array.toString() + ".build())",
+          expressionTypeManager.getExpressionSqlType(exp));
+    }
+
+    @Override
+    public Pair<String, SqlType> visitCreateMapExpression(
+        final CreateMapExpression exp,
+        final Void context
+    ) {
+      final StringBuilder map = new StringBuilder("ImmutableMap.builder()");
+
+      for (Entry<Expression, Expression> entry: exp.getMap().entrySet()) {
+        map.append(".put(");
+        map.append(process(entry.getKey(), context).getLeft());
+        map.append(", ");
+        map.append(process(entry.getValue(), context).getLeft());
+        map.append(")");
+      }
+
+      return new Pair<>(
+          "((Map)" + map.toString() + ".build())",
+          expressionTypeManager.getExpressionSqlType(exp));
     }
 
     @Override

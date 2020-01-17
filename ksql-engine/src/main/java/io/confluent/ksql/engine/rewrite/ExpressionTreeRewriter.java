@@ -17,6 +17,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -24,6 +25,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -51,6 +54,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -186,6 +190,27 @@ public final class ExpressionTreeRewriter<C> {
       final Expression index = rewriter.apply(node.getIndex(), context);
 
       return new SubscriptExpression(node.getLocation(), base, index);
+    }
+
+    @Override
+    public Expression visitCreateArrayExpression(final CreateArrayExpression exp, final C context) {
+      final Builder<Expression> values = ImmutableList.builder();
+      for (Expression value : exp.getValues()) {
+        values.add(rewriter.apply(value, context));
+      }
+      return new CreateArrayExpression(exp.getLocation(), values.build());
+    }
+
+    @Override
+    public Expression visitCreateMapExpression(final CreateMapExpression exp, final C context) {
+      final ImmutableMap.Builder<Expression, Expression> map = ImmutableMap.builder();
+      for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
+        map.put(
+            rewriter.apply(entry.getKey(), context),
+            rewriter.apply(entry.getValue(), context)
+        );
+      }
+      return new CreateMapExpression(exp.getLocation(), map.build());
     }
 
     @Override

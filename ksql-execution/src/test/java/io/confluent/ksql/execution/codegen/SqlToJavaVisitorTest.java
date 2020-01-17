@@ -32,12 +32,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -142,6 +145,44 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
+  }
+
+  @Test
+  public void shouldProcessCreateArrayExpressionCorrectly() {
+    // Given:
+    Expression expression = new CreateArrayExpression(
+        ImmutableList.of(
+            new SubscriptExpression(MAPCOL, new StringLiteral("key1")),
+            new DoubleLiteral(1.0d)
+        )
+    );
+
+    // When:
+    String java = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(
+        java,
+        equalTo("((List)new ArrayBuilder(2).add(((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))).add(1.0).build())"));
+  }
+
+  @Test
+  public void shouldProcessCreateMapExpressionCorrectly() {
+    // Given:
+    Expression expression = new CreateMapExpression(
+        ImmutableMap.of(
+            new StringLiteral("foo"),
+            new SubscriptExpression(MAPCOL, new StringLiteral("key1")),
+            new StringLiteral("bar"),
+            new DoubleLiteral(1.0d)
+        )
+    );
+
+    // When:
+    String java = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(java, equalTo("((Map)ImmutableMap.builder().put(\"foo\", ((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))).put(\"bar\", 1.0).build())"));
   }
 
   @Test

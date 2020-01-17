@@ -23,6 +23,8 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -68,6 +70,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -328,6 +331,95 @@ public class ExpressionTypeManager {
       }
 
       expressionTypeContext.setSqlType(valueType);
+      return null;
+    }
+
+    @Override
+    public Void visitCreateArrayExpression(
+        final CreateArrayExpression exp,
+        final ExpressionTypeContext context
+    ) {
+      if (exp.getValues().isEmpty()) {
+        throw new KsqlException(
+            "Array constructor cannot be empty. Please supply at least one element "
+                + "(see https://github.com/confluentinc/ksql/issues/4239).");
+      }
+
+      final List<SqlType> sqlTypes = exp
+          .getValues()
+          .stream()
+          .map(val -> {
+            process(val, context);
+            return context.getSqlType();
+          })
+          .filter(Objects::nonNull)
+          .collect(Collectors.toList());
+
+      if (sqlTypes.size() == 0) {
+        throw new KsqlException("Cannot construct an array with all NULL elements "
+            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+            + "cast a NULL value to the desired type.");
+      }
+
+      if (new HashSet<>(sqlTypes).size() != 1) {
+        throw new KsqlException(
+            String.format(
+                "Cannot construct an array with mismatching types (%s) from expression %s.",
+                sqlTypes,
+                exp));
+      }
+
+      context.setSqlType(SqlArray.of(sqlTypes.get(0)));
+      return null;
+    }
+
+    @Override
+    public Void visitCreateMapExpression(
+        final CreateMapExpression exp,
+        final ExpressionTypeContext context
+    ) {
+      if (exp.getMap().isEmpty()) {
+        throw new KsqlException("Map constructor cannot be empty. Please supply at least one key "
+            + "value pair (see https://github.com/confluentinc/ksql/issues/4239).");
+      }
+
+      final List<SqlType> keyTypes = exp.getMap()
+          .keySet()
+          .stream()
+          .map(key -> {
+            process(key, context);
+            return context.getSqlType();
+          })
+          .collect(Collectors.toList());
+
+      if (keyTypes.stream().anyMatch(type -> !SqlTypes.STRING.equals(type))) {
+        throw new KsqlException("Only STRING keys are supported in maps but got: " + keyTypes);
+      }
+
+      final List<SqlType> valueTypes = exp.getMap()
+          .values()
+          .stream()
+          .map(val -> {
+            process(val, context);
+            return context.getSqlType();
+          })
+          .distinct()
+          .collect(Collectors.toList());
+
+      if (valueTypes.size() != 1) {
+        throw new KsqlException(
+            String.format(
+                "Cannot construct a map with mismatching value types (%s) from expression %s.",
+                valueTypes,
+                exp));
+      }
+
+      if (valueTypes.get(0) == null) {
+        throw new KsqlException("Cannot construct MAP with NULL values. As a workaround, you "
+            + "may cast a NULL value to the desired type.");
+      }
+
+      context.setSqlType(SqlMap.of(valueTypes.get(0)));
       return null;
     }
 

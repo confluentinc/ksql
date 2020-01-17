@@ -633,10 +633,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
 
-    final Optional<HeartbeatAgent> heartbeatAgent =
-        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
+    final Optional<HeartbeatAgent> heartbeatAgent =
+        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext);
 
     return new KsqlRestApplication(
         serviceContext,
@@ -665,7 +665,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private static Optional<HeartbeatAgent> initializeHeartbeatAgent(
       final KsqlRestConfig restConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final HeartbeatAgent.HeartbeatListener... listeners
   ) {
     if (restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
       final Builder builder = HeartbeatAgent.builder();
@@ -683,6 +684,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                  KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG))
              .threadPoolSize(restConfig.getInt(
                  KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG))
+              .addHeartbeatListeners(listeners)
              .build(ksqlEngine, serviceContext));
     }
     return Optional.empty();

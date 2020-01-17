@@ -459,8 +459,8 @@ public final class HeartbeatAgent {
       return this;
     }
 
-    HeartbeatAgent.Builder addHeartbeatListener(final HeartbeatListener listener) {
-      nestedHeartbeatListeners.add(listener);
+    HeartbeatAgent.Builder addHeartbeatListeners(final HeartbeatListener... listeners) {
+      nestedHeartbeatListeners.addAll(Arrays.asList(listeners));
       return this;
     }
 

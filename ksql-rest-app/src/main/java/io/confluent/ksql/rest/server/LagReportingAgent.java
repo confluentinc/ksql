@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -133,15 +133,15 @@ public final class LagReportingAgent implements HeartbeatListener {
 
       for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
           : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
-        String storeName = storeEntry.getKey();
-        Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
+        final String storeName = storeEntry.getKey();
+        final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
 
         receivedLagInfo.computeIfAbsent(storeName, key -> new HashMap<>());
 
         // Go through each new partition and add lag info
-        for (Map.Entry<Integer, LagInfoEntity> partitionEntry : partitionMap.entrySet()) {
-          Integer partition = partitionEntry.getKey();
-          LagInfoEntity lagInfo = partitionEntry.getValue();
+        for (final Map.Entry<Integer, LagInfoEntity> partitionEntry : partitionMap.entrySet()) {
+          final Integer partition = partitionEntry.getKey();
+          final LagInfoEntity lagInfo = partitionEntry.getValue();
           receivedLagInfo.get(storeName).computeIfAbsent(partition, key -> createCache());
           receivedLagInfo.get(storeName).get(partition).put(lagReportingRequest.getHostInfoEntity(),
               new HostPartitionLagInfo(lagReportingRequest.getHostInfoEntity(), partition, lagInfo,
@@ -156,16 +156,16 @@ public final class LagReportingAgent implements HeartbeatListener {
   // thread.
   //
   // Assumes we're synchronized on receivedLagInfo
-  private void garbageCollect(HostInfoEntity toRemove) {
-    Iterator<Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>>>
+  private void garbageCollect(final HostInfoEntity toRemove) {
+    final Iterator<Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>>>
         storeIterator = receivedLagInfo.entrySet().iterator();
     while (storeIterator.hasNext()) {
-      Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>> storeEntry =
+      final Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>> storeEntry =
           storeIterator.next();
-      Iterator<Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>> partitionIterator =
-          storeEntry.getValue().entrySet().iterator();
+      final Iterator<Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>>
+          partitionIterator = storeEntry.getValue().entrySet().iterator();
       while (partitionIterator.hasNext()) {
-        Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>> partitionEntry =
+        final Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>> partitionEntry =
             partitionIterator.next();
         partitionEntry.getValue().invalidate(toRemove);
         if (partitionEntry.getValue().size() == 0) {
@@ -193,9 +193,9 @@ public final class LagReportingAgent implements HeartbeatListener {
    * @return A map which is keyed by host and contains lag information
    */
   public Map<HostInfoEntity, HostPartitionLagInfo> getHostsPartitionLagInfo(
-      String stateStoreName, int partition) {
+      final String stateStoreName, final int partition) {
     synchronized (receivedLagInfo) {
-      Map<HostInfoEntity, HostPartitionLagInfo> partitionLagInfoMap =
+      final Map<HostInfoEntity, HostPartitionLagInfo> partitionLagInfoMap =
           receivedLagInfo.getOrDefault(stateStoreName, Collections.emptyMap())
               .getOrDefault(partition, EMPTY_CACHE).asMap();
       return partitionLagInfoMap.entrySet().stream()
@@ -227,7 +227,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   }
 
   @Override
-  public void onHostStatusUpdated(Map<String, HostStatusEntity> hostsStatusMap) {
+  public void onHostStatusUpdated(final Map<String, HostStatusEntity> hostsStatusMap) {
     hosts.clear();
     hostsStatusMap.entrySet().stream()
         .filter(e -> e.getValue().getHostAlive())
@@ -256,7 +256,7 @@ public final class LagReportingAgent implements HeartbeatListener {
           .flatMap(map -> map.entrySet().stream())
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
-      LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
+      final LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
 
       for (Entry<String, HostInfoEntity> hostInfoEntry: hosts.entrySet()) {
         final HostInfoEntity hostInfo = hostInfoEntry.getValue();
@@ -277,11 +277,11 @@ public final class LagReportingAgent implements HeartbeatListener {
      */
     private LagReportingRequest createLagReportingRequest(
         final Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap) {
-      Map<String, Map<Integer, LagInfoEntity>> map = new HashMap<>();
+      final Map<String, Map<Integer, LagInfoEntity>> map = new HashMap<>();
       for (Entry<String, Map<Integer, LagInfo>> storeEntry : storeToPartitionToLagMap.entrySet()) {
-        Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue().entrySet().stream()
+        final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue().entrySet().stream()
             .map(partitionEntry -> {
-              LagInfo lagInfo = partitionEntry.getValue();
+              final LagInfo lagInfo = partitionEntry.getValue();
               return Pair.of(partitionEntry.getKey(),
                   new LagInfoEntity(lagInfo.currentOffsetPosition(), lagInfo.endOffsetPosition(),
                   lagInfo.offsetLag()));
@@ -342,19 +342,19 @@ public final class LagReportingAgent implements HeartbeatListener {
       return this;
     }
 
-    LagReportingAgent.Builder clock(Clock clock) {
+    LagReportingAgent.Builder clock(final Clock clock) {
       nestedClock = clock;
       return this;
     }
 
-    LagReportingAgent.Builder ticker(Ticker ticker) {
+    LagReportingAgent.Builder ticker(final Ticker ticker) {
       nestedTicker = ticker;
       return this;
     }
 
     public LagReportingAgent build(final KsqlEngine engine,
         final ServiceContext serviceContext) {
-      ScheduledExecutorService scheduledExecutorService =
+      final ScheduledExecutorService scheduledExecutorService =
           Executors.newScheduledThreadPool(NUM_THREADS_EXECUTOR);
       return new LagReportingAgent(engine,
           scheduledExecutorService,

@@ -17,8 +17,8 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
 import java.util.List;

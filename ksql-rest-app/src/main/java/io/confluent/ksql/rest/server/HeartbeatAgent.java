@@ -275,7 +275,7 @@ public final class HeartbeatAgent {
         }
       }
 
-      Map<String, HostStatusEntity> hostStatusEntityMap = getHostsStatus();
+      final Map<String, HostStatusEntity> hostStatusEntityMap = getHostsStatus();
       for (HeartbeatListener listener : heartbeatListeners) {
         listener.onHostStatusUpdated(hostStatusEntityMap);
       }

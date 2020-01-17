@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.rest.entity;
 
-    import com.fasterxml.jackson.annotation.JsonCreator;
-    import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-    import com.fasterxml.jackson.annotation.JsonProperty;
-    import java.util.Map;
-    import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
+import java.util.Map;
+import java.util.Objects;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingRequest {
 

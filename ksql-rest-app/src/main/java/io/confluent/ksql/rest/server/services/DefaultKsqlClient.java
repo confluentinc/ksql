@@ -28,8 +28,8 @@ import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.net.URI;
@@ -129,7 +129,10 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public void makeAsyncLagReportRequest(URI serverEndPoint, LagReportingRequest lagReportingRequest) {
+  public void makeAsyncLagReportRequest(
+      final URI serverEndPoint,
+      final LagReportingRequest lagReportingRequest
+  ) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 

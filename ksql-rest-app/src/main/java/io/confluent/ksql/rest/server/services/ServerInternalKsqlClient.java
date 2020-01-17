@@ -20,9 +20,9 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -91,8 +91,8 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
 
   @Override
   public void makeAsyncLagReportRequest(
-      URI serverEndPoint,
-      LagReportingRequest lagReportingRequest
+      final URI serverEndPoint,
+      final LagReportingRequest lagReportingRequest
   ) {
     throw new UnsupportedOperationException();
   }

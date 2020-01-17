@@ -48,6 +48,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.ApplicationServer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -192,10 +193,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static String getCommandTopicName() {
-    return KsqlInternalTopicUtils.getTopicName(
-        new KsqlConfig(ImmutableMap.of()),
-        KsqlRestConfig.COMMAND_TOPIC_SUFFIX
-    );
+    return ReservedInternalTopics.commandTopic(new KsqlConfig(ImmutableMap.of()));
   }
 
   public Set<String> getPersistentQueries() {

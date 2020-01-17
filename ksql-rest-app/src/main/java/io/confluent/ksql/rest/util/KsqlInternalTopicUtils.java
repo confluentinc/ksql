@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
@@ -37,22 +36,6 @@ public final class KsqlInternalTopicUtils {
   private static final int NPARTITIONS = 1;
 
   private KsqlInternalTopicUtils() {
-  }
-
-  /**
-   * Compute a name for an internal topic.
-   *
-   * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
-   * @param topicSuffix A suffix that is appended to the topic name.
-   * @return The computed topic name.
-   */
-  public static String getTopicName(final KsqlConfig ksqlConfig, final String topicSuffix) {
-    return String.format(
-        "%s%s_%s",
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        topicSuffix
-    );
   }
 
   /**

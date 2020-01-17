@@ -21,9 +21,47 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class ReservedInternalTopics {
-  // This constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because it is
-  // not configurable. KSQL must always hide its own internal topics.
+  // These constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because they're
+  // not configurable.
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+  public static final String KSQL_COMMAND_TOPIC_SUFFIX = "command_topic";
+  public static final String KSQL_CONFIGS_TOPIC_SUFFIX = "configs";
+
+  /**
+   * Returns the internal KSQL command topic.
+   *
+   * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
+   * @return The command topic name.
+   */
+  public static String commandTopic(final KsqlConfig ksqlConfig) {
+    return toKsqlInternalTopic(ksqlConfig, KSQL_COMMAND_TOPIC_SUFFIX);
+  }
+
+  /**
+   * Returns the internal KSQL configs topic (used for KSQL standalone)
+   *
+   * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
+   * @return The configurations topic name.
+   */
+  public static String configsTopic(final KsqlConfig ksqlConfig) {
+    return toKsqlInternalTopic(ksqlConfig, KSQL_CONFIGS_TOPIC_SUFFIX);
+  }
+
+  /**
+   * Compute a name for a KSQL internal topic.
+   *
+   * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
+   * @param topicSuffix A suffix that is appended to the topic name.
+   * @return The computed topic name.
+   */
+  public static String toKsqlInternalTopic(final KsqlConfig ksqlConfig, final String topicSuffix) {
+    return String.format(
+        "%s%s_%s",
+        KSQL_INTERNAL_TOPIC_PREFIX,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        topicSuffix
+    );
+  }
 
   private final List<Pattern> systemInternalTopics;
 

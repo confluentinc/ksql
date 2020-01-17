@@ -28,6 +28,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -95,6 +96,7 @@ public class DistributingExecutor {
 
     if (injected.getStatement() instanceof InsertInto) {
       throwIfInsertOnInternalTopic(
+          statement.getConfig(),
           executionContext.getMetaStore(),
           (InsertInto)injected.getStatement()
       );
@@ -172,6 +174,7 @@ public class DistributingExecutor {
   }
 
   private void throwIfInsertOnInternalTopic(
+      final KsqlConfig ksqlConfig,
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
@@ -181,7 +184,8 @@ public class DistributingExecutor {
           + insertInto.getTarget());
     }
 
-    if (ReservedInternalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
+    if (internalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert into the reserved internal topic: "
           + dataSource.getKafkaTopicName());
     }

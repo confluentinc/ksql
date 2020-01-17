@@ -32,7 +32,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
@@ -155,13 +154,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     return topicMap.keySet();
-  }
-
-  @Override
-  public Set<String> listNonInternalTopicNames() {
-    return topicMap.keySet().stream()
-        .filter(topic -> !ReservedInternalTopics.isInternalTopic(topic))
-        .collect(Collectors.toSet());
   }
 
   @Override

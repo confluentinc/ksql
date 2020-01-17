@@ -33,7 +33,6 @@ import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -272,16 +271,6 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Set<String> names = kafkaTopicClient.listTopicNames();
-    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldFilterInternalTopics() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
   }

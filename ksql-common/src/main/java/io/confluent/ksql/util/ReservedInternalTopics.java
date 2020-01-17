@@ -15,56 +15,35 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableSet;
-
+import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class ReservedInternalTopics {
+  // This constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because it is
+  // not configurable. KSQL must always hide its own internal topics.
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
 
-  private static final Set<String> ALL_INTERNAL_TOPICS_PREFIXES = ImmutableSet.of(
-      // Confluent
-      "_confluent",
-      "__confluent"
-  );
+  private final List<Pattern> systemInternalTopics;
 
-  private static final Set<String> ALL_INTERNAL_TOPICS_LITERALS = ImmutableSet.of(
-      // Security
-      "_secrets",
-
-      // Kafka
-      "__consumer_offsets",
-      "__transaction_state",
-
-      // Replicator
-      "__consumer_timestamps",
-
-      // Schema Registry
-      "_schemas",
-
-      // Connect
-      "connect-configs",
-      "connect-offsets",
-      "connect-status",
-      "connect-statuses"
-  );
-
-  public static boolean isInternalTopic(final String topicName) {
-    return isLiteral(topicName) || isPrefix(topicName);
+  public ReservedInternalTopics(final KsqlConfig ksqlConfig) {
+    this.systemInternalTopics = ksqlConfig.getList(KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG)
+        .stream()
+        .map(Pattern::compile)
+        .collect(Collectors.toList());
   }
 
-  private static boolean isPrefix(final String topicName) {
-    return topicName.startsWith(KSQL_INTERNAL_TOPIC_PREFIX)
-        || ALL_INTERNAL_TOPICS_PREFIXES.stream()
-            .filter(topicName::startsWith)
-            .findAny()
-            .isPresent();
+  public Set<String> filterInternalTopics(final Set<String> topicNames) {
+    return topicNames.stream()
+        .filter(t -> !isInternalTopic(t))
+        .collect(Collectors.toSet());
   }
 
-  private static boolean isLiteral(final String topicName) {
-    return ALL_INTERNAL_TOPICS_LITERALS.contains(topicName);
-  }
-
-  private ReservedInternalTopics() {
+  public boolean isInternalTopic(final String topicName) {
+    return topicName.startsWith(KSQL_INTERNAL_TOPIC_PREFIX) || systemInternalTopics.stream()
+        .filter(p -> p.matcher(topicName).matches())
+        .findAny()
+        .isPresent();
   }
 }

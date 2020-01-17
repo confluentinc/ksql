@@ -148,10 +148,10 @@ public class InsertValuesExecutor {
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
-    final DataSource dataSource = getDataSource(metaStore, insertValues);
-
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
     final ProducerRecord<byte[], byte[]> record =
         buildRecord(statement, metaStore, dataSource, serviceContext);
@@ -173,7 +173,11 @@ public class InsertValuesExecutor {
     }
   }
 
-  private DataSource getDataSource(final MetaStore metaStore, final InsertValues insertValues) {
+  private DataSource getDataSource(
+      final KsqlConfig ksqlConfig,
+      final MetaStore metaStore,
+      final InsertValues insertValues
+  ) {
     final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
@@ -184,7 +188,8 @@ public class InsertValuesExecutor {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
-    if (ReservedInternalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
+    if (internalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert values into the reserved internal topic: "
           + dataSource.getKafkaTopicName());
     }

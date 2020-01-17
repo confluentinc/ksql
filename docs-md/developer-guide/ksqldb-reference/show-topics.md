@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-SHOW | LIST TOPICS [EXTENDED];
+SHOW | LIST [ALL] TOPICS [EXTENDED];
 ```
 
 Description
@@ -24,10 +24,36 @@ configured to connect to (default setting for `bootstrap.servers`:
 `localhost:9092`). SHOW TOPICS EXTENDED also displays consumer groups
 and their active consumer counts.
 
+SHOW TOPICS does not display topics considered internal, such as:
+* KSQL internal topics (i.e. the KSQL command topic)
+* Topics found in the `system.internal.topics` configuration
+
+SHOW ALL TOPICS will list all topics including those considered as
+internal or found in the `system.internal.topics` configuration.
+
 Example
 -------
 
-TODO: example
+```sql
+ksql> SHOW TOPICS
+
+ Kafka Topic                            | Partitions | Partition Replicas
+-------------------------------------------------------------------------
+ default_ksql-processing-log            | 1          | 1
+ pageviews                              | 1          | 1
+ users                                  | 1          | 1
+-------------------------------------------------------------------------
+```
 
 
-Page last revised on: {{ git_revision_date }}
+```sql
+ksql> SHOW ALL TOPICS
+
+ Kafka Topic                            | Partitions | Partition Replicas
+-------------------------------------------------------------------------
+ _confluent-ksql-default_command_topic  | 1          | 1
+ default_ksql-processing-log            | 1          | 1
+ pageviews                              | 1          | 1
+ users                                  | 1          | 1
+-------------------------------------------------------------------------
+```

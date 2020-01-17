@@ -15,75 +15,62 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableSet;
-import org.junit.Test;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
+import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ReservedInternalTopicsTest {
-  private static final Set<String> ALL_INTERNAL_TOPICS_PREFIXES = ImmutableSet.of(
-      // Confluent
-      "_confluent",
-      "__confluent"
-  );
+  private ReservedInternalTopics internalTopics;
 
-  private static final Set<String> ALL_INTERNAL_TOPICS_LITERALS = ImmutableSet.of(
-      // Confluent
-      "_secrets",
+  @Before
+  public void setUp() {
+    internalTopics = new ReservedInternalTopics(new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix"
+    )));
+  }
 
-      // Kafka
-      "__consumer_offsets",
-      "__transaction_state",
-
-      // Replicator
-      "__consumer_timestamps",
-
-      // Schema Registry
-      "_schemas",
-
-      // Connect
-      "connect-configs",
-      "connect-offsets",
-      "connect-status",
-      "connect-statuses"
-  );
 
   @Test
-  public void shouldReturnTrueOnAllInternalTopicsPrefixes() {
+  public void shouldReturnTrueOnAllInternalTopics() {
     // Given
-    ALL_INTERNAL_TOPICS_PREFIXES.forEach(topic -> {
+    final List<String> topicNames = ImmutableList.of(
+        "prefix_", "_suffix", "prefix_topic", "topic_suffix", "literal"
+    );
+
+    topicNames.forEach(topic -> {
       // When
-      final boolean isReserved = ReservedInternalTopics.isInternalTopic(topic + "_any_name");
+      final boolean isReserved = internalTopics.isInternalTopic(topic);
 
       // Then
-      assertThat(isReserved, is(true));
+      assertThat("Should return true on internal topic: " + topic,
+          isReserved, is(true));
     });
   }
 
   @Test
-  public void shouldReturnTrueOnAllInternalTopicsLiterals() {
+  public void shouldReturnFalseOnNonInternalTopics() {
     // Given
-    ALL_INTERNAL_TOPICS_LITERALS.forEach(topic -> {
+    final List<String> topicNames = ImmutableList.of(
+        "topic_prefix_", "_suffix_topic"
+    );
+
+    // Given
+    topicNames.forEach(topic -> {
       // When
-      final boolean isReserved = ReservedInternalTopics.isInternalTopic(topic);
+      final boolean isReserved = internalTopics.isInternalTopic(topic);
 
       // Then
-      assertThat(isReserved, is(true));
-    });
-  }
-
-  @Test
-  public void shouldReturnFalseOnAnyNonInternalTopic() {
-    // Given
-    ALL_INTERNAL_TOPICS_PREFIXES.forEach(topic -> {
-      // When
-      final boolean isReserved = ReservedInternalTopics.isInternalTopic("any_name_" + topic);
-
-      // Then
-      assertThat(isReserved, is(false));
+      assertThat("Should return false on non-internal topic: " + topic,
+          isReserved, is(false));
     });
   }
 
@@ -93,9 +80,24 @@ public class ReservedInternalTopicsTest {
     final String ksqlInternalTopic = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "_test";
 
     // When
-    final boolean isReserved = ReservedInternalTopics.isInternalTopic(ksqlInternalTopic);
+    final boolean isReserved =
+        internalTopics.isInternalTopic(ksqlInternalTopic);
 
     // Then
     assertThat(isReserved, is(true));
+  }
+
+  @Test
+  public void shouldFilterAllInternalTopics() {
+    // Given
+    final Set<String> topics = ImmutableSet.of(
+        "prefix_name", "literal", "tt", "name1", "suffix", "p_suffix"
+    );
+
+    // When
+    final Set<String> filteredTopics = internalTopics.filterInternalTopics(topics);
+
+    // Then
+    assertThat(filteredTopics, is(ImmutableSet.of("tt", "name1", "suffix")));
   }
 }

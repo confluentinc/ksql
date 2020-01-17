@@ -58,16 +58,7 @@ public final class ListTopicsExecutor {
       final ServiceContext serviceContext
   ) {
     final KafkaTopicClient client = serviceContext.getTopicClient();
-
-    final Map<String, TopicDescription> kafkaTopicDescriptions;
-    if (statement.getStatement().getShowAll()) {
-      kafkaTopicDescriptions = client.describeTopics(client.listTopicNames());
-    } else {
-      kafkaTopicDescriptions = client.describeTopics(client.listNonInternalTopicNames());
-    }
-
-    final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
-        filterKsqlInternalTopics(kafkaTopicDescriptions, statement.getConfig()));
+    final Map<String, TopicDescription> topicDescriptions = listTopics(client, statement);
 
     if (statement.getStatement().getShowExtended()) {
       final KafkaConsumerGroupClient consumerGroupClient
@@ -75,7 +66,7 @@ public final class ListTopicsExecutor {
       final Map<String, List<Integer>> topicConsumersAndGroupCount
           = getTopicConsumerAndGroupCounts(consumerGroupClient);
 
-      final List<KafkaTopicInfoExtended> topicInfoExtendedList = filteredDescriptions.values()
+      final List<KafkaTopicInfoExtended> topicInfoExtendedList = topicDescriptions.values()
           .stream().map(desc ->
               topicDescriptionToTopicInfoExtended(desc, topicConsumersAndGroupCount))
           .collect(Collectors.toList());
@@ -83,12 +74,27 @@ public final class ListTopicsExecutor {
       return Optional.of(
           new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList));
     } else {
-      final List<KafkaTopicInfo> topicInfoList = filteredDescriptions.values()
+      final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
           .stream().map(desc -> topicDescriptionToTopicInfo(desc))
           .collect(Collectors.toList());
 
       return Optional.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
     }
+  }
+
+  private static Map<String, TopicDescription> listTopics(
+      final KafkaTopicClient topicClient,
+      final ConfiguredStatement<ListTopics> statement
+  ) {
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(statement.getConfig());
+
+    final Set<String> topics = statement.getStatement().getShowAll()
+        ? topicClient.listTopicNames()
+        : internalTopics.filterInternalTopics(topicClient.listTopicNames());
+
+    return new TreeMap<>(
+        filterKsqlInternalTopics(topicClient.describeTopics(topics), statement.getConfig())
+    );
   }
 
   private static KafkaTopicInfo topicDescriptionToTopicInfo(final TopicDescription description) {

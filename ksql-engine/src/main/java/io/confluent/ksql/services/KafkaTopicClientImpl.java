@@ -25,7 +25,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -174,13 +173,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
-  }
-
-  @Override
-  public Set<String> listNonInternalTopicNames() {
-    return listTopicNames().stream()
-        .filter(topic -> !ReservedInternalTopics.isInternalTopic(topic))
-        .collect(Collectors.toSet());
   }
 
   @Override

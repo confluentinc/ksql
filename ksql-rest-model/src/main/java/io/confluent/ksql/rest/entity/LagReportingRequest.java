@@ -30,7 +30,7 @@ public class LagReportingRequest {
 
   @JsonCreator
   public LagReportingRequest(
-      @JsonProperty("hostInfoEntity") final HostInfoEntity hostInfoEntity,
+      @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
       @JsonProperty("storeToPartitionToLagMap") final Map<String, Map<Integer, LagInfoEntity>>
           storeToPartitionToLagMap,
       @JsonProperty("lastLagUpdateMs") final long lastLagUpdateMs

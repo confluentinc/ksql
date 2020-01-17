@@ -50,18 +50,6 @@ public class HostStatusEntity {
     return lastStatusUpdateMs;
   }
 
-  public void setHostInfoEntity(final HostInfoEntity hostInfoEntity) {
-    this.hostInfoEntity = hostInfoEntity;
-  }
-
-  public void setHostAlive(final boolean hostAlive) {
-    this.hostAlive = hostAlive;
-  }
-
-  public void setLastStatusUpdateMs(final long lastStatusUpdateMs) {
-    this.lastStatusUpdateMs = lastStatusUpdateMs;
-  }
-
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

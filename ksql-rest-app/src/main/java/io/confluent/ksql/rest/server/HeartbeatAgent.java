@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.common.utils.Utils.getHost;
 import static org.apache.kafka.common.utils.Utils.getPort;
 
+import com.clearspring.analytics.util.Lists;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
@@ -81,6 +82,7 @@ public final class HeartbeatAgent {
   private final KsqlEngine engine;
   private final ServiceContext serviceContext;
   private final HeartbeatConfig config;
+  private final List<HeartbeatListener> heartbeatListeners;
   private final ConcurrentHashMap<String, TreeMap<Long, HeartbeatInfo>> receivedHeartbeats;
   private final ConcurrentHashMap<String, HostStatusEntity> hostsStatus;
   private final ScheduledExecutorService scheduledExecutorService;
@@ -96,11 +98,13 @@ public final class HeartbeatAgent {
 
   private HeartbeatAgent(final KsqlEngine engine,
                          final ServiceContext serviceContext,
-                         final HeartbeatConfig config) {
+                         final HeartbeatConfig config,
+                         final List<HeartbeatListener> heartbeatListeners) {
 
     this.engine = requireNonNull(engine, "engine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.config = requireNonNull(config, "configuration parameters");
+    this.heartbeatListeners = requireNonNull(heartbeatListeners, "heartbeatListeners");
     this.scheduledExecutorService = Executors.newScheduledThreadPool(config.threadPoolSize);
     this.serviceManager = new ServiceManager(Arrays.asList(
         new DiscoverClusterService(), new SendHeartbeatService(), new CheckHeartbeatService()));
@@ -237,19 +241,25 @@ public final class HeartbeatAgent {
       if (receivedHeartbeats.isEmpty()) {
         hostsStatus.forEach((host, status) -> {
           if (!host.equals(localHostString)) {
-            status.setHostAlive(false);
+            hostsStatus.put(host, new HostStatusEntity(status.getHostInfoEntity(),
+                                                       false,
+                                                       status.getLastStatusUpdateMs()));
           }
         });
       }
 
-      for (String host: hostsStatus.keySet()) {
+      for (Entry<String, HostStatusEntity> entry: hostsStatus.entrySet()) {
+        final String host = entry.getKey();
+        final HostStatusEntity status = entry.getValue();
         if (host.equals(localHostString)) {
           continue;
         }
         final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.get(host);
         //For previously discovered hosts, if they have not received any heartbeats, mark them dead
         if (heartbeats == null || heartbeats.isEmpty()) {
-          hostsStatus.get(host).setHostAlive(false);
+          hostsStatus.put(host, new HostStatusEntity(status.getHostInfoEntity(),
+                                                     false,
+                                                     status.getLastStatusUpdateMs()));
         } else {
           final TreeMap<Long, HeartbeatInfo> copy;
           synchronized (heartbeats) {
@@ -260,10 +270,14 @@ public final class HeartbeatAgent {
           }
           // 2. count consecutive missed heartbeats and mark as alive or dead
           final  boolean isAlive = decideStatus(host, windowStart, windowEnd, copy);
-          final HostStatusEntity status = hostsStatus.get(host);
-          status.setHostAlive(isAlive);
-          status.setLastStatusUpdateMs(windowEnd);
+          hostsStatus.put(host,
+              new HostStatusEntity(status.getHostInfoEntity(), isAlive, windowEnd));
         }
+      }
+
+      Map<String, HostStatusEntity> hostStatusEntityMap = getHostsStatus();
+      for (HeartbeatListener listener : heartbeatListeners) {
+        listener.onHostStatusUpdated(hostStatusEntityMap);
       }
     }
 
@@ -413,6 +427,7 @@ public final class HeartbeatAgent {
     private long nestedDiscoverClusterIntervalMs;
     private long nestedHeartbeatWindowMs;
     private long nestedHeartbeatMissedThreshold;
+    private List<HeartbeatListener> nestedHeartbeatListeners = Lists.newArrayList();
 
     HeartbeatAgent.Builder threadPoolSize(final int size) {
       nestedThreadPoolSize = size;
@@ -444,6 +459,11 @@ public final class HeartbeatAgent {
       return this;
     }
 
+    HeartbeatAgent.Builder addHeartbeatListener(final HeartbeatListener listener) {
+      nestedHeartbeatListeners.add(listener);
+      return this;
+    }
+
     public HeartbeatAgent build(final KsqlEngine engine,
                                 final ServiceContext serviceContext) {
 
@@ -454,7 +474,8 @@ public final class HeartbeatAgent {
                                                       nestedHeartbeatCheckIntervalMs,
                                                       nestedHeartbeatWindowMs,
                                                       nestedHeartbeatMissedThreshold,
-                                                      nestedDiscoverClusterIntervalMs));
+                                                      nestedDiscoverClusterIntervalMs),
+                                nestedHeartbeatListeners);
     }
   }
 
@@ -493,5 +514,17 @@ public final class HeartbeatAgent {
     public String toString() {
       return String.valueOf(timestamp);
     }
+  }
+
+  /**
+   * A listener for heartbeat related events.
+   */
+  public interface HeartbeatListener {
+
+    /**
+     * Call when the map of host statuses are updated
+     * @param hostsStatusMap The new host status map
+     */
+    void onHostStatusUpdated(Map<String, HostStatusEntity> hostsStatusMap);
   }
 }

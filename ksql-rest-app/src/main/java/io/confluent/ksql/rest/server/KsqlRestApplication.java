@@ -64,7 +64,7 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.rest.server.services.LagReportingResource;
+import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -701,10 +701,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                   KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG))
               .lagDataExpirationMs(restConfig.getLong(
                   KsqlRestConfig.KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG))
-              .discoverClusterInterval(restConfig.getLong(
-                  KsqlRestConfig.KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_CONFIG))
-              .threadPoolSize(restConfig.getInt(
-                  KsqlRestConfig.KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG))
               .build(ksqlEngine, serviceContext));
     }
     return Optional.empty();

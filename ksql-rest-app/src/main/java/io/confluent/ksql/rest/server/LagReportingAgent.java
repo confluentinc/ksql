@@ -20,17 +20,16 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Comparators;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.common.util.concurrent.Service;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.server.HeartbeatAgent.HeartbeatListener;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -41,21 +40,17 @@ import java.time.Clock;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
-import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,13 +58,15 @@ import org.slf4j.LoggerFactory;
  * Agent responsible for sending and receiving lag information across the cluster and providing
  * aggregate stats, usable during query time.
  */
-public final class LagReportingAgent extends AbstractMeshAgent {
-
-  private static final int SEND_HEARTBEAT_DELAY_MS = 100;
+public final class LagReportingAgent implements HeartbeatListener {
+  private static final int NUM_THREADS_EXECUTOR = 1;
+  private static final int SEND_LAG_DELAY_MS = 100;
   private static final Cache<HostInfoEntity, HostPartitionLagInfo> EMPTY_CACHE = CacheBuilder
       .newBuilder().build();
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
 
+  private final KsqlEngine engine;
+  private final ScheduledExecutorService scheduledExecutorService;
   private final ServiceContext serviceContext;
   private final LagReportingConfig config;
   private final Clock clock;
@@ -79,6 +76,8 @@ public final class LagReportingAgent extends AbstractMeshAgent {
   private final Map<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>>
       receivedLagInfo;
   private final ConcurrentHashMap<String, HostInfoEntity> hosts;
+
+  private URL localURL;
 
   /**
    * Builder for creating an instance of LagReportingAgent.
@@ -100,17 +99,28 @@ public final class LagReportingAgent extends AbstractMeshAgent {
    */
   private LagReportingAgent(
       final KsqlEngine engine,
+      final ScheduledExecutorService scheduledExecutorService,
       final ServiceContext serviceContext,
       final LagReportingConfig config,
       final Clock clock,
       final Ticker ticker) {
-    super(engine, config);
+    this.engine = requireNonNull(engine, "engine");
+    this.scheduledExecutorService = scheduledExecutorService;
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.config = requireNonNull(config, "configuration parameters");
     this.clock = clock;
     this.ticker = ticker;
-    this.receivedLagInfo = new TreeMap<>();
+    this.receivedLagInfo = new HashMap<>();
     this.hosts = new ConcurrentHashMap<>();
+  }
+
+  void setLocalAddress(final String applicationServer) {
+    try {
+      this.localURL = new URL(applicationServer);
+    } catch (final Exception e) {
+      throw new IllegalStateException("Failed to convert remote host info to URL."
+          + " remoteInfo: " + applicationServer);
+    }
   }
 
   /**
@@ -126,7 +136,7 @@ public final class LagReportingAgent extends AbstractMeshAgent {
         String storeName = storeEntry.getKey();
         Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
 
-        receivedLagInfo.computeIfAbsent(storeName, key -> new TreeMap<>());
+        receivedLagInfo.computeIfAbsent(storeName, key -> new HashMap<>());
 
         // Go through each new partition and add lag info
         for (Map.Entry<Integer, LagInfoEntity> partitionEntry : partitionMap.entrySet()) {
@@ -147,15 +157,23 @@ public final class LagReportingAgent extends AbstractMeshAgent {
   //
   // Assumes we're synchronized on receivedLagInfo
   private void garbageCollect(HostInfoEntity toRemove) {
-    for (String storeName : receivedLagInfo.keySet()) {
-      for (Integer partition : receivedLagInfo.get(storeName).keySet()) {
-        receivedLagInfo.get(storeName).get(partition).invalidate(toRemove);
-        if (receivedLagInfo.get(storeName).get(partition).size() == 0) {
-          receivedLagInfo.get(storeName).remove(partition);
+    Iterator<Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>>>
+        storeIterator = receivedLagInfo.entrySet().iterator();
+    while (storeIterator.hasNext()) {
+      Entry<String, Map<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>> storeEntry =
+          storeIterator.next();
+      Iterator<Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>>> partitionIterator =
+          storeEntry.getValue().entrySet().iterator();
+      while (partitionIterator.hasNext()) {
+        Entry<Integer, Cache<HostInfoEntity, HostPartitionLagInfo>> partitionEntry =
+            partitionIterator.next();
+        partitionEntry.getValue().invalidate(toRemove);
+        if (partitionEntry.getValue().size() == 0) {
+          partitionIterator.remove();
         }
       }
-      if (receivedLagInfo.get(storeName).isEmpty()) {
-        receivedLagInfo.remove(storeName);
+      if (storeEntry.getValue().isEmpty()) {
+        storeIterator.remove();
       }
     }
   }
@@ -169,7 +187,7 @@ public final class LagReportingAgent extends AbstractMeshAgent {
   }
 
   /**
-   * Returns lag information for all of the hosts for a given state store and partition.
+   * Returns lag information for all of the "alive" hosts for a given state store and partition.
    * @param stateStoreName The state store to consider
    * @param partition The partition of that state
    * @return A map which is keyed by host and contains lag information
@@ -177,27 +195,30 @@ public final class LagReportingAgent extends AbstractMeshAgent {
   public Map<HostInfoEntity, HostPartitionLagInfo> getHostsPartitionLagInfo(
       String stateStoreName, int partition) {
     synchronized (receivedLagInfo) {
-      return ImmutableMap.copyOf(
+      Map<HostInfoEntity, HostPartitionLagInfo> partitionLagInfoMap =
           receivedLagInfo.getOrDefault(stateStoreName, Collections.emptyMap())
-              .getOrDefault(partition, EMPTY_CACHE).asMap());
+              .getOrDefault(partition, EMPTY_CACHE).asMap();
+      return partitionLagInfoMap.entrySet().stream()
+          .filter(e -> hosts.containsKey(e.getKey().toString()))
+          .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     }
   }
 
   /**
    * Returns current positions for
    */
-  public Map<String, Map<Integer, Map<String, Long>>> listAllCurrentPositions() {
+  public Map<String, Map<Integer, Map<String, LagInfoEntity>>> listAllLags() {
     synchronized (receivedLagInfo) {
       return receivedLagInfo.entrySet().stream()
           .map(storeNameEntry -> Pair.of(storeNameEntry.getKey(),
               storeNameEntry.getValue().entrySet().stream()
-                  .map(partitionEntry -> Pair.<Integer, Map<String, Long>>of(
+                  .map(partitionEntry -> Pair.<Integer, Map<String, LagInfoEntity>>of(
                       partitionEntry.getKey(),
                       partitionEntry.getValue().asMap().entrySet().stream()
                           .collect(ImmutableSortedMap.toImmutableSortedMap(
                               Comparator.comparing(String::toString),
                               ent -> ent.getKey().toString(),
-                              ent -> ent.getValue().getLagInfo().getCurrentOffsetPosition()))))
+                              ent -> ent.getValue().getLagInfo()))))
                   .collect(ImmutableSortedMap.toImmutableSortedMap(
                       Integer::compare, Pair::getLeft, Pair::getRight))))
           .collect(ImmutableSortedMap.toImmutableSortedMap(
@@ -205,26 +226,13 @@ public final class LagReportingAgent extends AbstractMeshAgent {
     }
   }
 
-  // In addition to the cluster discovery service in the parent class, we also send lag information.
   @Override
-  protected List<Service> createServices() {
-    return ImmutableList.of(new SendLagService());
-  }
-
-  /**
-   * Called when an update on cluster hosts comes in
-   * @param uniqueHosts The new, updated set of hosts
-   */
-  @Override
-  void onClusterDiscoveryUpdate(Set<HostInfo> uniqueHosts) {
-    for (HostInfo hostInfo : uniqueHosts) {
-      HostInfoEntity hostInfoEntity = new HostInfoEntity(hostInfo.host(), hostInfo.port());
-      final String hostKey = hostInfoEntity.toString();
-      hosts.putIfAbsent(hostKey, hostInfoEntity);
-    }
-
-    // We could remove old hosts from the receivedLagInfo structure, but for simplicity, we'll
-    // assume they'll time out from the cache if the node dies.
+  public void onHostStatusUpdated(Map<String, HostStatusEntity> hostsStatusMap) {
+    hosts.clear();
+    hostsStatusMap.entrySet().stream()
+        .filter(e -> e.getValue().getHostAlive())
+        .map(e -> e.getValue().getHostInfoEntity())
+        .forEach(hostInfo -> hosts.put(hostInfo.toString(), hostInfo));
   }
 
   /**
@@ -251,14 +259,11 @@ public final class LagReportingAgent extends AbstractMeshAgent {
       LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
 
       for (Entry<String, HostInfoEntity> hostInfoEntry: hosts.entrySet()) {
-        final String hostString = hostInfoEntry.getKey();
         final HostInfoEntity hostInfo = hostInfoEntry.getValue();
         try {
-          if (!hostString.equals(localHostString)) {
-            final URI remoteUri = buildRemoteUri(localURL, hostInfo.getHost(), hostInfo.getPort());
-            LOG.debug("Sending lag to host {} at {}", hostInfo.getHost(), clock.millis());
-            serviceContext.getKsqlClient().makeAsyncLagReportRequest(remoteUri, request);
-          }
+          final URI remoteUri = buildRemoteUri(localURL, hostInfo.getHost(), hostInfo.getPort());
+          LOG.debug("Sending lag to host {} at {}", hostInfo.getHost(), clock.millis());
+          serviceContext.getKsqlClient().makeAsyncLagReportRequest(remoteUri, request);
         } catch (Throwable t) {
           LOG.error("Request to server: " + hostInfo.getHost() + ":" + hostInfo.getPort()
               + " failed with exception: " + t.getMessage(), t);
@@ -283,13 +288,13 @@ public final class LagReportingAgent extends AbstractMeshAgent {
             }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
         map.put(storeEntry.getKey(), partitionMap);
       }
-      return new LagReportingRequest(new HostInfoEntity(localHostInfo.host(), localHostInfo.port()),
+      return new LagReportingRequest(new HostInfoEntity(localURL.getHost(), localURL.getPort()),
           map, clock.millis());
     }
 
     @Override
     protected Scheduler scheduler() {
-      return Scheduler.newFixedRateSchedule(SEND_HEARTBEAT_DELAY_MS,
+      return Scheduler.newFixedRateSchedule(SEND_LAG_DELAY_MS,
           config.lagSendIntervalMs,
           TimeUnit.MILLISECONDS);
     }
@@ -322,25 +327,13 @@ public final class LagReportingAgent extends AbstractMeshAgent {
   public static class Builder {
 
     // Some defaults set, in case none is given
-    private int nestedThreadPoolSize = 2;
     private long nestedLagSendIntervalMs = 500;
-    private long nestedDiscoverClusterIntervalMs = 2000;
     private long nestedLagDataExpirationMs = 5000;
     private Clock nestedClock = Clock.systemUTC();
     private Ticker nestedTicker = Ticker.systemTicker();
 
-    LagReportingAgent.Builder threadPoolSize(final int size) {
-      nestedThreadPoolSize = size;
-      return this;
-    }
-
     LagReportingAgent.Builder lagSendIntervalMs(final long interval) {
       nestedLagSendIntervalMs = interval;
-      return this;
-    }
-
-    LagReportingAgent.Builder discoverClusterInterval(final long interval) {
-      nestedDiscoverClusterIntervalMs = interval;
       return this;
     }
 
@@ -361,42 +354,26 @@ public final class LagReportingAgent extends AbstractMeshAgent {
 
     public LagReportingAgent build(final KsqlEngine engine,
         final ServiceContext serviceContext) {
-
+      ScheduledExecutorService scheduledExecutorService =
+          Executors.newScheduledThreadPool(NUM_THREADS_EXECUTOR);
       return new LagReportingAgent(engine,
+          scheduledExecutorService,
           serviceContext,
-          new LagReportingConfig(nestedThreadPoolSize,
-                                 nestedLagSendIntervalMs,
-                                 nestedDiscoverClusterIntervalMs,
+          new LagReportingConfig(nestedLagSendIntervalMs,
                                  nestedLagDataExpirationMs),
           nestedClock,
           nestedTicker);
     }
   }
 
-  static class LagReportingConfig implements AbstractMeshConfig {
-    private final int threadPoolSize;
+  static class LagReportingConfig {
     private final long lagSendIntervalMs;
     private final long lagDataExpirationMs;
-    private final long discoverClusterIntervalMs;
 
-    LagReportingConfig(final int threadPoolSize,
-                       final long lagSendIntervalMs,
-                       final long discoverClusterIntervalMs,
+    LagReportingConfig(final long lagSendIntervalMs,
                        final long lagDataExpirationMs) {
-      this.threadPoolSize = threadPoolSize;
       this.lagSendIntervalMs = lagSendIntervalMs;
-      this.discoverClusterIntervalMs = discoverClusterIntervalMs;
       this.lagDataExpirationMs = lagDataExpirationMs;
-    }
-
-    @Override
-    public long getDiscoverClusterIntervalMs() {
-      return discoverClusterIntervalMs;
-    }
-
-    @Override
-    public int getThreadPoolSize() {
-      return threadPoolSize;
     }
   }
 

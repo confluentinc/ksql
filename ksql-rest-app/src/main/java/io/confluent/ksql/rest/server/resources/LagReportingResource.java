@@ -1,10 +1,11 @@
-package io.confluent.ksql.rest.server.services;
+package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.LagListResponse;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.LagReportingAgent;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -13,6 +14,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 @Path("/lag")
+@Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class LagReportingResource {
 
@@ -32,7 +34,7 @@ public class LagReportingResource {
   @Path("/list")
   @GET
   public Response listLags() {
-    return Response.ok(new LagListResponse(lagReportingAgent.listAllCurrentPositions())).build();
+    return Response.ok(new LagListResponse(lagReportingAgent.listAllLags())).build();
   }
 
 }

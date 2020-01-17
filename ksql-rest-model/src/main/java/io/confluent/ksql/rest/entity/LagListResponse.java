@@ -6,18 +6,17 @@ import java.util.Map;
 import java.util.Objects;
 
 public class LagListResponse {
-  private final Map<String, Map<Integer, Map<String, Long>>> allCurrentPositions;
+  private final Map<String, Map<Integer, Map<String, LagInfoEntity>>> allLags;
 
   @JsonCreator
   public LagListResponse(
-      @JsonProperty("allCurrentPositions") final Map<String, Map<Integer, Map<String, Long>>>
-          allCurrentPositions
+      @JsonProperty("allLags") final Map<String, Map<Integer, Map<String, LagInfoEntity>>> allLags
   ) {
-    this.allCurrentPositions = allCurrentPositions;
+    this.allLags = allLags;
   }
 
-  public Map<String, Map<Integer, Map<String, Long>>> getAllCurrentPositions() {
-    return allCurrentPositions;
+  public Map<String, Map<Integer, Map<String, LagInfoEntity>>> getAllLags() {
+    return allLags;
   }
 
   @Override
@@ -31,11 +30,11 @@ public class LagListResponse {
     }
 
     final LagListResponse that = (LagListResponse) o;
-    return Objects.equals(allCurrentPositions, that.allCurrentPositions);
+    return Objects.equals(allLags, that.allLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(allCurrentPositions);
+    return Objects.hash(allLags);
   }
 }

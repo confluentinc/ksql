@@ -166,16 +166,6 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_DOC =
       "Expiration time for lag data received by servers";
 
-  public static final String KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_CONFIG =
-      KSQL_CONFIG_PREFIX + "lag.reporting.discover.interval.ms";
-  private static final String KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_DOC =
-      "Interval at which server attempts to discover what other ksql servers exist in the cluster.";
-
-  public static final String KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG =
-      KSQL_CONFIG_PREFIX + "lag.reporting.thread.pool.size";
-  private static final String KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG_DOC =
-      "Size of thread pool used for sending / processing lag reports and cluster discovery.";
-
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -301,18 +291,6 @@ public class KsqlRestConfig extends RestConfig {
         5000L,
         Importance.MEDIUM,
         KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_DOC
-    ).define(
-        KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_CONFIG,
-        Type.LONG,
-        2000L,
-        Importance.MEDIUM,
-        KSQL_LAG_REPORTING_DISCOVER_CLUSTER_MS_DOC
-    ).define(
-        KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG,
-        Type.INT,
-        2,
-        Importance.MEDIUM,
-        KSQL_LAG_REPORTING_THREAD_POOL_SIZE_CONFIG_DOC
     );
   }
 

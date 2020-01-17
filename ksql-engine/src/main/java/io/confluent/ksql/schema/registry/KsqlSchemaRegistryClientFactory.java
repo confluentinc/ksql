@@ -19,10 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.network.Mode;
@@ -39,7 +37,6 @@ public class KsqlSchemaRegistryClientFactory {
   private final SchemaRegistryClientFactory schemaRegistryClientFactory;
   private final Map<String, String> httpHeaders;
   private final String schemaRegistryUrl;
-  private final ErrorMessages errorMessages;
 
   interface SchemaRegistryClientFactory {
     CachedSchemaRegistryClient create(RestService service,
@@ -50,20 +47,17 @@ public class KsqlSchemaRegistryClientFactory {
   
   public KsqlSchemaRegistryClientFactory(
       final KsqlConfig config,
-      final ErrorMessages errorMessages,
       final Map<String, String> schemaRegistryHttpHeaders
   ) {
-    this(config, errorMessages, newSchemaRegistrySslFactory(config), schemaRegistryHttpHeaders);
+    this(config, newSchemaRegistrySslFactory(config), schemaRegistryHttpHeaders);
   }
 
   public KsqlSchemaRegistryClientFactory(
       final KsqlConfig config,
-      final ErrorMessages errorMessages,
       final SslFactory sslFactory,
       final Map<String, String> schemaRegistryHttpHeaders
   ) {
     this(config,
-        errorMessages,
         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
         sslFactory,
         CachedSchemaRegistryClient::new,
@@ -76,7 +70,6 @@ public class KsqlSchemaRegistryClientFactory {
 
   @VisibleForTesting
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
-                                  final ErrorMessages errorMessages,
                                   final Supplier<RestService> serviceSupplier,
                                   final SslFactory sslFactory,
                                   final SchemaRegistryClientFactory schemaRegistryClientFactory,
@@ -89,7 +82,6 @@ public class KsqlSchemaRegistryClientFactory {
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
     this.httpHeaders = httpHeaders;
     this.schemaRegistryUrl = config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).trim();
-    this.errorMessages = Objects.requireNonNull(errorMessages, "errorMessages");
   }
 
   /**
@@ -109,7 +101,7 @@ public class KsqlSchemaRegistryClientFactory {
 
   public SchemaRegistryClient get() {
     if (schemaRegistryUrl.equals("")) {
-      return new DefaultSchemaRegistryClient(errorMessages);
+      return new DefaultSchemaRegistryClient();
     }
   
     final RestService restService = serviceSupplier.get();

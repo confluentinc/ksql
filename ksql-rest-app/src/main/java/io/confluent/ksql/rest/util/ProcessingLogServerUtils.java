@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -50,16 +51,7 @@ public final class ProcessingLogServerUtils {
   public static String getTopicName(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
-    final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);
-    if (topicNameConfig.equals(ProcessingLogConfig.TOPIC_NAME_NOT_SET)) {
-      return String.format(
-          "%s%s",
-          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-          ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX
-      );
-    } else {
-      return topicNameConfig;
-    }
+    return ReservedInternalTopics.processingLogTopic(config, ksqlConfig);
   }
 
   public static Optional<String> maybeCreateProcessingLogTopic(

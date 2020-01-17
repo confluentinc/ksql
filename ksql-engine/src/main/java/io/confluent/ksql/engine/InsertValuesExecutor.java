@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -191,6 +192,15 @@ public class InsertValuesExecutor {
     final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
     if (internalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert values into the reserved internal topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    final ProcessingLogConfig processingLogConfig =
+        new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final String processingLogTopic =
+        ReservedInternalTopics.processingLogTopic(processingLogConfig, ksqlConfig);
+    if (dataSource.getKafkaTopicName().equals(processingLogTopic)) {
+      throw new KsqlException("Cannot insert into the processing log topic: "
           + dataSource.getKafkaTopicName());
     }
 

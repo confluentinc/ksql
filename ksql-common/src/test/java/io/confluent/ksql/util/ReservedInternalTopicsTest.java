@@ -20,22 +20,31 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.PatternSyntaxException;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ReservedInternalTopicsTest {
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   private ReservedInternalTopics internalTopics;
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
-    internalTopics = new ReservedInternalTopics(new KsqlConfig(ImmutableMap.of(
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix"
-    )));
+    ));
+
+    internalTopics = new ReservedInternalTopics(ksqlConfig);
   }
 
 
@@ -99,5 +108,39 @@ public class ReservedInternalTopicsTest {
 
     // Then
     assertThat(filteredTopics, is(ImmutableSet.of("tt", "name1", "suffix")));
+  }
+
+  @Test
+  public void shouldThrowWhenInvalidSystemTopicsListIsUsed() {
+    // Given
+    final KsqlConfig givenConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG, "*_suffix"
+    ));
+
+    // Then
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot get a list of system internal topics due to" +
+        " an invalid configuration in '" + KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG + "'");
+
+    // When
+    new ReservedInternalTopics(givenConfig);
+  }
+
+  @Test
+  public void shouldReturnCommandTopic() {
+    // Given/When
+    final String commandTopic = ReservedInternalTopics.commandTopic(ksqlConfig);
+
+    // Then
+    assertThat("_confluent-ksql-default__command_topic", is(commandTopic));
+  }
+
+  @Test
+  public void shouldReturnConfigsTopic() {
+    // Given/When
+    final String commandTopic = ReservedInternalTopics.configsTopic(ksqlConfig);
+
+    // Then
+    assertThat("_confluent-ksql-default__configs", is(commandTopic));
   }
 }

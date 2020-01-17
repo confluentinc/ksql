@@ -569,6 +569,36 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowWhenInsertValuesOnProcessingLogTopic() {
+    // Given
+    givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
+        SerdeOption.none(), Optional.of(COL0), false);
+
+    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+        PreparedStatement.of(
+            "",
+            new InsertValues(SourceName.of("TOPIC"),
+                allFieldNames(SCHEMA),
+                ImmutableList.of(
+                    new LongLiteral(1L),
+                    new StringLiteral("str"),
+                    new StringLiteral("str"),
+                    new LongLiteral(2L)
+                ))),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Cannot insert into the processing log topic: default_ksql_processing_log");
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+  }
+
+  @Test
   public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(

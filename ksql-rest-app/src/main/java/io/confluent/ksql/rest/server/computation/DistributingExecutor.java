@@ -15,6 +15,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -187,6 +188,15 @@ public class DistributingExecutor {
     final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
     if (internalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert into the reserved internal topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    final ProcessingLogConfig processingLogConfig =
+        new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final String processingLogTopic =
+        ReservedInternalTopics.processingLogTopic(processingLogConfig, ksqlConfig);
+    if (dataSource.getKafkaTopicName().equals(processingLogTopic)) {
+      throw new KsqlException("Cannot insert into the processing log topic: "
           + dataSource.getKafkaTopicName());
     }
   }

@@ -325,4 +325,24 @@ public class DistributingExecutorTest {
     // When:
     distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
   }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoProcessingLogTopic() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    final DataSource<?> dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into the processing log topic: "
+        + "default_ksql_processing_log");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+  }
 }

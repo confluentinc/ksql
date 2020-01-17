@@ -15,12 +15,18 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class ReservedInternalTopics {
+  private static final Logger LOG = LoggerFactory.getLogger(ReservedInternalTopics.class);
+
   // These constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because they're
   // not configurable.
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
@@ -48,13 +54,41 @@ public final class ReservedInternalTopics {
   }
 
   /**
+   * Returns the KSQL processing log topic.
+   * <p/>
+   * This is not an internal topic in the sense that users are intentionally meant to read from
+   * this topic to identify deserialization and other processing errors, define a KSQL stream on
+   * it, and potentially issue queries to filter from it, etc. This is why it is not prefixed in
+   * the way KSQL internal topics are.
+   *
+   * @param config The Processing log config, which is used to extract the processing topic suffix
+   * @param ksqlConfig The KSQL config, which is used to extract the KSQL service id.
+   * @return The processing log topic name.
+   */
+  public static String processingLogTopic(
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig
+  ) {
+    final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);
+    if (topicNameConfig.equals(ProcessingLogConfig.TOPIC_NAME_NOT_SET)) {
+      return String.format(
+          "%s%s",
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+          ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX
+      );
+    } else {
+      return topicNameConfig;
+    }
+  }
+
+  /**
    * Compute a name for a KSQL internal topic.
    *
    * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
    * @param topicSuffix A suffix that is appended to the topic name.
    * @return The computed topic name.
    */
-  public static String toKsqlInternalTopic(final KsqlConfig ksqlConfig, final String topicSuffix) {
+  private static String toKsqlInternalTopic(final KsqlConfig ksqlConfig, final String topicSuffix) {
     return String.format(
         "%s%s_%s",
         KSQL_INTERNAL_TOPIC_PREFIX,
@@ -66,10 +100,18 @@ public final class ReservedInternalTopics {
   private final List<Pattern> systemInternalTopics;
 
   public ReservedInternalTopics(final KsqlConfig ksqlConfig) {
-    this.systemInternalTopics = ksqlConfig.getList(KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG)
-        .stream()
-        .map(Pattern::compile)
-        .collect(Collectors.toList());
+    try {
+      this.systemInternalTopics = ksqlConfig.getList(KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG)
+          .stream()
+          .map(Pattern::compile)
+          .collect(Collectors.toList());
+    } catch (final Exception e) {
+      final String message = "Cannot get a list of system internal topics due to an invalid " +
+          "configuration in '" + KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG + "'";
+
+      LOG.error(message + ": " + e.getMessage());
+      throw new KsqlException(message, e);
+    }
   }
 
   public Set<String> filterInternalTopics(final Set<String> topicNames) {

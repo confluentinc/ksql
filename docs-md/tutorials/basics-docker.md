@@ -70,7 +70,7 @@ simulate "user" and "pageview" data:
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-pageviews \
-    confluentinc/ksql-examples:{{ site.release }} \
+    confluentinc/ksql-examples:{{ site.cprelease }} \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=pageviews \
@@ -81,7 +81,7 @@ docker run --network tutorials_default --rm --name datagen-pageviews \
 
 ```bash
 docker run --network tutorials_default --rm --name datagen-users \
-    confluentinc/ksql-examples:{{ site.release }} \
+    confluentinc/ksql-examples:{{ site.cprelease }} \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=users \

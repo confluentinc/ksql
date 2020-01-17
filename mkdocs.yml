@@ -191,6 +191,7 @@ extra:
         kafkarelease: 5.4.0-ccs
         ksqldbversion: 0.6.0
         release: 0.6.0
+        cprelease: 5.4.0
         releasepostbranch: 5.4.0-post
         scalaversion: 2.12
         version: 5.4

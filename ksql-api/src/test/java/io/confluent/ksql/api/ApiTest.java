@@ -311,11 +311,11 @@ public class ApiTest {
     // Create a write stream to capture the incomplete response
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
+    VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     // Make the request to stream a query
     client.post(8089, "localhost", "/query-stream")
         .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, ar -> {
-        });
+        .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture);
 
     // Wait for all rows in the response to arrive
     assertTrue(waitUntil(() -> {
@@ -352,6 +352,9 @@ public class ApiTest {
 
     // The response should now be ended
     assertTrue(waitUntil(writeStream::isEnded));
+    HttpResponse<Void> response = responseFuture.get();
+    assertEquals(200, response.statusCode());
+    assertEquals("OK", response.statusMessage());
   }
 
   @Test
@@ -435,39 +438,49 @@ public class ApiTest {
 
     JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
 
+    // Stream for piping the HTTP request body
     SendStream readStream = new SendStream(vertx);
+    // Stream for receiving the HTTP response body
     ReceiveStream writeStream = new ReceiveStream(vertx);
     VertxCompletableFuture<HttpResponse<Void>> fut = new VertxCompletableFuture<>();
     List<JsonObject> rows = generateInsertRows();
 
+    // Make an HTTP request but keep the request body and response streams open
     client.post(8089, "localhost", "/inserts-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendStream(readStream, fut);
 
+    // Write the initial params Json object to the request body
     readStream.acceptBuffer(params.toBuffer().appendString("\n"));
 
+    // Asynchronously on a timer write inserts to the request body
     AtomicInteger rowIndex = new AtomicInteger();
     vertx.setPeriodic(100, tid -> {
       readStream.acceptBuffer(rows.get(rowIndex.getAndIncrement()).toBuffer().appendString("\n"));
       if (rowIndex.get() == rows.size()) {
         vertx.cancelTimer(tid);
+        // End the inserts stream and request when we've written all the rows to the stream
         readStream.end();
       }
     });
 
+    // Wait for the response to complete
     HttpResponse<Void> response = fut.get();
-
     assertEquals(200, response.statusCode());
     assertEquals("OK", response.statusMessage());
 
+    // Verify we got acks for all our inserts
     InsertsResponse insertsResponse = new InsertsResponse(writeStream.getBody().toString());
     assertEquals(rows.size(), insertsResponse.acks.size());
+
+    // Make sure all inserts made it to the server
     assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+
     // When response is complete the acks subscriber should be unsubscribed
     assertFalse(testEndpoints.getAcksPublisher().hasSubscriber());
 
-    // Ensure we received at last some of the response before all the request body was written
+    // Ensure we received at least some of the response before all the request body was written
     // Yay HTTP2!
     assertTrue(readStream.getLastSentTime() > writeStream.getFirstReceivedTime());
   }

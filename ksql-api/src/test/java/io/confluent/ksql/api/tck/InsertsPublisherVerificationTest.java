@@ -1,6 +1,6 @@
 package io.confluent.ksql.api.tck;
 
-import io.confluent.ksql.api.server.InsertsPublisher;
+import io.confluent.ksql.api.server.InsertsPublisherOld;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.reactivestreams.Publisher;
@@ -19,7 +19,7 @@ public class InsertsPublisherVerificationTest extends PublisherVerification<Json
   @Override
   public Publisher<JsonObject> createPublisher(long elements) {
     System.out.println("Creating publisher " + elements);
-    InsertsPublisher publisher = new InsertsPublisher(vertx.getOrCreateContext(), elements);
+    InsertsPublisherOld publisher = new InsertsPublisherOld(vertx.getOrCreateContext(), elements);
     if (elements < Integer.MAX_VALUE) {
       for (long l = 0; l < elements; l++) {
         publisher.receiveRow(generateRow(l));

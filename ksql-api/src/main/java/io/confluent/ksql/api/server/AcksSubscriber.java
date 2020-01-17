@@ -84,6 +84,7 @@ public class AcksSubscriber implements Subscriber<Void> {
   }
 
   private void close() {
+    System.out.println("Closing acks subscriber");
     response.end();
     subscription.cancel();
   }

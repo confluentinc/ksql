@@ -31,7 +31,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -93,10 +92,7 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleInsertsStream(final RoutingContext routingContext) {
-    final RecordParser recordParser = RecordParser
-        .newDelimited("\n", new InsertsBodyParser(endpoints, routingContext)::handleBodyBuffer);
-    routingContext.request()
-        .handler(recordParser);
+    routingContext.request().handler(new InsertsBodyHandler(context, endpoints, routingContext));
   }
 
   private void handleQueryStream(final RoutingContext routingContext) {

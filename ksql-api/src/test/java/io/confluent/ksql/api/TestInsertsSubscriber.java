@@ -43,6 +43,7 @@ public class TestInsertsSubscriber implements InsertsSubscriber {
 
   @Override
   public synchronized void onNext(final JsonObject row) {
+    System.out.println("Received row in inserts subscriber");
     rowsInserted.add(row);
     subscription.request(1);
     if (acksPublisher != null) {

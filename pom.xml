@@ -62,6 +62,7 @@
         <module>ksql-benchmark</module>
         <module>ksql-functional-tests</module>
         <module>ksql-rocksdb-config-setter</module>
+        <module>ksql-api</module>
     </modules>
 
     <repositories>

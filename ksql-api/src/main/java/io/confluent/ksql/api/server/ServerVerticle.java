@@ -177,7 +177,7 @@ public class ServerVerticle extends AbstractVerticle {
     private final HttpConnection conn;
     private final Set<QueryID> queries = new HashSet<>();
 
-    public ConnectionQueries(final HttpConnection conn) {
+    ConnectionQueries(final HttpConnection conn) {
       this.conn = conn;
     }
 

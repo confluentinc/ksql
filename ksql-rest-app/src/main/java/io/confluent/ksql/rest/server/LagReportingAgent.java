@@ -123,6 +123,7 @@ public final class LagReportingAgent implements HeartbeatListener {
    * @param lagReportingRequest The host lag information sent directly from the other node.
    */
   public void receiveHostLag(final LagReportingRequest lagReportingRequest) {
+    long nowMs = clock.millis();
     synchronized (receivedLagInfo) {
       garbageCollect(lagReportingRequest.getHostInfoEntity());
 
@@ -140,7 +141,7 @@ public final class LagReportingAgent implements HeartbeatListener {
           receivedLagInfo.get(storeName).computeIfAbsent(partition, key -> createCache());
           receivedLagInfo.get(storeName).get(partition).add(
               new HostPartitionLagInfo(lagReportingRequest.getHostInfoEntity(), partition, lagInfo,
-                  lagReportingRequest.getLastLagUpdateMs()));
+                  Math.min(lagReportingRequest.getLastLagUpdateMs(), nowMs)));
         }
       }
     }
@@ -198,7 +199,8 @@ public final class LagReportingAgent implements HeartbeatListener {
   }
 
   /**
-   * Returns current positions for
+   * Returns a map of storeName -> partition -> LagInfoEntity.  Meant for being exposed in testing
+   * and debug resources.
    */
   public Map<String, Map<Integer, Map<String, LagInfoEntity>>> listAllLags() {
     synchronized (receivedLagInfo) {
@@ -363,7 +365,9 @@ public final class LagReportingAgent implements HeartbeatListener {
   }
 
   /**
-   * Simple "collection" of lags that does expiration and can be easily tested.
+   * Simple "collection" of lags that does expiration and can be easily tested.  This will only
+   * hold entries for the number of hosts in a partition, so a simple list is used and complex
+   * expiration techniques are avoided.
    */
   public static class LagCache {
     private List<HostPartitionLagInfo> lagInfos;
@@ -382,8 +386,9 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     private void removeExpired() {
       if (lagInfos.size() > 0) {
+        long nowMs = clock.millis();
         lagInfos.removeIf(
-            lagInfo -> clock.millis() - lagInfo.getUpdateTimeMs() >= lagDataExpirationMs);
+            lagInfo -> nowMs - lagInfo.getUpdateTimeMs() >= lagDataExpirationMs);
       }
     }
 
@@ -436,10 +441,6 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     public LagInfoEntity getLagInfo() {
       return lagInfo;
-    }
-
-    public long getCurrentOffsetPosition() {
-      return lagInfo.getCurrentOffsetPosition();
     }
 
     public long getUpdateTimeMs() {

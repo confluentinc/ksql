@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Map;
@@ -61,8 +60,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
   private SslFactory sslFactory;
   @Mock
   private SslEngineBuilder sslEngineBuilder;
-  @Mock
-  private ErrorMessages errorMessages;
 
   @Mock
   private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
@@ -139,9 +136,9 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     SchemaRegistryClient client1 = new KsqlSchemaRegistryClientFactory(
-        config1, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config1, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
     SchemaRegistryClient client2 = new KsqlSchemaRegistryClientFactory(
-        config2, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config2, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client1, instanceOf(DefaultSchemaRegistryClient.class));
@@ -165,7 +162,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     new KsqlSchemaRegistryClientFactory(
-        config, errorMessages, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
+        config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));

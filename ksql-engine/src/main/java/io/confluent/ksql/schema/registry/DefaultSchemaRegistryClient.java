@@ -19,25 +19,29 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-
-import io.confluent.ksql.rest.ErrorMessages;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.common.config.ConfigException;
 
 /** 
  * Implements the SchemaRegistryClient interface. Used as default when the Schema Registry URL isn't
  * specified in {@link io.confluent.ksql.util.KsqlConfig}
  */
 public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
+  
+  public static final String SCHEMA_REGISTRY_CONFIG_NOT_SET =
+      "KSQL is not configured to use a schema registry. To enable it, please set "
+          + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
+  
+  private final KsqlSchemaRegistryNotConfiguredException configException;
 
-  private final ConfigException configException;
-
-  public DefaultSchemaRegistryClient(final ErrorMessages errorMessages) {
-    configException = new ConfigException(errorMessages.schemaRegistryUnconfiguredErrorMessage());
+  public DefaultSchemaRegistryClient() {
+    configException =
+        new KsqlSchemaRegistryNotConfiguredException(SCHEMA_REGISTRY_CONFIG_NOT_SET);
   }
 
   @Override

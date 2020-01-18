@@ -5,7 +5,6 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -21,7 +20,6 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.Map;
 import org.apache.kafka.streams.LagInfo;
 import org.junit.Before;
@@ -99,8 +97,6 @@ public class LagReportingAgentTest {
   private LagInfo lagInfo1;
   @Mock
   private Clock clock;
-  @Mock
-  private Ticker ticker;
 
   private LagReportingAgent lagReportingAgent;
 
@@ -113,7 +109,6 @@ public class LagReportingAgentTest {
     lagReportingAgent = builder
         .lagDataExpirationMs(MAX_LAG_AGE_MS)
         .clock(clock)
-        .ticker(ticker)
         .build(ksqlEngine, serviceContext);
     lagReportingAgent.setLocalAddress(LOCALHOST_URL);
   }
@@ -163,9 +158,9 @@ public class LagReportingAgentTest {
   @Test
   public void shouldReceiveLags_expire() {
     // When:
-    when(ticker.read()).thenReturn(1L);
+    when(clock.millis()).thenReturn(1L);
     lagReportingAgent.receiveHostLag(hostLag(HOST1, LAG_MAP1, TIME_NOW_MS));
-    when(ticker.read()).thenReturn(Duration.ofMillis(MAX_LAG_AGE_MS + 100).toNanos());
+    when(clock.millis()).thenReturn(MAX_LAG_AGE_MS + 100);
     lagReportingAgent.receiveHostLag(hostLag(HOST2, LAG_MAP2, MAX_LAG_AGE_MS + 100));
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
@@ -177,8 +172,7 @@ public class LagReportingAgentTest {
     assertEquals(10, hostPartitionLagList.get(HOST2).getLagInfo().getEndOffsetPosition());
     assertEquals(6, hostPartitionLagList.get(HOST2).getLagInfo().getOffsetLag());
 
-    when(ticker.read()).thenReturn(Duration.ofMillis(MAX_LAG_AGE_MS + MAX_LAG_AGE_MS + 200)
-        .toNanos());
+    when(clock.millis()).thenReturn(MAX_LAG_AGE_MS + MAX_LAG_AGE_MS + 200);
     hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo("a", 1);
     assertEquals(0, hostPartitionLagList.size());
   }

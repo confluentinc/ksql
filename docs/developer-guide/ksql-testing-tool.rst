@@ -52,7 +52,7 @@ The workaround is to copy the required jars into the ``confluent/ksql``
 classpath. For example, use the following commands for the classpath
 :litwithvars:`/opt/confluent/confluent-|release|/share/java/ksql`. 
 
-.. codewithvars::bash
+.. codewithvars:: bash
 
     cd /opt/confluent/confluent-|release|/share/java/ksql
     wget https://repo1.maven.org/maven2/junit/junit/4.12/junit-4.12.jar

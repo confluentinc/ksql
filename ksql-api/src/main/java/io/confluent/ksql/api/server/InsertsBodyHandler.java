@@ -21,7 +21,6 @@ import static io.confluent.ksql.api.server.ServerUtils.handleError;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.Context;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
@@ -37,21 +36,24 @@ import java.util.Objects;
  * (also encoded as UTF-8 text) each representing a row to insert. The last JSON object must be
  * followed by a new-line.
  */
-public class InsertsBodyHandler implements Handler<Buffer> {
+public class InsertsBodyHandler {
 
   private final Context ctx;
   private final Endpoints endpoints;
   private final RoutingContext routingContext;
   private final RecordParser recordParser;
   private boolean readArguments;
-  private InsertsPublisher publisher;
+  private BufferedPublisher<JsonObject> publisher;
   private long rowsReceived;
   private AcksSubscriber acksSubscriber;
 
-  @Override
-  public void handle(final Buffer buffer) {
-    System.out.println("Passing buffer to record parser" + buffer);
-    recordParser.handle(buffer);
+  public static void connectBodyHandler(final Context ctx, final Endpoints endpoints,
+      final RoutingContext routingContext) {
+    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(ctx, endpoints,
+        routingContext);
+    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
+    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
+    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
   }
 
   public InsertsBodyHandler(final Context ctx, final Endpoints endpoints,
@@ -60,23 +62,21 @@ public class InsertsBodyHandler implements Handler<Buffer> {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.routingContext = Objects.requireNonNull(routingContext);
     this.recordParser = RecordParser.newDelimited("\n", routingContext.request());
-    recordParser.handler(this::handleBodyBuffer);
-    recordParser.endHandler(this::handleBodyEnd);
   }
 
   public void handleBodyEnd(final Void v) {
-    System.out.println("Handling request body end");
-    publisher.complete();
-    if (acksSubscriber == null) {
-      routingContext.response().end();
-    } else {
-      // We close the response after the stream of acks has been sent
-      acksSubscriber.insertsSent(rowsReceived);
+    if (publisher != null) {
+      publisher.complete();
+      if (acksSubscriber == null) {
+        routingContext.response().end();
+      } else {
+        // We close the response after the stream of acks has been sent
+        acksSubscriber.insertsSent(rowsReceived);
+      }
     }
   }
 
   public void handleBodyBuffer(final Buffer buff) {
-    System.out.println("Handling body buffer");
     if (!readArguments) {
       final JsonObject args = new JsonObject(buff);
       readArguments = true;
@@ -93,16 +93,19 @@ public class InsertsBodyHandler implements Handler<Buffer> {
         return;
       }
       final JsonObject properties = args.getJsonObject("properties");
-      acksSubscriber = acks ? new AcksSubscriber(routingContext.response()) : null;
+      acksSubscriber = acks ? new AcksSubscriber(ctx, routingContext.response()) : null;
       final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
-      publisher = new InsertsPublisher(ctx, recordParser);
+      publisher = new BufferedPublisher<>(ctx);
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
-      System.out.println("received row from request");
-      publisher.handleBuffer(buff);
+      final JsonObject row = new JsonObject(buff);
+      final boolean buffering = publisher.accept(row);
+      if (buffering) {
+        recordParser.pause();
+        publisher.drainHandler(recordParser::resume);
+      }
       rowsReceived++;
     }
   }
-
 }

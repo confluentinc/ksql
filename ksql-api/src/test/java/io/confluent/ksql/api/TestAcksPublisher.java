@@ -21,14 +21,16 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-public class TestAcksPublisher implements Publisher<Void> {
+public class TestAcksPublisher implements Publisher<JsonObject> {
 
   private final Vertx vertx;
   private final int acksBeforePublisherError;
-  private Subscriber<? super Void> subscriber;
+  private Subscriber<? super JsonObject> subscriber;
   private long acks;
   private long tokens;
   private int acksSent;
+
+  private static final JsonObject ACK = new JsonObject();
 
   public TestAcksPublisher(final Vertx vertx, final int acksBeforePublisherError) {
     this.vertx = vertx;
@@ -69,13 +71,13 @@ public class TestAcksPublisher implements Publisher<Void> {
       // Inject an error
       subscriber.onError(new RuntimeException("Failure in processing"));
     } else {
-      subscriber.onNext(null);
+      subscriber.onNext(ACK);
       acksSent++;
     }
   }
 
   @Override
-  public synchronized void subscribe(final Subscriber<? super Void> subscriber) {
+  public synchronized void subscribe(final Subscriber<? super JsonObject> subscriber) {
     if (this.subscriber != null) {
       throw new IllegalStateException("Already subscribed");
     }

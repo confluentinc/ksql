@@ -92,7 +92,7 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleInsertsStream(final RoutingContext routingContext) {
-    routingContext.request().handler(new InsertsBodyHandler(context, endpoints, routingContext));
+    InsertsBodyHandler.connectBodyHandler(context, endpoints, routingContext);
   }
 
   private void handleQueryStream(final RoutingContext routingContext) {

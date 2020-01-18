@@ -43,18 +43,15 @@ public class BufferedPublisher<T> implements Publisher<T> {
     this.ctx = ctx;
   }
 
-  public void accept(final T t) {
+  public boolean accept(final T t) {
     checkContext();
     if (demand == 0 || cancelled) {
       buffer.add(t);
+      return true;
     } else {
       doOnNext(t);
+      return false;
     }
-  }
-
-  public int numBuffered() {
-    checkContext();
-    return buffer.size();
   }
 
   public void drainHandler(final Runnable handler) {

@@ -59,7 +59,7 @@ public class TestEndpoints implements Endpoints {
   @Override
   public synchronized InsertsSubscriber createInsertsSubscriber(final String target,
       final JsonObject properties,
-      final Subscriber<Void> acksSubscriber) {
+      final Subscriber<JsonObject> acksSubscriber) {
     this.lastTarget = target;
     this.lastProperties = properties;
     if (acksSubscriber != null) {

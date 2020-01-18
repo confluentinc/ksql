@@ -15,10 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
-import static io.confluent.ksql.api.server.ServerUtils.handleError;
-
+import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Handler;
@@ -55,22 +52,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
     }
 
-    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
-    if (requestBody == null) {
-      return;
-    }
-    final String sql = requestBody.getString("sql");
-    if (sql == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
-      return;
-    }
-    final Boolean push = requestBody.getBoolean("push");
-    if (push == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No push in arguments");
-      return;
-    }
-    final JsonObject properties = requestBody.getJsonObject("properties");
-    final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
+    final QueryStreamArgs queryStreamArgs = ServerUtils
+        .deserialiseObject(routingContext.getBody(), routingContext.response(),
+            QueryStreamArgs.class);
+
+    final QueryPublisher queryPublisher = endpoints
+        .createQueryPublisher(queryStreamArgs.sql, queryStreamArgs.push,
+            queryStreamArgs.properties);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response(),
         queryStreamResponseWriter);
@@ -82,7 +70,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     metadata.put("columnNames", queryPublisher.getColumnNames());
     metadata.put("columnTypes", queryPublisher.getColumnTypes());
     metadata.put("queryId", query.getId().toString());
-    if (!push) {
+    if (!queryStreamArgs.push) {
       metadata.put("rowCount", queryPublisher.getRowCount());
     }
     queryStreamResponseWriter.writeMetadata(metadata);

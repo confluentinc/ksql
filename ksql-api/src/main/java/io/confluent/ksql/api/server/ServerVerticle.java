@@ -84,5 +84,4 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(new CloseQueryHandler(server));
     return router;
   }
-
 }

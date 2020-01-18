@@ -13,21 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.server.protocol;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * The error codes that signify different types of errors that can occur in the API
+ * Represents the arguments to a close query request
  */
-public final class ErrorCodes {
+public class CloseQueryArgs {
 
-  private ErrorCodes() {
+  public final String queryID;
+
+  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+  public CloseQueryArgs(final @JsonProperty(value = "queryID", required = true) String queryID) {
+    this.queryID = queryID;
   }
 
-  public static final int ERROR_CODE_MISSING_PARAM = 50001;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 50002;
-  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50003;
-  public static final int ERROR_CODE_MALFORMED_REQUEST = 5004;
-  public static final int ERROR_CODE_INTERNAL_ERROR = 50005;
-
-
+  @Override
+  public String toString() {
+    return "CloseQueryArgs{"
+        + "queryID='" + queryID + '\''
+        + '}';
+  }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -27,7 +28,7 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeRow(JsonArray row);
 
-  QueryStreamResponseWriter writeError(JsonObject error);
+  QueryStreamResponseWriter writeError(ErrorResponse error);
 
   void end();
 

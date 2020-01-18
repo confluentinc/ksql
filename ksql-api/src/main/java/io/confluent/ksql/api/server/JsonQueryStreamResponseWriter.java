@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -62,8 +64,8 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeError(final JsonObject error) {
-    writeBuffer(error.toBuffer());
+  public QueryStreamResponseWriter writeError(final ErrorResponse error) {
+    writeBuffer(PojoCodec.serializeObject(error));
     return this;
   }
 

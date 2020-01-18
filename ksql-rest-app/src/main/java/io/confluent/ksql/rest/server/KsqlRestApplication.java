@@ -636,7 +636,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
-        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext);
+        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
 
     return new KsqlRestApplication(
         serviceContext,
@@ -666,26 +666,28 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlRestConfig restConfig,
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
-      final HeartbeatAgent.HeartbeatListener... listeners
+      final Optional<LagReportingAgent> lagReportingAgent
   ) {
     if (restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
       final Builder builder = HeartbeatAgent.builder();
-      return Optional.of(
-          builder
-              .heartbeatSendInterval(restConfig.getLong(
-                 KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG))
-             .heartbeatCheckInterval(restConfig.getLong(
-                 KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG))
-             .heartbeatMissedThreshold(restConfig.getLong(
-                 KsqlRestConfig.KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG))
-             .heartbeatWindow(restConfig.getLong(
-                 KsqlRestConfig.KSQL_HEARTBEAT_WINDOW_MS_CONFIG))
-             .discoverClusterInterval(restConfig.getLong(
-                 KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG))
-             .threadPoolSize(restConfig.getInt(
-                 KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG))
-              .addHeartbeatListeners(listeners)
-             .build(ksqlEngine, serviceContext));
+      builder
+          .heartbeatSendInterval(restConfig.getLong(
+             KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG))
+         .heartbeatCheckInterval(restConfig.getLong(
+             KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG))
+         .heartbeatMissedThreshold(restConfig.getLong(
+             KsqlRestConfig.KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG))
+         .heartbeatWindow(restConfig.getLong(
+             KsqlRestConfig.KSQL_HEARTBEAT_WINDOW_MS_CONFIG))
+         .discoverClusterInterval(restConfig.getLong(
+             KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG))
+         .threadPoolSize(restConfig.getInt(
+             KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG));
+      if (lagReportingAgent.isPresent()) {
+        builder.addHeartbeatListener(lagReportingAgent.get());
+      }
+
+      return Optional.of(builder.build(ksqlEngine, serviceContext));
     }
     return Optional.empty();
   }
@@ -695,7 +697,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext
   ) {
-    if (restConfig.getBoolean(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG)) {
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG) &&
+        restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
       final LagReportingAgent.Builder builder = LagReportingAgent.builder();
       return Optional.of(
           builder

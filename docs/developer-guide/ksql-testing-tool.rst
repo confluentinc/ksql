@@ -38,6 +38,26 @@ To test a set of KSQL statements, you provide three files, one file containing t
                 This option may occur a maximum of 1 time
 
 
+Provide required jar files
+**************************
+
+Starting in version 5.3.0, ksql-test-runner throws a
+``ClassNotFoundException``, because the the following jars aren't packaged in
+KSQL.
+
+- `ksql-functional-tests/hamcrest-all-1.3.jar`
+- `ksql-functional-tests/junit-4.12.jar`
+
+The workaround is to copy the required jars into the ``confluent/ksql``
+classpath. For example, use the following commands for the classpath
+:litwithvars:`/opt/confluent/confluent-|release|/share/java/ksql`. 
+
+.. codewithvars::bash
+
+    cd /opt/confluent/confluent-|release|/share/java/ksql
+    wget https://repo1.maven.org/maven2/junit/junit/4.12/junit-4.12.jar
+    wget https://repo1.maven.org/maven2/org/hamcrest/hamcrest-all/1.3/hamcrest-all-1.3.jar
+
 
 Test File Structure
 *******************

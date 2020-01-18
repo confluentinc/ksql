@@ -17,6 +17,8 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
+import io.confluent.ksql.api.server.protocol.InsertResponse;
+import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
@@ -31,9 +33,11 @@ import org.slf4j.LoggerFactory;
  */
 public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 
-  private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()
-      .appendString("\n");
   private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
+  private static final int BATCH_SIZE = 4;
+  private static final Buffer OK_INSERT_RESPONSE_LINE = PojoCodec
+      .serializeObject(new InsertResponse())
+      .appendString("\n");
   private static final int REQUEST_BATCH_SIZE = 1000;
 
   private final HttpServerResponse response;
@@ -60,7 +64,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
     if (cancelled) {
       return;
     }
-    response.write(ACK_RESPONSE_LINE);
+    response.write(OK_INSERT_RESPONSE_LINE);
     acksSent++;
     if (insertsSent != null && insertsSent == acksSent) {
       close();
@@ -88,10 +92,10 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
       return;
     }
     log.error("Error in processing inserts", t);
-    final JsonObject err = new JsonObject().put("status", "error")
-        .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
-        .put("message", "Error in processing inserts");
-    response.end(err.toBuffer());
+    final InsertResponse errResponse = new InsertResponse(ERROR_CODE_INTERNAL_ERROR,
+        "Error in processing inserts");
+    subscription.cancel();
+    response.end(PojoCodec.serializeObject(errResponse));
   }
 
   public void cancel() {

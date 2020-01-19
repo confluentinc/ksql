@@ -23,7 +23,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class ReactiveSubscriber<T> implements Subscriber<T> {
+public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ReactiveSubscriber.class);
 
@@ -58,11 +58,17 @@ public abstract class ReactiveSubscriber<T> implements Subscriber<T> {
     context.runOnContext(v -> doOnComplete());
   }
 
-  public abstract void handleValue(T t);
+  protected void afterSubscribe(final Subscription subscription) {
+  }
 
-  public abstract void handleComplete();
+  protected void handleValue(final T t) {
+  }
 
-  public abstract void handleError(Throwable t);
+  protected void handleComplete() {
+  }
+
+  protected void handleError(final Throwable t) {
+  }
 
   private void doOnSubscribe(final Subscription subscription) {
     checkContext();
@@ -79,6 +85,7 @@ public abstract class ReactiveSubscriber<T> implements Subscriber<T> {
     }
     this.subscription = subscription;
     makeRequest(1);
+    afterSubscribe(subscription);
   }
 
   private void doOnNext(final T val) {

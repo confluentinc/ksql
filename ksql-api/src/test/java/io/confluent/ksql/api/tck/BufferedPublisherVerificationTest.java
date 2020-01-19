@@ -32,7 +32,7 @@ public class BufferedPublisherVerificationTest extends PublisherVerification<Jso
     }
     BufferedPublisher<JsonObject> bufferedPublisher = new BufferedPublisher<>(context,
         initialElements);
-    // The TCK tests wants our publisher to be finite, i.e. send completion after elements
+    // The TCK tests want our publisher to be finite, i.e. send completion after elements
     // records have been delivered, and Long.MAX_VALUE is a special value which represents
     // infinity
     if (elements != Long.MAX_VALUE) {

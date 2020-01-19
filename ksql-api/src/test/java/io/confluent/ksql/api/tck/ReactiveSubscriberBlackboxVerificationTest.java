@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.api.tck;
 
-import io.vertx.core.buffer.Buffer;
+import io.confluent.ksql.api.server.ReactiveSubscriber;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -25,26 +28,25 @@ import org.reactivestreams.tck.TestEnvironment;
  *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public class SubscriberBlackboxVerificationTest extends SubscriberBlackboxVerification<Buffer> {
+public class ReactiveSubscriberBlackboxVerificationTest extends
+    SubscriberBlackboxVerification<JsonObject> {
 
-  public SubscriberBlackboxVerificationTest() {
-    super(new TestEnvironment());
+  private final Vertx vertx;
+
+  public ReactiveSubscriberBlackboxVerificationTest() {
+    super(new TestEnvironment(500));
+    this.vertx = Vertx.vertx();
   }
 
   @Override
-  public Buffer createElement(int i) {
-    return Buffer.buffer("element" + i);
+  public JsonObject createElement(int i) {
+    return new JsonObject().put("x", i);
   }
 
   @Override
-  public Subscriber<Buffer> createSubscriber() {
-    return null;
+  public Subscriber<JsonObject> createSubscriber() {
+    final Context context = vertx.getOrCreateContext();
+    return new ReactiveSubscriber<>(context);
   }
-
-  @Override
-  public void triggerRequest(Subscriber<? super Buffer> subscriber) {
-
-  }
-
 
 }

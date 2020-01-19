@@ -116,7 +116,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
     @Override
     public byte[] serialize(final String topic, final Object struct) {
-      final Object value = ((Struct) struct).get(field);
+      final Object value = struct == null ? null : ((Struct) struct).get(field);
       return delegate.serialize(topic, value);
     }
   }
@@ -142,7 +142,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
         final Object primitive = delegate.deserialize(topic, bytes);
         final Struct struct = new Struct(schema);
         struct.put(field, primitive);
-        return struct;
+        return primitive == null ? null : struct;
       } catch (final Exception e) {
         throw new SerializationException(
             "Error deserializing DELIMITED message from topic: " + topic, e);

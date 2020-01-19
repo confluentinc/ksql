@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.kafka;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -148,6 +149,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldHandleNulls() {
     shouldHandle(SqlTypes.INTEGER, null);
+    shouldHandle(SqlTypes.STRING, null);
   }
 
   @Test
@@ -192,7 +194,11 @@ public class KafkaSerdeFactoryTest {
     final Object result = serde.deserializer().deserialize("topic", bytes);
 
     // Then:
-    assertThat(result, is(struct));
+    if (value == null) {
+      assertThat(result, is(nullValue()));
+    } else {
+      assertThat(result, is(struct));
+    }
   }
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {

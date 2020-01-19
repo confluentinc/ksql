@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Queue;
 import org.reactivestreams.Publisher;
@@ -43,6 +44,11 @@ public class BufferedPublisher<T> implements Publisher<T> {
     this.ctx = ctx;
   }
 
+  public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer) {
+    this(ctx);
+    this.buffer.addAll(initialBuffer);
+  }
+
   public boolean accept(final T t) {
     checkContext();
     if (demand == 0 || cancelled) {
@@ -61,10 +67,10 @@ public class BufferedPublisher<T> implements Publisher<T> {
 
   public void complete() {
     checkContext();
-    if (subscriber == null || cancelled || complete) {
+    if (cancelled || complete) {
       return;
     }
-    if (buffer.isEmpty()) {
+    if (buffer.isEmpty() && subscriber != null) {
       sendComplete();
     } else {
       complete = true;
@@ -76,8 +82,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
       cancelled = true;
       subscriber.onComplete();
     } catch (Throwable t) {
-      logError("Subscriber violated the Reactive Streams rule 2.13 by throwing an exception"
-          + " from onComplete.", t);
+      logError("Exceptions must not be thrown from onComplete", t);
     }
   }
 
@@ -87,19 +92,17 @@ public class BufferedPublisher<T> implements Publisher<T> {
     try {
       subscriber.onSubscribe(new Sub());
     } catch (final Throwable t) {
-      sendError(new IllegalStateException(subscriber
-          + " violated the Reactive Streams rule 2.13 by throwing an exception from onSubscribe.",
-          t));
+      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
     }
   }
 
-  private void sendError(final Exception e) {
+  protected void sendError(final Exception e) {
+    checkContext();
     try {
       subscriber.onError(e);
       cancelled = true;
     } catch (Throwable t) {
-      logError("Subscriber violated the Reactive Streams rule 2.13 by throwing an exception from "
-          + "onError.", t);
+      logError("Exceptions must not be thrown from onError", t);
     }
   }
 
@@ -133,12 +136,23 @@ public class BufferedPublisher<T> implements Publisher<T> {
     }
   }
 
+  /**
+   * Hook to allow subclasses to inject errors etc
+   *
+   * @return true if processing should continue
+   */
+  protected boolean beforeOnNext() {
+    return true;
+  }
+
   private void doOnNext(final T val) {
+    if (!beforeOnNext()) {
+      return;
+    }
     try {
       subscriber.onNext(val);
     } catch (final Throwable t) {
-      logError("Subscriber violated the Reactive Streams rule 2.13 by throwing an exception"
-          + " from onNext or onComplete.", t);
+      logError("Exceptions must not be thrown from onNext", t);
     }
     // If demand == Long.MAX_VALUE this means "infinite demand"
     if (demand != Long.MAX_VALUE) {
@@ -153,9 +167,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
 
   private void doRequest(final long n) {
     if (n <= 0) {
-      sendError(new IllegalArgumentException(
-          "Subscriber violated the Reactive Streams rule 3.9 by requesting a non-positive "
-              + "number of elements."));
+      sendError(new IllegalArgumentException("Amount requested must be > 0"));
     } else if (demand + n < 1) {
       demand = Long.MAX_VALUE;
       doSend();
@@ -167,6 +179,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
 
   private void doCancel() {
     cancelled = true;
+    subscriber = null;
   }
 
   private class Sub implements Subscription {

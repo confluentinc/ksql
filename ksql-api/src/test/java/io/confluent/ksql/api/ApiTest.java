@@ -477,9 +477,6 @@ public class ApiTest {
     assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
 
-    // When response is complete the acks subscriber should be unsubscribed
-    assertFalse(testEndpoints.getAcksPublisher().hasSubscriber());
-
     // Ensure we received at least some of the response before all the request body was written
     // Yay HTTP2!
     assertTrue(readStream.getLastSentTime() > writeStream.getFirstReceivedTime());

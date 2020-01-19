@@ -15,56 +15,50 @@
 
 package io.confluent.ksql.api;
 
+import io.confluent.ksql.api.server.ReactiveSubscriber;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
+import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
-import org.reactivestreams.Subscription;
 
-public class TestInsertsSubscriber implements InsertsSubscriber {
+public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implements
+    InsertsSubscriber {
 
   private final TestAcksPublisher acksPublisher;
   private final List<JsonObject> rowsInserted = new ArrayList<>();
   private boolean completed;
-  private Subscription subscription;
 
-  public TestInsertsSubscriber(final TestAcksPublisher acksPublisher) {
+  public TestInsertsSubscriber(final Context context, final TestAcksPublisher acksPublisher) {
+    super(context);
     this.acksPublisher = acksPublisher;
   }
 
   @Override
-  public void onSubscribe(final Subscription subscription) {
-    if (this.subscription != null) {
-      throw new IllegalStateException("Already subscribed");
-    }
-    this.subscription = subscription;
-    subscription.request(1);
-  }
-
-  @Override
-  public synchronized void onNext(final JsonObject row) {
+  public synchronized void handleValue(final JsonObject row) {
     rowsInserted.add(row);
-    subscription.request(1);
     if (acksPublisher != null) {
       // Now forward to acks publisher
-      acksPublisher.receiveRow(row);
+      acksPublisher.accept(row);
     }
+    makeRequest(1);
   }
 
   @Override
-  public void onError(final Throwable throwable) {
+  public synchronized void handleComplete() {
+    completed = true;
   }
 
   @Override
-  public synchronized void onComplete() {
-    this.completed = true;
+  public void handleError(final Throwable t) {
   }
 
-  public List<JsonObject> getRowsInserted() {
+  public synchronized List<JsonObject> getRowsInserted() {
     return rowsInserted;
   }
 
-  public boolean isCompleted() {
+  public synchronized boolean isCompleted() {
     return completed;
   }
+
 }

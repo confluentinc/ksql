@@ -140,9 +140,12 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     public Struct deserialize(final String topic, final byte[] bytes) {
       try {
         final Object primitive = delegate.deserialize(topic, bytes);
+        if (primitive == null) {
+          return null;
+        }
         final Struct struct = new Struct(schema);
         struct.put(field, primitive);
-        return primitive == null ? null : struct;
+        return struct;
       } catch (final Exception e) {
         throw new SerializationException(
             "Error deserializing DELIMITED message from topic: " + topic, e);

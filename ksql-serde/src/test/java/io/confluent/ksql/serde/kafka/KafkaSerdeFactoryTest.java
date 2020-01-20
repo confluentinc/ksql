@@ -147,9 +147,31 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldHandleNulls() {
-    shouldHandle(SqlTypes.INTEGER, null);
-    shouldHandle(SqlTypes.STRING, null);
+  public void shouldSerializeNullAsNull() {
+    // Given:
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // When:
+    final byte[] result = serde.serializer().serialize("topic", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeserializeNullAsNull() {
+    // Given:
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // When:
+    final Object result = serde.deserializer().deserialize("topic", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
   @Test
@@ -194,11 +216,7 @@ public class KafkaSerdeFactoryTest {
     final Object result = serde.deserializer().deserialize("topic", bytes);
 
     // Then:
-    if (value == null) {
-      assertThat(result, is(nullValue()));
-    } else {
-      assertThat(result, is(struct));
-    }
+    assertThat(result, is(struct));
   }
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {

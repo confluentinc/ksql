@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.impl.Utils;
@@ -104,7 +105,10 @@ public class ServerVerticle extends AbstractVerticle {
       conn.closeHandler(connectionQueries);
       server.registerQueryConnection(conn);
     }
-    final JsonObject requestBody = routingContext.getBodyAsJson();
+    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
+    if (requestBody == null) {
+      return;
+    }
     final String sql = requestBody.getString("sql");
     if (sql == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");

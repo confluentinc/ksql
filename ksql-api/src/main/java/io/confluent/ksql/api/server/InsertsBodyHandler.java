@@ -16,12 +16,14 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
@@ -78,7 +80,10 @@ public class InsertsBodyHandler {
 
   public void handleBodyBuffer(final Buffer buff) {
     if (!readArguments) {
-      final JsonObject args = new JsonObject(buff);
+      final JsonObject args = decodeJsonObject(buff, routingContext);
+      if (args == null) {
+        return;
+      }
       readArguments = true;
       final String target = args.getString("target");
       if (target == null) {
@@ -97,9 +102,24 @@ public class InsertsBodyHandler {
       final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
       publisher = new BufferedPublisher<>(ctx);
+
+      // This forces response headers to be written so we know we send a 200 OK
+      // This is important if we subsequently find an error in the stream
+      routingContext.response().write("");
+
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
-      final JsonObject row = new JsonObject(buff);
+      final JsonObject row;
+      try {
+        row = new JsonObject(buff);
+      } catch (DecodeException e) {
+        final JsonObject errResponse = ServerUtils
+            .createErrResponse(ErrorCodes.ERROR_CODE_INVALID_JSON,
+                "Invalid JSON in inserts stream");
+        routingContext.response().write(errResponse.toBuffer().appendString("\n")).end();
+        acksSubscriber.cancel();
+        return;
+      }
       final boolean bufferFull = publisher.accept(row);
       if (bufferFull) {
         recordParser.pause();

@@ -16,6 +16,7 @@
 package io.confluent.ksql.api;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_JSON;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static org.junit.Assert.assertEquals;
@@ -306,6 +307,16 @@ public class ApiTest {
   }
 
   @Test
+  public void shouldRejectMalformedJsonInQueryStream() throws Exception {
+    shouldRejectMalformedJsonInQuery("/query-stream");
+  }
+
+  @Test
+  public void shouldRejectMalformedJsonInInsertsStream() throws Exception {
+    shouldRejectMalformedJsonInQuery("/inserts-stream");
+  }
+
+  @Test
   public void shouldCloseQuery() throws Exception {
 
     // Create a write stream to capture the incomplete response
@@ -540,6 +551,65 @@ public class ApiTest {
     validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts", insertsResponse.error);
 
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+  }
+
+  @Test
+  public void shouldHandleMalformedJsonInInsertsStream() throws Exception {
+
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (int i = 0; i < rows.size() - 1; i++) {
+      JsonObject row = rows.get(i);
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    // Malformed row for the last one
+    requestBody.appendString("{ijqwdijqw");
+
+    // The HTTP response will be OK as the error is later in the stream after response
+    // headers have been written
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
+    assertEquals(200, response.statusCode());
+    assertEquals("OK", response.statusMessage());
+
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in inserts stream", insertsResponse.error);
+
+    assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+  }
+
+  @Test
+  public void shouldReturn404ForInvalidUri() throws Exception {
+
+    Buffer requestBody = Buffer.buffer();
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/no-such-endpoint")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(404, response.statusCode());
+  }
+
+  private void shouldRejectMalformedJsonInQuery(String uri) throws Exception {
+
+    Buffer requestBody = Buffer.buffer().appendString("{\"foo\":1");
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", uri)
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(400, response.statusCode());
+    assertEquals("Bad Request", response.statusMessage());
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in request args",
+        queryResponse.responseObject);
   }
 
   private QueryResponse executePushQueryAndWaitForRows(final JsonObject requestBody)

@@ -25,6 +25,10 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Instances of this class subscribe to publishers of acks. As they receive acks they write them to
+ * the HTTP response.
+ */
 public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 
   private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()

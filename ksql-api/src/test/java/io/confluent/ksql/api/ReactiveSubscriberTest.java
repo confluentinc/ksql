@@ -27,6 +27,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.reactivestreams.Subscription;
 
+/**
+ * Much of the testing of the ReactiveSubscriber is done via the TCK tests
+ */
 public class ReactiveSubscriberTest {
 
   private Vertx vertx;

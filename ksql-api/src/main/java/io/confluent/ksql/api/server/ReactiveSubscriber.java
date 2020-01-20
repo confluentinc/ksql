@@ -23,6 +23,13 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A reactive streams subscriber which handles much of the plumbing for you. Override {@link
+ * #afterSubscribe}, {@link #handleValue}, {@link #handleComplete} and {@link #handleError} to
+ * create your specific implementation.
+ *
+ * @param <T> The type of the value
+ */
 public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ReactiveSubscriber.class);

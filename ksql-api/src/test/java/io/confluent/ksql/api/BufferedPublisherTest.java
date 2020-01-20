@@ -39,6 +39,9 @@ import org.junit.Test;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+/**
+ * More BufferedPublisher testing occurs in the TCK tests
+ */
 public class BufferedPublisherTest {
 
   private Vertx vertx;
@@ -399,8 +402,6 @@ public class BufferedPublisherTest {
         throw new IllegalStateException("On wrong context");
       }
     }
-
   }
-
 
 }

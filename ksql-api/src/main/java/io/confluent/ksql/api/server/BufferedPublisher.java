@@ -28,6 +28,12 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A reactive streams publisher which can buffer received values before sending them to it's
+ * subscriber.
+ *
+ * @param <T> The type of the value
+ */
 public class BufferedPublisher<T> implements Publisher<T> {
 
   private static final Logger log = LoggerFactory.getLogger(BufferedPublisher.class);
@@ -99,15 +105,6 @@ public class BufferedPublisher<T> implements Publisher<T> {
     }
   }
 
-  private void doSubscribe(final Subscriber<? super T> subscriber) {
-    this.subscriber = subscriber;
-    try {
-      subscriber.onSubscribe(new Sub());
-    } catch (final Throwable t) {
-      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
-    }
-  }
-
   /**
    * Hook to allow subclasses to inject errors etc
    *
@@ -133,6 +130,15 @@ public class BufferedPublisher<T> implements Publisher<T> {
       cancelled = true;
     } catch (Throwable t) {
       logError("Exceptions must not be thrown from onError", t);
+    }
+  }
+
+  private void doSubscribe(final Subscriber<? super T> subscriber) {
+    this.subscriber = subscriber;
+    try {
+      subscriber.onSubscribe(new Sub());
+    } catch (final Throwable t) {
+      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
     }
   }
 

@@ -26,8 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Instances of this class subscribe to publishers of acks. As they receive acks they write them to
- * the HTTP response.
+ * A reactive streams subscriber that subscribes to publishers of acks. As it receive acks it writes
+ * them to the HTTP response.
  */
 public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 

@@ -100,8 +100,8 @@ public class InsertsBodyHandler {
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
       final JsonObject row = new JsonObject(buff);
-      final boolean buffering = publisher.accept(row);
-      if (buffering) {
+      final boolean bufferFull = publisher.accept(row);
+      if (bufferFull) {
         recordParser.pause();
         publisher.drainHandler(recordParser::resume);
       }

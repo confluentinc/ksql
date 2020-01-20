@@ -21,6 +21,7 @@ import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,14 +30,21 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()
       .appendString("\n");
   private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
+  private static final int REQUEST_BATCH_SIZE = 1000;
 
   private final HttpServerResponse response;
   private Long insertsSent;
   private long acksSent;
+  private boolean drainHandlerSet;
 
   public AcksSubscriber(final Context context, final HttpServerResponse response) {
     super(context);
     this.response = response;
+  }
+
+  @Override
+  protected void afterSubscribe(final Subscription subscription) {
+    makeRequest(REQUEST_BATCH_SIZE);
   }
 
   @Override
@@ -47,9 +55,15 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
     if (insertsSent != null && insertsSent == acksSent) {
       close();
     } else if (response.writeQueueFull()) {
-      response.drainHandler(vv -> makeRequest(1));
+      if (!drainHandlerSet) {
+        response.drainHandler(v -> {
+          drainHandlerSet = false;
+          checkMakeRequest();
+        });
+        drainHandlerSet = true;
+      }
     } else {
-      makeRequest(1);
+      checkMakeRequest();
     }
   }
 
@@ -65,6 +79,12 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
         .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
         .put("message", "Error in processing inserts");
     response.end(err.toBuffer());
+  }
+
+  private void checkMakeRequest() {
+    if (acksSent % REQUEST_BATCH_SIZE == 0) {
+      makeRequest(REQUEST_BATCH_SIZE);
+    }
   }
 
   private void close() {

@@ -78,13 +78,11 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
         subscription.cancel();
       } catch (final Throwable t) {
         final Exception e =
-            new IllegalStateException("Subscription violated the Reactive Streams "
-                + "rule 3.15 by throwing an exception from cancel.");
+            new IllegalStateException("Exceptions must not be thrown from cancel");
         logError(e);
       }
     }
     this.subscription = subscription;
-    makeRequest(1);
     afterSubscribe(subscription);
   }
 
@@ -95,8 +93,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
     }
     if (subscription == null) {
       final Exception e = new IllegalStateException(
-          "Someone violated the Reactive Streams rule 1.09 and 2.1 by signalling OnNext before "
-              + "`Subscription.request`. (no Subscription)");
+          "onNext must be called without request being called");
       logError(e);
     }
     try {
@@ -110,8 +107,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   private void doOnError(final Throwable t) {
     checkContext();
     if (subscription == null) {
-      logError(new IllegalStateException("Publisher violated the Reactive Streams rule 1.09 "
-          + "signalling onError prior to onSubscribe."));
+      logError(new IllegalStateException("onError must not be called before onSubscribe"));
     } else {
       complete = true;
       handleError(t);
@@ -121,8 +117,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   private void doOnComplete() {
     checkContext();
     if (subscription == null) {
-      logError(new IllegalStateException("Publisher violated the Reactive Streams rule 1.09 "
-          + "signalling onComplete prior to onSubscribe."));
+      logError(new IllegalStateException("onComplete must not be called before onSubscribe"));
     } else {
       complete = true;
       handleComplete();
@@ -136,8 +131,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
       subscription.request(l);
     } catch (Throwable t) {
       final Exception e =
-          new IllegalStateException("Subscription violated the Reactive Streams rule 3.16 by "
-              + "throwing an exception from request.");
+          new IllegalStateException("Exceptions must not be thrown from request");
       logError(e);
     }
   }
@@ -150,8 +144,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
         subscription.cancel();
       } catch (final Throwable t) {
         final Exception e =
-            new IllegalStateException("Subscription violated the Reactive Streams rule 3.15 by "
-                + "throwing an exception from cancel.");
+            new IllegalStateException("Exceptions must not be thrown from cancel");
         logError(e);
       }
     }

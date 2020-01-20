@@ -32,6 +32,7 @@ public class TestAcksPublisher extends BufferedPublisher<JsonObject> {
   @Override
   protected boolean beforeOnNext() {
     if (acksBeforePublisherError != -1 && acksSent == acksBeforePublisherError) {
+      // We inject an exception after a certain number of rows
       sendError(new RuntimeException("Failure in processing"));
       return false;
     }

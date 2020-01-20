@@ -19,6 +19,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Queue;
 import org.reactivestreams.Publisher;
@@ -30,10 +31,12 @@ import org.slf4j.LoggerFactory;
 public class BufferedPublisher<T> implements Publisher<T> {
 
   private static final Logger log = LoggerFactory.getLogger(BufferedPublisher.class);
-  private static final int SEND_MAX_BATCH_SIZE = 100;
+  private static final int SEND_MAX_BATCH_SIZE = 10;
+  private static final int DEFAULT_BUFFER_MAX_SIZE = 100;
 
   private final Context ctx;
   private final Queue<T> buffer = new ArrayDeque<>();
+  private final int bufferMaxSize;
   private Subscriber<? super T> subscriber;
   private long demand;
   private boolean cancelled;
@@ -41,23 +44,32 @@ public class BufferedPublisher<T> implements Publisher<T> {
   private boolean complete;
 
   public BufferedPublisher(final Context ctx) {
-    this.ctx = ctx;
+    this(ctx, Collections.emptySet(), DEFAULT_BUFFER_MAX_SIZE);
   }
 
   public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer) {
-    this(ctx);
+    this(ctx, initialBuffer, DEFAULT_BUFFER_MAX_SIZE);
+  }
+
+  public BufferedPublisher(final Context ctx, final int bufferMaxSize) {
+    this(ctx, Collections.emptySet(), bufferMaxSize);
+  }
+
+  public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer,
+      final int bufferMaxSize) {
+    this.ctx = ctx;
     this.buffer.addAll(initialBuffer);
+    this.bufferMaxSize = bufferMaxSize;
   }
 
   public boolean accept(final T t) {
     checkContext();
     if (demand == 0 || cancelled) {
       buffer.add(t);
-      return true;
     } else {
       doOnNext(t);
-      return false;
     }
+    return buffer.size() >= bufferMaxSize;
   }
 
   public void drainHandler(final Runnable handler) {
@@ -77,22 +89,40 @@ public class BufferedPublisher<T> implements Publisher<T> {
     }
   }
 
+  @Override
+  public void subscribe(final Subscriber<? super T> subscriber) {
+    Objects.requireNonNull(subscriber);
+    if (Vertx.currentContext() == ctx) {
+      doSubscribe(subscriber);
+    } else {
+      ctx.runOnContext(v -> doSubscribe(subscriber));
+    }
+  }
+
+  private void doSubscribe(final Subscriber<? super T> subscriber) {
+    this.subscriber = subscriber;
+    try {
+      subscriber.onSubscribe(new Sub());
+    } catch (final Throwable t) {
+      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
+    }
+  }
+
+  /**
+   * Hook to allow subclasses to inject errors etc
+   *
+   * @return true if processing should continue
+   */
+  protected boolean beforeOnNext() {
+    return true;
+  }
+
   private void sendComplete() {
     try {
       cancelled = true;
       subscriber.onComplete();
     } catch (Throwable t) {
       logError("Exceptions must not be thrown from onComplete", t);
-    }
-  }
-
-  @Override
-  public void subscribe(final Subscriber<? super T> subscriber) {
-    this.subscriber = Objects.requireNonNull(subscriber);
-    try {
-      subscriber.onSubscribe(new Sub());
-    } catch (final Throwable t) {
-      sendError(new IllegalStateException("Exceptions must not be thrown from onSubscribe", t));
     }
   }
 
@@ -134,15 +164,6 @@ public class BufferedPublisher<T> implements Publisher<T> {
         drainHandler = null;
       }
     }
-  }
-
-  /**
-   * Hook to allow subclasses to inject errors etc
-   *
-   * @return true if processing should continue
-   */
-  protected boolean beforeOnNext() {
-    return true;
   }
 
   private void doOnNext(final T val) {

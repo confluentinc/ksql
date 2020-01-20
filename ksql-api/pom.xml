@@ -106,6 +106,12 @@
       <version>6.11</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-test-util</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 

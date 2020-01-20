@@ -21,6 +21,7 @@ import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
+import org.reactivestreams.Subscription;
 
 public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implements
     InsertsSubscriber {
@@ -35,13 +36,18 @@ public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implem
   }
 
   @Override
+  protected void afterSubscribe(final Subscription subscription) {
+    makeRequest(1);
+  }
+
+  @Override
   public synchronized void handleValue(final JsonObject row) {
+    makeRequest(1);
     rowsInserted.add(row);
     if (acksPublisher != null) {
       // Now forward to acks publisher
       acksPublisher.accept(row);
     }
-    makeRequest(1);
   }
 
   @Override

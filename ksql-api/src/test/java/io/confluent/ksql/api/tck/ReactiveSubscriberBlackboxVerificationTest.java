@@ -21,6 +21,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
 
@@ -46,7 +47,21 @@ public class ReactiveSubscriberBlackboxVerificationTest extends
   @Override
   public Subscriber<JsonObject> createSubscriber() {
     final Context context = vertx.getOrCreateContext();
-    return new ReactiveSubscriber<>(context);
+    return new ReactiveSubscriber<JsonObject>(context) {
+
+      private Subscription subscription;
+
+      @Override
+      public synchronized void afterSubscribe(final Subscription s) {
+        s.request(1);
+        this.subscription = s;
+      }
+
+      @Override
+      public synchronized void handleValue(final JsonObject jsonObject) {
+        subscription.request(1);
+      }
+    };
   }
 
 }

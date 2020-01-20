@@ -51,25 +51,30 @@ public class ReactiveSubscriberWhiteboxVerificationTest extends
     final Context context = vertx.getOrCreateContext();
     return new ReactiveSubscriber<JsonObject>(context) {
 
+      private Subscription subscription;
+
       @Override
-      protected void afterSubscribe(final Subscription subscriber) {
+      protected void afterSubscribe(final Subscription subscription) {
         probe.registerOnSubscribe(new SubscriberPuppet() {
 
           @Override
           public void triggerRequest(long n) {
-            subscriber.request(n);
+            subscription.request(n);
           }
 
           @Override
           public void signalCancel() {
-            subscriber.cancel();
+            subscription.cancel();
           }
         });
+        subscription.request(1);
+        this.subscription = subscription;
       }
 
       @Override
       protected void handleValue(final JsonObject value) {
         probe.registerOnNext(value);
+        subscription.request(1);
       }
 
       @Override

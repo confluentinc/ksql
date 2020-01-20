@@ -281,14 +281,13 @@ public class ConsoleTest {
           + "-------------------------------------------------------\n"));
     }
   }
-
   @Test
   public void testPrintQueries() {
     // Given:
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), new QueryId("0"), Optional.of("Running")));
+            "select * from t1", Collections.singleton("Test"), new QueryId("0"), Optional.of("Foobar")));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -307,16 +306,16 @@ public class ConsoleTest {
           + "    \"queryString\" : \"select * from t1\",\n"
           + "    \"sinks\" : [ \"Test\" ],\n"
           + "    \"id\" : \"0\",\n"
-          + "    \"state\" : \"Running\"\n"
+          + "    \"state\" : \"Foobar\"\n"
           + "  } ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Query ID | Status  | Kafka Topic | Query String     \n"
-          + "-----------------------------------------------------\n"
-          + " 0        | Running | Test        | select * from t1 \n"
-          + "-----------------------------------------------------\n"
+          + " Query ID | Status | Kafka Topic | Query String     \n"
+          + "----------------------------------------------------\n"
+          + " 0        | Foobar | Test        | select * from t1 \n"
+          + "----------------------------------------------------\n"
           + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
     }
   }

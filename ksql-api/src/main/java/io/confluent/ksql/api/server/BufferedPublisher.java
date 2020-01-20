@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 public class BufferedPublisher<T> implements Publisher<T> {
 
   private static final Logger log = LoggerFactory.getLogger(BufferedPublisher.class);
-  private static final int SEND_MAX_BATCH_SIZE = 10;
-  private static final int DEFAULT_BUFFER_MAX_SIZE = 100;
+  public static final int SEND_MAX_BATCH_SIZE = 10;
+  public static final int DEFAULT_BUFFER_MAX_SIZE = 100;
 
   private final Context ctx;
   private final Queue<T> buffer = new ArrayDeque<>();
@@ -217,6 +217,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
       } else {
         // Schedule another batch async
         ctx.runOnContext(v -> doSend());
+        break;
       }
     }
 

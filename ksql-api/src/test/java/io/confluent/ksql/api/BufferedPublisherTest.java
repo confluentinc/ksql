@@ -92,6 +92,13 @@ public class BufferedPublisherTest {
   }
 
   @Test
+  public void shouldDeliverMoreThanMaxSendBatchSize() throws Exception {
+    int num = 2 * BufferedPublisher.SEND_MAX_BATCH_SIZE;
+    loadPublisher(num);
+    shouldDeliver(num, num);
+  }
+
+  @Test
   public void shouldDeliverAllRequestingOneByOne() throws Exception {
     loadPublisher(10);
     TestSubscriber subscriber = new TestSubscriber(context) {
@@ -346,7 +353,6 @@ public class BufferedPublisherTest {
 
   private void shouldDeliver(int numRequested, int numDelivered) throws Exception {
     TestSubscriber subscriber = new TestSubscriber(context) {
-
       @Override
       public synchronized void onSubscribe(final Subscription sub) {
         super.onSubscribe(sub);

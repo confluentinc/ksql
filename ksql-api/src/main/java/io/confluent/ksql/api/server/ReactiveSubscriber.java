@@ -134,7 +134,6 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   protected void makeRequest(final long l) {
     checkContext();
     try {
-      // TODO - batch size?
       subscription.request(l);
     } catch (Throwable t) {
       final Exception e =

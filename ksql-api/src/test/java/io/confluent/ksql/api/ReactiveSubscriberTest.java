@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api;
 
-
 import static io.confluent.ksql.api.TestUtils.awaitLatch;
 
 import io.confluent.ksql.api.server.ReactiveSubscriber;

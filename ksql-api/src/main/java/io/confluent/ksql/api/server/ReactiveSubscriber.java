@@ -38,6 +38,13 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   private Subscription subscription;
   private boolean complete;
 
+  /**
+   * Construct a ReactiveSubscriber
+   *
+   * @param context The Vert.x context to use for the subscriber - the subscriber code will always
+   *                be executed on this context. This ensures the code is never executed
+   *                concurrently by more than one thread.
+   */
   public ReactiveSubscriber(final Context context) {
     this.context = context;
   }

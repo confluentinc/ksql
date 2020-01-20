@@ -233,6 +233,23 @@ public class BufferedPublisherTest {
   }
 
   @Test
+  public void shouldNotAllowAcceptingAfterComplete() throws Exception {
+    TestSubscriber subscriber = new TestSubscriber(context);
+    subscribeOnContext(subscriber);
+    execOnContextAndWait(publisher::complete);
+    AtomicBoolean failed = new AtomicBoolean();
+    execOnContextAndWait(() -> {
+      try {
+        publisher.accept("foo");
+        failed.set(true);
+      } catch (IllegalStateException e) {
+        // OK
+      }
+    });
+    assertThat(failed.get(), equalTo(false));
+  }
+
+  @Test
   public void shouldAcceptBuffered() throws Exception {
     publisher = new BufferedPublisher<>(context, 5);
     AsyncAssert asyncAssert = new AsyncAssert();

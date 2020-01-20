@@ -48,19 +48,49 @@ public class BufferedPublisher<T> implements Publisher<T> {
   private boolean cancelled;
   private Runnable drainHandler;
   private boolean complete;
+  private boolean completing;
 
+  /**
+   * Construct a BufferedPublisher
+   *
+   * @param ctx The Vert.x context to use for the publisher - the publisher code must always be
+   *            executed on this context. This ensures the code is never executed concurrently by
+   *            more than one thread.
+   */
   public BufferedPublisher(final Context ctx) {
     this(ctx, Collections.emptySet(), DEFAULT_BUFFER_MAX_SIZE);
   }
 
+  /**
+   * Construct a BufferedPublisher
+   *
+   * @param ctx           The Vert.x context to use for the publisher
+   * @param initialBuffer A collection of elements to initialise the buffer with
+   */
   public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer) {
     this(ctx, initialBuffer, DEFAULT_BUFFER_MAX_SIZE);
   }
 
+  /**
+   * Construct a BufferedPublisher
+   *
+   * @param ctx           The Vert.x context to use for the publisher
+   * @param bufferMaxSize Indicative max number of elements to store in the buffer. Note that this
+   *                      is not enforced, but it used to determine what to return from the accept
+   *                      method so the caller can stop sending more and set a drainHandler to be
+   *                      notified when the buffer is cleared
+   */
   public BufferedPublisher(final Context ctx, final int bufferMaxSize) {
     this(ctx, Collections.emptySet(), bufferMaxSize);
   }
 
+  /**
+   * Construct a BufferedPublisher
+   *
+   * @param ctx           The Vert.x context to use for the publisher
+   * @param initialBuffer A collection of elements to initialise the buffer with
+   * @param bufferMaxSize Indicative max number of elements to buffer
+   */
   public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer,
       final int bufferMaxSize) {
     this.ctx = ctx;
@@ -68,8 +98,19 @@ public class BufferedPublisher<T> implements Publisher<T> {
     this.bufferMaxSize = bufferMaxSize;
   }
 
+  /**
+   * Provide an element to the publisher. The publisher will attempt to deliver it to it's
+   * subscriber (if any). The publisher will buffer it internally if it can't deliver it
+   * immediately.
+   *
+   * @param t The element
+   * @return true if the internal buffer is 'full'. I.e. if number of elements is >= bufferMaxSize.
+   */
   public boolean accept(final T t) {
     checkContext();
+    if (completing) {
+      throw new IllegalStateException("Cannot call accept after complete is called");
+    }
     if (demand == 0 || cancelled) {
       buffer.add(t);
     } else {
@@ -78,16 +119,28 @@ public class BufferedPublisher<T> implements Publisher<T> {
     return buffer.size() >= bufferMaxSize;
   }
 
+  /**
+   * If you set a drain handler. It will be called if, after delivery is attempted there are zero
+   * elements buffered internally and there is demand from the subscriber for more elements.
+   *
+   * @param handler The handler
+   */
   public void drainHandler(final Runnable handler) {
     checkContext();
     this.drainHandler = handler;
   }
 
+  /**
+   * Mark the incoming stream of elements as complete. This means onComplete will be called on any
+   * subscriber after any buffered messages have been delivered. Once complete has been called no
+   * further elements will be accepted
+   */
   public void complete() {
     checkContext();
     if (cancelled || complete) {
       return;
     }
+    completing = true;
     if (buffer.isEmpty() && subscriber != null) {
       sendComplete();
     } else {
@@ -95,6 +148,11 @@ public class BufferedPublisher<T> implements Publisher<T> {
     }
   }
 
+  /**
+   * Subscribe a subscriber to this publisher. The publisher will allow at most one subscriber.
+   *
+   * @param subscriber The subscriber
+   */
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
     Objects.requireNonNull(subscriber);
@@ -106,21 +164,13 @@ public class BufferedPublisher<T> implements Publisher<T> {
   }
 
   /**
-   * Hook to allow subclasses to inject errors etc
+   * Hook to allow subclasses to inject errors etc.
+   * This will be called before onNext is called on the subscriber to deliver an element
    *
    * @return true if processing should continue
    */
   protected boolean beforeOnNext() {
     return true;
-  }
-
-  private void sendComplete() {
-    try {
-      cancelled = true;
-      subscriber.onComplete();
-    } catch (Throwable t) {
-      logError("Exceptions must not be thrown from onComplete", t);
-    }
   }
 
   protected void sendError(final Exception e) {
@@ -130,6 +180,15 @@ public class BufferedPublisher<T> implements Publisher<T> {
       cancelled = true;
     } catch (Throwable t) {
       logError("Exceptions must not be thrown from onError", t);
+    }
+  }
+
+  private void sendComplete() {
+    try {
+      cancelled = true;
+      subscriber.onComplete();
+    } catch (Throwable t) {
+      logError("Exceptions must not be thrown from onComplete", t);
     }
   }
 

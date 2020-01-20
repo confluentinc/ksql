@@ -29,10 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A reactive streams publisher which can buffer received values before sending them to it's
+ * A reactive streams publisher which can buffer received elements before sending them to it's
  * subscriber.
  *
- * @param <T> The type of the value
+ * @param <T> The type of the element
  */
 public class BufferedPublisher<T> implements Publisher<T> {
 

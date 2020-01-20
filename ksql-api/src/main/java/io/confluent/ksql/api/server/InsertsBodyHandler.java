@@ -49,15 +49,6 @@ public class InsertsBodyHandler {
   private long rowsReceived;
   private AcksSubscriber acksSubscriber;
 
-  public static void connectBodyHandler(final Context ctx, final Endpoints endpoints,
-      final RoutingContext routingContext) {
-    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(ctx, endpoints,
-        routingContext);
-    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
-    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
-    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
-  }
-
   public InsertsBodyHandler(final Context ctx, final Endpoints endpoints,
       final RoutingContext routingContext) {
     this.ctx = ctx;
@@ -128,4 +119,5 @@ public class InsertsBodyHandler {
       rowsReceived++;
     }
   }
+
 }

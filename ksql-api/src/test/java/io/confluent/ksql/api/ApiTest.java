@@ -307,13 +307,8 @@ public class ApiTest {
   }
 
   @Test
-  public void shouldRejectMalformedJsonInQueryStream() throws Exception {
-    shouldRejectMalformedJsonInQuery("/query-stream");
-  }
-
-  @Test
-  public void shouldRejectMalformedJsonInInsertsStream() throws Exception {
-    shouldRejectMalformedJsonInQuery("/inserts-stream");
+  public void shouldRejectMalformedJsonInQueryArgs() throws Exception {
+    shouldRejectMalformedJsonInArgs("/query-stream");
   }
 
   @Test
@@ -554,6 +549,11 @@ public class ApiTest {
   }
 
   @Test
+  public void shouldRejectMalformedJsonInInsertsStreamArgs() throws Exception {
+    shouldRejectMalformedJsonInArgs("/inserts-stream");
+  }
+
+  @Test
   public void shouldHandleMalformedJsonInInsertsStream() throws Exception {
 
     JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
@@ -595,7 +595,7 @@ public class ApiTest {
     assertEquals(404, response.statusCode());
   }
 
-  private void shouldRejectMalformedJsonInQuery(String uri) throws Exception {
+  private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {
 
     Buffer requestBody = Buffer.buffer().appendString("{\"foo\":1");
 

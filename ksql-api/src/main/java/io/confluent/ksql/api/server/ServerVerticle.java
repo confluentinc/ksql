@@ -24,6 +24,7 @@ import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -32,6 +33,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -93,7 +95,11 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleInsertsStream(final RoutingContext routingContext) {
-    InsertsBodyHandler.connectBodyHandler(context, endpoints, routingContext);
+    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(context, endpoints,
+        routingContext);
+    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
+    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
+    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
   }
 
   private void handleQueryStream(final RoutingContext routingContext) {
@@ -166,6 +172,15 @@ public class ServerVerticle extends AbstractVerticle {
       return;
     }
     routingContext.response().end();
+  }
+
+  private static void connectBodyHandler(final Context ctx, final Endpoints endpoints,
+      final RoutingContext routingContext) {
+    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(ctx, endpoints,
+        routingContext);
+    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
+    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
+    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
   }
 
   /*

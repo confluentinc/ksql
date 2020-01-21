@@ -48,8 +48,9 @@ KSQL.
 - `ksql-functional-tests/hamcrest-all-1.3.jar`
 - `ksql-functional-tests/junit-4.12.jar`
 
-The workaround is to copy the required jars into the ``confluent/ksql``
-classpath. For example, use the following commands for the classpath
+The workaround is to copy the required jars into the ``ksql`` classpath at
+:litwithvars:`confluent-|release|/share/java/ksql`. For example,
+use the following commands for the classpath
 :litwithvars:`/opt/confluent/confluent-|release|/share/java/ksql`. 
 
 .. codewithvars:: bash

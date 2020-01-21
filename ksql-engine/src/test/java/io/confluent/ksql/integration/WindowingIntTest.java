@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
@@ -38,9 +39,11 @@ import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -50,6 +53,7 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -135,7 +139,7 @@ public class WindowingIntTest {
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
     assertTableCanBeUsedAsSource(expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT, 4, resultStream0, resultStream1);
   }
 
   @Test
@@ -153,8 +157,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTableCanBeUsedAsSource(expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
   }
 
   @Test
@@ -177,8 +180,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTableCanBeUsedAsSource(expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
   }
 
   @Test
@@ -209,8 +211,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, mapHasItems(expected));
-    assertTableCanBeUsedAsSource(expected, mapHasItems(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
+    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
   }
 
   private void givenTable(final String sql) {
@@ -251,13 +252,18 @@ public class WindowingIntTest {
     assertOutputOf(resultStream1, expected, tableRowMatcher);
   }
 
-  private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {
-    assertThat("Initial topics", getTopicNames(), hasSize(4));
+  private void assertTopicsCleanedUp(
+      final TopicCleanupPolicy topicCleanupPolicy,
+      final int nTopics,
+      final String ...sinkTopics
+  ) {
+    assertThat("Initial topics", getTopicNames(), hasSize(nTopics));
 
     ksqlContext.getPersistentQueries().forEach(QueryMetadata::close);
 
     assertThatEventually("After cleanup", this::getTopicNames,
-        containsInAnyOrder(resultStream0, resultStream1));
+        containsInAnyOrder(
+            Arrays.stream(sinkTopics).map(Matchers::equalTo).collect(Collectors.toList())));
 
     assertThat(topicClient.getTopicCleanupPolicy(resultStream0),
         is(topicCleanupPolicy));

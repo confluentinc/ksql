@@ -136,8 +136,8 @@ public class BufferedPublisherTest {
       }
     };
     subscribeOnContext(subscriber);
+    assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getValues(), hasSize(0));
-    assertThat(subscriber.getError(), is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(IllegalArgumentException.class));
   }
 
@@ -153,8 +153,8 @@ public class BufferedPublisherTest {
       }
     };
     subscribeOnContext(subscriber);
+    assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getValues(), hasSize(0));
-    assertThat(subscriber.getError(), is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(IllegalArgumentException.class));
   }
 

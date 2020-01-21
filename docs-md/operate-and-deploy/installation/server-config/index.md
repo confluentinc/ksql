@@ -252,6 +252,10 @@ REST endpoint and interactive use.
     argument are present, the `--queries-file` argument takes
     precedence.
 
+When you run a ksqlDB application that uses Avro in interactive mode, ksqlDB
+infers schemas from {{ site.sr }} automatically, but in non-interactive mode,
+you must provide schemas manually.
+
 ### Start headless ksqlDB Server from the command line
 
 To start the ksqlDB Server in headless, non-interactive configuration via the

@@ -236,7 +236,7 @@ server is running a predefined script, it will automatically disable its REST en
 
 .. tip:: When both the ``ksql.queries.file`` property and the ``--queries-file`` argument are present, the ``--queries-file`` argument will take precedence.
 
-When you run a ksqlDB application that uses Avro in interactive mode, ksqlDB
+When you run a KSQL application that uses Avro in interactive mode, ksqlDB
 infers schemas from |sr| automatically, but in non-interactive mode,
 you must provide schemas manually.
 

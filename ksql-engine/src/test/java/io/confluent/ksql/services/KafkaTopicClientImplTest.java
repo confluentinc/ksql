@@ -105,7 +105,8 @@ public class KafkaTopicClientImplTest {
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-changelog");
-  private static final String confluentInternalTopic = "_confluent-confluent-control-center";
+  private static final String internalTopic = String.format("%s_internal",
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX);
   private Node node;
   @Mock
   private AdminClient adminClient;
@@ -645,7 +646,7 @@ public class KafkaTopicClientImplTest {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
         internalTopic1, internalTopic2,
-        confluentInternalTopic);
+        internalTopic);
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);

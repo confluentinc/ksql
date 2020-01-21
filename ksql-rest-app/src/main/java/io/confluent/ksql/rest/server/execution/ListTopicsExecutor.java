@@ -90,7 +90,7 @@ public final class ListTopicsExecutor {
 
     final Set<String> topics = statement.getStatement().getShowAll()
         ? topicClient.listTopicNames()
-        : internalTopics.filterInternalTopics(topicClient.listTopicNames());
+        : internalTopics.removeHiddenTopics(topicClient.listTopicNames());
 
     return new TreeMap<>(
         filterKsqlInternalTopics(topicClient.describeTopics(topics), statement.getConfig())

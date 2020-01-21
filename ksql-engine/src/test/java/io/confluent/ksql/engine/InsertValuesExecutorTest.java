@@ -562,7 +562,7 @@ public class InsertValuesExecutorTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Cannot insert values into the reserved internal topic: _confluent-ksql-default__command-topic");
+        "Cannot insert values into read-only topic: _confluent-ksql-default__command-topic");
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
@@ -592,7 +592,7 @@ public class InsertValuesExecutorTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Cannot insert into the processing log topic: default_ksql_processing_log");
+        "Cannot insert values into read-only topic: default_ksql_processing_log");
 
     // When:
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);

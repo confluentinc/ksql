@@ -15,7 +15,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -49,20 +48,24 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * {@code distributedCmdResponseTimeout}.
  */
 public class DistributingExecutor {
+  private final KsqlConfig ksqlConfig;
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final ValidatedCommandFactory validatedCommandFactory;
   private final CommandIdAssigner commandIdAssigner;
+  private final ReservedInternalTopics internalTopics;
 
   public DistributingExecutor(
+      final KsqlConfig ksqlConfig,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory
   ) {
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
@@ -74,6 +77,7 @@ public class DistributingExecutor {
         "validatedCommandFactory"
     );
     this.commandIdAssigner = new CommandIdAssigner();
+    this.internalTopics = new ReservedInternalTopics(ksqlConfig);
   }
 
   /**
@@ -96,8 +100,7 @@ public class DistributingExecutor {
         .inject(statement);
 
     if (injected.getStatement() instanceof InsertInto) {
-      throwIfInsertOnInternalTopic(
-          statement.getConfig(),
+      throwIfInsertOnReadOnlyTopic(
           executionContext.getMetaStore(),
           (InsertInto)injected.getStatement()
       );
@@ -174,8 +177,7 @@ public class DistributingExecutor {
     }
   }
 
-  private void throwIfInsertOnInternalTopic(
-      final KsqlConfig ksqlConfig,
+  private void throwIfInsertOnReadOnlyTopic(
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
@@ -185,18 +187,8 @@ public class DistributingExecutor {
           + insertInto.getTarget());
     }
 
-    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
-    if (internalTopics.isInternalTopic(dataSource.getKafkaTopicName())) {
-      throw new KsqlException("Cannot insert into the reserved internal topic: "
-          + dataSource.getKafkaTopicName());
-    }
-
-    final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final String processingLogTopic =
-        ReservedInternalTopics.processingLogTopic(processingLogConfig, ksqlConfig);
-    if (dataSource.getKafkaTopicName().equals(processingLogTopic)) {
-      throw new KsqlException("Cannot insert into the processing log topic: "
+    if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert into read-only topic: "
           + dataSource.getKafkaTopicName());
     }
   }

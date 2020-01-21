@@ -202,15 +202,23 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_AUTH_CACHE_MAX_ENTRIES_DOC = "Controls the size of the cache "
       + "to a maximum number of KSQL authorization responses entries.";
 
-  public static final String SYSTEM_INTERNAL_TOPICS_CONFIG = "system.internal.topics";
-  public static final String SYSTEM_INTERNAL_TOPICS_DEFAULT = "_confluent.*,__confluent.*,_schemas,"
-      + "__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,"
-      + "connect-statuses";
-  public static final String SYSTEM_INTERNAL_TOPICS_DOC = "List of topics considered part of "
-      + "system internals which KSQL should not allow users to write data on them. This list will "
-      + "not be displayed from the SHOW TOPICS command unless SHOW ALL TOPICS is used. The list "
-      + "is separated by comma and may use regular expressions based on Java Patterns "
-      + "(i.e. _confluent.* accepts any topic that starts with _confluent prefix).";
+  public static final String KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG = "ksql.internal.hidden.topics";
+  public static final String KSQL_INTERNAL_HIDDEN_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
+      + ",_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,"
+      + "connect-status,connect-statuses";
+  public static final String KSQL_INTERNAL_HIDDEN_TOPICS_DOC = "List of topics that will not be "
+      + "visible when running the SHOW TOPICS command unless SHOW ALL TOPICS is used. This list "
+      + "is comma separated and may use Java regular expressions to specify each topic (i.e. "
+      + " _confluent.* accepts any topic that starts with the _confluent prefix).";
+
+  public static final String KSQL_INTERNAL_READONLY_TOPICS_CONFIG = "ksql.internal.readonly.topics";
+  public static final String KSQL_INTERNAL_READONLY_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
+      + ",_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,"
+      + "connect-status,connect-statuses";
+  public static final String KSQL_INTERNAL_READONLY_TOPICS_DOC = "List of topics that KSQL will "
+      + " handle as read-only. These topics cannot be modified by any KSQL command. This list "
+      + "is comma separated and may use Java regular expressions to specify each topic (i.e. "
+      + " _confluent.* accepts any topic that starts with the _confluent prefix).";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -543,11 +551,17 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_AUTH_CACHE_MAX_ENTRIES_DOC
         ).define(
-            SYSTEM_INTERNAL_TOPICS_CONFIG,
+            KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG,
             Type.LIST,
-            SYSTEM_INTERNAL_TOPICS_DEFAULT,
+            KSQL_INTERNAL_HIDDEN_TOPICS_DEFAULT,
             Importance.LOW,
-            SYSTEM_INTERNAL_TOPICS_DOC
+            KSQL_INTERNAL_HIDDEN_TOPICS_DOC
+        ).define(
+            KSQL_INTERNAL_READONLY_TOPICS_CONFIG,
+            Type.LIST,
+            KSQL_INTERNAL_READONLY_TOPICS_DEFAULT,
+            Importance.LOW,
+            KSQL_INTERNAL_READONLY_TOPICS_DOC
         )
         .withClientSslSupport();
 

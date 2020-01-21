@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.Streams;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ReservedInternalTopics {
   private static final Logger LOG = LoggerFactory.getLogger(ReservedInternalTopics.class);
@@ -97,33 +98,56 @@ public final class ReservedInternalTopics {
     );
   }
 
-  private final List<Pattern> systemInternalTopics;
+  private final Pattern hiddenTopicsPattern;
+  private final Pattern readOnlyTopicsPattern;
 
   public ReservedInternalTopics(final KsqlConfig ksqlConfig) {
+    final ProcessingLogConfig processingLogConfig =
+        new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+
     try {
-      this.systemInternalTopics = ksqlConfig.getList(KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG)
-          .stream()
-          .map(Pattern::compile)
-          .collect(Collectors.toList());
+      this.hiddenTopicsPattern = Pattern.compile(
+          Streams.concat(
+              Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
+              ksqlConfig.getList(KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG).stream()
+          ).collect(Collectors.joining("|"))
+      );
     } catch (final Exception e) {
-      final String message = "Cannot get a list of system internal topics due to an invalid " +
-          "configuration in '" + KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG + "'";
+      final String message = "Invalid pattern list in '"
+          + KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG + "'";
+
+      LOG.error(message + ": " + e.getMessage());
+      throw new KsqlException(message, e);
+    }
+
+    try {
+      this.readOnlyTopicsPattern = Pattern.compile(
+          Streams.concat(
+              Stream.of(processingLogTopic(processingLogConfig, ksqlConfig)),
+              Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
+              ksqlConfig.getList(KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG).stream()
+          ).collect(Collectors.joining("|"))
+      );
+    } catch (final Exception e) {
+      final String message = "Invalid pattern list in '"
+          + KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG + "'";
 
       LOG.error(message + ": " + e.getMessage());
       throw new KsqlException(message, e);
     }
   }
 
-  public Set<String> filterInternalTopics(final Set<String> topicNames) {
+  public Set<String> removeHiddenTopics(final Set<String> topicNames) {
     return topicNames.stream()
-        .filter(t -> !isInternalTopic(t))
+        .filter(t -> !isHidden(t))
         .collect(Collectors.toSet());
   }
 
-  public boolean isInternalTopic(final String topicName) {
-    return topicName.startsWith(KSQL_INTERNAL_TOPIC_PREFIX) || systemInternalTopics.stream()
-        .filter(p -> p.matcher(topicName).matches())
-        .findAny()
-        .isPresent();
+  public boolean isHidden(final String topicName) {
+    return hiddenTopicsPattern.matcher(topicName).matches();
+  }
+
+  public boolean isReadOnly(final String topicName) {
+    return readOnlyTopicsPattern.matcher(topicName).matches();
   }
 }

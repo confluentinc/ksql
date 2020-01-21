@@ -153,6 +153,7 @@ public class DistributingExecutorTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     distributor = new DistributingExecutor(
+        KSQL_CONFIG,
         queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
@@ -307,7 +308,7 @@ public class DistributingExecutorTest {
   }
 
   @Test
-  public void shouldThrowExceptionWhenInsertIntoReservedInternalTopic() {
+  public void shouldThrowExceptionWhenInsertIntoReadOnlyTopic() {
     // Given
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
@@ -319,7 +320,7 @@ public class DistributingExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot insert into the reserved internal topic: "
+    expectedException.expectMessage("Cannot insert into read-only topic: "
         + "_confluent-ksql-default__command-topic");
 
     // When:
@@ -339,7 +340,7 @@ public class DistributingExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot insert into the processing log topic: "
+    expectedException.expectMessage("Cannot insert into read-only topic: "
         + "default_ksql_processing_log");
 
     // When:

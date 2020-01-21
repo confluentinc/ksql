@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 import java.util.Set;
-import java.util.regex.PatternSyntaxException;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +32,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ReservedInternalTopicsTest {
+  private static final String KSQL_PROCESSING_LOG_TOPIC = "default_ksql_processing_log";
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -41,7 +43,8 @@ public class ReservedInternalTopicsTest {
   @Before
   public void setUp() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix"
+        KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix",
+        KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG, "ro_prefix_.*,ro_literal,.*_suffix_ro"
     ));
 
     internalTopics = new ReservedInternalTopics(ksqlConfig);
@@ -49,24 +52,63 @@ public class ReservedInternalTopicsTest {
 
 
   @Test
-  public void shouldReturnTrueOnAllInternalTopics() {
+  public void shouldReturnTrueOnAllHiddenTopics() {
     // Given
     final List<String> topicNames = ImmutableList.of(
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "_test",
         "prefix_", "_suffix", "prefix_topic", "topic_suffix", "literal"
     );
 
     topicNames.forEach(topic -> {
       // When
-      final boolean isReserved = internalTopics.isInternalTopic(topic);
+      final boolean isHidden = internalTopics.isHidden(topic);
 
       // Then
-      assertThat("Should return true on internal topic: " + topic,
-          isReserved, is(true));
+      assertThat("Should return true on hidden topic: " + topic,
+          isHidden, is(true));
     });
   }
 
   @Test
-  public void shouldReturnFalseOnNonInternalTopics() {
+  public void shouldReturnTrueOnAllReadOnlyTopics() {
+    // Given
+    final List<String> topicNames = ImmutableList.of(
+        KSQL_PROCESSING_LOG_TOPIC,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "_test",
+        "ro_prefix_", "_suffix_ro", "ro_prefix_topic", "topic_suffix_ro", "ro_literal"
+    );
+
+    topicNames.forEach(topic -> {
+      // When
+      final boolean isReadOnly = internalTopics.isReadOnly(topic);
+
+      // Then
+      assertThat("Should return true on read-only topic: " + topic,
+          isReadOnly, is(true));
+    });
+  }
+
+  @Test
+  public void shouldReturnFalseOnNonHiddenTopics() {
+    // Given
+    final List<String> topicNames = ImmutableList.of(
+        KSQL_PROCESSING_LOG_TOPIC,
+        "topic_prefix_", "_suffix_topic"
+    );
+
+    // Given
+    topicNames.forEach(topic -> {
+      // When
+      final boolean isHidden = internalTopics.isHidden(topic);
+
+      // Then
+      assertThat("Should return false on non-hidden topic: " + topic,
+          isHidden, is(false));
+    });
+  }
+
+  @Test
+  public void shouldReturnFalseOnNonReadOnlyTopics() {
     // Given
     final List<String> topicNames = ImmutableList.of(
         "topic_prefix_", "_suffix_topic"
@@ -75,52 +117,55 @@ public class ReservedInternalTopicsTest {
     // Given
     topicNames.forEach(topic -> {
       // When
-      final boolean isReserved = internalTopics.isInternalTopic(topic);
+      final boolean isReadOnly = internalTopics.isReadOnly(topic);
 
       // Then
-      assertThat("Should return false on non-internal topic: " + topic,
-          isReserved, is(false));
+      assertThat("Should return false on non read-only topic: " + topic,
+          isReadOnly, is(false));
     });
   }
 
   @Test
-  public void shouldReturnTrueOnKsqlInternalTopics() {
-    // Given
-    final String ksqlInternalTopic = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "_test";
-
-    // When
-    final boolean isReserved =
-        internalTopics.isInternalTopic(ksqlInternalTopic);
-
-    // Then
-    assertThat(isReserved, is(true));
-  }
-
-  @Test
-  public void shouldFilterAllInternalTopics() {
+  public void shouldRemoveAllHiddenTopics() {
     // Given
     final Set<String> topics = ImmutableSet.of(
         "prefix_name", "literal", "tt", "name1", "suffix", "p_suffix"
     );
 
     // When
-    final Set<String> filteredTopics = internalTopics.filterInternalTopics(topics);
+    final Set<String> filteredTopics = internalTopics.removeHiddenTopics(topics);
 
     // Then
     assertThat(filteredTopics, is(ImmutableSet.of("tt", "name1", "suffix")));
   }
 
   @Test
-  public void shouldThrowWhenInvalidSystemTopicsListIsUsed() {
+  public void shouldThrowWhenInvalidInternalHiddenTopicsListIsUsed() {
     // Given
     final KsqlConfig givenConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG, "*_suffix"
+        KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG, "*_suffix"
     ));
 
     // Then
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot get a list of system internal topics due to" +
-        " an invalid configuration in '" + KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG + "'");
+    expectedException.expectMessage("Invalid pattern list in '"
+        + KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG + "'");
+
+    // When
+    new ReservedInternalTopics(givenConfig);
+  }
+
+  @Test
+  public void shouldThrowWhenInvalidInternalReadOnlyTopicsListIsUsed() {
+    // Given
+    final KsqlConfig givenConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG, "*_suffix"
+    ));
+
+    // Then
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid pattern list in '"
+        + KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG + "'");
 
     // When
     new ReservedInternalTopics(givenConfig);
@@ -132,7 +177,7 @@ public class ReservedInternalTopicsTest {
     final String commandTopic = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     // Then
-    assertThat("_confluent-ksql-default__command_topic", is(commandTopic));
+    assertThat(commandTopic, is("_confluent-ksql-default__command_topic"));
   }
 
   @Test
@@ -141,6 +186,17 @@ public class ReservedInternalTopicsTest {
     final String commandTopic = ReservedInternalTopics.configsTopic(ksqlConfig);
 
     // Then
-    assertThat("_confluent-ksql-default__configs", is(commandTopic));
+    assertThat(commandTopic, is("_confluent-ksql-default__configs"));
+  }
+
+  @Test
+  public void shouldReturnProcessingLogTopic() {
+    // Given/When
+    final ProcessingLogConfig processingLogConfig = new ProcessingLogConfig(ImmutableMap.of());
+    final String processingLogTopic = ReservedInternalTopics.processingLogTopic(
+        processingLogConfig, ksqlConfig);
+
+    // Then
+    assertThat(processingLogTopic, is("default_ksql_processing_log"));
   }
 }

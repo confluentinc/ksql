@@ -25,17 +25,17 @@ configured to connect to (default setting for `bootstrap.servers`:
 and their active consumer counts.
 
 SHOW TOPICS does not display topics considered internal, such as:
-* KSQL internal topics (i.e. the KSQL command topic)
-* Topics found in the `system.internal.topics` configuration
+* KSQL internal topics, like the KSQL command topic
+* Topics found in the `ksql.internal.hidden.topics` configuration
 
-SHOW ALL TOPICS will list all topics including those considered as
-internal or found in the `system.internal.topics` configuration.
+SHOW ALL TOPICS lists all topics, including those considered to be
+internal or found in the `ksql.internal.hidden.topics` configuration.
 
 Example
 -------
 
 ```sql
-ksql> SHOW TOPICS
+ksql> SHOW TOPICS;
 
  Kafka Topic                            | Partitions | Partition Replicas
 -------------------------------------------------------------------------
@@ -47,7 +47,7 @@ ksql> SHOW TOPICS
 
 
 ```sql
-ksql> SHOW ALL TOPICS
+ksql> SHOW ALL TOPICS;
 
  Kafka Topic                            | Partitions | Partition Replicas
 -------------------------------------------------------------------------

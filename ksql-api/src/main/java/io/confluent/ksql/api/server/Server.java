@@ -37,14 +37,15 @@ import org.slf4j.LoggerFactory;
  * This class represents the API server. On start-up it deploys multiple server verticles to spread
  * the load across available cores.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class Server {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Server.class);
 
   private final Vertx vertx;
   private final ApiServerConfig config;
   private final Endpoints endpoints;
-  private final HttpServerOptions httpServerOptions;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
@@ -53,7 +54,6 @@ public class Server {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
-    this.httpServerOptions = Objects.requireNonNull(createHttpServerOptions(config));
   }
 
   private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
@@ -78,8 +78,9 @@ public class Server {
         .setConfig(config.toJsonObject());
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
-    vertx.deployVerticle(
-        () -> new ServerVerticle(endpoints, httpServerOptions, this), options, future);
+    vertx.deployVerticle(() ->
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this), options,
+        future);
     try {
       deploymentID = future.get();
     } catch (Exception e) {

@@ -144,6 +144,7 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce(true, decimalType), is(Optional.empty()));
     assertThat(coercer.coerce("1.0", decimalType), is(Optional.empty()));
     assertThat(coercer.coerce(1.0d, decimalType), is(Optional.empty()));
+    assertThat(coercer.coerce(1234L, decimalType), is(Optional.empty()));
   }
 
   @Test
@@ -193,7 +194,6 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce("foo", mapType), is(Optional.empty()));
     assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Optional.empty()));
   }
-
 
   @SuppressWarnings("unchecked")
   @Test

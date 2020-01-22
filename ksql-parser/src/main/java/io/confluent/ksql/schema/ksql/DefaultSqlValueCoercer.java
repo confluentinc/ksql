@@ -37,14 +37,21 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   INSTANCE;
 
-  private static final Map<SqlBaseType, BiFunction<Number, SqlType, Number>> UPCASTER =
-      ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Number>>builder()
-          .put(SqlBaseType.INTEGER, (num, type) -> num.intValue())
-          .put(SqlBaseType.BIGINT, (num, type) -> num.longValue())
-          .put(SqlBaseType.DOUBLE, (num, type) -> num.doubleValue())
-          .put(SqlBaseType.DECIMAL, (num, type) ->
-              DecimalUtil.ensureFit(new BigDecimal(String.format("%s", num)), (SqlDecimal) type)
-          ).build();
+  private static final Map<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>> UPCASTER =
+      ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>>builder()
+          .put(SqlBaseType.INTEGER, (num, type) -> Optional.of(num.intValue()))
+          .put(SqlBaseType.BIGINT, (num, type) -> Optional.of(num.longValue()))
+          .put(SqlBaseType.DOUBLE, (num, type) -> Optional.of(num.doubleValue()))
+          .put(SqlBaseType.DECIMAL, (num, type) -> {
+            try {
+              return Optional.ofNullable(
+                  DecimalUtil.ensureFit(
+                      new BigDecimal(String.format("%s", num)),
+                      (SqlDecimal) type));
+            } catch (final Exception e) {
+              return Optional.empty();
+            }
+          }).build();
 
   @Override
   public Optional<?> coerce(final Object value, final SqlType targetType) {
@@ -74,8 +81,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       return Optional.empty();
     }
 
-    final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value, targetType);
-    return Optional.of(result);
+    return UPCASTER.get(targetType.baseType()).apply((Number) value, targetType);
   }
 
   private static Optional<?> coerceStruct(final Object value, final SqlStruct targetType) {

@@ -62,11 +62,6 @@ public final class FormatInfo {
     }
 
     this.delimiter = Objects.requireNonNull(delimiter, "delimiter");
-
-    if (format != Format.DELIMITED && delimiter.isPresent()) {
-      throw new KsqlException("Delimeter only supported with DELIMITED format");
-    }
-
   }
 
   public Format getFormat() {

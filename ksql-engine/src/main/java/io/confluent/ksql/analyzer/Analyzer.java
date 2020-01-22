@@ -261,6 +261,7 @@ class Analyzer {
       if (sink.getProperties().getValueDelimiter().isPresent()) {
         return sink.getProperties().getValueDelimiter();
       }
+
       return analysis
           .getFromDataSources()
           .get(0)

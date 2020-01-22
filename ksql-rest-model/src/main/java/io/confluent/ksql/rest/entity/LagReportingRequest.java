@@ -26,7 +26,7 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingRequest {
 
-  private HostInfoEntity hostInfoEntity;
+  private HostInfoEntity hostInfo;
   private Map<String, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
   private long lastLagUpdateMs;
 
@@ -37,13 +37,13 @@ public class LagReportingRequest {
           storeToPartitionToLagMap,
       @JsonProperty("lastLagUpdateMs") final long lastLagUpdateMs
   ) {
-    this.hostInfoEntity = Objects.requireNonNull(hostInfoEntity, "hostInfoEntity");
+    this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
     this.storeToPartitionToLagMap = storeToPartitionToLagMap;
     this.lastLagUpdateMs = lastLagUpdateMs;
   }
 
-  public HostInfoEntity getHostInfoEntity() {
-    return hostInfoEntity;
+  public HostInfoEntity getHostInfo() {
+    return hostInfo;
   }
 
   public Map<String, Map<Integer, LagInfoEntity>> getStoreToPartitionToLagMap() {
@@ -65,18 +65,18 @@ public class LagReportingRequest {
     }
 
     final LagReportingRequest that = (LagReportingRequest) o;
-    return Objects.equals(hostInfoEntity, that.hostInfoEntity)
+    return Objects.equals(hostInfo, that.hostInfo)
         && Objects.equals(storeToPartitionToLagMap, that.storeToPartitionToLagMap)
         && lastLagUpdateMs == that.lastLagUpdateMs;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfoEntity, storeToPartitionToLagMap, lastLagUpdateMs);
+    return Objects.hash(hostInfo, storeToPartitionToLagMap, lastLagUpdateMs);
   }
 
   @Override
   public String toString() {
-    return hostInfoEntity + "," + storeToPartitionToLagMap + "," + lastLagUpdateMs;
+    return hostInfo + "," + storeToPartitionToLagMap + "," + lastLagUpdateMs;
   }
 }

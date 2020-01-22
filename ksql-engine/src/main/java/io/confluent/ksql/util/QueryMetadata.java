@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +147,7 @@ public class QueryMetadata {
     Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
     try {
       storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags();
-    } catch (IllegalStateException e) {
+    } catch (IllegalStateException | StreamsException e) {
       LOG.error(e.getMessage());
     }
     return storeToPartitionToLagMap;

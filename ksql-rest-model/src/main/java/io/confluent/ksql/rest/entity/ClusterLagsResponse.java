@@ -24,18 +24,18 @@ import java.util.Objects;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LagListResponse {
-  private final Map<String, Map<Integer, Map<String, LagInfoEntity>>> allLags;
+public class ClusterLagsResponse {
+  private final Map<String, Map<Integer, Map<String, LagInfoEntity>>> lags;
 
   @JsonCreator
-  public LagListResponse(
-      @JsonProperty("allLags") final Map<String, Map<Integer, Map<String, LagInfoEntity>>> allLags
+  public ClusterLagsResponse(
+      @JsonProperty("lags") final Map<String, Map<Integer, Map<String, LagInfoEntity>>> lags
   ) {
-    this.allLags = allLags;
+    this.lags = lags;
   }
 
-  public Map<String, Map<Integer, Map<String, LagInfoEntity>>> getAllLags() {
-    return allLags;
+  public Map<String, Map<Integer, Map<String, LagInfoEntity>>> getLags() {
+    return lags;
   }
 
   @Override
@@ -48,12 +48,12 @@ public class LagListResponse {
       return false;
     }
 
-    final LagListResponse that = (LagListResponse) o;
-    return Objects.equals(allLags, that.allLags);
+    final ClusterLagsResponse that = (ClusterLagsResponse) o;
+    return Objects.equals(lags, that.lags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(allLags);
+    return Objects.hash(lags);
   }
 }

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.LagListResponse;
+import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.Versions;
@@ -49,7 +49,7 @@ public class LagReportingResource {
   @Path("/list")
   @GET
   public Response listLags() {
-    return Response.ok(new LagListResponse(lagReportingAgent.listAllLags())).build();
+    return Response.ok(new ClusterLagsResponse(lagReportingAgent.listAllLags())).build();
   }
 
 }

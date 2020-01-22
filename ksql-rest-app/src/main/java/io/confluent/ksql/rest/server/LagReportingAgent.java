@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.ServiceManager;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
@@ -36,6 +37,7 @@ import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -48,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
@@ -59,6 +62,7 @@ import org.slf4j.LoggerFactory;
  * aggregate stats, usable during query time.
  */
 public final class LagReportingAgent implements HeartbeatListener {
+  private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;
   private static final LagCache EMPTY_LAG_CACHE = LagCache.empty();
@@ -68,6 +72,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   private final ScheduledExecutorService scheduledExecutorService;
   private final ServiceContext serviceContext;
   private final LagReportingConfig config;
+  private final ServiceManager serviceManager;
   private final Clock clock;
 
   @GuardedBy("receivedLagInfo")
@@ -105,6 +110,7 @@ public final class LagReportingAgent implements HeartbeatListener {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.config = requireNonNull(config, "configuration parameters");
     this.clock = clock;
+    this.serviceManager = new ServiceManager(Arrays.asList(new SendLagService()));
     this.receivedLagInfo = new HashMap<>();
     this.hosts = new ConcurrentHashMap<>();
   }
@@ -118,6 +124,24 @@ public final class LagReportingAgent implements HeartbeatListener {
     }
   }
 
+  void startAgent() {
+    try {
+      serviceManager.startAsync().awaitHealthy(SERVICE_TIMEOUT_SEC, TimeUnit.SECONDS);
+    } catch (TimeoutException | IllegalStateException e) {
+      LOG.error("Failed to start heartbeat services with exception " + e.getMessage(), e);
+    }
+  }
+
+  void stopAgent() {
+    try {
+      serviceManager.stopAsync().awaitStopped(SERVICE_TIMEOUT_SEC, TimeUnit.SECONDS);
+    } catch (TimeoutException | IllegalStateException e) {
+      LOG.error("Failed to stop heartbeat services with exception " + e.getMessage(), e);
+    } finally {
+      scheduledExecutorService.shutdownNow();
+    }
+  }
+
   /**
    * Stores the host lag received from a remote Ksql server.
    * @param lagReportingRequest The host lag information sent directly from the other node.
@@ -125,7 +149,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   public void receiveHostLag(final LagReportingRequest lagReportingRequest) {
     long nowMs = clock.millis();
     synchronized (receivedLagInfo) {
-      garbageCollect(lagReportingRequest.getHostInfoEntity());
+      garbageCollect(lagReportingRequest.getHostInfo());
 
       for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
           : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
@@ -140,7 +164,7 @@ public final class LagReportingAgent implements HeartbeatListener {
           final LagInfoEntity lagInfo = partitionEntry.getValue();
           receivedLagInfo.get(storeName).computeIfAbsent(partition, key -> createCache());
           receivedLagInfo.get(storeName).get(partition).add(
-              new HostPartitionLagInfo(lagReportingRequest.getHostInfoEntity(), partition, lagInfo,
+              new HostPartitionLagInfo(lagReportingRequest.getHostInfo(), partition, lagInfo,
                   Math.min(lagReportingRequest.getLastLagUpdateMs(), nowMs)));
         }
       }

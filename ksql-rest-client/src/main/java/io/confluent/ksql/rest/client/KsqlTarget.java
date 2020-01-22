@@ -26,7 +26,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.LagListResponse;
+import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
@@ -109,8 +109,8 @@ public final class KsqlTarget {
     );
   }
 
-  public RestResponse<LagListResponse> getLagList() {
-    return get(LAG_LIST_PATH, LagListResponse.class);
+  public RestResponse<ClusterLagsResponse> getClusterLags() {
+    return get(LAG_LIST_PATH, ClusterLagsResponse.class);
   }
 
   public RestResponse<CommandStatuses> getStatuses() {

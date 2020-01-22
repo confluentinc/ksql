@@ -322,6 +322,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
       heartbeatAgent.get().startAgent();
     }
+    if (lagReportingAgent.isPresent()) {
+      lagReportingAgent.get().setLocalAddress((String)configWithApplicationServer
+          .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+      lagReportingAgent.get().startAgent();
+    }
 
     serverState.setReady();
   }
@@ -357,6 +362,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         heartbeatAgent.get().stopAgent();
       } catch (final Exception e) {
         log.error("Exception while shutting down HeartbeatAgent", e);
+      }
+    }
+    if (lagReportingAgent.isPresent()) {
+      try {
+        lagReportingAgent.get().stopAgent();
+      } catch (final Exception e) {
+        log.error("Exception while shutting down LagReportingAgent", e);
       }
     }
   }

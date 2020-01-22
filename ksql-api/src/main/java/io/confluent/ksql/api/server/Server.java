@@ -96,6 +96,11 @@ public class Server {
   ApiQueryID registerQuery(final QuerySubscriber querySubscriber) {
     Objects.requireNonNull(querySubscriber);
     final ApiQueryID queryID = new ApiQueryID();
+    if (queries.containsKey(queryID)) {
+      // Keep the doubters happy
+      // https://stackoverflow.com/questions/2513573/how-good-is-javas-uuid-randomuuid
+      throw new IllegalStateException("Glitch in the matrix");
+    }
     queries.put(queryID, querySubscriber);
     return queryID;
   }

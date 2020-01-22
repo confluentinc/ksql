@@ -278,7 +278,7 @@ public class KsqlParserTest {
 
   @Test
   public void testLiterals() {
-    final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
+    final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5, 2.5e2 FROM test1;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof Query);
     final Query query = (Query) statement;
@@ -305,6 +305,10 @@ public class KsqlParserTest {
     final SingleColumn column5 = (SingleColumn)query.getSelect().getSelectItems().get(5);
     Assert.assertThat(column5.getAlias().isPresent(), is(false));
     Assert.assertTrue(column5.getExpression().toString().equalsIgnoreCase("-5"));
+
+    final SingleColumn column6 = (SingleColumn)query.getSelect().getSelectItems().get(6);
+    Assert.assertThat(column6.getAlias().isPresent(), is(false));
+    Assert.assertTrue(column6.getExpression().toString().equalsIgnoreCase("2.5E2"));
   }
 
   private <T, L extends Literal> void shouldParseNumericLiteral(final T value,

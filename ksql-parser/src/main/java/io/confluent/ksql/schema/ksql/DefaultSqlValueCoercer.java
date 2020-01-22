@@ -23,15 +23,13 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
@@ -39,12 +37,21 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   INSTANCE;
 
-  private static final Map<SqlBaseType, Function<Number, Number>> UPCASTER =
-      ImmutableMap.<SqlBaseType, Function<Number, Number>>builder()
-          .put(SqlBaseType.INTEGER, Number::intValue)
-          .put(SqlBaseType.BIGINT, Number::longValue)
-          .put(SqlBaseType.DOUBLE, Number::doubleValue)
-          .build();
+  private static final Map<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>> UPCASTER =
+      ImmutableMap.<SqlBaseType, BiFunction<Number, SqlType, Optional<Number>>>builder()
+          .put(SqlBaseType.INTEGER, (num, type) -> Optional.of(num.intValue()))
+          .put(SqlBaseType.BIGINT, (num, type) -> Optional.of(num.longValue()))
+          .put(SqlBaseType.DOUBLE, (num, type) -> Optional.of(num.doubleValue()))
+          .put(SqlBaseType.DECIMAL, (num, type) -> {
+            try {
+              return Optional.ofNullable(
+                  DecimalUtil.ensureFit(
+                      new BigDecimal(String.format("%s", num)),
+                      (SqlDecimal) type));
+            } catch (final Exception e) {
+              return Optional.empty();
+            }
+          }).build();
 
   @Override
   public Optional<?> coerce(final Object value, final SqlType targetType) {
@@ -53,8 +60,6 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   private static Optional<?> doCoerce(final Object value, final SqlType targetType) {
     switch (targetType.baseType()) {
-      case DECIMAL:
-        return coerceDecimal(value, (SqlDecimal) targetType);
       case ARRAY:
         return coerceArray(value, (SqlArray) targetType);
       case MAP:
@@ -76,8 +81,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
       return Optional.empty();
     }
 
-    final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
-    return Optional.of(result);
+    return UPCASTER.get(targetType.baseType()).apply((Number) value, targetType);
   }
 
   private static Optional<?> coerceStruct(final Object value, final SqlStruct targetType) {
@@ -145,29 +149,5 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     return Optional.of(coerced);
-  }
-
-  private static Optional<?> coerceDecimal(final Object value, final SqlDecimal targetType) {
-    final int precision = targetType.getPrecision();
-    final int scale = targetType.getScale();
-
-    if (value instanceof String) {
-      try {
-        return Optional.of(new BigDecimal((String) value, new MathContext(precision))
-            .setScale(scale, RoundingMode.UNNECESSARY));
-      } catch (final NumberFormatException e) {
-        throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
-      }
-    }
-
-    if (value instanceof Number && !(value instanceof Double)) {
-      return Optional.of(
-          new BigDecimal(
-              ((Number) value).doubleValue(),
-              new MathContext(precision))
-              .setScale(scale, RoundingMode.UNNECESSARY));
-    }
-
-    return Optional.empty();
   }
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -430,7 +431,7 @@ public class InsertValuesExecutorTest {
             new DoubleLiteral(3.0),
             new BooleanLiteral("TRUE"),
             new StringLiteral("str"),
-            new StringLiteral("1.2"))
+            new DecimalLiteral("1.2"))
     );
 
     // When:

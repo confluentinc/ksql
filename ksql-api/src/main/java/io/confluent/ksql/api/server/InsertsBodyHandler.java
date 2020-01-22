@@ -44,7 +44,7 @@ public class InsertsBodyHandler {
   private final Endpoints endpoints;
   private final RoutingContext routingContext;
   private final RecordParser recordParser;
-  private boolean readArguments;
+  private boolean hasReadArguments;
   private BufferedPublisher<JsonObject> publisher;
   private long rowsReceived;
   private AcksSubscriber acksSubscriber;
@@ -70,12 +70,12 @@ public class InsertsBodyHandler {
   }
 
   public void handleBodyBuffer(final Buffer buff) {
-    if (!readArguments) {
+    if (!hasReadArguments) {
       final JsonObject args = decodeJsonObject(buff, routingContext);
       if (args == null) {
         return;
       }
-      readArguments = true;
+      hasReadArguments = true;
       final String target = args.getString("target");
       if (target == null) {
         handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,

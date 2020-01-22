@@ -44,7 +44,7 @@ public class Server {
   private final JsonObject config;
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
-  private final Map<QueryID, QuerySubscriber> queries = new ConcurrentHashMap<>();
+  private final Map<ApiQueryID, QuerySubscriber> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
 
@@ -93,18 +93,18 @@ public class Server {
     }
   }
 
-  QueryID registerQuery(final QuerySubscriber querySubscriber) {
+  ApiQueryID registerQuery(final QuerySubscriber querySubscriber) {
     Objects.requireNonNull(querySubscriber);
-    final QueryID queryID = new QueryID();
+    final ApiQueryID queryID = new ApiQueryID();
     queries.put(queryID, querySubscriber);
     return queryID;
   }
 
-  QuerySubscriber removeQuery(final QueryID queryID) {
+  QuerySubscriber removeQuery(final ApiQueryID queryID) {
     return queries.remove(queryID);
   }
 
-  public Set<QueryID> getQueryIDs() {
+  public Set<ApiQueryID> getQueryIDs() {
     return new HashSet<>(queries.keySet());
   }
 

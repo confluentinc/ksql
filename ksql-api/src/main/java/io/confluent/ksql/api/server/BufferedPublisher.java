@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A reactive streams publisher which can buffer received elements before sending them to it's
- * subscriber.
+ * subscriber. The state for this publisher will always be accessed on the same Vert.x context so
+ * does not require synchronization
  *
  * @param <T> The type of the element
  */
@@ -111,17 +112,20 @@ public class BufferedPublisher<T> implements Publisher<T> {
     if (completing) {
       throw new IllegalStateException("Cannot call accept after complete is called");
     }
-    if (demand == 0 || cancelled) {
-      buffer.add(t);
-    } else {
-      doOnNext(t);
+    if (!cancelled) {
+      if (demand == 0 || cancelled) {
+        buffer.add(t);
+      } else {
+        doOnNext(t);
+      }
     }
     return buffer.size() >= bufferMaxSize;
   }
 
   /**
    * If you set a drain handler. It will be called if, after delivery is attempted there are zero
-   * elements buffered internally and there is demand from the subscriber for more elements.
+   * elements buffered internally and there is demand from the subscriber for more elements. Drain
+   * handlers are one shot handlers, after being it will never be called more than once.
    *
    * @param handler The handler
    */
@@ -256,6 +260,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
     if (n <= 0) {
       sendError(new IllegalArgumentException("Amount requested must be > 0"));
     } else if (demand + n < 1) {
+      // Catch overflow and set to "infinite"
       demand = Long.MAX_VALUE;
       doSend();
     } else {

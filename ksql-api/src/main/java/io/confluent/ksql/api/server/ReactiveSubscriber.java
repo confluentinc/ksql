@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 /**
  * A reactive streams subscriber which handles much of the plumbing for you. Override {@link
  * #afterSubscribe}, {@link #handleValue}, {@link #handleComplete} and {@link #handleError} to
- * create your specific implementation.
+ * create your specific implementation. The state for this subscriber will always be accessed on the
+ * same Vert.x context so does not require synchronization
  *
  * @param <T> The type of the value
  */
@@ -92,9 +93,10 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
         subscription.cancel();
       } catch (final Throwable t) {
         final Exception e =
-            new IllegalStateException("Exceptions must not be thrown from cancel");
+            new IllegalStateException("Exceptions must not be thrown from cancel", t);
         logError(e);
       }
+      return;
     }
     this.subscription = subscription;
     afterSubscribe(subscription);
@@ -121,7 +123,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   private void doOnError(final Throwable t) {
     checkContext();
     if (subscription == null) {
-      logError(new IllegalStateException("onError must not be called before onSubscribe"));
+      logError(new IllegalStateException("onError must not be called before onSubscribe", t));
     } else {
       complete = true;
       handleError(t);
@@ -144,7 +146,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
       subscription.request(l);
     } catch (Throwable t) {
       final Exception e =
-          new IllegalStateException("Exceptions must not be thrown from request");
+          new IllegalStateException("Exceptions must not be thrown from request", t);
       logError(e);
     }
   }
@@ -157,7 +159,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
         subscription.cancel();
       } catch (final Throwable t) {
         final Exception e =
-            new IllegalStateException("Exceptions must not be thrown from cancel");
+            new IllegalStateException("Exceptions must not be thrown from cancel", t);
         logError(e);
       }
     }
@@ -170,7 +172,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   }
 
   private void logError(final Throwable t) {
-    log.error("Failure in subscriber", t);
+    log.error(t.getMessage(), t);
   }
 
 }

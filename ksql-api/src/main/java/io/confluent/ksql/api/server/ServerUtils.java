@@ -56,8 +56,10 @@ public final class ServerUtils {
     try {
       return new JsonObject(buffer);
     } catch (DecodeException e) {
+      final String message = "Invalid JSON in request args";
+      log.error(message, e);
       handleError(routingContext.response(), 400, ERROR_CODE_INVALID_JSON,
-          "Invalid JSON in request args");
+          message);
       return null;
     }
   }

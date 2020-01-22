@@ -43,8 +43,8 @@ public class ReservedInternalTopicsTest {
   @Before
   public void setUp() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix",
-        KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG, "ro_prefix_.*,ro_literal,.*_suffix_ro"
+        KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG, "prefix_.*,literal,.*_suffix",
+        KsqlConfig.KSQL_READONLY_TOPICS_CONFIG, "ro_prefix_.*,ro_literal,.*_suffix_ro"
     ));
 
     internalTopics = new ReservedInternalTopics(ksqlConfig);
@@ -137,38 +137,6 @@ public class ReservedInternalTopicsTest {
 
     // Then
     assertThat(filteredTopics, is(ImmutableSet.of("tt", "name1", "suffix")));
-  }
-
-  @Test
-  public void shouldThrowWhenInvalidInternalHiddenTopicsListIsUsed() {
-    // Given
-    final KsqlConfig givenConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG, "*_suffix"
-    ));
-
-    // Then
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid pattern list in '"
-        + KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG + "'");
-
-    // When
-    new ReservedInternalTopics(givenConfig);
-  }
-
-  @Test
-  public void shouldThrowWhenInvalidInternalReadOnlyTopicsListIsUsed() {
-    // Given
-    final KsqlConfig givenConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG, "*_suffix"
-    ));
-
-    // Then
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid pattern list in '"
-        + KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG + "'");
-
-    // When
-    new ReservedInternalTopics(givenConfig);
   }
 
   @Test

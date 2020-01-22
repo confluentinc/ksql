@@ -28,7 +28,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,9 +91,8 @@ public final class ListTopicsExecutor {
         ? topicClient.listTopicNames()
         : internalTopics.removeHiddenTopics(topicClient.listTopicNames());
 
-    return new TreeMap<>(
-        filterKsqlInternalTopics(topicClient.describeTopics(topics), statement.getConfig())
-    );
+    // TreeMap is used to keep elements sorted
+    return new TreeMap<>(topicClient.describeTopics(topics));
   }
 
   private static KafkaTopicInfo topicDescriptionToTopicInfo(final TopicDescription description) {
@@ -118,27 +116,6 @@ public final class ListTopicsExecutor {
             .stream().map(partition -> partition.replicas().size()).collect(Collectors.toList()),
         consumerAndGroupCount.get(0),
         consumerAndGroupCount.get(1));
-  }
-
-  private static Map<String, TopicDescription> filterKsqlInternalTopics(
-      final Map<String, TopicDescription> kafkaTopicDescriptions,
-      final KsqlConfig ksqlConfig
-  ) {
-    final Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    final String serviceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String persistentQueryPrefix = ksqlConfig.getString(
-        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String transientQueryPrefix = ksqlConfig.getString(
-        KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
-
-    for (final Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
-      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix)
-          && !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
-        filteredKafkaTopics.put(entry.getKey(), entry.getValue());
-      }
-    }
-    return filteredKafkaTopics;
   }
 
   /**

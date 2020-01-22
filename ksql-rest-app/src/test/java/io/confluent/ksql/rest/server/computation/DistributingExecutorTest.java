@@ -296,7 +296,6 @@ public class DistributingExecutorTest {
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
-    final DataSource<?> dataSource = mock(DataSource.class);
     doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
 
     // Expect:

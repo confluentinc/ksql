@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
@@ -88,6 +89,23 @@ public final class ConfigValidators {
         new URL((String)val);
       } catch (final Exception e) {
         throw new ConfigException(name, val, "Not valid URL: " + e.getMessage());
+      }
+    };
+  }
+
+  public static Validator validRegex() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      }
+
+      final String regex = Arrays.stream(((String) val).split(","))
+          .collect(Collectors.joining("|"));
+
+      try {
+        Pattern.compile(regex);
+      } catch (final Exception e) {
+        throw new ConfigException(name, val, "Not valid regular expression: " + e.getMessage());
       }
     };
   }

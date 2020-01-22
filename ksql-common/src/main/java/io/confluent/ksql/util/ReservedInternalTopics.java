@@ -17,6 +17,8 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.Streams;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+
+import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -105,36 +107,20 @@ public final class ReservedInternalTopics {
     final ProcessingLogConfig processingLogConfig =
         new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    try {
-      this.hiddenTopicsPattern = Pattern.compile(
-          Streams.concat(
-              Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
-              ksqlConfig.getList(KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG).stream()
-          ).collect(Collectors.joining("|"))
-      );
-    } catch (final Exception e) {
-      final String message = "Invalid pattern list in '"
-          + KsqlConfig.KSQL_INTERNAL_HIDDEN_TOPICS_CONFIG + "'";
+    this.hiddenTopicsPattern = Pattern.compile(
+        Streams.concat(
+            Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
+            toStream(ksqlConfig.getString(KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG))
+        ).collect(Collectors.joining("|"))
+    );
 
-      LOG.error(message + ": " + e.getMessage());
-      throw new KsqlException(message, e);
-    }
-
-    try {
-      this.readOnlyTopicsPattern = Pattern.compile(
-          Streams.concat(
-              Stream.of(processingLogTopic(processingLogConfig, ksqlConfig)),
-              Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
-              ksqlConfig.getList(KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG).stream()
-          ).collect(Collectors.joining("|"))
-      );
-    } catch (final Exception e) {
-      final String message = "Invalid pattern list in '"
-          + KsqlConfig.KSQL_INTERNAL_READONLY_TOPICS_CONFIG + "'";
-
-      LOG.error(message + ": " + e.getMessage());
-      throw new KsqlException(message, e);
-    }
+    this.readOnlyTopicsPattern = Pattern.compile(
+        Streams.concat(
+            Stream.of(processingLogTopic(processingLogConfig, ksqlConfig)),
+            Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
+            toStream(ksqlConfig.getString(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG))
+        ).collect(Collectors.joining("|"))
+    );
   }
 
   public Set<String> removeHiddenTopics(final Set<String> topicNames) {
@@ -149,5 +135,9 @@ public final class ReservedInternalTopics {
 
   public boolean isReadOnly(final String topicName) {
     return readOnlyTopicsPattern.matcher(topicName).matches();
+  }
+
+  private Stream<String> toStream(final String s) {
+    return Arrays.stream(s.split(","));
   }
 }

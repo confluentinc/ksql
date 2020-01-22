@@ -207,6 +207,19 @@ public class ConfigValidatorsTest {
     // Then: did not throw.
   }
 
+  @Test
+  public void shouldThrowOnInvalidRegex() {
+    // Given:
+    final Validator validator = ConfigValidators.validRegex();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("Not valid regular expression: ");
+
+    // When:
+    validator.ensureValid("propName", "*_suffix");
+  }
+
   private enum TestEnum {
     FOO, BAR
   }

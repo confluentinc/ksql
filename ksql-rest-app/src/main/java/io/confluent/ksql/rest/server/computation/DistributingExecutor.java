@@ -48,7 +48,6 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * {@code distributedCmdResponseTimeout}.
  */
 public class DistributingExecutor {
-  private final KsqlConfig ksqlConfig;
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -65,7 +64,6 @@ public class DistributingExecutor {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory
   ) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
@@ -77,7 +75,8 @@ public class DistributingExecutor {
         "validatedCommandFactory"
     );
     this.commandIdAssigner = new CommandIdAssigner();
-    this.internalTopics = new ReservedInternalTopics(ksqlConfig);
+    this.internalTopics =
+        new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
   }
 
   /**

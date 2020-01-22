@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -26,7 +27,6 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;

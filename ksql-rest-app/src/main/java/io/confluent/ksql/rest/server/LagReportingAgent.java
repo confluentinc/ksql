@@ -147,7 +147,7 @@ public final class LagReportingAgent implements HeartbeatListener {
    * @param lagReportingRequest The host lag information sent directly from the other node.
    */
   public void receiveHostLag(final LagReportingRequest lagReportingRequest) {
-    long nowMs = clock.millis();
+    final long nowMs = clock.millis();
     synchronized (receivedLagInfo) {
       garbageCollect(lagReportingRequest.getHostInfo());
 
@@ -393,16 +393,18 @@ public final class LagReportingAgent implements HeartbeatListener {
    * hold entries for the number of hosts in a partition, so a simple list is used and complex
    * expiration techniques are avoided.
    */
-  public static class LagCache {
+  public static final class LagCache {
     private List<HostPartitionLagInfo> lagInfos;
     private Clock clock;
     private long lagDataExpirationMs;
 
-    private LagCache(Clock clock, long lagDataExpirationMs) {
+    private LagCache(final Clock clock, final long lagDataExpirationMs) {
       this(clock, lagDataExpirationMs, new ArrayList<>(3));
     }
 
-    private LagCache(Clock clock, long lagDataExpirationMs, List<HostPartitionLagInfo> lagInfos) {
+    private LagCache(final Clock clock,
+                     final long lagDataExpirationMs,
+                     final List<HostPartitionLagInfo> lagInfos) {
       this.clock = clock;
       this.lagDataExpirationMs = lagDataExpirationMs;
       this.lagInfos = lagInfos;
@@ -410,7 +412,7 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     private void removeExpired() {
       if (lagInfos.size() > 0) {
-        long nowMs = clock.millis();
+        final long nowMs = clock.millis();
         lagInfos.removeIf(
             lagInfo -> nowMs - lagInfo.getUpdateTimeMs() >= lagDataExpirationMs);
       }
@@ -421,11 +423,11 @@ public final class LagReportingAgent implements HeartbeatListener {
       return lagInfos;
     }
 
-    public void remove(HostInfoEntity hostInfo) {
+    public void remove(final HostInfoEntity hostInfo) {
       lagInfos.removeIf(lagInfo -> lagInfo.getHostInfo().equals(hostInfo));
     }
 
-    public void add(HostPartitionLagInfo lagInfo) {
+    public void add(final HostPartitionLagInfo lagInfo) {
       lagInfos.add(lagInfo);
     }
 

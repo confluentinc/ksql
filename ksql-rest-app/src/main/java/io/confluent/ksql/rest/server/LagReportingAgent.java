@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
@@ -36,16 +35,15 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,6 +52,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +64,6 @@ public final class LagReportingAgent implements HeartbeatListener {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;
-  private static final LagCache EMPTY_LAG_CACHE = LagCache.empty();
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
 
   private final KsqlEngine engine;
@@ -76,9 +74,9 @@ public final class LagReportingAgent implements HeartbeatListener {
   private final Clock clock;
 
   @GuardedBy("receivedLagInfo")
-  private final Map<LagInfoKey, Map<Integer, LagCache>>
+  private final Map<HostInfo, Map<LagInfoKey, Map<Integer, HostPartitionLagInfo>>>
       receivedLagInfo;
-  private final ConcurrentHashMap<String, HostInfoEntity> hosts;
+  private final Map<HostInfo, Boolean> aliveHosts;
 
   private URL localURL;
 
@@ -111,8 +109,8 @@ public final class LagReportingAgent implements HeartbeatListener {
     this.config = requireNonNull(config, "configuration parameters");
     this.clock = clock;
     this.serviceManager = new ServiceManager(Arrays.asList(new SendLagService()));
-    this.receivedLagInfo = new HashMap<>();
-    this.hosts = new ConcurrentHashMap<>();
+    this.receivedLagInfo = new ConcurrentHashMap<>();
+    this.aliveHosts = new ConcurrentHashMap<>();
   }
 
   void setLocalAddress(final String applicationServer) {
@@ -148,59 +146,28 @@ public final class LagReportingAgent implements HeartbeatListener {
    */
   public void receiveHostLag(final LagReportingRequest lagReportingRequest) {
     final long nowMs = clock.millis();
-    synchronized (receivedLagInfo) {
-      garbageCollect(lagReportingRequest.getHostInfo());
+    final HostInfoEntity hostInfoEntity = lagReportingRequest.getHostInfo();
+    final HostInfo hostInfo = new HostInfo(hostInfoEntity.getHost(), hostInfoEntity.getPort());
+    receivedLagInfo.remove(hostInfo);
+    Map<LagInfoKey, Map<Integer, HostPartitionLagInfo>> hostMap =
+        receivedLagInfo.computeIfAbsent(hostInfo, key -> new ConcurrentHashMap<>());
 
-      for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
-          : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
-        final LagInfoKey storeName = LagInfoKey.of(storeEntry.getKey());
-        final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
+    for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
+        : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
+      final LagInfoKey lagInfoKey = LagInfoKey.of(storeEntry.getKey());
+      final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
 
-        receivedLagInfo.computeIfAbsent(storeName, key -> new HashMap<>());
+      hostMap.computeIfAbsent(lagInfoKey, key -> new ConcurrentHashMap<>());
 
-        // Go through each new partition and add lag info
-        for (final Map.Entry<Integer, LagInfoEntity> partitionEntry : partitionMap.entrySet()) {
-          final Integer partition = partitionEntry.getKey();
-          final LagInfoEntity lagInfo = partitionEntry.getValue();
-          receivedLagInfo.get(storeName).computeIfAbsent(partition, key -> createCache());
-          receivedLagInfo.get(storeName).get(partition).add(
-              new HostPartitionLagInfo(lagReportingRequest.getHostInfo(), partition, lagInfo,
-                  Math.min(lagReportingRequest.getLastLagUpdateMs(), nowMs)));
-        }
+      // Go through each new partition and add lag info
+      for (final Map.Entry<Integer, LagInfoEntity> partitionEntry : partitionMap.entrySet()) {
+        final Integer partition = partitionEntry.getKey();
+        final LagInfoEntity lagInfo = partitionEntry.getValue();
+        hostMap.get(lagInfoKey).put(partition,
+            new HostPartitionLagInfo(hostInfo, partition, lagInfo,
+                Math.min(lagReportingRequest.getLastLagUpdateMs(), nowMs)));
       }
     }
-  }
-
-  // Garbage collects all of the partitions and stores that have expired.  Also removed toRemove
-  // since it's about to be added.  If this ends up being too costly, it can be done in a background
-  // thread.
-  //
-  // Assumes we're synchronized on receivedLagInfo
-  private void garbageCollect(final HostInfoEntity toRemove) {
-    final Iterator<Entry<LagInfoKey, Map<Integer, LagCache>>>
-        storeIterator = receivedLagInfo.entrySet().iterator();
-    while (storeIterator.hasNext()) {
-      final Entry<LagInfoKey, Map<Integer, LagCache>> storeEntry =
-          storeIterator.next();
-      final Iterator<Entry<Integer, LagCache>>
-          partitionIterator = storeEntry.getValue().entrySet().iterator();
-      while (partitionIterator.hasNext()) {
-        final Entry<Integer, LagCache> partitionEntry =
-            partitionIterator.next();
-        partitionEntry.getValue().remove(toRemove);
-        if (partitionEntry.getValue().size() == 0) {
-          partitionIterator.remove();
-        }
-      }
-      if (storeEntry.getValue().isEmpty()) {
-        storeIterator.remove();
-      }
-    }
-  }
-
-  // Creates a cache to be used for storing lag info by host
-  private LagCache createCache() {
-    return new LagCache(clock, config.lagDataExpirationMs);
   }
 
   /**
@@ -209,48 +176,50 @@ public final class LagReportingAgent implements HeartbeatListener {
    * @param partition The partition of that state
    * @return A map which is keyed by host and contains lag information
    */
-  public Map<HostInfoEntity, HostPartitionLagInfo> getHostsPartitionLagInfo(
-      final LagInfoKey lagInfoKey, final int partition) {
-    synchronized (receivedLagInfo) {
-      final LagCache partitionLagCache =
-          receivedLagInfo.getOrDefault(lagInfoKey, Collections.emptyMap())
-              .getOrDefault(partition, EMPTY_LAG_CACHE);
-      return partitionLagCache.get().stream()
-          .filter(e -> hosts.containsKey(e.getHostInfo().toString()))
-          .collect(ImmutableMap.toImmutableMap(
-              HostPartitionLagInfo::getHostInfo, Function.identity()));
+  public Map<HostInfo, HostPartitionLagInfo> getHostsPartitionLagInfo(
+      final Set<HostInfo> hosts, final LagInfoKey lagInfoKey, final int partition) {
+    ImmutableMap.Builder<HostInfo, HostPartitionLagInfo> builder = ImmutableMap.builder();
+    for (HostInfo host : hosts) {
+      HostPartitionLagInfo lagInfo = receivedLagInfo.getOrDefault(host, Collections.emptyMap())
+          .getOrDefault(lagInfoKey, Collections.emptyMap())
+          .getOrDefault(partition, null);
+      if (aliveHosts.containsKey(host) && lagInfo != null) {
+        builder.put(host, lagInfo);
+      }
     }
+    return builder.build();
   }
 
   /**
    * Returns a map of storeName -> partition -> LagInfoEntity.  Meant for being exposed in testing
    * and debug resources.
    */
-  public Map<String, Map<Integer, Map<String, LagInfoEntity>>> listAllLags() {
-    synchronized (receivedLagInfo) {
+  public Map<String, Map<String, Map<Integer, LagInfoEntity>>> listAllLags() {
       return receivedLagInfo.entrySet().stream()
-          .map(storeNameEntry -> Pair.of(storeNameEntry.getKey().toString(),
-              storeNameEntry.getValue().entrySet().stream()
-                  .map(partitionEntry -> Pair.<Integer, Map<String, LagInfoEntity>>of(
-                        partitionEntry.getKey(), partitionEntry.getValue().get().stream()
-                            .collect(ImmutableSortedMap.toImmutableSortedMap(
-                                Comparator.comparing(String::toString),
-                                ent -> ent.getHostInfo().toString(),
-                                ent -> ent.getLagInfo()))))
+          .map(hostEntry -> Pair.of(
+              hostEntry.getKey().host() + ":" + hostEntry.getKey().port(),
+              hostEntry.getValue().entrySet().stream()
+                  .map(storeNameEntry -> Pair.<String, Map<Integer, LagInfoEntity>>of(
+                      storeNameEntry.getKey().toString(),
+                      storeNameEntry.getValue().entrySet().stream()
+                          .map(partitionEntry -> Pair.of(
+                                partitionEntry.getKey(), partitionEntry.getValue().getLagInfo()))
+                          .collect(ImmutableSortedMap.toImmutableSortedMap(
+                              Integer::compare, Pair::getLeft, Pair::getRight))))
                   .collect(ImmutableSortedMap.toImmutableSortedMap(
-                      Integer::compare, Pair::getLeft, Pair::getRight))))
+                      Comparator.comparing(String::toString), Pair::getLeft, Pair::getRight))))
           .collect(ImmutableSortedMap.toImmutableSortedMap(
               Comparator.comparing(String::toString), Pair::getLeft, Pair::getRight));
-    }
   }
 
   @Override
   public void onHostStatusUpdated(final Map<String, HostStatusEntity> hostsStatusMap) {
-    hosts.clear();
-    hostsStatusMap.entrySet().stream()
-        .filter(e -> e.getValue().getHostAlive())
-        .map(e -> e.getValue().getHostInfoEntity())
-        .forEach(hostInfo -> hosts.put(hostInfo.toString(), hostInfo));
+    aliveHosts.clear();
+    aliveHosts.putAll(hostsStatusMap.values().stream()
+        .filter(HostStatusEntity::getHostAlive)
+        .map(HostStatusEntity::getHostInfoEntity)
+        .map(hostInfoEntity -> new HostInfo(hostInfoEntity.getHost(), hostInfoEntity.getPort()))
+        .collect(Collectors.toMap(Function.identity(), hi -> true)));
   }
 
   /**
@@ -276,14 +245,14 @@ public final class LagReportingAgent implements HeartbeatListener {
 
       final LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
 
-      for (Entry<String, HostInfoEntity> hostInfoEntry: hosts.entrySet()) {
-        final HostInfoEntity hostInfo = hostInfoEntry.getValue();
+      for (Entry<HostInfo, Boolean> hostInfoEntry: aliveHosts.entrySet()) {
+        final HostInfo hostInfo = hostInfoEntry.getKey();
         try {
-          final URI remoteUri = buildRemoteUri(localURL, hostInfo.getHost(), hostInfo.getPort());
-          LOG.debug("Sending lag to host {} at {}", hostInfo.getHost(), clock.millis());
+          final URI remoteUri = buildRemoteUri(localURL, hostInfo.host(), hostInfo.port());
+          LOG.debug("Sending lag to host {} at {}", hostInfo.host(), clock.millis());
           serviceContext.getKsqlClient().makeAsyncLagReportRequest(remoteUri, request);
         } catch (Throwable t) {
-          LOG.error("Request to server: " + hostInfo.getHost() + ":" + hostInfo.getPort()
+          LOG.error("Request to server: " + hostInfo.host() + ":" + hostInfo.port()
               + " failed with exception: " + t.getMessage(), t);
         }
       }
@@ -346,16 +315,10 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     // Some defaults set, in case none is given
     private long nestedLagSendIntervalMs = 500;
-    private long nestedLagDataExpirationMs = 5000;
     private Clock nestedClock = Clock.systemUTC();
 
     LagReportingAgent.Builder lagSendIntervalMs(final long interval) {
       nestedLagSendIntervalMs = interval;
-      return this;
-    }
-
-    LagReportingAgent.Builder lagDataExpirationMs(final long lagDataExpirationMs) {
-      nestedLagDataExpirationMs = lagDataExpirationMs;
       return this;
     }
 
@@ -371,73 +334,16 @@ public final class LagReportingAgent implements HeartbeatListener {
       return new LagReportingAgent(engine,
           scheduledExecutorService,
           serviceContext,
-          new LagReportingConfig(nestedLagSendIntervalMs,
-                                 nestedLagDataExpirationMs),
+          new LagReportingConfig(nestedLagSendIntervalMs),
           nestedClock);
     }
   }
 
   static class LagReportingConfig {
     private final long lagSendIntervalMs;
-    private final long lagDataExpirationMs;
 
-    LagReportingConfig(final long lagSendIntervalMs,
-                       final long lagDataExpirationMs) {
+    LagReportingConfig(final long lagSendIntervalMs) {
       this.lagSendIntervalMs = lagSendIntervalMs;
-      this.lagDataExpirationMs = lagDataExpirationMs;
-    }
-  }
-
-  /**
-   * Simple "collection" of lags that does expiration and can be easily tested.  This will only
-   * hold entries for the number of hosts in a partition, so a simple list is used and complex
-   * expiration techniques are avoided.
-   */
-  public static final class LagCache {
-    private List<HostPartitionLagInfo> lagInfos;
-    private Clock clock;
-    private long lagDataExpirationMs;
-
-    private LagCache(final Clock clock, final long lagDataExpirationMs) {
-      this(clock, lagDataExpirationMs, new ArrayList<>(3));
-    }
-
-    private LagCache(final Clock clock,
-                     final long lagDataExpirationMs,
-                     final List<HostPartitionLagInfo> lagInfos) {
-      this.clock = clock;
-      this.lagDataExpirationMs = lagDataExpirationMs;
-      this.lagInfos = lagInfos;
-    }
-
-    private void removeExpired() {
-      if (lagInfos.size() > 0) {
-        final long nowMs = clock.millis();
-        lagInfos.removeIf(
-            lagInfo -> nowMs - lagInfo.getUpdateTimeMs() >= lagDataExpirationMs);
-      }
-    }
-
-    public List<HostPartitionLagInfo> get() {
-      removeExpired();
-      return lagInfos;
-    }
-
-    public void remove(final HostInfoEntity hostInfo) {
-      lagInfos.removeIf(lagInfo -> lagInfo.getHostInfo().equals(hostInfo));
-    }
-
-    public void add(final HostPartitionLagInfo lagInfo) {
-      lagInfos.add(lagInfo);
-    }
-
-    public int size() {
-      removeExpired();
-      return lagInfos.size();
-    }
-
-    public static LagCache empty() {
-      return new LagCache(Clock.systemUTC(), 0, ImmutableList.of());
     }
   }
 
@@ -446,12 +352,12 @@ public final class LagReportingAgent implements HeartbeatListener {
    */
   public static class HostPartitionLagInfo {
 
-    private final HostInfoEntity hostInfo;
+    private final HostInfo hostInfo;
     private final int partition;
     private final LagInfoEntity lagInfo;
     private final long updateTimeMs;
 
-    public HostPartitionLagInfo(final HostInfoEntity hostInfo,
+    public HostPartitionLagInfo(final HostInfo hostInfo,
                                 final int partition,
                                 final LagInfoEntity lagInfo,
                                 final long updateTimeMs) {
@@ -461,7 +367,7 @@ public final class LagReportingAgent implements HeartbeatListener {
       this.updateTimeMs = updateTimeMs;
     }
 
-    public HostInfoEntity getHostInfo() {
+    public HostInfo getHostInfo() {
       return hostInfo;
     }
 
@@ -475,6 +381,11 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     public int getPartition() {
       return partition;
+    }
+
+    @Override
+    public String toString() {
+      return lagInfo.toString();
     }
   }
 }

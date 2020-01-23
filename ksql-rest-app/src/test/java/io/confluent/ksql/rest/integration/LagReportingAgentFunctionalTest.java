@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.state.HostInfo;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -66,8 +67,8 @@ public class LagReportingAgentFunctionalTest {
       "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final HostInfoEntity HOST0 = new HostInfoEntity("localhost",8088);
-  private static final HostInfoEntity HOST1 = new HostInfoEntity("localhost",8089);
+  private static final String HOST0_STR = "localhost:8088";
+  private static final String HOST1_STR = "localhost:8089";
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -83,7 +84,6 @@ public class LagReportingAgentFunctionalTest {
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
-      .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG, 60000)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
@@ -101,7 +101,6 @@ public class LagReportingAgentFunctionalTest {
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
-      .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG, 60000)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
@@ -148,8 +147,8 @@ public class LagReportingAgentFunctionalTest {
 
     // When:
     ClusterLagsResponse resp = waitForLags(LagReportingAgentFunctionalTest::allLagsReported);
-    Map<Integer, Map<String, LagInfoEntity>> partitions =
-        resp.getLags().entrySet().iterator().next().getValue();
+    Map<Integer, LagInfoEntity> partitions =
+        resp.getLags().entrySet().iterator().next().getValue().get(STORE_0.toString());
 
     // Then:
     // Read the raw Kafka data from the topic to verify the reported lags
@@ -161,10 +160,8 @@ public class LagReportingAgentFunctionalTest {
         .collect(Collectors.groupingBy(ConsumerRecord::partition, Collectors.maxBy(
             Comparator.comparingLong(ConsumerRecord::offset))));
     Assert.assertEquals(2, partitionToMaxOffset.size());
-    long partition0Offset = partitions.get(0).entrySet()
-        .iterator().next().getValue().getCurrentOffsetPosition();
-    long partition1Offset = partitions.get(1).entrySet()
-        .iterator().next().getValue().getCurrentOffsetPosition();
+    long partition0Offset = partitions.get(0).getCurrentOffsetPosition();
+    long partition1Offset = partitions.get(1).getCurrentOffsetPosition();
     Assert.assertEquals(partition0Offset, partitionToMaxOffset.get(0).get().offset() + 1);
     Assert.assertEquals(partition1Offset, partitionToMaxOffset.get(1).get().offset() + 1);
   }
@@ -219,11 +216,11 @@ public class LagReportingAgentFunctionalTest {
   }
 
   private static boolean allLagsReported(
-      Map<String, Map<Integer, Map<String, LagInfoEntity>>> lags) {
+      Map<String, Map<String, Map<Integer, LagInfoEntity>>> lags) {
     if (lags.size() == 2) {
-      Map<Integer, Map<String, LagInfoEntity>> partitions0 = lags.get(STORE_0.toString());
-      Map<Integer, Map<String, LagInfoEntity>> partitions1 = lags.get(STORE_1.toString());
-      if (arePartitionsCurrent(partitions0) && arePartitionsCurrent(partitions1)) {
+      Map<String, Map<Integer, LagInfoEntity>> store0 = lags.get(HOST0_STR);
+      Map<String, Map<Integer, LagInfoEntity>> store1 = lags.get(HOST1_STR);
+      if (arePartitionsCurrent(store0) && arePartitionsCurrent(store1)) {
         LOG.info("Found expected lags: {}", lags.toString());
         return true;
       }
@@ -232,31 +229,33 @@ public class LagReportingAgentFunctionalTest {
     return false;
   }
 
-  private static boolean arePartitionsCurrent(Map<Integer, Map<String, LagInfoEntity>> partitions) {
-    return partitions.size() == 2 &&
-        partitions.get(0).size() == 2 && partitions.get(1).size() == 2 &&
-        isCurrent(partitions, 0, HOST0) && isCurrent(partitions, 0, HOST1) &&
-        isCurrent(partitions, 1, HOST0) && isCurrent(partitions, 1, HOST1) &&
-        (numMessages(partitions, 0, HOST0) + numMessages(partitions, 1, HOST0) == NUM_ROWS) &&
-        (numMessages(partitions, 0, HOST1) + numMessages(partitions, 1, HOST1) == NUM_ROWS);
+  private static boolean arePartitionsCurrent(Map<String, Map<Integer, LagInfoEntity>> stores) {
+    return stores.size() == 2 &&
+        stores.get(STORE_0.toString()).size() == 2 && stores.get(STORE_1.toString()).size() == 2 &&
+        isCurrent(stores, STORE_0, 0) && isCurrent(stores, STORE_0, 1) &&
+        isCurrent(stores, STORE_1, 0) && isCurrent(stores, STORE_1, 1) &&
+        (numMessages(stores, STORE_0, 0) + numMessages(stores, STORE_0, 1) == NUM_ROWS) &&
+        (numMessages(stores, STORE_1, 0) + numMessages(stores, STORE_1, 1) == NUM_ROWS);
   }
 
-  private static boolean isCurrent(final Map<Integer, Map<String, LagInfoEntity>> partitions,
-                                   final int partition,
-                                   final HostInfoEntity hostInfo) {
-    final LagInfoEntity lagInfo = partitions.get(partition).get(hostInfo.toString());
+  private static boolean isCurrent(final Map<String, Map<Integer, LagInfoEntity>> stores,
+                                   final LagInfoKey lagInfoKey,
+                                   final int partition) {
+    final Map<Integer, LagInfoEntity> partitions = stores.get(lagInfoKey.toString());
+    final LagInfoEntity lagInfo = partitions.get(partition);
     return lagInfo.getCurrentOffsetPosition() > 0 && lagInfo.getOffsetLag() == 0;
   }
 
-  private static long numMessages(final Map<Integer, Map<String, LagInfoEntity>> partitions,
-                                  final int partition,
-                                  final HostInfoEntity hostInfo) {
-    final LagInfoEntity lagInfo = partitions.get(partition).get(hostInfo.toString());
+  private static long numMessages(final Map<String, Map<Integer, LagInfoEntity>> stores,
+                                  final LagInfoKey lagInfoKey,
+                                  final int partition) {
+    final Map<Integer, LagInfoEntity> partitions = stores.get(lagInfoKey.toString());
+    final LagInfoEntity lagInfo = partitions.get(partition);
     return lagInfo.getCurrentOffsetPosition();
   }
 
   private ClusterLagsResponse waitForLags(
-      Function<Map<String, Map<Integer, Map<String, LagInfoEntity>>>, Boolean> function)
+      Function<Map<String, Map<String, Map<Integer, LagInfoEntity>>>, Boolean> function)
   {
     while (true) {
       final ClusterLagsResponse clusterLagsResponse = getLags(REST_APP_0);

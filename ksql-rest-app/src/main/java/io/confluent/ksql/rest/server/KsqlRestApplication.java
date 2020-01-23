@@ -721,8 +721,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           builder
               .lagSendIntervalMs(restConfig.getLong(
                   KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG))
-              .lagDataExpirationMs(restConfig.getLong(
-                  KsqlRestConfig.KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG))
               .build(ksqlEngine, serviceContext));
     }
     return Optional.empty();

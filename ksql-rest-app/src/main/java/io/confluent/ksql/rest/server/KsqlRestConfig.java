@@ -161,11 +161,6 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC =
       "Interval at which lag reports are broadcasted to servers.";
 
-  public static final String KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG =
-      KSQL_CONFIG_PREFIX + "lag.reporting.data.expiration.ms";
-  private static final String KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_DOC =
-      "Expiration time for lag data received by servers";
-
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -285,12 +280,6 @@ public class KsqlRestConfig extends RestConfig {
         1000L,
         Importance.MEDIUM,
         KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
-    ).define(
-        KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_CONFIG,
-        Type.LONG,
-        5000L,
-        Importance.MEDIUM,
-        KSQL_LAG_REPORTING_DATA_EXPIRATION_MS_DOC
     );
   }
 

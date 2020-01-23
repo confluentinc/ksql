@@ -312,6 +312,20 @@ Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
 converted to a double value automatically. Converting from the decimal data type
 to any floating point type (`DOUBLE`) may cause loss of precision.
 
+### Constants
+
+- **String constants** are enclosed in single quotation marks and may include any unicode
+character (e.g. `'hello'`, `'1.2'`).
+- **Integer constants** are represented by numbers that are not enclosed in quotation marks
+and do not contain decimal points (e.g. `1`, `2`).
+- **Decimal constants** are represented by a string of numbers that are no enclosed in quotation
+marks and contain a decimal point (e.g. `1.2`, `87.`, `.94`). The type of the decimal constant
+will be `DECIMAL(p, s)` where `p` is the total number of numeric characters in the string and
+`s` is the total number of numeric characters that appear to the right of the decimal point.
+- **Double constants** are numeric strings represented in scientific notation (e.g. `1E0`, `.42E-3`).
+- **Boolean constants** are the unquoted strings that are exactly (case-insensitive) `TRUE`
+or `FALSE`.
+
 SQL statements
 --------------
 

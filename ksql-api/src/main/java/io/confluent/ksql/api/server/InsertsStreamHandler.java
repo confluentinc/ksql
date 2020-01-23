@@ -16,12 +16,14 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.Context;
+import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
@@ -38,39 +40,60 @@ import java.util.Objects;
  * (also encoded as UTF-8 text) each representing a row to insert. The last JSON object must be
  * followed by a new-line.
  */
-public class InsertsBodyHandler {
+public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   private final Context ctx;
   private final Endpoints endpoints;
-  private final RoutingContext routingContext;
-  private final RecordParser recordParser;
-  private boolean hasReadArguments;
-  private BufferedPublisher<JsonObject> publisher;
-  private long rowsReceived;
-  private AcksSubscriber acksSubscriber;
 
-  public InsertsBodyHandler(final Context ctx, final Endpoints endpoints,
-      final RoutingContext routingContext) {
+  public InsertsStreamHandler(final Context ctx, final Endpoints endpoints) {
     this.ctx = ctx;
     this.endpoints = Objects.requireNonNull(endpoints);
-    this.routingContext = Objects.requireNonNull(routingContext);
-    this.recordParser = RecordParser.newDelimited("\n", routingContext.request());
   }
 
-  public void handleBodyEnd(final Void v) {
-    if (publisher != null) {
-      publisher.complete();
-      if (acksSubscriber == null) {
-        routingContext.response().end();
+  @Override
+  public void handle(final RoutingContext routingContext) {
+    // The record parser takes in potentially fragmented buffers from the request and spits
+    // out the chunks delimited by \n
+    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
+    final RequestHandler requestHandler = new RequestHandler(routingContext, recordParser);
+    recordParser.handler(requestHandler::handleBodyBuffer);
+    recordParser.endHandler(requestHandler::handleBodyEnd);
+  }
+
+  private class RequestHandler {
+
+    private final RoutingContext routingContext;
+    private final RecordParser recordParser;
+    private final InsertsStreamResponseWriter insertsStreamResponseWriter;
+    private boolean hasReadArguments;
+    private BufferedPublisher<JsonObject> publisher;
+    private long rowsReceived;
+    private AcksSubscriber acksSubscriber;
+
+    RequestHandler(final RoutingContext routingContext,
+        final RecordParser recordParser) {
+      this.routingContext = routingContext;
+      this.recordParser = recordParser;
+      final String contentType = routingContext.getAcceptableContentType();
+      if (DELIMITED_CONTENT_TYPE.equals(contentType) || contentType == null) {
+        // Default
+        insertsStreamResponseWriter =
+            new DelimitedInsertsStreamResponseWriter(routingContext.response());
       } else {
-        // We close the response after the stream of acks has been sent
-        acksSubscriber.insertsSent(rowsReceived);
+        insertsStreamResponseWriter = new JsonInsertsStreamResponseWriter(
+            routingContext.response());
       }
     }
-  }
 
-  public void handleBodyBuffer(final Buffer buff) {
-    if (!hasReadArguments) {
+    public void handleBodyBuffer(final Buffer buff) {
+      if (!hasReadArguments) {
+        handleArgs(buff);
+      } else if (publisher != null) {
+        handleRow(buff);
+      }
+    }
+
+    private void handleArgs(final Buffer buff) {
       final JsonObject args = decodeJsonObject(buff, routingContext);
       if (args == null) {
         return;
@@ -89,7 +112,10 @@ public class InsertsBodyHandler {
         return;
       }
       final JsonObject properties = args.getJsonObject("properties");
-      acksSubscriber = acks ? new AcksSubscriber(ctx, routingContext.response()) : null;
+      acksSubscriber =
+          acks ? new AcksSubscriber(ctx, routingContext.response(),
+              this.insertsStreamResponseWriter)
+              : null;
       final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
       publisher = new BufferedPublisher<>(ctx);
@@ -99,7 +125,9 @@ public class InsertsBodyHandler {
       routingContext.response().write("");
 
       publisher.subscribe(insertsSubscriber);
-    } else if (publisher != null) {
+    }
+
+    private void handleRow(final Buffer buff) {
       final JsonObject row;
       try {
         row = new JsonObject(buff);
@@ -107,7 +135,7 @@ public class InsertsBodyHandler {
         final JsonObject errResponse = ServerUtils
             .createErrResponse(ErrorCodes.ERROR_CODE_INVALID_JSON,
                 "Invalid JSON in inserts stream");
-        routingContext.response().write(errResponse.toBuffer().appendString("\n")).end();
+        insertsStreamResponseWriter.writeError(errResponse).end();
         acksSubscriber.cancel();
         return;
       }
@@ -118,6 +146,19 @@ public class InsertsBodyHandler {
       }
       rowsReceived++;
     }
+
+    public void handleBodyEnd(final Void v) {
+      if (publisher != null) {
+        publisher.complete();
+        if (acksSubscriber == null) {
+          routingContext.response().end();
+        } else {
+          // We close the response after the stream of acks has been sent
+          acksSubscriber.insertsSent(rowsReceived);
+        }
+      }
+    }
   }
+
 
 }

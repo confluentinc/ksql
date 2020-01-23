@@ -35,13 +35,16 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
 
   private final HttpServerResponse response;
+  private final QueryStreamResponseWriter queryStreamResponseWriter;
   private Subscription subscription;
   private long tokens;
 
   private static final int BATCH_SIZE = 4;
 
-  public QuerySubscriber(final HttpServerResponse response) {
-    this.response = Objects.requireNonNull(response);
+  public QuerySubscriber(final HttpServerResponse response,
+      final QueryStreamResponseWriter queryStreamResponseWriter) {
+    this.response = response;
+    this.queryStreamResponseWriter = queryStreamResponseWriter;
   }
 
   @Override
@@ -58,7 +61,7 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
     if (tokens == 0) {
       throw new IllegalStateException("Unsolicited data");
     }
-    response.write(row.toBuffer().appendString("\n"));
+    queryStreamResponseWriter.writeRow(row);
     tokens--;
     if (response.writeQueueFull()) {
       response.drainHandler(v -> {
@@ -82,12 +85,12 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
     final JsonObject err = new JsonObject().put("status", "error")
         .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
         .put("message", "Error in processing query");
-    response.end(err.toBuffer());
+    queryStreamResponseWriter.writeError(err).end();
   }
 
   @Override
   public synchronized void onComplete() {
-    response.end();
+    queryStreamResponseWriter.end();
   }
 
   public synchronized void close() {

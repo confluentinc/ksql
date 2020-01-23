@@ -595,6 +595,134 @@ public class ApiTest {
     assertEquals(404, response.statusCode());
   }
 
+  @Test
+  public void shouldReturn406WithNoMatchingAcceptHeader() throws Exception {
+
+    Buffer requestBody = Buffer.buffer();
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "blahblah")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(406, response.statusCode());
+  }
+
+  // TODO clean up these content type tests and extract common functionality
+
+  @Test
+  public void shouldUseDelimitedFormatWhenNoAcceptHeaderQuery() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertEquals(DEFAULT_ROWS.size(), queryResponse.rows.size());
+    assertTrue(response.bodyAsString().contains("\n"));
+    assertEquals(200, response.statusCode());
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenDelimitedAcceptHeader() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertEquals(DEFAULT_ROWS.size(), queryResponse.rows.size());
+    assertTrue(response.bodyAsString().contains("\n"));
+    assertEquals(200, response.statusCode());
+  }
+
+  @Test
+  public void shouldUseJsonFormatWhenJsonAcceptHeader() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "application/json")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    JsonArray jsonArray = new JsonArray(response.body());
+    assertEquals(DEFAULT_ROWS.size() + 1, jsonArray.size());
+    JsonObject metaData = jsonArray.getJsonObject(0);
+    assertEquals(DEFAULT_COLUMN_NAMES, metaData.getJsonArray("columnNames"));
+    assertEquals(DEFAULT_COLUMN_TYPES, metaData.getJsonArray("columnTypes"));
+    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+      assertEquals(DEFAULT_ROWS.get(i), jsonArray.getJsonArray(i + 1));
+    }
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenNoAcceptHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    assertEquals(rows.size(), insertsResponse.acks.size());
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenDelimitedHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    assertEquals(rows.size(), insertsResponse.acks.size());
+  }
+
+  @Test
+  public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .putHeader("accept", "application/json")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    JsonArray jsonArray = new JsonArray(response.body());
+    assertEquals(DEFAULT_ROWS.size(), jsonArray.size());
+    final JsonObject ackLine = new JsonObject().put("status", "ok");
+    for (int i = 0; i < jsonArray.size(); i++) {
+      assertEquals(ackLine, jsonArray.getJsonObject(i));
+    }
+  }
+
   private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {
 
     Buffer requestBody = Buffer.buffer().appendString("{\"foo\":1");

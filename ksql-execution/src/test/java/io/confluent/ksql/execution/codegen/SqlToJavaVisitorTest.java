@@ -164,7 +164,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        equalTo("((List)new ArrayBuilder(2).add(((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))).add(1E0).build())"));
+        equalTo("((List)new ArrayBuilder(2).add(((Double) ((java.util.Map)COL5).get(\"key1\"))).add(1E0).build())"));
   }
 
   @Test
@@ -183,7 +183,7 @@ public class SqlToJavaVisitorTest {
     String java = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(java, equalTo("((Map)ImmutableMap.builder().put(\"foo\", ((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))).put(\"bar\", 1E0).build())"));
+    assertThat(java, equalTo("((Map)ImmutableMap.builder().put(\"foo\", ((Double) ((java.util.Map)COL5).get(\"key1\"))).put(\"bar\", 1E0).build())"));
   }
 
   @Test

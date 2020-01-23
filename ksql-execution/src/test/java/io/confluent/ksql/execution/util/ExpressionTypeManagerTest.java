@@ -341,7 +341,7 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForCreateArrayExpression() {
     // Given:
     Expression expression = new CreateArrayExpression(
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)))
+        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(COL0)))
     );
 
     // When:
@@ -357,7 +357,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new ColumnReferenceExp(ColumnRef.of(COL0)),
             new NullLiteral()
         )
     );
@@ -391,7 +391,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new ColumnReferenceExp(ColumnRef.of(COL0)),
             new StringLiteral("foo")
         )
     );
@@ -409,7 +409,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
-            COL1, new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+            COL1, new ColumnReferenceExp(ColumnRef.of(COL0))
         )
     );
 
@@ -426,7 +426,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new IntegerLiteral(1),
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+            new ColumnReferenceExp(ColumnRef.of(COL0))
         )
     );
 
@@ -444,7 +444,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new StringLiteral("foo"),
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new ColumnReferenceExp(ColumnRef.of(COL0)),
             new StringLiteral("bar"),
             new StringLiteral("bar")
         )

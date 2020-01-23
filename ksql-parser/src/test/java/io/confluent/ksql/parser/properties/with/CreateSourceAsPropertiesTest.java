@@ -78,7 +78,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("a.ts")));
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnName.of("TS"))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
   }
 
   @Test

@@ -58,6 +58,9 @@ public final class ColumnReferenceParser {
     if (primaryExpression instanceof ColumnReferenceContext) {
       return resolve((ColumnReferenceContext) primaryExpression).getReference();
     }
+    if (primaryExpression instanceof QualifiedColumnReferenceContext) {
+      return resolve((QualifiedColumnReferenceContext) primaryExpression).getReference();
+    }
 
     throw new ParseFailedException("Cannot parse text that is not column reference: " + text);
   }

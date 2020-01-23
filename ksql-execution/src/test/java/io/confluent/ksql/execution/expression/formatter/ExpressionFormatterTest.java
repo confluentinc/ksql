@@ -99,7 +99,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateArrayExpression(ImmutableList.of(
             new StringLiteral("foo"),
-            new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            new SubscriptExpression(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
         )),
         equalTo("ARRAY['foo', abc[1]]")
     );
@@ -109,7 +109,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatCreateMapExpression() {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateMapExpression(ImmutableMap.<Expression, Expression>builder()
-            .put(new StringLiteral("foo"), new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            .put(new StringLiteral("foo"), new SubscriptExpression(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
             .put(new StringLiteral("bar"), new StringLiteral("val"))
             .build()
         )),

@@ -33,7 +33,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.LagInfoKey;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;

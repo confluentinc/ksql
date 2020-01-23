@@ -51,38 +51,93 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   }
 
   @Override
-  public void onSubscribe(final Subscription s) {
+  public final void onSubscribe(final Subscription s) {
     Objects.requireNonNull(s);
     context.runOnContext(v -> doOnSubscribe(s));
   }
 
   @Override
-  public void onNext(final T t) {
+  public final void onNext(final T t) {
     Objects.requireNonNull(t);
     context.runOnContext(v -> doOnNext(t));
   }
 
   @Override
-  public void onError(final Throwable t) {
+  public final void onError(final Throwable t) {
     Objects.requireNonNull(t);
     context.runOnContext(v -> doOnError(t));
   }
 
   @Override
-  public void onComplete() {
+  public final void onComplete() {
     context.runOnContext(v -> doOnComplete());
   }
 
+  /**
+   * Hook that will be called after onSubscribe has completed
+   *
+   * @param subscription The subscription
+   */
   protected void afterSubscribe(final Subscription subscription) {
   }
 
+  /**
+   * Hook that will be called when a value is received by the subscriber Implement this hook to
+   * handle the actual value
+   *
+   * @param t The value
+   */
   protected void handleValue(final T t) {
   }
 
+  /**
+   * Hook that will be called when the strem is complete. Implement this hook for your custom
+   * complete handling
+   */
   protected void handleComplete() {
   }
 
+  /**
+   * Hook that will be called when an error is signalled by the publisher
+   *
+   * @param t The exception
+   */
   protected void handleError(final Throwable t) {
+  }
+
+  protected final void makeRequest(final long l) {
+    checkContext();
+    try {
+      subscription.request(l);
+    } catch (Throwable t) {
+      final Exception e =
+          new IllegalStateException("Exceptions must not be thrown from request", t);
+      logError(e);
+    }
+  }
+
+  protected final void complete() {
+    checkContext();
+    complete = true;
+    if (subscription != null) {
+      try {
+        subscription.cancel();
+      } catch (final Throwable t) {
+        final Exception e =
+            new IllegalStateException("Exceptions must not be thrown from cancel", t);
+        logError(e);
+      }
+    }
+  }
+
+  protected final void checkContext() {
+    if (Vertx.currentContext() != context) {
+      throw new IllegalStateException("On wrong context");
+    }
+  }
+
+  private void logError(final Throwable t) {
+    log.error(t.getMessage(), t);
   }
 
   private void doOnSubscribe(final Subscription subscription) {
@@ -138,41 +193,6 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
       complete = true;
       handleComplete();
     }
-  }
-
-  protected void makeRequest(final long l) {
-    checkContext();
-    try {
-      subscription.request(l);
-    } catch (Throwable t) {
-      final Exception e =
-          new IllegalStateException("Exceptions must not be thrown from request", t);
-      logError(e);
-    }
-  }
-
-  protected void complete() {
-    checkContext();
-    complete = true;
-    if (subscription != null) {
-      try {
-        subscription.cancel();
-      } catch (final Throwable t) {
-        final Exception e =
-            new IllegalStateException("Exceptions must not be thrown from cancel", t);
-        logError(e);
-      }
-    }
-  }
-
-  protected void checkContext() {
-    if (Vertx.currentContext() != context) {
-      throw new IllegalStateException("On wrong context");
-    }
-  }
-
-  private void logError(final Throwable t) {
-    log.error(t.getMessage(), t);
   }
 
 }

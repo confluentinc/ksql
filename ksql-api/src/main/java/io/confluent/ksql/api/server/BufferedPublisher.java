@@ -177,7 +177,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
     return true;
   }
 
-  protected void sendError(final Exception e) {
+  protected final void sendError(final Exception e) {
     checkContext();
     try {
       subscriber.onError(e);

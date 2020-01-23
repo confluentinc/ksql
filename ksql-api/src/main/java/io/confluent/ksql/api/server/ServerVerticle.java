@@ -24,7 +24,6 @@ import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -172,15 +171,6 @@ public class ServerVerticle extends AbstractVerticle {
       return;
     }
     routingContext.response().end();
-  }
-
-  private static void connectBodyHandler(final Context ctx, final Endpoints endpoints,
-      final RoutingContext routingContext) {
-    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(ctx, endpoints,
-        routingContext);
-    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
-    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
-    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
   }
 
   /*

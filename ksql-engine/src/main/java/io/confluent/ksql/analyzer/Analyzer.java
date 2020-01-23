@@ -258,6 +258,16 @@ class Analyzer {
     }
 
     private Optional<Delimiter> getValueDelimiter(final Sink sink) {
+      if (getValueFormat(sink) != Format.DELIMITED) {
+        // the delimiter is not inherited across non-delimited types
+        // (e.g. if source A is DELIMITED with |, and I create sink B
+        // with JSON from A and then sink C with DELIMITED from B, C
+        // will use the default limiter, as opposed to |)
+        // see https://github.com/confluentinc/ksql/issues/4368 for
+        // more context
+        return Optional.empty();
+      }
+
       if (sink.getProperties().getValueDelimiter().isPresent()) {
         return sink.getProperties().getValueDelimiter();
       }

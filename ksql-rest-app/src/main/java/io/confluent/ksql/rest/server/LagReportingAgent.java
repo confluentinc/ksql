@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.server.HeartbeatAgent.HeartbeatListener;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.LagInfoKey;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -76,7 +77,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   private final Clock clock;
 
   @GuardedBy("receivedLagInfo")
-  private final Map<String, Map<Integer, LagCache>>
+  private final Map<LagInfoKey, Map<Integer, LagCache>>
       receivedLagInfo;
   private final ConcurrentHashMap<String, HostInfoEntity> hosts;
 
@@ -153,7 +154,7 @@ public final class LagReportingAgent implements HeartbeatListener {
 
       for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
           : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
-        final String storeName = storeEntry.getKey();
+        final LagInfoKey storeName = LagInfoKey.of(storeEntry.getKey());
         final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
 
         receivedLagInfo.computeIfAbsent(storeName, key -> new HashMap<>());
@@ -177,10 +178,10 @@ public final class LagReportingAgent implements HeartbeatListener {
   //
   // Assumes we're synchronized on receivedLagInfo
   private void garbageCollect(final HostInfoEntity toRemove) {
-    final Iterator<Entry<String, Map<Integer, LagCache>>>
+    final Iterator<Entry<LagInfoKey, Map<Integer, LagCache>>>
         storeIterator = receivedLagInfo.entrySet().iterator();
     while (storeIterator.hasNext()) {
-      final Entry<String, Map<Integer, LagCache>> storeEntry =
+      final Entry<LagInfoKey, Map<Integer, LagCache>> storeEntry =
           storeIterator.next();
       final Iterator<Entry<Integer, LagCache>>
           partitionIterator = storeEntry.getValue().entrySet().iterator();
@@ -205,15 +206,15 @@ public final class LagReportingAgent implements HeartbeatListener {
 
   /**
    * Returns lag information for all of the "alive" hosts for a given state store and partition.
-   * @param stateStoreName The state store to consider
+   * @param lagInfoKey The lag info key
    * @param partition The partition of that state
    * @return A map which is keyed by host and contains lag information
    */
   public Map<HostInfoEntity, HostPartitionLagInfo> getHostsPartitionLagInfo(
-      final String stateStoreName, final int partition) {
+      final LagInfoKey lagInfoKey, final int partition) {
     synchronized (receivedLagInfo) {
       final LagCache partitionLagCache =
-          receivedLagInfo.getOrDefault(stateStoreName, Collections.emptyMap())
+          receivedLagInfo.getOrDefault(lagInfoKey, Collections.emptyMap())
               .getOrDefault(partition, EMPTY_LAG_CACHE);
       return partitionLagCache.get().stream()
           .filter(e -> hosts.containsKey(e.getHostInfo().toString()))
@@ -229,7 +230,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   public Map<String, Map<Integer, Map<String, LagInfoEntity>>> listAllLags() {
     synchronized (receivedLagInfo) {
       return receivedLagInfo.entrySet().stream()
-          .map(storeNameEntry -> Pair.of(storeNameEntry.getKey(),
+          .map(storeNameEntry -> Pair.of(storeNameEntry.getKey().toString(),
               storeNameEntry.getValue().entrySet().stream()
                   .map(partitionEntry -> Pair.<Integer, Map<String, LagInfoEntity>>of(
                         partitionEntry.getKey(), partitionEntry.getValue().get().stream()
@@ -269,10 +270,10 @@ public final class LagReportingAgent implements HeartbeatListener {
       }
 
       final Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap = currentQueries.stream()
-          .map(QueryMetadata::getStoreToPartitionToLagMap)
           .filter(Objects::nonNull)
-          .flatMap(map -> map.entrySet().stream())
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+          .flatMap(pmd -> pmd.getStoreToPartitionToLagMap().entrySet().stream()
+              .map(e -> Pair.of(e.getKey().toString(), e.getValue())))
+          .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
       final LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
 

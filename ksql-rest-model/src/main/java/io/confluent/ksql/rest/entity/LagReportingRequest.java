@@ -38,7 +38,7 @@ public class LagReportingRequest {
       @JsonProperty("lastLagUpdateMs") final long lastLagUpdateMs
   ) {
     this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
-    this.storeToPartitionToLagMap = storeToPartitionToLagMap;
+    this.storeToPartitionToLagMap = Objects.requireNonNull(storeToPartitionToLagMap);
     this.lastLagUpdateMs = lastLagUpdateMs;
   }
 

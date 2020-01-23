@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
@@ -143,10 +144,12 @@ public class QueryMetadata {
     return ImmutableList.of();
   }
 
-  public Map<String, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
-    Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
+  public Map<LagInfoKey, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
+    Map<LagInfoKey, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
     try {
-      storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags();
+      storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags().entrySet().stream()
+          .map(e -> Pair.of(LagInfoKey.of(getQueryApplicationId(), e.getKey()), e.getValue()))
+          .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     } catch (IllegalStateException | StreamsException e) {
       LOG.error(e.getMessage());
     }

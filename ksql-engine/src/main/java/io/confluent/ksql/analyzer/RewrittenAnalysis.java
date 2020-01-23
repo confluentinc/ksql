@@ -36,6 +36,13 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+/**
+ * A wrapper for an {@link io.confluent.ksql.analyzer.ImmutableAnalysis} that rewrites all
+ * expressions using a given rewriter plugin (as provided to
+ * {@link io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter}). This is useful when
+ * planning queries to allow the planner to transform expressions as needed it builds up the
+ * transformations needed to execute the query.
+ */
 public class RewrittenAnalysis implements ImmutableAnalysis {
   private final ImmutableAnalysis original;
   private final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter;

@@ -66,7 +66,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import kafka.security.auth.Acl;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -161,11 +160,11 @@ public class SecureIntegrationTest {
                   ops(DESCRIBE_CONFIGS, CREATE));
 
     givenAllowAcl(ALL_USERS,
-                  resource(TOPIC, Acl.WildCardResource()),
+                  resource(TOPIC, ResourcePattern.WILDCARD_RESOURCE),
                   ops(DESCRIBE, READ, WRITE, DELETE));
 
     givenAllowAcl(ALL_USERS,
-                  resource(GROUP, Acl.WildCardResource()),
+                  resource(GROUP, ResourcePattern.WILDCARD_RESOURCE),
                   ops(DESCRIBE, READ));
 
     final Map<String, Object> configs = getBaseKsqlConfig();

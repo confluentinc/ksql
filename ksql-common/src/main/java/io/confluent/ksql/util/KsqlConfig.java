@@ -23,6 +23,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collection;
@@ -712,6 +713,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public Map<String, Object> getProducerClientConfigProps() {
     return getConfigsFor(ProducerConfig.configNames());
+  }
+
+  public Map<String, Object> getProcessingLogConfigProps() {
+    return getConfigsFor(ProcessingLogConfig.configNames());
   }
 
   private Map<String, Object> getConfigsFor(final Set<String> configs) {

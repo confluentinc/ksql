@@ -105,7 +105,7 @@ public final class ReservedInternalTopics {
 
   public ReservedInternalTopics(final KsqlConfig ksqlConfig) {
     final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        new ProcessingLogConfig(ksqlConfig.getProcessingLogConfigProps());
 
     this.hiddenTopicsPattern = Pattern.compile(
         Streams.concat(

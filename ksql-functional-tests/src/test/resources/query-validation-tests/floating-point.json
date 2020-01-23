@@ -6,7 +6,7 @@
     {
       "name": "filter by DOUBLE",
       "statements": [
-        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY > 0.1;"
       ],
       "inputs": [

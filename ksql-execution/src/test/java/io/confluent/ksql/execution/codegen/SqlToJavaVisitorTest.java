@@ -656,7 +656,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(new BigDecimal(Double.toString(TEST1_COL3))) == 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(BigDecimal.valueOf(TEST1_COL3)) == 0))"));
   }
 
   @Test
@@ -672,7 +672,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(new BigDecimal(Double.toString(TEST1_COL3)).compareTo(TEST1_COL8) == 0))"));
+    assertThat(java, containsString("(BigDecimal.valueOf(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
   }
 
   @Test

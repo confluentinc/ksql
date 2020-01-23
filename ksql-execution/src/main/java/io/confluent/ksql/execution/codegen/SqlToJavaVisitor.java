@@ -453,7 +453,7 @@ public class SqlToJavaVisitor {
         case DECIMAL:
           return "%" + index + "$s";
         case DOUBLE:
-          return "new BigDecimal(Double.toString(%" + index + "$s))";
+          return "BigDecimal.valueOf(%" + index + "$s)";
         default:
           return "new BigDecimal(%" + index + "$s)";
       }

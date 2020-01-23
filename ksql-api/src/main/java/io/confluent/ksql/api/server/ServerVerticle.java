@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.impl.Utils;
@@ -93,10 +94,11 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleInsertsStream(final RoutingContext routingContext) {
-    final RecordParser recordParser = RecordParser
-        .newDelimited("\n", new InsertsBodyParser(endpoints, routingContext)::handleBodyBuffer);
-    routingContext.request()
-        .handler(recordParser);
+    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(context, endpoints,
+        routingContext);
+    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
+    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
+    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
   }
 
   private void handleQueryStream(final RoutingContext routingContext) {
@@ -108,7 +110,10 @@ public class ServerVerticle extends AbstractVerticle {
       conn.closeHandler(connectionQueries);
       server.registerQueryConnection(conn);
     }
-    final JsonObject requestBody = routingContext.getBodyAsJson();
+    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
+    if (requestBody == null) {
+      return;
+    }
     final String sql = requestBody.getString("sql");
     if (sql == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
@@ -123,7 +128,7 @@ public class ServerVerticle extends AbstractVerticle {
     final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
 
-    final QueryID queryID = server.registerQuery(querySubscriber);
+    final ApiQueryID queryID = server.registerQuery(querySubscriber);
     connectionQueries.addQuery(queryID);
     final JsonObject metadata = new JsonObject();
     metadata.put("columnNames", queryPublisher.getColumnNames());
@@ -139,7 +144,7 @@ public class ServerVerticle extends AbstractVerticle {
     routingContext.response().endHandler(v -> closeQuery(queryID, routingContext));
   }
 
-  private boolean closeQuery(final QueryID queryID, final RoutingContext routingContext) {
+  private boolean closeQuery(final ApiQueryID queryID, final RoutingContext routingContext) {
     final QuerySubscriber querySubscriber = server.removeQuery(queryID);
     if (querySubscriber == null) {
       return false;
@@ -159,7 +164,7 @@ public class ServerVerticle extends AbstractVerticle {
           "No queryID in arguments");
       return;
     }
-    final QueryID queryID = new QueryID(queryIDArg);
+    final ApiQueryID queryID = new ApiQueryID(queryIDArg);
     if (!closeQuery(queryID, routingContext)) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
           "No query with id " + queryID);
@@ -175,23 +180,23 @@ public class ServerVerticle extends AbstractVerticle {
   private class ConnectionQueries implements Handler<Void> {
 
     private final HttpConnection conn;
-    private final Set<QueryID> queries = new HashSet<>();
+    private final Set<ApiQueryID> queries = new HashSet<>();
 
     ConnectionQueries(final HttpConnection conn) {
       this.conn = conn;
     }
 
-    public void addQuery(final QueryID queryID) {
+    public void addQuery(final ApiQueryID queryID) {
       queries.add(queryID);
     }
 
-    public void removeQuery(final QueryID queryID) {
+    public void removeQuery(final ApiQueryID queryID) {
       queries.remove(queryID);
     }
 
     @Override
     public void handle(final Void v) {
-      for (QueryID queryID : queries) {
+      for (ApiQueryID queryID : queries) {
         final QuerySubscriber querySubscriber = server.removeQuery(queryID);
         querySubscriber.close();
       }

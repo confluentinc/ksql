@@ -47,6 +47,6 @@ public interface Endpoints {
    * @return The inserts subscriber
    */
   InsertsSubscriber createInsertsSubscriber(String target, JsonObject properties,
-      Subscriber<Void> acksSubscriber);
+      Subscriber<JsonObject> acksSubscriber);
 
 }

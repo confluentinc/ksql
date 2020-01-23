@@ -44,7 +44,7 @@ public class Server {
   private final JsonObject config;
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
-  private final Map<QueryID, QuerySubscriber> queries = new ConcurrentHashMap<>();
+  private final Map<ApiQueryID, QuerySubscriber> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
 
@@ -93,18 +93,22 @@ public class Server {
     }
   }
 
-  QueryID registerQuery(final QuerySubscriber querySubscriber) {
+  ApiQueryID registerQuery(final QuerySubscriber querySubscriber) {
     Objects.requireNonNull(querySubscriber);
-    final QueryID queryID = new QueryID();
-    queries.put(queryID, querySubscriber);
+    final ApiQueryID queryID = new ApiQueryID();
+    if (queries.putIfAbsent(queryID, querySubscriber) != null) {
+      // It should never happen
+      // https://stackoverflow.com/questions/2513573/how-good-is-javas-uuid-randomuuid
+      throw new IllegalStateException("Glitch in the matrix");
+    }
     return queryID;
   }
 
-  QuerySubscriber removeQuery(final QueryID queryID) {
+  QuerySubscriber removeQuery(final ApiQueryID queryID) {
     return queries.remove(queryID);
   }
 
-  public Set<QueryID> getQueryIDs() {
+  public Set<ApiQueryID> getQueryIDs() {
     return new HashSet<>(queries.keySet());
   }
 

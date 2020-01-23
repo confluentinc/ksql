@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -59,15 +59,15 @@ public class TestEndpoints implements Endpoints {
   @Override
   public synchronized InsertsSubscriber createInsertsSubscriber(final String target,
       final JsonObject properties,
-      final Subscriber<Void> acksSubscriber) {
+      final Subscriber<JsonObject> acksSubscriber) {
     this.lastTarget = target;
     this.lastProperties = properties;
     if (acksSubscriber != null) {
-      acksPublisher = new TestAcksPublisher(vertx, acksBeforePublisherError);
+      acksPublisher = new TestAcksPublisher(Vertx.currentContext(), acksBeforePublisherError);
       acksPublisher.subscribe(acksSubscriber);
-      this.insertsSubscriber = new TestInsertsSubscriber(acksPublisher);
+      this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher);
     } else {
-      this.insertsSubscriber = new TestInsertsSubscriber(null);
+      this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), null);
     }
     return insertsSubscriber;
   }
@@ -79,10 +79,6 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized TestInsertsSubscriber getInsertsSubscriber() {
     return insertsSubscriber;
-  }
-
-  public synchronized TestAcksPublisher getAcksPublisher() {
-    return acksPublisher;
   }
 
   public synchronized String getLastSql() {

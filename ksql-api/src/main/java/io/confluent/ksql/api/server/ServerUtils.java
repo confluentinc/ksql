@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_JSON;
+
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +37,31 @@ public final class ServerUtils {
 
   public static void handleError(final HttpServerResponse response, final int statusCode,
       final int errorCode, final String errMsg) {
-    final JsonObject errResponse = new JsonObject().put("status", "error")
+    final JsonObject errResponse = createErrResponse(errorCode, errMsg);
+    response.setStatusCode(statusCode).end(errResponse.toBuffer());
+  }
+
+  public static JsonObject createErrResponse(final int errorCode, final String errMsg) {
+    return new JsonObject().put("status", "error")
         .put("errorCode", errorCode)
         .put("message", errMsg);
-    response.setStatusCode(statusCode).end(errResponse.toBuffer());
   }
 
   public static void unhandledExceptonHandler(final Throwable t) {
     log.error("Unhandled exception", t);
+  }
+
+  public static JsonObject decodeJsonObject(final Buffer buffer,
+      final RoutingContext routingContext) {
+    try {
+      return new JsonObject(buffer);
+    } catch (DecodeException e) {
+      final String message = "Invalid JSON in request args";
+      log.error(message, e);
+      handleError(routingContext.response(), 400, ERROR_CODE_INVALID_JSON,
+          message);
+      return null;
+    }
   }
 
 }

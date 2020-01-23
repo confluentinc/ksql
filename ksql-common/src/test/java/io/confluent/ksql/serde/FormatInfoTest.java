@@ -123,24 +123,4 @@ public class FormatInfoTest {
     assertThat(FormatInfo.of(AVRO, Optional.empty(), Optional.empty()).getFullSchemaName(),
         is(Optional.empty()));
   }
-
-  @Test
-  public void shouldThrowWhenAttemptingToUseValueDelimeterWithAvroFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
-
-    // When:
-    FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.of(Delimiter.of('x')));
-  }
-
-  @Test
-  public void shouldThrowWhenAttemptingToUseValueDelimeterWithJsonFormat() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
-
-    // When:
-    FormatInfo.of(Format.JSON, Optional.empty(), Optional.of(Delimiter.of('x')));
-  }
 }

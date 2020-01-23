@@ -648,7 +648,8 @@ public final class PullQueryExecutor {
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         input.schema.withAlias(analysis.getFromDataSources().get(0).getAlias()),
-        executionContext.getMetaStore()
+        executionContext.getMetaStore(),
+        false
     );
 
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {

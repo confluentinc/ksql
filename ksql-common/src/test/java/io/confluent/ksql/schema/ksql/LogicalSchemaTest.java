@@ -119,7 +119,11 @@ public class LogicalSchemaTest {
             aSchema,
 
             aSchema
-                .withMetaAndKeyColsInValue()
+                .withMetaAndKeyColsInValue(false)
+                .withoutMetaAndKeyColsInValue(),
+
+            aSchema
+                .withMetaAndKeyColsInValue(true)
                 .withoutMetaAndKeyColsInValue(),
 
             aSchema
@@ -130,7 +134,10 @@ public class LogicalSchemaTest {
             aSchema.withAlias(BOB)
         )
         .addEqualityGroup(
-            aSchema.withMetaAndKeyColsInValue()
+            aSchema.withMetaAndKeyColsInValue(true)
+        )
+        .addEqualityGroup(
+            aSchema.withMetaAndKeyColsInValue(false)
         )
         .testEquals();
   }
@@ -286,13 +293,21 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldGetMetaColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)),
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
+
+    // Then:
+    assertThat(schema.findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetKeyColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(K0)),
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
+
+    // Then:
+    assertThat(schema.findValueColumn(ColumnRef.withoutSource(K0)),
         is(not(Optional.empty())));
   }
 
@@ -610,7 +625,7 @@ public class LogicalSchemaTest {
 
     // When:
     final LogicalSchema result = schema
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result.value(), hasSize(schema.value().size() + 2));
@@ -618,6 +633,25 @@ public class LogicalSchemaTest {
     assertThat(result.value().get(0).type(), is(BIGINT));
     assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
     assertThat(result.value().get(1).type(), is(STRING));
+  }
+
+  @Test
+  public void shouldAddKeyAsStringWhenAddingToValue() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, DOUBLE)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // When:
+    final LogicalSchema result = schema
+        .withMetaAndKeyColsInValue(true);
+
+    // Then:
+    assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
+    assertThat(result.value().get(1).type(), is(STRING));
+    assertThat(result.key().get(0).type(), is(DOUBLE));
   }
 
   @Test
@@ -631,7 +665,7 @@ public class LogicalSchemaTest {
 
     // When:
     final LogicalSchema result = schema
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result.value(), hasSize(schema.value().size() + 2));
@@ -650,10 +684,10 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .build()
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
 
     // When:
-    final LogicalSchema result = schema.withMetaAndKeyColsInValue();
+    final LogicalSchema result = schema.withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result, is(schema));
@@ -670,7 +704,7 @@ public class LogicalSchemaTest {
         .build();
 
     // When:
-    final LogicalSchema result = ksqlSchema.withMetaAndKeyColsInValue();
+    final LogicalSchema result = ksqlSchema.withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -689,7 +723,7 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
 
     // When
     final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
@@ -730,7 +764,7 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withMetaAndKeyColsInValue()
+        .withMetaAndKeyColsInValue(false)
         .withAlias(BOB);
 
     // When

@@ -102,11 +102,11 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
+      .withMetaAndKeyColsInValue(false)
       .withAlias(LEFT_ALIAS);
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
+      .withMetaAndKeyColsInValue(false)
       .withAlias(RIGHT_ALIAS);
 
   private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();

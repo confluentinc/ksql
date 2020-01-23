@@ -62,7 +62,7 @@ public class TableGroupByBuilderTest {
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
       .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)

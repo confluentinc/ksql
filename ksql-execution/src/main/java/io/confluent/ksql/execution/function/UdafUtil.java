@@ -45,7 +45,7 @@ public final class UdafUtil {
   ) {
     try {
       final ExpressionTypeManager expressionTypeManager =
-          new ExpressionTypeManager(schema, functionRegistry);
+          new ExpressionTypeManager(schema, functionRegistry, true);
 
       final SqlType argumentType =
           expressionTypeManager.getExpressionSqlType(functionCall.getArguments().get(0));

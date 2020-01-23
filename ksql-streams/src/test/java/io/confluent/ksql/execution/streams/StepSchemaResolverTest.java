@@ -97,6 +97,8 @@ public class StepSchemaResolverTest {
       new QueryContext.Stacker().getQueryContext()
   );
 
+  private static final SourceName SOME_ALIAS = SourceName.of("alias");
+
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -298,14 +300,14 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        SourceName.of("alias")
+        SOME_ALIAS
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SourceName.of("alias")).withMetaAndKeyColsInValue()));
+    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(false)));
   }
 
   @Test
@@ -317,14 +319,14 @@ public class StepSchemaResolverTest {
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
         SCHEMA,
-        SourceName.of("alias")
+        SOME_ALIAS
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SourceName.of("alias")).withMetaAndKeyColsInValue()));
+    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(true)));
   }
 
   @Test
@@ -421,14 +423,14 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        SourceName.of("alias")
+        SOME_ALIAS
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SourceName.of("alias")).withMetaAndKeyColsInValue()));
+    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(false)));
   }
 
   @Test
@@ -441,14 +443,14 @@ public class StepSchemaResolverTest {
         mock(WindowInfo.class),
         Optional.empty(),
         SCHEMA,
-        SourceName.of("alias")
+        SOME_ALIAS
     );
 
     // When:
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SourceName.of("alias")).withMetaAndKeyColsInValue()));
+    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(true)));
   }
 
   private void givenTableFunction(final String name, final SqlType returnType) {

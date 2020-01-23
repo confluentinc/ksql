@@ -41,6 +41,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -51,6 +52,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -61,8 +63,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +79,9 @@ public class DataSourceNodeTest {
 
   private static final ColumnRef TIMESTAMP_FIELD
       = ColumnRef.withoutSource(ColumnName.of("timestamp"));
+
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
+  private static final SourceName SOURCE_NAME = SourceName.of("datasource");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream<?> realStream;
@@ -88,23 +92,25 @@ public class DataSourceNodeTest {
   private static final ColumnName FIELD3 = ColumnName.of("field3");
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .valueColumn(FIELD1, SqlTypes.STRING)
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+      .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)
       .valueColumn(TIMESTAMP_FIELD.name(), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
-  private static final KeyField KEY_FIELD
-      = KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")));
+
+  private static final KeyField KEY_FIELD = KeyField.of(ColumnRef.withoutSource(FIELD1));
+
   private static final TimestampColumn TIMESTAMP_COLUMN =
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
-      SourceName.of("datasource"),
+      SOURCE_NAME,
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
+      KEY_FIELD,
       Optional.of(
           new TimestampColumn(
               ColumnRef.withoutSource(ColumnName.of("timestamp")),
@@ -117,13 +123,6 @@ public class DataSourceNodeTest {
           KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
           ValueFormat.of(FormatInfo.of(Format.JSON))
       )
-  );
-
-  private final DataSourceNode node = new DataSourceNode(
-      PLAN_NODE_ID,
-      SOME_SOURCE,
-      SOME_SOURCE.getName(),
-      Collections.emptyList()
   );
 
   @Mock
@@ -141,9 +140,13 @@ public class DataSourceNodeTest {
   @Captor
   private ArgumentCaptor<QueryContext.Stacker> stackerCaptor;
   @Mock
-  private SchemaKStream stream;
+  private SchemaKStream<Struct> stream;
   @Mock
-  private SchemaKTable table;
+  private SchemaKTable<Struct> table;
+  @Mock
+  private KsqlTopic topic;
+
+  private DataSourceNode node;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -163,12 +166,23 @@ public class DataSourceNodeTest {
 
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
+    when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
     when(schemaKStreamFactory.create(any(), any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
         );
+
+    givenWindowedSource(false);
+
+    node = new DataSourceNode(
+        PLAN_NODE_ID,
+        SOME_SOURCE,
+        SOME_SOURCE.getName(),
+        Collections.emptyList()
+    );
   }
 
   @Test
@@ -215,6 +229,7 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
+    // Given:
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
         SourceName.of("datasource"),
         REAL_SCHEMA,
@@ -229,13 +244,16 @@ public class DataSourceNodeTest {
         )
     );
 
-    final DataSourceNode node = new DataSourceNode(
+    node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
         table.getName(),
         Collections.emptyList());
 
-    final SchemaKStream result = buildStream(node);
+    // When:
+    final SchemaKStream<?> result = buildStream(node);
+
+    // Then:
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
   }
 
@@ -248,22 +266,27 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(
-        LogicalSchema.builder()
-            .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-            .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-            .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
-            .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
-            .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
-            .valueColumn(TIMESTAMP_FIELD.name(), SqlTypes.BIGINT)
-            .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
-            .build().withAlias(sourceName)));
+    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(false).withAlias(sourceName)));
+  }
+
+  @Test
+  public void shouldHaveFullyQualifiedWindowedSchema() {
+    // Given:
+    givenWindowedSource(true);
+    givenNodeWithMockSource();
+    final SourceName sourceName = SOME_SOURCE.getName();
+
+    // When:
+    final LogicalSchema schema = node.getSchema();
+
+    // Then:
+    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(true).withAlias(sourceName)));
   }
 
   @Test
   public void shouldBuildSourceStreamWithCorrectTimestampIndex() {
     // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
+    givenNodeWithMockSource();
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -277,7 +300,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildSourceStreamWithCorrectTimestampIndexForQualifiedFieldName() {
     // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
+    givenNodeWithMockSource();
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -290,7 +313,7 @@ public class DataSourceNodeTest {
   public void shouldBuildSourceStreamWithCorrectParams() {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    final DataSourceNode node = buildNodeWithMockSource();
+    givenNodeWithMockSource();
 
     // When:
     final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
@@ -302,7 +325,7 @@ public class DataSourceNodeTest {
         same(dataSource),
         stackerCaptor.capture(),
         same(node.getKeyField()),
-        eq(SourceName.of("name"))
+        eq(SOURCE_NAME)
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -313,7 +336,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildSourceStreamWithCorrectParamsWhenBuildingTable() {
     // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
+    givenNodeWithMockSource();
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -324,7 +347,7 @@ public class DataSourceNodeTest {
         same(dataSource),
         stackerCaptor.capture(),
         same(node.getKeyField()),
-        eq(SourceName.of("name"))
+        eq(SOURCE_NAME)
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -335,7 +358,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildTableByConvertingFromStream() {
     // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
+    givenNodeWithMockSource();
 
     // When:
     final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
@@ -344,13 +367,13 @@ public class DataSourceNodeTest {
     assertThat(returned, is(table));
   }
 
-  private DataSourceNode buildNodeWithMockSource() {
+  private void givenNodeWithMockSource() {
     when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
     when(dataSource.getKeyField()).thenReturn(KEY_FIELD);
-    return new DataSourceNode(
+    node = new DataSourceNode(
         PLAN_NODE_ID,
         dataSource,
-        SourceName.of("name"),
+        SOURCE_NAME,
         Collections.emptyList(),
         schemaKStreamFactory
     );
@@ -365,5 +388,15 @@ public class DataSourceNodeTest {
       stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
     }
     return stream;
+  }
+
+  private void givenWindowedSource(final boolean windowed) {
+    final FormatInfo format = FormatInfo.of(Format.KAFKA);
+
+    final KeyFormat keyFormat = windowed
+        ? KeyFormat.windowed(format, WindowInfo.of(WindowType.SESSION, Optional.empty()))
+        : KeyFormat.nonWindowed(format);
+
+    when(topic.getKeyFormat()).thenReturn(keyFormat);
   }
 }

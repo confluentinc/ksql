@@ -78,18 +78,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
 public class ExpressionTypeManager {
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
+  private final boolean ignoreKey;
 
   public ExpressionTypeManager(
       final LogicalSchema schema,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final boolean ignoreKey
   ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.ignoreKey = ignoreKey;
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
@@ -183,9 +185,12 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final ColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findColumn(node.getReference())
-          .orElseThrow(() ->
-              new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+      final Optional<Column> possibleColumn = ignoreKey
+          ? schema.findValueColumn(node.getReference())
+          : schema.findColumn(node.getReference());
+
+      final Column schemaColumn = possibleColumn.orElseThrow(() ->
+          new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
       expressionTypeContext.setSqlType(schemaColumn.type());
       return null;

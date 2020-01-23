@@ -72,7 +72,7 @@ public class StreamSelectKeyBuilderTest {
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
       .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
   private static final ColumnReferenceExp KEY =
       new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));

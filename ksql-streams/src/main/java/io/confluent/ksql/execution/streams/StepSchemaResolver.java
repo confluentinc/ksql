@@ -17,8 +17,10 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -43,6 +45,8 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
@@ -73,14 +77,14 @@ public final class StepSchemaResolver {
       .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
-      .put(WindowedStreamSource.class, StepSchemaResolver::handleSource)
+      .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSource)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupBy.class, StepSchemaResolver::handleTableGroupBy)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
-      .put(WindowedTableSource.class, StepSchemaResolver::handleSource)
+      .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)
       .build();
 
   @SuppressWarnings("rawtypes")
@@ -134,25 +138,24 @@ public final class StepSchemaResolver {
 
   private LogicalSchema handleStreamAggregate(
       final LogicalSchema schema,
-      final StreamAggregate step) {
-    return new AggregateParamsFactory().create(
+      final StreamAggregate step
+  ) {
+    return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        functionRegistry,
         step.getAggregationFunctions()
-    ).getSchema();
+    );
   }
 
   private LogicalSchema handleStreamWindowedAggregate(
       final LogicalSchema schema,
       final StreamWindowedAggregate step
   ) {
-    return new AggregateParamsFactory().create(
+    return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        functionRegistry,
         step.getAggregationFunctions()
-    ).getSchema();
+    );
   }
 
   private LogicalSchema handleStreamFlatMap(
@@ -198,14 +201,9 @@ public final class StepSchemaResolver {
 
   private LogicalSchema handleStreamSelect(
       final LogicalSchema schema,
-      final StreamSelect<?> streamSelect
+      final StreamSelect<?> step
   ) {
-    return Selection.of(
-        schema,
-        streamSelect.getSelectExpressions(),
-        ksqlConfig,
-        functionRegistry
-    ).getSchema();
+    return buildSelectSchema(schema, step.getSelectExpressions());
   }
 
   private LogicalSchema handleSelectKey(
@@ -213,7 +211,7 @@ public final class StepSchemaResolver {
       final StreamSelectKey step
   ) {
     final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(sourceSchema, functionRegistry);
+        new ExpressionTypeManager(sourceSchema, functionRegistry, true);
 
     final SqlType keyType = expressionTypeManager
         .getExpressionSqlType(step.getKeyExpression());
@@ -226,8 +224,16 @@ public final class StepSchemaResolver {
 
   private LogicalSchema handleSource(
       final LogicalSchema schema,
-      final AbstractStreamSource<?> step) {
-    return schema.withAlias(step.getAlias()).withMetaAndKeyColsInValue();
+      final AbstractStreamSource<?> step
+  ) {
+    return buildSourceSchema(schema, false, step.getAlias());
+  }
+
+  private LogicalSchema handleWindowedSource(
+      final LogicalSchema schema,
+      final AbstractStreamSource<?> step
+  ) {
+    return buildSourceSchema(schema, true, step.getAlias());
   }
 
   private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {
@@ -238,31 +244,61 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final TableAggregate step
   ) {
-    return new AggregateParamsFactory().create(
+    return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        functionRegistry,
         step.getAggregationFunctions()
-    ).getSchema();
+    );
   }
 
   private LogicalSchema handleTableSelect(
       final LogicalSchema schema,
       final TableSelect<?> step
   ) {
-    return Selection.of(
-        schema,
-        step.getSelectExpressions(),
-        ksqlConfig,
-        functionRegistry
-    ).getSchema();
+    return buildSelectSchema(schema, step.getSelectExpressions());
   }
 
   private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep<?> step) {
     return schema;
   }
 
+  private LogicalSchema buildSourceSchema(
+      final LogicalSchema schema,
+      final boolean windowed,
+      final SourceName alias
+  ) {
+    return schema
+        .withAlias(alias)
+        .withMetaAndKeyColsInValue(windowed);
+  }
+
+  private LogicalSchema buildSelectSchema(
+      final LogicalSchema schema,
+      final List<SelectExpression> selectExpressions
+  ) {
+    return Selection.of(
+        schema,
+        selectExpressions,
+        ksqlConfig,
+        functionRegistry
+    ).getSchema();
+  }
+
+  private LogicalSchema buildAggregateSchema(
+      final LogicalSchema schema,
+      final List<ColumnRef> nonAggregateColumns,
+      final List<FunctionCall> aggregationFunctions
+  ) {
+    return new AggregateParamsFactory().create(
+        schema,
+        nonAggregateColumns,
+        functionRegistry,
+        aggregationFunctions
+    ).getSchema();
+  }
+
   private static final class JoinSchemas {
+
     private final LogicalSchema left;
     private final LogicalSchema right;
 

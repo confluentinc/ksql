@@ -50,7 +50,8 @@ public class SelectionTest {
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
-      .build().withAlias(SourceName.of("TEST")).withMetaAndKeyColsInValue();
+      .build().withAlias(SourceName.of("TEST"))
+      .withMetaAndKeyColsInValue(false);
 
   private static final SourceName TEST = SourceName.of("TEST");
 

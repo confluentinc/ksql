@@ -105,8 +105,10 @@ public class SourceBuilderTest {
       .build();
   private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
   private static final SourceName ALIAS = SourceName.of("alias");
-  private static final LogicalSchema SCHEMA =
-      SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
+
+  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
+      .withMetaAndKeyColsInValue(false)
+      .withAlias(ALIAS);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 

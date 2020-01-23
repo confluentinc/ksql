@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -41,7 +43,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Schema;
@@ -78,15 +79,14 @@ public class CodeGenRunner {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+    this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.schema = requireNonNull(schema, "schema");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
   }
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
-    final Visitor visitor =
-        new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
+    final Visitor visitor = new Visitor();
 
     visitor.process(expression, null);
     return visitor.spec.build();
@@ -132,22 +132,11 @@ public class CodeGenRunner {
     }
   }
 
-  private static final class Visitor extends TraversalExpressionVisitor<Void> {
+  private final class Visitor extends TraversalExpressionVisitor<Void> {
 
     private final CodeGenSpec.Builder spec;
-    private final LogicalSchema schema;
-    private final FunctionRegistry functionRegistry;
-    private final ExpressionTypeManager expressionTypeManager;
-    private final KsqlConfig ksqlConfig;
 
-    private Visitor(
-        final LogicalSchema schema, final FunctionRegistry functionRegistry,
-        final ExpressionTypeManager expressionTypeManager, final KsqlConfig ksqlConfig
-    ) {
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.functionRegistry = functionRegistry;
-      this.expressionTypeManager = expressionTypeManager;
+    private Visitor() {
       this.spec = new CodeGenSpec.Builder();
     }
 

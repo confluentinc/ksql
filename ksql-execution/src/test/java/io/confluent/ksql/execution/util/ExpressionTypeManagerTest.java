@@ -106,7 +106,7 @@ public class ExpressionTypeManagerTest {
 
   @Before
   public void init() {
-    expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
+    expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry, true);
 
     final UdfFactory internalFactory = mock(UdfFactory.class);
     final UdfMetadata metadata = mock(UdfMetadata.class);
@@ -467,7 +467,7 @@ public class ExpressionTypeManagerTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(TEST1, COL0, SqlTypes.array(SqlTypes.INTEGER))
         .build();
-    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
 
     final Expression exp = new CreateStructExpression(ImmutableList.of(
         new Field("field1", new StringLiteral("foo")),
@@ -496,7 +496,7 @@ public class ExpressionTypeManagerTest {
         .valueColumn(TEST1, COL0, SqlTypes.array(inner))
         .build();
 
-    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
 
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
@@ -523,7 +523,7 @@ public class ExpressionTypeManagerTest {
         .valueColumn(TEST1, COL0, inner)
         .build();
 
-    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
 
     final Expression structRef = new DereferenceExpression(
         Optional.empty(),

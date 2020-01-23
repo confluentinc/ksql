@@ -16,10 +16,10 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlConstants;
@@ -67,7 +67,7 @@ class ExpressionAnalyzer {
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
       final ColumnRef reference = node.getReference();

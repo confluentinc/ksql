@@ -23,7 +23,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -213,7 +213,7 @@ public class QueryAnalyzer {
           "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
     }
 
-    final SetView<AbstractColumnReferenceExp> unmatchedSelectsAgg = Sets
+    final SetView<ColumnReferenceExp> unmatchedSelectsAgg = Sets
         .difference(aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
     if (!unmatchedSelectsAgg.isEmpty()) {
       throw new KsqlException(
@@ -221,10 +221,10 @@ public class QueryAnalyzer {
               + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
     }
 
-    final Set<AbstractColumnReferenceExp> havingColumns = aggregateAnalysis
+    final Set<ColumnReferenceExp> havingColumns = aggregateAnalysis
         .getNonAggregateHavingFields();
 
-    final Set<AbstractColumnReferenceExp> havingOnly = Sets.difference(havingColumns, groupByExprs);
+    final Set<ColumnReferenceExp> havingOnly = Sets.difference(havingColumns, groupByExprs);
     if (!havingOnly.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);

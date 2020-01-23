@@ -37,7 +37,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -1081,7 +1081,7 @@ public class CodeGenRunnerTest {
                     final QualifiedColumnReferenceExp node,
                     final Context<Void> ctx
                 ) {
-                    return Optional.of(new ColumnReferenceExp(node.getReference()));
+                    return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
                 }
             }::process
         );

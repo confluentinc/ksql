@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
@@ -52,12 +52,12 @@ public class SelectionTest {
       .build().withMetaAndKeyColsInValue();
 
   private static final Expression EXPRESSION1 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("GIRAFFE")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("GIRAFFE")));
 
   private static final Expression EXPRESSION2 = new ArithmeticBinaryExpression(
       Operator.ADD,
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("MANATEE"))),
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("RACCOON")))
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("MANATEE"))),
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("RACCOON")))
   );
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
       SelectExpression.of(ColumnName.of("FOO"), EXPRESSION1),

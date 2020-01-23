@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,7 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExpressionAnalyzerTest {
 
-  private static final Expression WINDOW_START_EXP = new ColumnReferenceExp(
+  private static final Expression WINDOW_START_EXP = new UnqualifiedColumnReferenceExp(
       ColumnRef.of(SchemaUtil.WINDOWSTART_NAME)
   );
 
@@ -122,7 +121,7 @@ public class ExpressionAnalyzerTest {
   @Test
   public void shouldThrowOnMultipleSources() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
+    final Expression expression = new UnqualifiedColumnReferenceExp(
         ColumnRef.of(ColumnName.of("just-name"))
     );
 
@@ -165,7 +164,7 @@ public class ExpressionAnalyzerTest {
   @Test
   public void shouldThrowOnNoSources() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
+    final Expression expression = new UnqualifiedColumnReferenceExp(
         ColumnRef.of(ColumnName.of("just-name"))
     );
 

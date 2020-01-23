@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.expression.formatter;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -27,7 +26,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -99,7 +98,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateArrayExpression(ImmutableList.of(
             new StringLiteral("foo"),
-            new SubscriptExpression(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
         )),
         equalTo("ARRAY['foo', abc[1]]")
     );
@@ -109,7 +108,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatCreateMapExpression() {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateMapExpression(ImmutableMap.<Expression, Expression>builder()
-            .put(new StringLiteral("foo"), new SubscriptExpression(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            .put(new StringLiteral("foo"), new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
             .put(new StringLiteral("bar"), new StringLiteral("val"))
             .build()
         )),
@@ -122,7 +121,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
         ImmutableList.of(
             new Field("foo", new StringLiteral("abc")),
-            new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1))))
+            new Field("bar", new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1))))
         ), FormatOptions.of(exp -> exp.equals("foo"))),
         equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
   }
@@ -180,7 +179,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatColumnReference() {
-    assertThat(ExpressionFormatter.formatExpression(new ColumnReferenceExp(ColumnRef.of(
+    assertThat(ExpressionFormatter.formatExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(
         ColumnName.of("name")))), equalTo("name"));
   }
 

@@ -17,8 +17,8 @@ package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -111,13 +111,13 @@ public class StatementRewriteForRowtime {
     }
   }
 
-  private static boolean refIsRowtime(final AbstractColumnReferenceExp node) {
+  private static boolean refIsRowtime(final ColumnReferenceExp node) {
     return node.getReference().name().equals(SchemaUtil.ROWTIME_NAME);
   }
 
   private static boolean expressionIsRowtime(final Expression node) {
-    return (node instanceof AbstractColumnReferenceExp)
-        && refIsRowtime((AbstractColumnReferenceExp) node);
+    return (node instanceof ColumnReferenceExp)
+        && refIsRowtime((ColumnReferenceExp) node);
   }
 
   private LongLiteral rewriteTimestamp(final String timestamp) {

@@ -23,11 +23,11 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -72,7 +72,7 @@ public class AggregateNode extends PlanNode {
   private final Optional<WindowExpression> windowExpression;
   private final ImmutableList<Expression> aggregateFunctionArguments;
   private final ImmutableList<FunctionCall> functionList;
-  private final ImmutableList<AbstractColumnReferenceExp> requiredColumns;
+  private final ImmutableList<ColumnReferenceExp> requiredColumns;
   private final ImmutableList<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
@@ -86,7 +86,7 @@ public class AggregateNode extends PlanNode {
       final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
-      final List<AbstractColumnReferenceExp> requiredColumns,
+      final List<ColumnReferenceExp> requiredColumns,
       final List<Expression> finalSelectExpressions,
       final Expression havingExpressions
   ) {
@@ -146,7 +146,7 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public List<AbstractColumnReferenceExp> getRequiredColumns() {
+  public List<ColumnReferenceExp> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -226,8 +226,8 @@ public class AggregateNode extends PlanNode {
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
     final List<ColumnRef> requiredColumnRefs = requiredColumns.stream()
-        .map(e -> (ColumnReferenceExp) internalSchema.resolveToInternal(e))
-        .map(ColumnReferenceExp::getReference)
+        .map(e -> (UnqualifiedColumnReferenceExp) internalSchema.resolveToInternal(e))
+        .map(UnqualifiedColumnReferenceExp::getReference)
         .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
         requiredColumnRefs,
@@ -267,7 +267,7 @@ public class AggregateNode extends PlanNode {
     private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
-        final List<AbstractColumnReferenceExp> requiredColumns,
+        final List<ColumnReferenceExp> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);
@@ -300,15 +300,16 @@ public class AggregateNode extends PlanNode {
       final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable);
 
       final Function<Expression, Expression> mapper = e -> {
-        final boolean rowKey = e instanceof ColumnReferenceExp
-            && ((ColumnReferenceExp) e).getReference().name().equals(SchemaUtil.ROWKEY_NAME);
+        final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
+            && ((UnqualifiedColumnReferenceExp) e).getReference().name().equals(
+                SchemaUtil.ROWKEY_NAME);
 
         if (!rowKey || !specialRowTimeHandling) {
           return resolveToInternal(e);
         }
 
-        final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
-        return new ColumnReferenceExp(
+        final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) e;
+        return new UnqualifiedColumnReferenceExp(
             nameRef.getLocation(),
             nameRef.getReference()
         );
@@ -364,7 +365,7 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final ColumnName name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
-        return new ColumnReferenceExp(
+        return new UnqualifiedColumnReferenceExp(
             exp.getLocation(),
             ColumnRef.of(name));
       }
@@ -380,14 +381,14 @@ public class AggregateNode extends PlanNode {
 
       @Override
       public Optional<Expression> visitColumnReference(
-          final ColumnReferenceExp node,
+          final UnqualifiedColumnReferenceExp node,
           final Context<Void> context
       ) {
         // internal names are source-less
         final ColumnName name = expressionToInternalColumnName.get(node.toString());
         if (name != null) {
           return Optional.of(
-              new ColumnReferenceExp(
+              new UnqualifiedColumnReferenceExp(
                   node.getLocation(),
                   ColumnRef.of(name)));
         }

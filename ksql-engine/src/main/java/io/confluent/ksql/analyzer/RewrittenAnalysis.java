@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -22,6 +22,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -77,7 +78,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Set<ColumnRef> getSelectColumnRefs() {
-    return original.getSelectColumnRefs();
+    return original.getSelectColumnRefs().stream()
+        .map(UnqualifiedColumnReferenceExp::new)
+        .map(r -> ExpressionTreeRewriter.rewriteWith(rewriter, r))
+        .map(UnqualifiedColumnReferenceExp::getReference)
+        .collect(Collectors.toSet());
   }
 
   @Override
@@ -102,7 +107,14 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<JoinInfo> getJoin() {
-    return original.getJoin();
+    return original.getJoin().map(
+        j -> new JoinInfo(
+            ExpressionTreeRewriter.rewriteWith(rewriter, j.getLeftJoinExpression()),
+            ExpressionTreeRewriter.rewriteWith(rewriter, j.getRightJoinExpression()),
+            j.getType(),
+            j.getWithinExpression()
+        )
+    );
   }
 
   @Override

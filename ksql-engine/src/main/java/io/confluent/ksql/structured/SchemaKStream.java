@@ -21,9 +21,9 @@ import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -177,8 +177,8 @@ public class SchemaKStream<K> {
       final ColumnName toName = selectExpression.getAlias();
       final Expression toExpression = selectExpression.getExpression();
 
-      if (toExpression instanceof ColumnReferenceExp) {
-        final ColumnReferenceExp nameRef = (ColumnReferenceExp) toExpression;
+      if (toExpression instanceof UnqualifiedColumnReferenceExp) {
+        final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) toExpression;
 
         if (keyColumnRef.equals(nameRef.getReference())) {
           found = Optional.of(Column.legacyKeyFieldColumn(toName, SqlTypes.STRING));
@@ -351,21 +351,21 @@ public class SchemaKStream<K> {
   }
 
   private KeyField getNewKeyField(final Expression expression) {
-    if (!(expression instanceof ColumnReferenceExp)) {
+    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
       return KeyField.none();
     }
 
-    final ColumnRef columnRef = ((ColumnReferenceExp) expression).getReference();
+    final ColumnRef columnRef = ((UnqualifiedColumnReferenceExp) expression).getReference();
     final KeyField newKeyField = isRowKey(columnRef) ? keyField : KeyField.of(columnRef);
     return getSchema().isMetaColumn(columnRef.name()) ? KeyField.none() : newKeyField;
   }
 
   protected boolean needsRepartition(final Expression expression) {
-    if (!(expression instanceof ColumnReferenceExp)) {
+    if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
       return true;
     }
 
-    final ColumnRef columnRef = ((ColumnReferenceExp) expression).getReference();
+    final ColumnRef columnRef = ((UnqualifiedColumnReferenceExp) expression).getReference();
     final Optional<Column> existingKey = keyField.resolve(getSchema());
 
     final Column proposedKey = getSchema()
@@ -390,8 +390,8 @@ public class SchemaKStream<K> {
   }
 
   private static ColumnName fieldNameFromExpression(final Expression expression) {
-    if (expression instanceof ColumnReferenceExp) {
-      final ColumnReferenceExp nameRef = (ColumnReferenceExp) expression;
+    if (expression instanceof UnqualifiedColumnReferenceExp) {
+      final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) expression;
       return nameRef.getReference().name();
     }
     return null;
@@ -517,8 +517,9 @@ public class SchemaKStream<K> {
   }
 
   static ColumnRef groupedKeyNameFor(final List<Expression> groupByExpressions) {
-    if (groupByExpressions.size() == 1 && groupByExpressions.get(0) instanceof ColumnReferenceExp) {
-      return ((ColumnReferenceExp) groupByExpressions.get(0)).getReference();
+    if (groupByExpressions.size() == 1
+        && groupByExpressions.get(0) instanceof UnqualifiedColumnReferenceExp) {
+      return ((UnqualifiedColumnReferenceExp) groupByExpressions.get(0)).getReference();
     }
 
     // this is safe because if we group by multiple fields the original field

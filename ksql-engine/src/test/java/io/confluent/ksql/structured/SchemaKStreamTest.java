@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -79,7 +79,7 @@ public class SchemaKStreamTest {
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final Expression COL1 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -400,7 +400,7 @@ public class SchemaKStreamTest {
         planNode.getId(),
         planNode,
         schemaKTable.schema,
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2"))),
         KeyField.none());
 
     // When:
@@ -450,7 +450,7 @@ public class SchemaKStreamTest {
         equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new ColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
+                new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
                 new LongLiteral(441763200000L)
             )
         )
@@ -493,7 +493,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -507,7 +507,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -517,7 +517,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
+                new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
             )
         )
     );
@@ -530,7 +530,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
         childContextStacker);
 
     // Then:
@@ -546,7 +546,7 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("won't find me"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("won't find me"))),
         childContextStacker);
 
     assertThat(rekeyedSchemaKStream.getKeyField(), is(validJoinKeyField));
@@ -558,7 +558,7 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = Collections.singletonList(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:
@@ -577,7 +577,7 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:
@@ -606,7 +606,7 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:
@@ -629,7 +629,7 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
     );
 
     // When:
@@ -659,7 +659,7 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")))
     );
 
     // When:
@@ -681,8 +681,8 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = ImmutableList.of(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:

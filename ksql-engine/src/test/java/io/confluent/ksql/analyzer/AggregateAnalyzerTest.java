@@ -31,7 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -48,14 +48,14 @@ public class AggregateAnalyzerTest {
   private static final QualifiedColumnReferenceExp DEFAULT_ARGUMENT =
       new QualifiedColumnReferenceExp(ORDERS, ColumnRef.of(SchemaUtil.ROWTIME_NAME));
 
-  private static final ColumnReferenceExp COL0 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
+  private static final UnqualifiedColumnReferenceExp COL0 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
 
-  private static final ColumnReferenceExp COL1 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
+  private static final UnqualifiedColumnReferenceExp COL1 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
 
-  private static final ColumnReferenceExp COL2 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+  private static final UnqualifiedColumnReferenceExp COL2 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
 
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(FunctionName.of("UCASE"),
       ImmutableList.of(COL0));

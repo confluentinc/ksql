@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -50,6 +49,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
@@ -192,7 +192,7 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
+        final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
       final Optional<Column> maybeColumn;
       if (referenceValueColumnsOnly) {

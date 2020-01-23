@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -182,7 +182,7 @@ public class SchemaKGroupedTableTest {
   private static FunctionCall udaf(final String name) {
     return new FunctionCall(
         FunctionName.of(name),
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
     );
   }
 }

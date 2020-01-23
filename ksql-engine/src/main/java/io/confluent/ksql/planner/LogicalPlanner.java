@@ -24,11 +24,11 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.analyzer.SourceSchemas;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
@@ -206,9 +206,10 @@ public class LogicalPlanner {
 
     final LogicalSchema schema = buildProjectionSchema(sourcePlanNode.getSchema(), projection);
 
-    final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
-        expression instanceof ColumnReferenceExp
-            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName),
+    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
+        (expression, alias) -> expression instanceof UnqualifiedColumnReferenceExp
+            && ((UnqualifiedColumnReferenceExp) expression).getReference().equals(
+                sourceKeyFieldName),
         projection
     );
 
@@ -235,10 +236,10 @@ public class LogicalPlanner {
   ) {
     final KeyField keyField;
 
-    if (!(partitionBy instanceof ColumnReferenceExp)) {
+    if (!(partitionBy instanceof UnqualifiedColumnReferenceExp)) {
       keyField = KeyField.none();
     } else {
-      final ColumnRef columnRef = ((ColumnReferenceExp) partitionBy).getReference();
+      final ColumnRef columnRef = ((UnqualifiedColumnReferenceExp) partitionBy).getReference();
       final LogicalSchema sourceSchema = sourceNode.getSchema();
 
       final Column proposedKey = sourceSchema
@@ -289,14 +290,13 @@ public class LogicalPlanner {
     // a no-op if a repartition is not required. if the source is a table, and
     // a repartition is needed, then an exception will be thrown
     final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
-        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(
-            Optional.empty()) {
+        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
           @Override
           public Optional<Expression> visitQualifiedColumnReference(
               final QualifiedColumnReferenceExp node,
               final Context<Void> ctx
           ) {
-            return Optional.of(new ColumnReferenceExp(node.getReference()));
+            return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
           }
         };
     final PlanNode repartition = buildRepartitionNode(
@@ -454,8 +454,9 @@ public class LogicalPlanner {
   ) {
     return schema.value().stream()
         .map(c -> SelectExpression.of(
-            ColumnName.generatedJoinColumnAlias(alias, c.ref()), new ColumnReferenceExp(c.ref())))
-        .collect(Collectors.toList());
+            ColumnName.generatedJoinColumnAlias(alias, c.ref()),
+            new UnqualifiedColumnReferenceExp(c.ref()))
+        ).collect(Collectors.toList());
   }
 
   private static final class ColumnReferenceRewriter
@@ -469,13 +470,13 @@ public class LogicalPlanner {
 
     @Override
     public Optional<Expression> visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Context<Void> ctx
     ) {
       if (sourceSchemas.isJoin()) {
         final SourceName sourceName =
             sourceSchemas.sourcesWithField(Optional.empty(), node.getReference()).iterator().next();
-        return Optional.of(new ColumnReferenceExp(
+        return Optional.of(new UnqualifiedColumnReferenceExp(
             ColumnRef.of(ColumnName.generatedJoinColumnAlias(sourceName, node.getReference()))
         ));
       }
@@ -488,13 +489,13 @@ public class LogicalPlanner {
         final Context<Void> ctx
     ) {
       if (sourceSchemas.isJoin()) {
-        return Optional.of(new ColumnReferenceExp(
+        return Optional.of(new UnqualifiedColumnReferenceExp(
             ColumnRef.of(
                 ColumnName.generatedJoinColumnAlias(node.getQualifier(), node.getReference())
             )
         ));
       } else {
-        return Optional.of(new ColumnReferenceExp(node.getReference()));
+        return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
       }
     }
   }
@@ -518,7 +519,7 @@ public class LogicalPlanner {
     }
 
     @Override
-    public List<AbstractColumnReferenceExp> getRequiredColumns() {
+    public List<ColumnReferenceExp> getRequiredColumns() {
       return rewriteList(original.getRequiredColumns());
     }
 
@@ -540,8 +541,8 @@ public class LogicalPlanner {
     }
 
     private Expression rewriteFinalSelectExpression(final Expression expression) {
-      if (expression instanceof ColumnReferenceExp
-          && ((ColumnReferenceExp) expression).getReference().name().isAggregate()) {
+      if (expression instanceof UnqualifiedColumnReferenceExp
+          && ((UnqualifiedColumnReferenceExp) expression).getReference().name().isAggregate()) {
         return expression;
       }
       return ExpressionTreeRewriter.rewriteWith(rewriter, expression);

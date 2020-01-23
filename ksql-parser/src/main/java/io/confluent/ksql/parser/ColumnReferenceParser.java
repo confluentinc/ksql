@@ -17,8 +17,8 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.ColumnReferenceContext;
@@ -65,8 +65,8 @@ public final class ColumnReferenceParser {
     throw new ParseFailedException("Cannot parse text that is not column reference: " + text);
   }
 
-  static ColumnReferenceExp resolve(final ColumnReferenceContext context) {
-    return new ColumnReferenceExp(
+  static UnqualifiedColumnReferenceExp resolve(final ColumnReferenceContext context) {
+    return new UnqualifiedColumnReferenceExp(
         getLocation(context),
         ColumnRef.of(
             ColumnName.of(ParserUtil.getIdentifierText(context.identifier()))

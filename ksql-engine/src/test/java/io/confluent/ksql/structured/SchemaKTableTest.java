@@ -38,7 +38,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -69,7 +69,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.name.ColumnName;
@@ -146,9 +145,9 @@ public class SchemaKTableTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private static final Expression TEST_2_COL_1 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
   private static final Expression TEST_2_COL_2 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
   private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
   private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -421,7 +420,7 @@ public class SchemaKTableTest {
         Matchers.equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new ColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
+                new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
                 new LongLiteral(441763200000L)
             )
         )
@@ -832,7 +831,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     final List<Expression> groupByExprs =  ImmutableList.of(
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:

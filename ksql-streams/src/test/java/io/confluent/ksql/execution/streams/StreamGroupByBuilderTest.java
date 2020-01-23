@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
@@ -291,6 +291,6 @@ public class StreamGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
+    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
   }
 }

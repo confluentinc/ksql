@@ -17,7 +17,6 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import java.util.Arrays;
 import java.util.Collection;

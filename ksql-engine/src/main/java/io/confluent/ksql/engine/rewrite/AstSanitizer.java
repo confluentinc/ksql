@@ -16,10 +16,10 @@
 package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -142,8 +142,8 @@ public final class AstSanitizer {
         } else {
           alias = name.name();
         }
-      } else if (expression instanceof ColumnReferenceExp) {
-        final ColumnRef name = ((ColumnReferenceExp) expression).getReference();
+      } else if (expression instanceof UnqualifiedColumnReferenceExp) {
+        final ColumnRef name = ((UnqualifiedColumnReferenceExp) expression).getReference();
         alias = name.name();
       } else if (expression instanceof DereferenceExpression) {
         final DereferenceExpression dereferenceExp = (DereferenceExpression) expression;
@@ -195,7 +195,7 @@ public final class AstSanitizer {
 
     @Override
     public Optional<Expression> visitColumnReference(
-        final ColumnReferenceExp expression,
+        final UnqualifiedColumnReferenceExp expression,
         final Context<Void> ctx) {
       final ColumnRef columnRef = expression.getReference();
       try {

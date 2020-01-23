@@ -117,7 +117,7 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
-  public R visitColumnReference(final ColumnReferenceExp node, final C context) {
+  public R visitColumnReference(final UnqualifiedColumnReferenceExp node, final C context) {
     return visitExpression(node, context);
   }
 

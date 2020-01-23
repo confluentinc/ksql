@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -54,6 +53,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -197,7 +197,10 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitColumnReference(final ColumnReferenceExp node, final Context context) {
+    public String visitColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Context context
+    ) {
       return node.getReference().toString(context.formatOptions);
     }
 

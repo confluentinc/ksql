@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -240,7 +240,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID), contains(ITEM_ID));
-    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new ColumnReferenceExp(
+    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new UnqualifiedColumnReferenceExp(
         ColumnRef.of(ColumnName.of("KSQL_AGG_VARIABLE_0"))))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(ORDER_UNITS)));
     assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
@@ -385,7 +385,7 @@ public class QueryAnalyzerFunctionalTest {
     final Expression havingExpression = aggregateAnalysis.getHavingExpression().get();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("KSQL_AGG_VARIABLE_1"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("KSQL_AGG_VARIABLE_1"))),
         new IntegerLiteral(10))));
   }
 

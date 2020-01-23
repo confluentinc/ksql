@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -73,11 +73,11 @@ public class SqlPredicateTest {
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
       .build();
 
-  private static final ColumnReferenceExp COL0 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
+  private static final UnqualifiedColumnReferenceExp COL0 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
 
-  private static final ColumnReferenceExp COL2 =
-      new ColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+  private static final UnqualifiedColumnReferenceExp COL2 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
 
   private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
       SqlTypes.INTEGER,

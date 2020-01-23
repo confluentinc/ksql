@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -678,7 +678,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteColumnReference() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of(
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
         ColumnName.of("foo")));
 
     // When:
@@ -691,7 +691,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteColumnReferenceUsingPlugin() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of(
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
         ColumnName.of("foo")));
 
     // When/Then:

@@ -1,6 +1,6 @@
 package io.confluent.ksql.execution.testutil;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.name.ColumnName;
@@ -35,17 +35,17 @@ public final class TestExpressions {
       .valueColumn(ColumnName.of("COL9"), SqlTypes.decimal(2, 1))
       .build();
 
-  public static final ColumnReferenceExp COL0 = columnRef("COL0");
-  public static final ColumnReferenceExp COL1 = columnRef("COL1");
-  public static final ColumnReferenceExp COL2 = columnRef("COL2");
-  public static final ColumnReferenceExp COL3 = columnRef("COL3");
-  public static final ColumnReferenceExp ADDRESS = columnRef("COL6");
-  public static final ColumnReferenceExp ARRAYCOL = columnRef("COL4");
-  public static final ColumnReferenceExp MAPCOL = columnRef("COL5");
-  public static final ColumnReferenceExp COL7 = columnRef("COL7");
+  public static final UnqualifiedColumnReferenceExp COL0 = columnRef("COL0");
+  public static final UnqualifiedColumnReferenceExp COL1 = columnRef("COL1");
+  public static final UnqualifiedColumnReferenceExp COL2 = columnRef("COL2");
+  public static final UnqualifiedColumnReferenceExp COL3 = columnRef("COL3");
+  public static final UnqualifiedColumnReferenceExp ADDRESS = columnRef("COL6");
+  public static final UnqualifiedColumnReferenceExp ARRAYCOL = columnRef("COL4");
+  public static final UnqualifiedColumnReferenceExp MAPCOL = columnRef("COL5");
+  public static final UnqualifiedColumnReferenceExp COL7 = columnRef("COL7");
 
-  private static ColumnReferenceExp columnRef(final String name) {
-    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(name)));
+  private static UnqualifiedColumnReferenceExp columnRef(final String name) {
+    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(name)));
   }
 
   public static Expression literal(final int value) {

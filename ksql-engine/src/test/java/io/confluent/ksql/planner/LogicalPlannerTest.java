@@ -22,11 +22,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -143,7 +141,7 @@ public class LogicalPlannerTest {
   private static SelectExpression selectCol(final String column, final String alias) {
     return SelectExpression.of(
         ColumnName.of(alias),
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of(column)))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column)))
     );
   }
 
@@ -209,8 +207,8 @@ public class LogicalPlannerTest {
     assertThat(filter.getPredicate(), equalTo(
         new ComparisonExpression(
             Type.EQUAL,
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))),
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of("T2_COL1"))))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T2_COL1"))))
     ));
   }
 
@@ -226,7 +224,7 @@ public class LogicalPlannerTest {
     final RepartitionNode repart = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
     assertThat(
         repart.getPartitionBy(),
-        equalTo(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))))
+        equalTo(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))))
     );
   }
 

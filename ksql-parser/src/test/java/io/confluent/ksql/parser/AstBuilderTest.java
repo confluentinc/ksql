@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -493,8 +493,8 @@ public class AstBuilderTest {
     return statements.get(0).getStatement();
   }
 
-  private static ColumnReferenceExp column(final String fieldName) {
-    return new ColumnReferenceExp(ColumnRef.of(ColumnName.of(fieldName)));
+  private static UnqualifiedColumnReferenceExp column(final String fieldName) {
+    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(fieldName)));
   }
 
   private static QualifiedColumnReferenceExp column(

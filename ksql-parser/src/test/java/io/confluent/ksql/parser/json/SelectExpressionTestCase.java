@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -39,7 +39,7 @@ public class SelectExpressionTestCase {
       ColumnName.of("TEST"),
       new DereferenceExpression(
           Optional.empty(),
-          new ColumnReferenceExp(ColumnRef.of(ColumnName.of("STREAM"))),
+          new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("STREAM"))),
           "foo"
       )
   );

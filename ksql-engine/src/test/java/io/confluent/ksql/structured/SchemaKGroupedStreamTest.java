@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -68,7 +68,7 @@ public class SchemaKGroupedStreamTest {
       .build();
   private static final FunctionCall AGG = new FunctionCall(
       FunctionName.of("SUM"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
   );
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS

@@ -21,7 +21,7 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import java.util.Optional;
 
-public class QualifiedColumnReferenceExp extends AbstractColumnReferenceExp {
+public class QualifiedColumnReferenceExp extends ColumnReferenceExp {
   private final SourceName qualifier;
 
   public QualifiedColumnReferenceExp(final SourceName qualifier, final ColumnRef name) {

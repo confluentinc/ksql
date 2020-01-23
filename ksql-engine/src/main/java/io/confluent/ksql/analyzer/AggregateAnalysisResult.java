@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.List;
@@ -31,7 +31,7 @@ public interface AggregateAnalysisResult {
    *
    * @return the full set of columns from the source schema that are required.
    */
-  List<AbstractColumnReferenceExp> getRequiredColumns();
+  List<ColumnReferenceExp> getRequiredColumns();
 
   List<FunctionCall> getAggregateFunctions();
 

@@ -22,9 +22,9 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
@@ -152,7 +152,9 @@ public class FlatMapNode extends PlanNode {
       if (functionRegistry.isTableFunction(functionName)) {
         final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;
-        return Optional.of(new ColumnReferenceExp(node.getLocation(), ColumnRef.of(varName)));
+        return Optional.of(
+            new UnqualifiedColumnReferenceExp(node.getLocation(), ColumnRef.of(varName))
+        );
       } else {
         final List<Expression> arguments = new ArrayList<>();
         for (final Expression argExpression : node.getArguments()) {

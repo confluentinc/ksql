@@ -33,7 +33,6 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -43,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.Locator;
@@ -407,7 +407,7 @@ public final class PullQueryExecutor {
 
   private static Type getSimplifiedBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
-    final boolean inverted = comparison.getRight() instanceof ColumnReferenceExp;
+    final boolean inverted = comparison.getRight() instanceof UnqualifiedColumnReferenceExp;
 
     switch (type) {
       case LESS_THAN:
@@ -460,7 +460,7 @@ public final class PullQueryExecutor {
   }
 
   private static Expression getNonColumnRefSide(final ComparisonExpression comparison) {
-    return comparison.getRight() instanceof ColumnReferenceExp
+    return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
   }
@@ -529,11 +529,11 @@ public final class PullQueryExecutor {
   }
 
   private static ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
-    final ColumnReferenceExp column;
-    if (comparison.getRight() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getRight();
-    } else if (comparison.getLeft() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getLeft();
+    final UnqualifiedColumnReferenceExp column;
+    if (comparison.getRight() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getRight();
+    } else if (comparison.getLeft() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getLeft();
     } else {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
@@ -838,7 +838,7 @@ public final class PullQueryExecutor {
         final QualifiedColumnReferenceExp node,
         final Context<Void> ctx
     ) {
-      return Optional.of(new ColumnReferenceExp(node.getReference()));
+      return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
     }
   }
 }

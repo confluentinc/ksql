@@ -16,12 +16,12 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.AbstractColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
@@ -48,7 +48,7 @@ class AggregateAnalyzer {
   }
 
   void processSelect(final Expression expression) {
-    final Set<AbstractColumnReferenceExp> nonAggParams = new HashSet<>();
+    final Set<ColumnReferenceExp> nonAggParams = new HashSet<>();
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
       if (!aggFuncName.isPresent()) {
         nonAggParams.add(node);
@@ -86,13 +86,13 @@ class AggregateAnalyzer {
 
   private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
-    private final BiConsumer<Optional<FunctionName>, AbstractColumnReferenceExp>
+    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp>
         dereferenceCollector;
     private Optional<FunctionName> aggFunctionName = Optional.empty();
     private boolean visitedAggFunction = false;
 
     private AggregateVisitor(
-        final BiConsumer<Optional<FunctionName>, AbstractColumnReferenceExp> dereferenceCollector
+        final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector
     ) {
       this.dereferenceCollector =
           Objects.requireNonNull(dereferenceCollector, "dereferenceCollector");
@@ -131,7 +131,7 @@ class AggregateAnalyzer {
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);

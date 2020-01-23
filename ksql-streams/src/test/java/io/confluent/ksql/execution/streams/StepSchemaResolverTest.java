@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -238,7 +238,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
@@ -271,7 +271,7 @@ public class StepSchemaResolverTest {
   public void shouldResolveSchemaForStreamSelectKey() {
     // Given:
     final Expression keyExpression =
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of("ORANGE")));
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ORANGE")));
 
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
@@ -358,7 +358,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
@@ -474,7 +474,7 @@ public class StepSchemaResolverTest {
     return new FunctionCall(
         FunctionName.of(name),
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of(column))))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column))))
     );
   }
 
@@ -483,8 +483,8 @@ public class StepSchemaResolverTest {
         ColumnName.of(alias),
         new ArithmeticBinaryExpression(
             Operator.ADD,
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of(col1))),
-            new ColumnReferenceExp(ColumnRef.of(ColumnName.of(col2)))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col1))),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col2)))
         )
     );
   }
@@ -492,7 +492,7 @@ public class StepSchemaResolverTest {
   private static SelectExpression ref(final String alias, final String col) {
     return SelectExpression.of(
         ColumnName.of(alias),
-        new ColumnReferenceExp(ColumnRef.of(ColumnName.of(col)))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col)))
     );
   }
 }

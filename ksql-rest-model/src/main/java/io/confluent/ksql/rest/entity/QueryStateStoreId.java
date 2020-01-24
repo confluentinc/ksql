@@ -13,8 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Preconditions;
 import java.util.Objects;
 
@@ -22,27 +24,28 @@ import java.util.Objects;
  * This represents a unique store in the system and the basis for getting lag information from
  * KafkaStreams, exposed by the QueryMetadata.
  */
-public final class LagInfoKey {
+public final class QueryStateStoreId {
   private static final String SEPARATOR = "$";
 
   private final String queryApplicationId;
   private final String stateStoreName;
 
-  public static LagInfoKey of(final String queryApplicationId, final String stateStoreName) {
-    return new LagInfoKey(queryApplicationId, stateStoreName);
+  public static QueryStateStoreId of(final String queryApplicationId, final String stateStoreName) {
+    return new QueryStateStoreId(queryApplicationId, stateStoreName);
   }
 
-  public static LagInfoKey of(final String serializedKey) {
-    return new LagInfoKey(serializedKey);
+  public static QueryStateStoreId of(final String serializedKey) {
+    return new QueryStateStoreId(serializedKey);
   }
 
-  private LagInfoKey(final String queryApplicationId, final String stateStoreName) {
+  private QueryStateStoreId(final String queryApplicationId, final String stateStoreName) {
     this.queryApplicationId = queryApplicationId;
     this.stateStoreName = stateStoreName;
   }
 
-  private LagInfoKey(final String serializedKey) {
-    final String [] parts = serializedKey.split("\\" + SEPARATOR);
+  @JsonCreator
+  public QueryStateStoreId(final String serializedPair) {
+    final String [] parts = serializedPair.split("\\" + SEPARATOR);
     Preconditions.checkArgument(parts.length == 2);
     this.queryApplicationId = Objects.requireNonNull(parts[0]);
     this.stateStoreName = Objects.requireNonNull(parts[1]);
@@ -58,7 +61,7 @@ public final class LagInfoKey {
       return false;
     }
 
-    final LagInfoKey that = (LagInfoKey) o;
+    final QueryStateStoreId that = (QueryStateStoreId) o;
     return Objects.equals(queryApplicationId, that.queryApplicationId)
         && Objects.equals(stateStoreName, that.stateStoreName);
   }
@@ -68,6 +71,7 @@ public final class LagInfoKey {
     return Objects.hash(queryApplicationId, stateStoreName);
   }
 
+  @JsonValue
   @Override
   public String toString() {
     return queryApplicationId + SEPARATOR + stateStoreName;

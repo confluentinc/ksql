@@ -25,16 +25,17 @@ import java.util.Objects;
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClusterLagsResponse {
-  private final Map<String, Map<String, Map<Integer, LagInfoEntity>>> lags;
+  private final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags;
 
   @JsonCreator
   public ClusterLagsResponse(
-      @JsonProperty("lags") final Map<String, Map<String, Map<Integer, LagInfoEntity>>> lags
+      @JsonProperty("lags")
+      final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags
   ) {
     this.lags = lags;
   }
 
-  public Map<String, Map<String, Map<Integer, LagInfoEntity>>> getLags() {
+  public Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> getLags() {
     return lags;
   }
 

@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
@@ -144,11 +145,11 @@ public class QueryMetadata {
     return ImmutableList.of();
   }
 
-  public Map<LagInfoKey, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
-    Map<LagInfoKey, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
+  public Map<QueryStateStoreId, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
+    Map<QueryStateStoreId, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
     try {
       storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags().entrySet().stream()
-          .map(e -> Pair.of(LagInfoKey.of(getQueryApplicationId(), e.getKey()), e.getValue()))
+          .map(e -> Pair.of(QueryStateStoreId.of(getQueryApplicationId(), e.getKey()), e.getValue()))
           .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     } catch (IllegalStateException | StreamsException e) {
       LOG.error(e.getMessage());

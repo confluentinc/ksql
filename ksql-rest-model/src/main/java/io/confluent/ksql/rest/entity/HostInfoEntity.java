@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -26,13 +28,20 @@ public class HostInfoEntity {
   private final String host;
   private final int port;
 
-  @JsonCreator
   public HostInfoEntity(
-      @JsonProperty("host") final String host,
-      @JsonProperty("port") final int port
+      final String host,
+      final int port
   ) {
     this.host = Objects.requireNonNull(host, "host");
     this.port = Objects.requireNonNull(port, "port");
+  }
+
+  @JsonCreator
+  public HostInfoEntity(final String serializedPair) {
+    final String [] parts = serializedPair.split(":");
+    Preconditions.checkArgument(parts.length == 2);
+    this.host = Objects.requireNonNull(parts[0], "host");
+    this.port = Integer.parseInt(parts[1]);
   }
 
   public String getHost() {
@@ -63,8 +72,9 @@ public class HostInfoEntity {
     return Objects.hash(host, port);
   }
 
+  @JsonValue
   @Override
   public String toString() {
-    return host + "," + port;
+    return host + ":" + port;
   }
 }

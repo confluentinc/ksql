@@ -16,12 +16,10 @@
 package io.confluent.ksql.parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import java.util.Optional;
 import org.junit.Test;
 
 public class ColumnReferenceParserTest {

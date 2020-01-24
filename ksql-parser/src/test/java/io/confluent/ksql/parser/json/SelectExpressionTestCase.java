@@ -16,9 +16,9 @@
 package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;

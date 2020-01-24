@@ -37,7 +37,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -58,6 +57,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -657,7 +657,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(new BigDecimal(COL3)) == 0))"));
+    assertThat(java, containsString("(COL8.compareTo(BigDecimal.valueOf(COL3)) == 0))"));
   }
 
   @Test
@@ -673,7 +673,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(new BigDecimal(COL3).compareTo(COL8) == 0))"));
+    assertThat(java, containsString("(BigDecimal.valueOf(COL3).compareTo(COL8) == 0))"));
   }
 
   @Test

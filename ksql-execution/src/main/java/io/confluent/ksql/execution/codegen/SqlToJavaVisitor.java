@@ -460,11 +460,14 @@ public class SqlToJavaVisitor {
     }
 
     private String toDecimal(final SqlType schema, final int index) {
-      if (schema.baseType() == SqlBaseType.DECIMAL) {
-        return "%" + index + "$s";
+      switch (schema.baseType()) {
+        case DECIMAL:
+          return "%" + index + "$s";
+        case DOUBLE:
+          return "BigDecimal.valueOf(%" + index + "$s)";
+        default:
+          return "new BigDecimal(%" + index + "$s)";
       }
-
-      return "new BigDecimal(%" + index + "$s)";
     }
 
     private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {

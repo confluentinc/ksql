@@ -22,28 +22,24 @@ import static io.confluent.ksql.api.server.ServerUtils.handleError;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpConnection;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * Handles requests to the query-stream endpoint
  */
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
-  static final String JSON_CONTENT_TYPE = "application/json";
   static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
 
   private final Endpoints endpoints;
-  private final Server server;
-  private final Map<HttpConnection, ConnectionQueries> connectionsMap;
+  private final ConnectionQueryManager connectionQueryManager;
 
-  public QueryStreamHandler(final Endpoints endpoints, final Server server,
-      final Map<HttpConnection, ConnectionQueries> connectionsMap) {
-    this.endpoints = endpoints;
-    this.server = server;
-    this.connectionsMap = connectionsMap;
+  public QueryStreamHandler(final Endpoints endpoints,
+      final ConnectionQueryManager connectionQueryManager) {
+    this.endpoints = Objects.requireNonNull(endpoints);
+    this.connectionQueryManager = Objects.requireNonNull(connectionQueryManager);
   }
 
   @Override
@@ -79,17 +75,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response(),
         queryStreamResponseWriter);
 
-    final HttpConnection conn = routingContext.request().connection();
-    ConnectionQueries connectionQueries = connectionsMap.get(conn);
-    if (connectionQueries == null) {
-      connectionQueries = new ConnectionQueries(conn, server, connectionsMap);
-      connectionsMap.put(conn, connectionQueries);
-    }
-    final ApiQuery query = new ApiQuery(server, connectionQueries, querySubscriber);
+    final PushQueryHolder query = connectionQueryManager
+        .createApiQuery(querySubscriber, routingContext.request());
+
     final JsonObject metadata = new JsonObject();
     metadata.put("columnNames", queryPublisher.getColumnNames());
     metadata.put("columnTypes", queryPublisher.getColumnTypes());
-    metadata.put("queryID", query.getId().toString());
+    metadata.put("queryId", query.getId().toString());
     if (!push) {
       metadata.put("rowCount", queryPublisher.getRowCount());
     }

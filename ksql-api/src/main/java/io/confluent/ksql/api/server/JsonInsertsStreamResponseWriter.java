@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 
 /**
  * Writes the inserts response stream in JSON format.
@@ -39,7 +40,7 @@ public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWri
   private boolean dataWritten;
 
   public JsonInsertsStreamResponseWriter(final HttpServerResponse response) {
-    this.response = response;
+    this.response = Objects.requireNonNull(response);
   }
 
   @Override

@@ -44,7 +44,7 @@ public class Server {
   private final JsonObject config;
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
-  private final Map<String, ApiQuery> queries = new ConcurrentHashMap<>();
+  private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
 
@@ -93,7 +93,7 @@ public class Server {
     }
   }
 
-  void registerQuery(final ApiQuery query) {
+  void registerQuery(final PushQueryHolder query) {
     Objects.requireNonNull(query);
     if (queries.putIfAbsent(query.getId(), query) != null) {
       // It should never happen
@@ -102,11 +102,11 @@ public class Server {
     }
   }
 
-  ApiQuery removeQuery(final String queryID) {
-    return queries.remove(queryID);
+  PushQueryHolder removeQuery(final PushQueryId queryId) {
+    return queries.remove(queryId);
   }
 
-  public Set<String> getQueryIDs() {
+  public Set<PushQueryId> getQueryIDs() {
     return new HashSet<>(queries.keySet());
   }
 

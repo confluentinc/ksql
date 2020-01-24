@@ -46,7 +46,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
   private final Endpoints endpoints;
 
   public InsertsStreamHandler(final Context ctx, final Endpoints endpoints) {
-    this.ctx = ctx;
+    this.ctx = Objects.requireNonNull(ctx);
     this.endpoints = Objects.requireNonNull(endpoints);
   }
 
@@ -72,8 +72,8 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
     RequestHandler(final RoutingContext routingContext,
         final RecordParser recordParser) {
-      this.routingContext = routingContext;
-      this.recordParser = recordParser;
+      this.routingContext = Objects.requireNonNull(routingContext);
+      this.recordParser = Objects.requireNonNull(recordParser);
       final String contentType = routingContext.getAcceptableContentType();
       if (DELIMITED_CONTENT_TYPE.equals(contentType) || contentType == null) {
         // Default

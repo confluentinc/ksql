@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 
 /**
  * Writes the query response stream in delimited format.
@@ -41,7 +42,7 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   private final HttpServerResponse response;
 
   public DelimitedQueryStreamResponseWriter(final HttpServerResponse response) {
-    this.response = response;
+    this.response = Objects.requireNonNull(response);
   }
 
   @Override

@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
+import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -130,9 +131,9 @@ public class ApiTest {
     assertEquals(DEFAULT_COLUMN_TYPES, queryResponse.responseObject.getJsonArray("columnTypes"));
     assertEquals(DEFAULT_ROWS, queryResponse.rows);
     assertEquals(0, server.getQueryIDs().size());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertNotNull(queryID);
-    assertFalse(server.getQueryIDs().contains(queryID));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertNotNull(queryId);
+    assertFalse(server.getQueryIDs().contains(new PushQueryId(queryId)));
     Integer rowCount = queryResponse.responseObject.getInteger("rowCount");
     assertNotNull(rowCount);
     assertEquals(DEFAULT_ROWS.size(), rowCount.intValue());
@@ -151,9 +152,9 @@ public class ApiTest {
     assertEquals(DEFAULT_COLUMN_TYPES, queryResponse.responseObject.getJsonArray("columnTypes"));
     assertEquals(DEFAULT_ROWS, queryResponse.rows);
     assertEquals(1, server.getQueryIDs().size());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertNotNull(queryID);
-    assertTrue(server.getQueryIDs().contains(queryID));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertNotNull(queryId);
+    assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertFalse(queryResponse.responseObject.containsKey("rowCount"));
   }
 
@@ -164,9 +165,9 @@ public class ApiTest {
     for (int i = 0; i < numQueries; i++) {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
       assertEquals(i + 1, server.getQueryIDs().size());
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(queryID));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     }
   }
 
@@ -181,9 +182,9 @@ public class ApiTest {
       clients.add(client);
       QueryResponse queryResponse = executePushQueryAndWaitForRows(client,
           DEFAULT_PUSH_QUERY_REQUEST_BODY);
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(queryID));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
       assertEquals(i + 1, server.getQueryIDs().size());
       assertEquals(i + 1, server.queryConnectionCount());
     }
@@ -206,9 +207,9 @@ public class ApiTest {
     int numQueries = 10;
     for (int i = 0; i < numQueries; i++) {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(queryID));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
       assertEquals(i + 1, server.getQueryIDs().size());
     }
     assertEquals(1, server.queryConnectionCount());
@@ -235,9 +236,9 @@ public class ApiTest {
       for (int j = 0; j < numQueries; j++) {
         QueryResponse queryResponse = executePushQueryAndWaitForRows(client,
             DEFAULT_PUSH_QUERY_REQUEST_BODY);
-        String queryID = queryResponse.responseObject.getString("queryID");
-        assertNotNull(queryID);
-        assertTrue(server.getQueryIDs().contains(queryID));
+        String queryId = queryResponse.responseObject.getString("queryId");
+        assertNotNull(queryId);
+        assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
         int queries = i * numQueries + j + 1;
         assertEquals(i * numQueries + j + 1, server.getQueryIDs().size());
         assertEquals(i + 1, server.queryConnectionCount());
@@ -338,19 +339,19 @@ public class ApiTest {
 
     // Assert the query is still live on the server
     QueryResponse queryResponse = new QueryResponse(writeStream.getBody().toString());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertTrue(server.getQueryIDs().contains(queryID));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertEquals(1, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
 
     // Now send another request to close the query
-    JsonObject closeQueryRequestBody = new JsonObject().put("queryID", queryID);
+    JsonObject closeQueryRequestBody = new JsonObject().put("queryId", queryId);
     HttpResponse<Buffer> closeQueryResponse = sendRequest(client, "/close-query",
         closeQueryRequestBody.toBuffer());
     assertEquals(200, closeQueryResponse.statusCode());
 
     // Assert the query no longer exists on the server
-    assertFalse(server.getQueryIDs().contains(queryID));
+    assertFalse(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertEquals(0, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
     assertFalse(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber());
@@ -373,14 +374,14 @@ public class ApiTest {
     assertEquals("Bad Request", response.statusMessage());
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No queryID in arguments",
+    validateError(ERROR_CODE_MISSING_PARAM, "No queryId in arguments",
         queryResponse.responseObject);
   }
 
   @Test
   public void shouldHandleUnknownQueryIDInCloseQuery() throws Exception {
 
-    JsonObject closeQueryRequestBody = new JsonObject().put("queryID", "xyzfasgf");
+    JsonObject closeQueryRequestBody = new JsonObject().put("queryId", "xyzfasgf");
     HttpResponse<Buffer> response = sendRequest(client, "/close-query",
         closeQueryRequestBody.toBuffer());
 

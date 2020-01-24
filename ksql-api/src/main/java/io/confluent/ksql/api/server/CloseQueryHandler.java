@@ -22,6 +22,7 @@ import static io.confluent.ksql.api.server.ServerUtils.handleError;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Objects;
 
 /**
  * Handles requests to the close-query endpoint
@@ -31,22 +32,22 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
   private final Server server;
 
   public CloseQueryHandler(final Server server) {
-    this.server = server;
+    this.server = Objects.requireNonNull(server);
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
     final JsonObject requestBody = routingContext.getBodyAsJson();
-    final String queryID = requestBody.getString("queryID");
-    if (queryID == null) {
+    final String queryId = requestBody.getString("queryId");
+    if (queryId == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
-          "No queryID in arguments");
+          "No queryId in arguments");
       return;
     }
-    final ApiQuery query = server.removeQuery(queryID);
+    final PushQueryHolder query = server.removeQuery(new PushQueryId(queryId));
     if (query == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
-          "No query with id " + queryID);
+          "No query with id " + queryId);
       return;
     }
     query.close();

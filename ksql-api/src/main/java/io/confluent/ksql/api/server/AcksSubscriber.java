@@ -20,6 +20,7 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +45,8 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   public AcksSubscriber(final Context context, final HttpServerResponse response,
       final InsertsStreamResponseWriter insertsStreamResponseWriter) {
     super(context);
-    this.response = response;
-    this.insertsStreamResponseWriter = insertsStreamResponseWriter;
+    this.response = Objects.requireNonNull(response);
+    this.insertsStreamResponseWriter = Objects.requireNonNull(insertsStreamResponseWriter);
   }
 
   @Override

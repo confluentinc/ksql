@@ -20,14 +20,11 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.util.HashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +39,7 @@ public class ServerVerticle extends AbstractVerticle {
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
-  private final Map<HttpConnection, ConnectionQueries> connectionsMap = new HashMap<>();
+  private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
@@ -54,6 +51,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void start(final Promise<Void> startPromise) {
+    this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
     final Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
@@ -77,7 +75,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
         .handler(BodyHandler.create())
-        .handler(new QueryStreamHandler(endpoints, server, connectionsMap));
+        .handler(new QueryStreamHandler(endpoints, server, connectionQueryManager));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")

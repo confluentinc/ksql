@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Holder for a push query running on the server.
@@ -24,30 +26,29 @@ import java.util.UUID;
  * cryptographically secure. This is important as we don't want random users guessing query IDs and
  * closing other peoples queries.
  */
-public class ApiQuery {
+public class PushQueryHolder {
 
   private final Server server;
-  private final String id;
-  private final ConnectionQueries connectionQueries;
+  private final PushQueryId id;
   private final QuerySubscriber querySubscriber;
+  private final Consumer<PushQueryHolder> closeHandler;
 
-  public ApiQuery(final Server server, final ConnectionQueries connectionQueries,
-      final QuerySubscriber querySubscriber) {
-    this.server = server;
-    this.id = UUID.randomUUID().toString();
-    this.connectionQueries = connectionQueries;
-    this.querySubscriber = querySubscriber;
-    connectionQueries.addQuery(this);
+  PushQueryHolder(final Server server, final QuerySubscriber querySubscriber,
+      final Consumer<PushQueryHolder> closeHandler) {
+    this.server = Objects.requireNonNull(server);
+    this.querySubscriber = Objects.requireNonNull(querySubscriber);
+    this.closeHandler = Objects.requireNonNull(closeHandler);
+    this.id = new PushQueryId(UUID.randomUUID().toString());
     server.registerQuery(this);
   }
 
   public void close() {
-    connectionQueries.removeQuery(this);
     server.removeQuery(id);
     querySubscriber.close();
+    closeHandler.accept(this);
   }
 
-  public String getId() {
+  public PushQueryId getId() {
     return id;
   }
 }

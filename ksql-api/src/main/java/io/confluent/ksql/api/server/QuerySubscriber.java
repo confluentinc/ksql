@@ -43,8 +43,8 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
 
   public QuerySubscriber(final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter) {
-    this.response = response;
-    this.queryStreamResponseWriter = queryStreamResponseWriter;
+    this.response = Objects.requireNonNull(response);
+    this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
   }
 
   @Override

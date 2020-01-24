@@ -20,7 +20,21 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 /**
- * TODO show format with example
+ * Writes the query response stream in delimited format.
+ *
+ * <p>The response comprises a sequence of elements, separated by newline. The overall response
+ * does
+ * not form a single JSON object or array. This makes it easier to parse at the client without
+ * recourse to a streaming JSON parser.
+ *
+ * <p>The first entry in the response is a JSON object representing the metadata of the query.
+ * It contains the column names, column types, query ID, and number of rows (in the case of a pull
+ * query).
+ *
+ * <p>Each subsequent entry in the stream is a JSON array representing the values of the columns
+ * returned by the query.
+ *
+ * <p>Please consult the API documentation for a full description of the format.
  */
 public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWriter {
 

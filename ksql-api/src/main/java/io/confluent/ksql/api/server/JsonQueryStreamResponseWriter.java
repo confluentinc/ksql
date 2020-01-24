@@ -21,7 +21,22 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 /**
- * Show format with example
+ * Writes the query response stream in JSON format.
+ *
+ * <p>The completed response will form a single JSON array.
+ *
+ * <p>Providing the response as a single valid JSON array can make it easier to parse with some
+ * clients. However this should be used with caution with very large responses when not using a
+ * streaming JSON parser as the entire response will have to be stored in memory.
+ *
+ * <p>The first entry in the array is a JSON object representing the metadata of the query.
+ * It contains the column names, column types, query ID, and number of rows (in the case of a pull
+ * query).
+ *
+ * <p>Each subsequent entry in the array is a JSON array representing the values of the columns
+ * returned by the query.
+ *
+ * <p>Please consult the API documentation for a full description of the format.
  */
 public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter {
 

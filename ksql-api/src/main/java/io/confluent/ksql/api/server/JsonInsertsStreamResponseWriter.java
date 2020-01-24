@@ -20,7 +20,16 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 
 /**
- * TODO show format with example
+ * Writes the inserts response stream in JSON format.
+ *
+ * <p>The completed response will form a single JSON array, and each insert in the incoming stream
+ * will have a corresponding entry in the response stream, in the same order as the inserts.
+ *
+ * <p>Providing the response as a single valid JSON array can make it easier to parse with some
+ * clients. However this should be used with caution with very large responses when not using a
+ * streaming JSON parser as the entire response will have to be stored in memory.
+ *
+ * <p>Please consult the API documentation for a full description of the format.
  */
 public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 

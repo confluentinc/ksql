@@ -15,20 +15,26 @@
 
 package io.confluent.ksql.api.server;
 
+import java.util.UUID;
+
 /**
- * Holder for a push query running on the server
+ * Holder for a push query running on the server.
+ *
+ * <p>Uses UUID.randomUUID() for the id which internally uses SecureRandom - this makes the id
+ * cryptographically secure. This is important as we don't want random users guessing query IDs and
+ * closing other peoples queries.
  */
 public class ApiQuery {
 
   private final Server server;
-  private final ApiQueryID id;
+  private final String id;
   private final ConnectionQueries connectionQueries;
   private final QuerySubscriber querySubscriber;
 
   public ApiQuery(final Server server, final ConnectionQueries connectionQueries,
       final QuerySubscriber querySubscriber) {
     this.server = server;
-    this.id = new ApiQueryID();
+    this.id = UUID.randomUUID().toString();
     this.connectionQueries = connectionQueries;
     this.querySubscriber = querySubscriber;
     connectionQueries.addQuery(this);
@@ -41,7 +47,7 @@ public class ApiQuery {
     querySubscriber.close();
   }
 
-  public ApiQueryID getId() {
+  public String getId() {
     return id;
   }
 }

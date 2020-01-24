@@ -18,6 +18,9 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+/**
+ * Represents something that knows how to write out a query response
+ */
 public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeMetadata(JsonObject metaData);

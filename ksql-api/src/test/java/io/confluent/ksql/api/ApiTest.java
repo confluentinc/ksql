@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
-import io.confluent.ksql.api.server.ApiQueryID;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -133,7 +132,7 @@ public class ApiTest {
     assertEquals(0, server.getQueryIDs().size());
     String queryID = queryResponse.responseObject.getString("queryID");
     assertNotNull(queryID);
-    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    assertFalse(server.getQueryIDs().contains(queryID));
     Integer rowCount = queryResponse.responseObject.getInteger("rowCount");
     assertNotNull(rowCount);
     assertEquals(DEFAULT_ROWS.size(), rowCount.intValue());
@@ -154,7 +153,7 @@ public class ApiTest {
     assertEquals(1, server.getQueryIDs().size());
     String queryID = queryResponse.responseObject.getString("queryID");
     assertNotNull(queryID);
-    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    assertTrue(server.getQueryIDs().contains(queryID));
     assertFalse(queryResponse.responseObject.containsKey("rowCount"));
   }
 
@@ -167,7 +166,7 @@ public class ApiTest {
       assertEquals(i + 1, server.getQueryIDs().size());
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(queryID));
     }
   }
 
@@ -184,7 +183,7 @@ public class ApiTest {
           DEFAULT_PUSH_QUERY_REQUEST_BODY);
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(queryID));
       assertEquals(i + 1, server.getQueryIDs().size());
       assertEquals(i + 1, server.queryConnectionCount());
     }
@@ -209,7 +208,7 @@ public class ApiTest {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(queryID));
       assertEquals(i + 1, server.getQueryIDs().size());
     }
     assertEquals(1, server.queryConnectionCount());
@@ -238,7 +237,7 @@ public class ApiTest {
             DEFAULT_PUSH_QUERY_REQUEST_BODY);
         String queryID = queryResponse.responseObject.getString("queryID");
         assertNotNull(queryID);
-        assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+        assertTrue(server.getQueryIDs().contains(queryID));
         int queries = i * numQueries + j + 1;
         assertEquals(i * numQueries + j + 1, server.getQueryIDs().size());
         assertEquals(i + 1, server.queryConnectionCount());
@@ -340,7 +339,7 @@ public class ApiTest {
     // Assert the query is still live on the server
     QueryResponse queryResponse = new QueryResponse(writeStream.getBody().toString());
     String queryID = queryResponse.responseObject.getString("queryID");
-    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    assertTrue(server.getQueryIDs().contains(queryID));
     assertEquals(1, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
 
@@ -351,7 +350,7 @@ public class ApiTest {
     assertEquals(200, closeQueryResponse.statusCode());
 
     // Assert the query no longer exists on the server
-    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    assertFalse(server.getQueryIDs().contains(queryID));
     assertEquals(0, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
     assertFalse(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber());
@@ -610,8 +609,6 @@ public class ApiTest {
     assertEquals(406, response.statusCode());
   }
 
-  // TODO clean up these content type tests and extract common functionality
-
   @Test
   public void shouldUseDelimitedFormatWhenNoAcceptHeaderQuery() throws Exception {
     JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
@@ -627,7 +624,7 @@ public class ApiTest {
   }
 
   @Test
-  public void shouldUseDelimitedFormatWhenDelimitedAcceptHeader() throws Exception {
+  public void shouldUseDelimitedFormatWhenDelimitedAcceptHeaderQuery() throws Exception {
     JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
@@ -642,7 +639,7 @@ public class ApiTest {
   }
 
   @Test
-  public void shouldUseJsonFormatWhenJsonAcceptHeader() throws Exception {
+  public void shouldUseJsonFormatWhenJsonAcceptHeaderQuery() throws Exception {
     JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client

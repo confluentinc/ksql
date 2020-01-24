@@ -20,7 +20,16 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 
 /**
- * TODO describe format with example
+ * Writes the inserts response stream in delimited format.
+ *
+ * <p>Each insert in the incoming stream will have a corresponding entry in the response stream, in
+ * the same order as the inserts.
+ *
+ * <p>Each entry is a JSON object, separated by newline. The overall response does not form a
+ * single JSON object or array. This makes it easier to parse at the client without recourse to
+ * streaming JSON parsers.
+ *
+ * <p>Please consult the API documentation for a full description of the format.
  */
 public class DelimitedInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 

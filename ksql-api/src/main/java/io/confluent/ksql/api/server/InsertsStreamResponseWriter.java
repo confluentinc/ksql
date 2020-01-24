@@ -18,7 +18,7 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.json.JsonObject;
 
 /**
- * Abstracts out how the inserts are actually written to the response
+ * Represents something that knows how to write out an inserts response
  */
 public interface InsertsStreamResponseWriter {
 

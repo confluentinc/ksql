@@ -37,13 +37,12 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
   @Override
   public void handle(final RoutingContext routingContext) {
     final JsonObject requestBody = routingContext.getBodyAsJson();
-    final String queryIDArg = requestBody.getString("queryID");
-    if (queryIDArg == null) {
+    final String queryID = requestBody.getString("queryID");
+    if (queryID == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
           "No queryID in arguments");
       return;
     }
-    final ApiQueryID queryID = new ApiQueryID(queryIDArg);
     final ApiQuery query = server.removeQuery(queryID);
     if (query == null) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,

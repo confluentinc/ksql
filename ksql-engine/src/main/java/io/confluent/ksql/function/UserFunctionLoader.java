@@ -25,7 +25,9 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
-import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -103,36 +105,37 @@ public class UserFunctionLoader {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadFunctions(final ClassLoader loader, final Optional<Path> path) {
-    final String pathLoadedFrom
-        = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
-    final FastClasspathScanner fastClasspathScanner = new FastClasspathScanner();
+    final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
+
+    final ClassGraph classGraph = new ClassGraph();
     if (loader != parentClassLoader) {
-      fastClasspathScanner.overrideClassLoaders(loader);
+      classGraph.overrideClassLoaders(loader);
     }
-    fastClasspathScanner
+
+    try (ScanResult scan = classGraph
+        .enableAnnotationInfo()
         .ignoreParentClassLoaders()
-        // if we are loading from the parent classloader then restrict the name space to only
-        // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
-        .filterClasspathElements(
-            name -> {
-              if (parentClassLoader != loader) {
-                return true;
-              }
-              return name.contains("ksql-engine");
-            })
-        .matchClassesWithAnnotation(
-            UdfDescription.class,
-            theClass -> udfLoader.loadUdfFromClass(theClass, pathLoadedFrom)
-        )
-        .matchClassesWithAnnotation(
-            UdafDescription.class,
-            theClass -> udafLoader.loadUdafFromClass(theClass, pathLoadedFrom)
-        )
-        .matchClassesWithAnnotation(
-            UdtfDescription.class,
-            theClass -> udtfLoader.loadUdtfFromClass(theClass, pathLoadedFrom)
-        )
-        .scan();
+        .filterClasspathElements(ksqlEngineFilter(loader))
+        .scan()
+    ) {
+      for (ClassInfo udf : scan.getClassesWithAnnotation(UdfDescription.class.getName())) {
+        udfLoader.loadUdfFromClass(udf.loadClass(), pathLoadedFrom);
+      }
+
+      for (ClassInfo udaf : scan.getClassesWithAnnotation(UdafDescription.class.getName())) {
+        udafLoader.loadUdafFromClass(udaf.loadClass(), pathLoadedFrom);
+      }
+
+      for (ClassInfo udtf : scan.getClassesWithAnnotation(UdtfDescription.class.getName())) {
+        udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
+      }
+    }
+  }
+
+  private ClassGraph.ClasspathElementFilter ksqlEngineFilter(final ClassLoader loader) {
+    // if we are loading from the parent classloader then restrict the name space to only
+    // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
+    return name -> parentClassLoader != loader || name.contains("ksql-engine");
   }
 
   public static UserFunctionLoader newInstance(

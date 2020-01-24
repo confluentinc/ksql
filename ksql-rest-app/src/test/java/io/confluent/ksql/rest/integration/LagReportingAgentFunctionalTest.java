@@ -8,10 +8,8 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -77,7 +75,7 @@ public class LagReportingAgentFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
-      .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 3000)
+      .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       // Heartbeat
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
@@ -94,7 +92,7 @@ public class LagReportingAgentFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
-      .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 3000)
+      .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       // Heartbeat
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
@@ -144,10 +142,11 @@ public class LagReportingAgentFunctionalTest {
   @Test(timeout = 60000)
   public void shouldExchangeLags() {
     // Given:
-    waitForClusterToBeDiscovered();
+    waitForClusterCondition(LagReportingAgentFunctionalTest::allServersDiscovered);
 
     // When:
-    ClusterLagsResponse resp = waitForLags(LagReportingAgentFunctionalTest::allLagsReported);
+    ClusterStatusResponse resp =
+        waitForClusterCondition(LagReportingAgentFunctionalTest::allLagsReported);
     Map<Integer, LagInfoEntity> partitions =
         resp.getLags().entrySet().iterator().next().getValue().get(STORE_0);
 
@@ -167,22 +166,23 @@ public class LagReportingAgentFunctionalTest {
     Assert.assertEquals(partition1Offset, partitionToMaxOffset.get(1).get().offset() + 1);
   }
 
-  private void waitForClusterToBeDiscovered() {
+  private ClusterStatusResponse waitForClusterCondition(
+      Function<ClusterStatusResponse, Boolean> function) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(REST_APP_0);
-      if (allServersDiscovered(clusterStatusResponse.getClusterStatus())) {
-        break;
+      if (function.apply(clusterStatusResponse)) {
+        return clusterStatusResponse;
       }
       try {
         Thread.sleep(200);
       } catch (final Exception e) {
-        // Meh
+        Assert.fail();
       }
     }
   }
 
-  private boolean allServersDiscovered(Map<String, HostStatusEntity> clusterStatus) {
-    if (clusterStatus.size() < 2) {
+  private static boolean allServersDiscovered(ClusterStatusResponse clusterStatusResponse) {
+    if (clusterStatusResponse.getClusterStatus().size() < 2) {
       return false;
     }
     return true;
@@ -202,31 +202,16 @@ public class LagReportingAgentFunctionalTest {
     }
   }
 
-  private static ClusterLagsResponse getLags(final TestKsqlRestApp restApp)
-  {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-
-      final RestResponse<ClusterLagsResponse> res = restClient.makeClusterLagsRequest();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-
-      return res.getResponse();
-    }
-  }
-
-  private static boolean allLagsReported(
-      Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags) {
-    if (lags.size() == 2) {
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store0 = lags.get(HOST0);
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store1 = lags.get(HOST1);
+  private static boolean allLagsReported(ClusterStatusResponse response) {
+    if (response.getLags().size() == 2) {
+      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store0 = response.getLags().get(HOST0);
+      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store1 = response.getLags().get(HOST1);
       if (arePartitionsCurrent(store0) && arePartitionsCurrent(store1)) {
-        LOG.info("Found expected lags: {}", lags.toString());
+        LOG.info("Found expected lags: {}", response.getLags().toString());
         return true;
       }
     }
-    LOG.info("Didn't yet find expected lags: {}", lags.toString());
+    LOG.info("Didn't yet find expected lags: {}", response.getLags().toString());
     return false;
   }
 
@@ -254,23 +239,6 @@ public class LagReportingAgentFunctionalTest {
     final Map<Integer, LagInfoEntity> partitions = stores.get(queryStateStoreId);
     final LagInfoEntity lagInfo = partitions.get(partition);
     return lagInfo.getCurrentOffsetPosition();
-  }
-
-  private ClusterLagsResponse waitForLags(
-      Function<Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>>, Boolean>
-          function)
-  {
-    while (true) {
-      final ClusterLagsResponse clusterLagsResponse = getLags(REST_APP_0);
-      if (function.apply(clusterLagsResponse.getLags())) {
-        return clusterLagsResponse;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (final Exception e) {
-        Assert.fail();
-      }
-    }
   }
 
   private static String getNewStateDir() {

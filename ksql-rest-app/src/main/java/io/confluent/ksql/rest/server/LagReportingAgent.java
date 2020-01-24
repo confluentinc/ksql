@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -46,9 +47,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +75,7 @@ public final class LagReportingAgent implements HeartbeatListener {
   private final Clock clock;
 
   private final Map<HostInfo, HostLagInfo> receivedLagInfo;
-  private final Map<HostInfo, Boolean> aliveHosts;
+  private final AtomicReference<Set<HostInfo>> aliveHostsRef;
 
   private URL localURL;
 
@@ -106,7 +109,7 @@ public final class LagReportingAgent implements HeartbeatListener {
     this.clock = clock;
     this.serviceManager = new ServiceManager(Arrays.asList(new SendLagService()));
     this.receivedLagInfo = new ConcurrentHashMap<>();
-    this.aliveHosts = new ConcurrentHashMap<>();
+    this.aliveHostsRef = new AtomicReference<>();
   }
 
   void setLocalAddress(final String applicationServer) {
@@ -147,9 +150,9 @@ public final class LagReportingAgent implements HeartbeatListener {
 
     ImmutableMap.Builder<QueryStateStoreId, Map<Integer, LagInfoEntity>> hostMapBuilder
         = ImmutableMap.builder();
-    for (Map.Entry<String, Map<Integer, LagInfoEntity>> storeEntry
+    for (Map.Entry<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeEntry
         : lagReportingRequest.getStoreToPartitionToLagMap().entrySet()) {
-      final QueryStateStoreId queryStateStoreId = QueryStateStoreId.of(storeEntry.getKey());
+      final QueryStateStoreId queryStateStoreId = storeEntry.getKey();
       final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue();
 
       ImmutableMap.Builder<Integer, LagInfoEntity> partitionsBuilder = ImmutableMap.builder();
@@ -180,11 +183,12 @@ public final class LagReportingAgent implements HeartbeatListener {
   public Map<HostInfo, LagInfoEntity> getHostsPartitionLagInfo(
       final Set<HostInfo> hosts, final QueryStateStoreId queryStateStoreId, final int partition) {
     ImmutableMap.Builder<HostInfo, LagInfoEntity> builder = ImmutableMap.builder();
+    Set<HostInfo> aliveHosts = aliveHostsRef.get();
     for (HostInfo host : hosts) {
       LagInfoEntity lagInfo = receivedLagInfo.getOrDefault(host, EMPTY_HOST_LAG_INFO).getLagInfo()
           .getOrDefault(queryStateStoreId, Collections.emptyMap())
           .getOrDefault(partition, null);
-      if (aliveHosts.containsKey(host) && lagInfo != null) {
+      if (aliveHosts.contains(host) && lagInfo != null) {
         builder.put(host, lagInfo);
       }
     }
@@ -208,12 +212,11 @@ public final class LagReportingAgent implements HeartbeatListener {
 
   @Override
   public void onHostStatusUpdated(final Map<String, HostStatusEntity> hostsStatusMap) {
-    aliveHosts.clear();
-    aliveHosts.putAll(hostsStatusMap.values().stream()
+    aliveHostsRef.set(hostsStatusMap.values().stream()
         .filter(HostStatusEntity::getHostAlive)
         .map(HostStatusEntity::getHostInfoEntity)
         .map(hostInfoEntity -> new HostInfo(hostInfoEntity.getHost(), hostInfoEntity.getPort()))
-        .collect(Collectors.toMap(Function.identity(), hi -> true)));
+        .collect(ImmutableSet.toImmutableSet()));
   }
 
   /**
@@ -231,16 +234,16 @@ public final class LagReportingAgent implements HeartbeatListener {
         return;
       }
 
-      final Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap = currentQueries.stream()
+      final Map<QueryStateStoreId, Map<Integer, LagInfo>> localLagMap
+          = currentQueries.stream()
           .filter(Objects::nonNull)
-          .flatMap(pmd -> pmd.getStoreToPartitionToLagMap().entrySet().stream()
-              .map(e -> Pair.of(e.getKey().toString(), e.getValue())))
-          .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+          .flatMap(pmd -> getLocalLagMap(pmd).entrySet().stream())
+          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
-      final LagReportingRequest request = createLagReportingRequest(storeToPartitionToLagMap);
+      final LagReportingRequest request = createLagReportingRequest(localLagMap);
 
-      for (Entry<HostInfo, Boolean> hostInfoEntry: aliveHosts.entrySet()) {
-        final HostInfo hostInfo = hostInfoEntry.getKey();
+      Set<HostInfo> aliveHosts = aliveHostsRef.get();
+      for (HostInfo hostInfo: aliveHosts) {
         try {
           final URI remoteUri = buildRemoteUri(localURL, hostInfo.host(), hostInfo.port());
           LOG.debug("Sending lag to host {} at {}", hostInfo.host(), clock.millis());
@@ -253,13 +256,33 @@ public final class LagReportingAgent implements HeartbeatListener {
     }
 
     /**
+     * Fetches the lag map from PersistentQueryMetadata, getting it from the underlying
+     * KafkaStreams.
+     */
+    private Map<QueryStateStoreId, Map<Integer, LagInfo>> getLocalLagMap(
+        PersistentQueryMetadata persistentQueryMetadata) {
+      Map<QueryStateStoreId, Map<Integer, LagInfo>> getLagMap = null;
+      try {
+        getLagMap = persistentQueryMetadata.getKafkaStreams()
+            .allLocalStorePartitionLags().entrySet().stream()
+            .map(e -> Pair.of(QueryStateStoreId.of(persistentQueryMetadata.getQueryApplicationId(),
+                                                   e.getKey()),
+                              e.getValue()))
+            .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+      } catch (IllegalStateException | StreamsException e) {
+        LOG.error(e.getMessage());
+      }
+      return getLagMap;
+    }
+
+    /**
      * Converts between local lag data from Streams and converts it to a HostLagEntity that can be
      * sent to other nodes in the cluster.
      */
     private LagReportingRequest createLagReportingRequest(
-        final Map<String, Map<Integer, LagInfo>> storeToPartitionToLagMap) {
-      final Map<String, Map<Integer, LagInfoEntity>> map = new HashMap<>();
-      for (Entry<String, Map<Integer, LagInfo>> storeEntry : storeToPartitionToLagMap.entrySet()) {
+        final Map<QueryStateStoreId, Map<Integer, LagInfo>> lagMap) {
+      final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> map = new HashMap<>();
+      for (Entry<QueryStateStoreId, Map<Integer, LagInfo>> storeEntry : lagMap.entrySet()) {
         final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue().entrySet().stream()
             .map(partitionEntry -> {
               final LagInfo lagInfo = partitionEntry.getValue();

@@ -27,14 +27,14 @@ import java.util.Objects;
 public class LagReportingRequest {
 
   private HostInfoEntity hostInfo;
-  private Map<String, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
+  private Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
   private long lastLagUpdateMs;
 
   @JsonCreator
   public LagReportingRequest(
       @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
-      @JsonProperty("storeToPartitionToLagMap") final Map<String, Map<Integer, LagInfoEntity>>
-          storeToPartitionToLagMap,
+      @JsonProperty("storeToPartitionToLagMap")
+      final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap,
       @JsonProperty("lastLagUpdateMs") final long lastLagUpdateMs
   ) {
     this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
@@ -46,7 +46,7 @@ public class LagReportingRequest {
     return hostInfo;
   }
 
-  public Map<String, Map<Integer, LagInfoEntity>> getStoreToPartitionToLagMap() {
+  public Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> getStoreToPartitionToLagMap() {
     return storeToPartitionToLagMap;
   }
 

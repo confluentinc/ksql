@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -100,10 +99,6 @@ public class KsqlRestClient implements Closeable {
 
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest() {
     return target().getClusterStatus();
-  }
-
-  public RestResponse<ClusterLagsResponse> makeClusterLagsRequest() {
-    return target().getClusterLags();
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {

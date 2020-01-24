@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
@@ -29,11 +28,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,6 +132,10 @@ public class QueryMetadata {
     return topology;
   }
 
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
       return kafkaStreams.allMetadata();
@@ -143,18 +143,6 @@ public class QueryMetadata {
       LOG.error(e.getMessage());
     }
     return ImmutableList.of();
-  }
-
-  public Map<QueryStateStoreId, Map<Integer, LagInfo>> getStoreToPartitionToLagMap() {
-    Map<QueryStateStoreId, Map<Integer, LagInfo>> storeToPartitionToLagMap = null;
-    try {
-      storeToPartitionToLagMap = kafkaStreams.allLocalStorePartitionLags().entrySet().stream()
-          .map(e -> Pair.of(QueryStateStoreId.of(getQueryApplicationId(), e.getKey()), e.getValue()))
-          .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-    } catch (IllegalStateException | StreamsException e) {
-      LOG.error(e.getMessage());
-    }
-    return storeToPartitionToLagMap;
   }
 
   public Map<String, Object> getStreamsProperties() {

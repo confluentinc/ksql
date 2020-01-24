@@ -23,6 +23,7 @@ import java.net.URI;
 import java.time.Clock;
 import java.util.Map;
 import java.util.Set;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
@@ -65,26 +66,32 @@ public class LagReportingAgentTest {
       .put(HOST2.toString(), HOST2_STATUS_DEAD)
       .build();
 
-  private static final QueryStateStoreId QUERY_STORE_A = QueryStateStoreId.of("query0", "a");
-  private static final QueryStateStoreId QUERY_STORE_B = QueryStateStoreId.of("query1", "b");
+  private static final String QUERY_ID0 = "query0";
+  private static final String QUERY_ID1 = "query1";
+  private static final String STATE_STORE0 = "a";
+  private static final String STATE_STORE1 = "b";
+  private static final QueryStateStoreId QUERY_STORE_A =
+      QueryStateStoreId.of(QUERY_ID0, STATE_STORE0);
+  private static final QueryStateStoreId QUERY_STORE_B =
+      QueryStateStoreId.of(QUERY_ID1, STATE_STORE1);
 
-  private static final Map<String, Map<Integer, LagInfoEntity>> LAG_MAP1
-      = ImmutableMap.<String, Map<Integer, LagInfoEntity>>builder()
-      .put(QUERY_STORE_A.toString(), ImmutableMap.<Integer, LagInfoEntity>builder()
+  private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP1
+      = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
+      .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(1, new LagInfoEntity(1, 10, 9))
           .put(3, new LagInfoEntity(3, 10, 7))
           .build())
-      .put(QUERY_STORE_B.toString(), ImmutableMap.<Integer, LagInfoEntity>builder()
+      .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(4, new LagInfoEntity(6, 10, 4))
           .build())
       .build();
 
-  private static final Map<String, Map<Integer, LagInfoEntity>> LAG_MAP2
-      = ImmutableMap.<String, Map<Integer, LagInfoEntity>>builder()
-      .put(QUERY_STORE_A.toString(), ImmutableMap.<Integer, LagInfoEntity>builder()
+  private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP2
+      = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
+      .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(1, new LagInfoEntity(4, 10, 6))
           .build())
-      .put(QUERY_STORE_B.toString(), ImmutableMap.<Integer, LagInfoEntity>builder()
+      .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(4, new LagInfoEntity(7, 10, 3))
           .build())
       .build();
@@ -93,6 +100,10 @@ public class LagReportingAgentTest {
   private PersistentQueryMetadata query0;
   @Mock
   private PersistentQueryMetadata query1;
+  @Mock
+  private KafkaStreams kafkaStreams0;
+  @Mock
+  private KafkaStreams kafkaStreams1;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -228,22 +239,26 @@ public class LagReportingAgentTest {
     when(lagInfo1.currentOffsetPosition()).thenReturn(7L);
     when(lagInfo1.endOffsetPosition()).thenReturn(10L);
     when(lagInfo1.offsetLag()).thenReturn(3L);
-    Map<QueryStateStoreId, Map<Integer, LagInfo>> query0Lag
-        = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfo>>builder()
-        .put(QueryStateStoreId.of("query0", "a"), ImmutableMap.<Integer, LagInfo>builder()
+    Map<String, Map<Integer, LagInfo>> query0Lag
+        = ImmutableMap.<String, Map<Integer, LagInfo>>builder()
+        .put(STATE_STORE0, ImmutableMap.<Integer, LagInfo>builder()
             .put(1, lagInfo0)
             .build())
         .build();
-    Map<QueryStateStoreId, Map<Integer, LagInfo>> query1Lag
-        = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfo>>builder()
-        .put(QueryStateStoreId.of("query1", "b"), ImmutableMap.<Integer, LagInfo>builder()
+    Map<String, Map<Integer, LagInfo>> query1Lag
+        = ImmutableMap.<String, Map<Integer, LagInfo>>builder()
+        .put(STATE_STORE1, ImmutableMap.<Integer, LagInfo>builder()
             .put(4, lagInfo1)
             .build())
         .build();
 
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
-    when(query0.getStoreToPartitionToLagMap()).thenReturn(query0Lag);
-    when(query1.getStoreToPartitionToLagMap()).thenReturn(query1Lag);
+    when(query0.getKafkaStreams()).thenReturn(kafkaStreams0);
+    when(query0.getQueryApplicationId()).thenReturn(QUERY_ID0);
+    when(query1.getKafkaStreams()).thenReturn(kafkaStreams1);
+    when(query1.getQueryApplicationId()).thenReturn(QUERY_ID1);
+    when(kafkaStreams0.allLocalStorePartitionLags()).thenReturn(query0Lag);
+    when(kafkaStreams1.allLocalStorePartitionLags()).thenReturn(query1Lag);
     SendLagService sendLagService = lagReportingAgent.new SendLagService();
 
     // When:
@@ -256,9 +271,10 @@ public class LagReportingAgentTest {
     verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host1:1234/")), eq(exp));
   }
 
-  private LagReportingRequest hostLag(HostInfoEntity host,
-                                Map<String, Map<Integer, LagInfoEntity>> lagMap,
-                                long lastUpdateMs) {
+  private LagReportingRequest hostLag(
+      HostInfoEntity host,
+      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> lagMap,
+      long lastUpdateMs) {
     return new LagReportingRequest(host, lagMap, lastUpdateMs);
   }
 }

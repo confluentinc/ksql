@@ -15,13 +15,11 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -45,11 +43,4 @@ public class LagReportingResource {
     lagReportingAgent.receiveHostLag(request);
     return Response.ok(new LagReportingResponse(true)).build();
   }
-
-  @Path("/list")
-  @GET
-  public Response listLags() {
-    return Response.ok(new ClusterLagsResponse(lagReportingAgent.listAllLags())).build();
-  }
-
 }

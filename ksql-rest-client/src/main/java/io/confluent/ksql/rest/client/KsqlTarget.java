@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.client;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.entity.ClusterLagsResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -56,7 +55,6 @@ public final class KsqlTarget {
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
   private static final String LAG_REPORT_PATH = "/lag/report";
-  private static final String LAG_LIST_PATH = "/lag/list";
 
   private final WebTarget target;
   private final LocalProperties localProperties;
@@ -107,10 +105,6 @@ public final class KsqlTarget {
         lagReportingRequest,
         Optional.empty()
     );
-  }
-
-  public RestResponse<ClusterLagsResponse> getClusterLags() {
-    return get(LAG_LIST_PATH, ClusterLagsResponse.class);
   }
 
   public RestResponse<CommandStatuses> getStatuses() {

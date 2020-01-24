@@ -14,7 +14,6 @@ import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.server.LagReportingAgent.Builder;
-import io.confluent.ksql.rest.server.LagReportingAgent.HostPartitionLagInfo;
 import io.confluent.ksql.rest.server.LagReportingAgent.SendLagService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -129,42 +128,42 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    Map<HostInfo, HostPartitionLagInfo> hostPartitionLagList
+    Map<HostInfo, LagInfoEntity> hostPartitionLagList
         = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, LagInfoKey.of("query0", "a"), 1);
     assertEquals(2, hostPartitionLagList.size());
-    assertEquals(1, hostPartitionLagList.get(HI1).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getLagInfo().getEndOffsetPosition());
-    assertEquals(9, hostPartitionLagList.get(HI1).getLagInfo().getOffsetLag());
-    assertEquals(4, hostPartitionLagList.get(HI2).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI2).getLagInfo().getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI2).getLagInfo().getOffsetLag());
+    assertEquals(1, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
+    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
+    assertEquals(9, hostPartitionLagList.get(HI1).getOffsetLag());
+    assertEquals(4, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
+    assertEquals(10, hostPartitionLagList.get(HI2).getEndOffsetPosition());
+    assertEquals(6, hostPartitionLagList.get(HI2).getOffsetLag());
 
     hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
         LagInfoKey.of("query0", "a"), 3);
     assertEquals(1, hostPartitionLagList.size());
-    assertEquals(3, hostPartitionLagList.get(HI1).getLagInfo().getCurrentOffsetPosition());
+    assertEquals(3, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
 
     hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
         LagInfoKey.of("query1", "b"), 4);
     assertEquals(2, hostPartitionLagList.size());
-    assertEquals(6, hostPartitionLagList.get(HI1).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(7, hostPartitionLagList.get(HI2).getLagInfo().getCurrentOffsetPosition());
+    assertEquals(6, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
+    assertEquals(7, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
 
     lagReportingAgent.onHostStatusUpdated(HOSTS_HOST1_DEAD);
     hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
         LagInfoKey.of("query0", "a"), 1);
     assertEquals(1, hostPartitionLagList.size());
-    assertEquals(4, hostPartitionLagList.get(HI2).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI2).getLagInfo().getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI2).getLagInfo().getOffsetLag());
+    assertEquals(4, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
+    assertEquals(10, hostPartitionLagList.get(HI2).getEndOffsetPosition());
+    assertEquals(6, hostPartitionLagList.get(HI2).getOffsetLag());
 
     lagReportingAgent.onHostStatusUpdated(HOSTS_HOST2_DEAD);
     hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
         LagInfoKey.of("query0", "a"), 1);
     assertEquals(1, hostPartitionLagList.size());
-    assertEquals(1, hostPartitionLagList.get(HI1).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getLagInfo().getEndOffsetPosition());
-    assertEquals(9, hostPartitionLagList.get(HI1).getLagInfo().getOffsetLag());
+    assertEquals(1, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
+    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
+    assertEquals(9, hostPartitionLagList.get(HI1).getOffsetLag());
   }
 
   @Test
@@ -175,12 +174,12 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    Map<HostInfo, HostPartitionLagInfo> hostPartitionLagList
+    Map<HostInfo, LagInfoEntity> hostPartitionLagList
         = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, LagInfoKey.of("query0", "a"), 1);
     assertEquals(1, hostPartitionLagList.size());
-    assertEquals(4, hostPartitionLagList.get(HI1).getLagInfo().getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getLagInfo().getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI1).getLagInfo().getOffsetLag());
+    assertEquals(4, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
+    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
+    assertEquals(6, hostPartitionLagList.get(HI1).getOffsetLag());
 
     hostPartitionLagList
         = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, LagInfoKey.of("query0", "a"), 3);

@@ -701,7 +701,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
               KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG));
 
       if (lagReportingAgent.isPresent()) {
-        builder.addHeartbeatListener(lagReportingAgent.get());
+        builder.addHostStatusListener(lagReportingAgent.get());
       }
 
       return Optional.of(builder.build(ksqlEngine, serviceContext));

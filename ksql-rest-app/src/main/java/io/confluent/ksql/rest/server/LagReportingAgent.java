@@ -27,7 +27,7 @@ import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingRequest;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
-import io.confluent.ksql.rest.server.HeartbeatAgent.HeartbeatListener;
+import io.confluent.ksql.rest.server.HeartbeatAgent.HostStatusListener;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -48,7 +48,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -60,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * Agent responsible for sending and receiving lag information across the cluster and providing
  * aggregate stats, usable during query time.
  */
-public final class LagReportingAgent implements HeartbeatListener {
+public final class LagReportingAgent implements HostStatusListener {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;

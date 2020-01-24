@@ -262,7 +262,7 @@ class Analyzer {
         // the delimiter is not inherited across non-delimited types
         // (e.g. if source A is DELIMITED with |, and I create sink B
         // with JSON from A and then sink C with DELIMITED from B, C
-        // will use the default limiter, as opposed to |)
+        // will use the default delimiter, as opposed to |)
         // see https://github.com/confluentinc/ksql/issues/4368 for
         // more context
         return Optional.empty();

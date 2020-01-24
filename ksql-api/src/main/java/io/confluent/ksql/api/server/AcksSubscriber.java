@@ -18,9 +18,9 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import java.util.Objects;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,21 +31,22 @@ import org.slf4j.LoggerFactory;
  */
 public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 
-  private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()
-      .appendString("\n");
   private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 1000;
 
   private final HttpServerResponse response;
+  private final InsertsStreamResponseWriter insertsStreamResponseWriter;
   private Long insertsSent;
   private long acksSent;
   private boolean drainHandlerSet;
   private Subscription subscription;
   private boolean cancelled;
 
-  public AcksSubscriber(final Context context, final HttpServerResponse response) {
+  public AcksSubscriber(final Context context, final HttpServerResponse response,
+      final InsertsStreamResponseWriter insertsStreamResponseWriter) {
     super(context);
-    this.response = response;
+    this.response = Objects.requireNonNull(response);
+    this.insertsStreamResponseWriter = Objects.requireNonNull(insertsStreamResponseWriter);
   }
 
   @Override
@@ -60,7 +61,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
     if (cancelled) {
       return;
     }
-    response.write(ACK_RESPONSE_LINE);
+    insertsStreamResponseWriter.writeInsertResponse();
     acksSent++;
     if (insertsSent != null && insertsSent == acksSent) {
       close();
@@ -79,7 +80,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 
   @Override
   public void handleComplete() {
-    response.end();
+    insertsStreamResponseWriter.end();
   }
 
   @Override
@@ -91,7 +92,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
     final JsonObject err = new JsonObject().put("status", "error")
         .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
         .put("message", "Error in processing inserts");
-    response.end(err.toBuffer());
+    insertsStreamResponseWriter.writeError(err).end();
   }
 
   public void cancel() {
@@ -109,7 +110,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   }
 
   private void close() {
-    response.end();
+    insertsStreamResponseWriter.end();
     complete();
   }
 

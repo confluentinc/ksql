@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
-import io.confluent.ksql.api.server.ApiQueryID;
+import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -131,9 +131,9 @@ public class ApiTest {
     assertEquals(DEFAULT_COLUMN_TYPES, queryResponse.responseObject.getJsonArray("columnTypes"));
     assertEquals(DEFAULT_ROWS, queryResponse.rows);
     assertEquals(0, server.getQueryIDs().size());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertNotNull(queryID);
-    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertNotNull(queryId);
+    assertFalse(server.getQueryIDs().contains(new PushQueryId(queryId)));
     Integer rowCount = queryResponse.responseObject.getInteger("rowCount");
     assertNotNull(rowCount);
     assertEquals(DEFAULT_ROWS.size(), rowCount.intValue());
@@ -152,9 +152,9 @@ public class ApiTest {
     assertEquals(DEFAULT_COLUMN_TYPES, queryResponse.responseObject.getJsonArray("columnTypes"));
     assertEquals(DEFAULT_ROWS, queryResponse.rows);
     assertEquals(1, server.getQueryIDs().size());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertNotNull(queryID);
-    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertNotNull(queryId);
+    assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertFalse(queryResponse.responseObject.containsKey("rowCount"));
   }
 
@@ -165,9 +165,9 @@ public class ApiTest {
     for (int i = 0; i < numQueries; i++) {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
       assertEquals(i + 1, server.getQueryIDs().size());
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     }
   }
 
@@ -182,9 +182,9 @@ public class ApiTest {
       clients.add(client);
       QueryResponse queryResponse = executePushQueryAndWaitForRows(client,
           DEFAULT_PUSH_QUERY_REQUEST_BODY);
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
       assertEquals(i + 1, server.getQueryIDs().size());
       assertEquals(i + 1, server.queryConnectionCount());
     }
@@ -207,9 +207,9 @@ public class ApiTest {
     int numQueries = 10;
     for (int i = 0; i < numQueries; i++) {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
-      String queryID = queryResponse.responseObject.getString("queryID");
-      assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+      String queryId = queryResponse.responseObject.getString("queryId");
+      assertNotNull(queryId);
+      assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
       assertEquals(i + 1, server.getQueryIDs().size());
     }
     assertEquals(1, server.queryConnectionCount());
@@ -236,9 +236,9 @@ public class ApiTest {
       for (int j = 0; j < numQueries; j++) {
         QueryResponse queryResponse = executePushQueryAndWaitForRows(client,
             DEFAULT_PUSH_QUERY_REQUEST_BODY);
-        String queryID = queryResponse.responseObject.getString("queryID");
-        assertNotNull(queryID);
-        assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+        String queryId = queryResponse.responseObject.getString("queryId");
+        assertNotNull(queryId);
+        assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
         int queries = i * numQueries + j + 1;
         assertEquals(i * numQueries + j + 1, server.getQueryIDs().size());
         assertEquals(i + 1, server.queryConnectionCount());
@@ -339,19 +339,19 @@ public class ApiTest {
 
     // Assert the query is still live on the server
     QueryResponse queryResponse = new QueryResponse(writeStream.getBody().toString());
-    String queryID = queryResponse.responseObject.getString("queryID");
-    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertEquals(1, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
 
     // Now send another request to close the query
-    JsonObject closeQueryRequestBody = new JsonObject().put("queryID", queryID);
+    JsonObject closeQueryRequestBody = new JsonObject().put("queryId", queryId);
     HttpResponse<Buffer> closeQueryResponse = sendRequest(client, "/close-query",
         closeQueryRequestBody.toBuffer());
     assertEquals(200, closeQueryResponse.statusCode());
 
     // Assert the query no longer exists on the server
-    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
+    assertFalse(server.getQueryIDs().contains(new PushQueryId(queryId)));
     assertEquals(0, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
     assertFalse(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber());
@@ -374,14 +374,14 @@ public class ApiTest {
     assertEquals("Bad Request", response.statusMessage());
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No queryID in arguments",
+    validateError(ERROR_CODE_MISSING_PARAM, "No queryId in arguments",
         queryResponse.responseObject);
   }
 
   @Test
   public void shouldHandleUnknownQueryIDInCloseQuery() throws Exception {
 
-    JsonObject closeQueryRequestBody = new JsonObject().put("queryID", "xyzfasgf");
+    JsonObject closeQueryRequestBody = new JsonObject().put("queryId", "xyzfasgf");
     HttpResponse<Buffer> response = sendRequest(client, "/close-query",
         closeQueryRequestBody.toBuffer());
 
@@ -593,6 +593,132 @@ public class ApiTest {
     HttpResponse<Buffer> response = requestFuture.get();
 
     assertEquals(404, response.statusCode());
+  }
+
+  @Test
+  public void shouldReturn406WithNoMatchingAcceptHeader() throws Exception {
+
+    Buffer requestBody = Buffer.buffer();
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "blahblah")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(406, response.statusCode());
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenNoAcceptHeaderQuery() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertEquals(DEFAULT_ROWS.size(), queryResponse.rows.size());
+    assertTrue(response.bodyAsString().contains("\n"));
+    assertEquals(200, response.statusCode());
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenDelimitedAcceptHeaderQuery() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertEquals(DEFAULT_ROWS.size(), queryResponse.rows.size());
+    assertTrue(response.bodyAsString().contains("\n"));
+    assertEquals(200, response.statusCode());
+  }
+
+  @Test
+  public void shouldUseJsonFormatWhenJsonAcceptHeaderQuery() throws Exception {
+    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/query-stream")
+        .putHeader("accept", "application/json")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    JsonArray jsonArray = new JsonArray(response.body());
+    assertEquals(DEFAULT_ROWS.size() + 1, jsonArray.size());
+    JsonObject metaData = jsonArray.getJsonObject(0);
+    assertEquals(DEFAULT_COLUMN_NAMES, metaData.getJsonArray("columnNames"));
+    assertEquals(DEFAULT_COLUMN_TYPES, metaData.getJsonArray("columnTypes"));
+    for (int i = 0; i < DEFAULT_ROWS.size(); i++) {
+      assertEquals(DEFAULT_ROWS.get(i), jsonArray.getJsonArray(i + 1));
+    }
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenNoAcceptHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    assertEquals(rows.size(), insertsResponse.acks.size());
+  }
+
+  @Test
+  public void shouldUseDelimitedFormatWhenDelimitedHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    assertEquals(rows.size(), insertsResponse.acks.size());
+  }
+
+  @Test
+  public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/inserts-stream")
+        .putHeader("accept", "application/json")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    JsonArray jsonArray = new JsonArray(response.body());
+    assertEquals(DEFAULT_ROWS.size(), jsonArray.size());
+    final JsonObject ackLine = new JsonObject().put("status", "ok");
+    for (int i = 0; i < jsonArray.size(); i++) {
+      assertEquals(ackLine, jsonArray.getJsonObject(i));
+    }
   }
 
   private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {

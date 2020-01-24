@@ -16,24 +16,21 @@
 package io.confluent.ksql.api.server;
 
 import java.util.Objects;
-import java.util.UUID;
 
 /**
- * Handle to a query that is passed to the client on query creation and can subsequently be used to
- * close a query. Uses UUID.randomUUID() which internally uses SecureRandom - this makes the id
- * cryptographically secure. This is important as we don't want random users guessing query IDs and
- * closing other peoples queries.
+ * Surprisingly, the id of a push query
  */
-public final class ApiQueryID {
+public class PushQueryId {
 
   private final String id;
 
-  public ApiQueryID() {
-    this.id = UUID.randomUUID().toString();
+  public PushQueryId(final String id) {
+    this.id = Objects.requireNonNull(id);
   }
 
-  public ApiQueryID(final String id) {
-    this.id = Objects.requireNonNull(id);
+  @Override
+  public String toString() {
+    return id;
   }
 
   @Override
@@ -44,17 +41,12 @@ public final class ApiQueryID {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final ApiQueryID queryID = (ApiQueryID) o;
-    return Objects.equals(id, queryID.id);
+    final PushQueryId that = (PushQueryId) o;
+    return Objects.equals(id, that.id);
   }
 
   @Override
   public int hashCode() {
-    return id.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return id;
+    return Objects.hash(id);
   }
 }

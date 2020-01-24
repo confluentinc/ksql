@@ -58,7 +58,7 @@ public class ServerVerticle extends AbstractVerticle {
     Utils.connectPromise(listenFuture.map(s -> null), startPromise);
     httpServer.listen(listenFuture);
     vertx.getOrCreateContext().exceptionHandler(ServerUtils::unhandledExceptonHandler);
-  }
+ }
 
   @Override
   public void stop(final Promise<Void> stopPromise) {

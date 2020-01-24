@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
+import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.codegen.annotations.Nullable;
@@ -35,11 +36,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpResponse;
@@ -82,20 +81,15 @@ public class ApiTest {
 
     vertx = Vertx.vertx();
 
-    HttpServerOptions httpServerOptions =
-        new HttpServerOptions()
-            .setHost("localhost")
-            .setPort(8089)
-            .setUseAlpn(true)
-            .setSsl(true)
-            .setPemKeyCertOptions(
-                new PemKeyCertOptions().setKeyPath(findFilePath("test-server-key.pem"))
-                    .setCertPath(findFilePath("test-server-cert.pem"))
-            );
+    JsonObject config = new JsonObject()
+        .put("ksql.apiserver.host", "localhost")
+        .put("ksql.apiserver.port", 8089)
+        .put("ksql.apiserver.key-path", findFilePath("test-server-key.pem"))
+        .put("ksql.apiserver.cert-path", findFilePath("test-server-cert.pem"))
+        .put("ksql.apiserver.verticle-instances", 4);
 
     testEndpoints = new TestEndpoints(vertx);
-    JsonObject config = new JsonObject().put("verticle-instances", 4);
-    server = new Server(vertx, config, testEndpoints, httpServerOptions);
+    server = new Server(vertx, new ApiServerConfig(config), testEndpoints);
     server.start();
     client = createClient();
     setDefaultRowGenerator();

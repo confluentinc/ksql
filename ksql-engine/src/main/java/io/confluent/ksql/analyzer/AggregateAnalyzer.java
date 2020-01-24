@@ -19,7 +19,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
@@ -32,12 +34,12 @@ import java.util.function.BiConsumer;
 class AggregateAnalyzer {
 
   private final MutableAggregateAnalysis aggregateAnalysis;
-  private final ColumnReferenceExp defaultArgument;
+  private final QualifiedColumnReferenceExp defaultArgument;
   private final FunctionRegistry functionRegistry;
 
   AggregateAnalyzer(
       final MutableAggregateAnalysis aggregateAnalysis,
-      final ColumnReferenceExp defaultArgument,
+      final QualifiedColumnReferenceExp defaultArgument,
       final FunctionRegistry functionRegistry
   ) {
     this.aggregateAnalysis = Objects.requireNonNull(aggregateAnalysis, "aggregateAnalysis");
@@ -84,7 +86,8 @@ class AggregateAnalyzer {
 
   private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
-    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp> dereferenceCollector;
+    private final BiConsumer<Optional<FunctionName>, ColumnReferenceExp>
+        dereferenceCollector;
     private Optional<FunctionName> aggFunctionName = Optional.empty();
     private boolean visitedAggFunction = false;
 
@@ -128,7 +131,17 @@ class AggregateAnalyzer {
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      dereferenceCollector.accept(aggFunctionName, node);
+      aggregateAnalysis.addRequiredColumn(node);
+      return null;
+    }
+
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
         final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);

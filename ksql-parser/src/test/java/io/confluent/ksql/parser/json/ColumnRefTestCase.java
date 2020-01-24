@@ -16,17 +16,13 @@
 package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 
 final class ColumnRefTestCase {
-  static final ColumnRef COLUMN_REF = ColumnRef.of(SourceName.of("SOURCE"), ColumnName.of("COL"));
-  static final String COLUMN_REF_TXT = "\"SOURCE.COL\"";
-
-  static final ColumnRef COLUMN_REF_NO_SOURCE = ColumnRef.withoutSource(ColumnName.of("COL"));
-  static final String COLUMN_REF_NO_SOURCE_TXT = "\"COL\"";
+  static final ColumnRef COLUMN_REF = ColumnRef.of(ColumnName.of("COL"));
+  static final String COLUMN_REF_TXT = "\"COL\"";
 
   static final ColumnRef COLUMN_REF_NEEDS_QUOTES =
-      ColumnRef.of(SourceName.of("STREAM"), ColumnName.of("foo"));
-  static final String COLUMN_REF_NEEDS_QUOTES_TXT = "\"`STREAM`.`foo`\"";
+      ColumnRef.of(ColumnName.of("STREAM"));
+  static final String COLUMN_REF_NEEDS_QUOTES_TXT = "\"`STREAM`\"";
 }

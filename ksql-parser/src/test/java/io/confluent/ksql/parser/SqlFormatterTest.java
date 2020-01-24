@@ -174,7 +174,7 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ORDERTIME"))),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -192,7 +192,7 @@ public class SqlFormatterTest {
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -205,7 +205,7 @@ public class SqlFormatterTest {
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("TABLE"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("TABLE"))),
         Optional.empty(),
         false,
         ksqlTopicItems

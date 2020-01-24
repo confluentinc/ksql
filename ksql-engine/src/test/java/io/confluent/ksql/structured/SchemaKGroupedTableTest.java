@@ -22,8 +22,8 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -64,7 +64,7 @@ public class SchemaKGroupedTableTest {
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
   private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
-      ColumnRef.withoutSource(ColumnName.of("IN0"))
+      ColumnRef.of(ColumnName.of("IN0"))
   );
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
@@ -182,7 +182,7 @@ public class SchemaKGroupedTableTest {
   private static FunctionCall udaf(final String name) {
     return new FunctionCall(
         FunctionName.of(name),
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("IN1"))))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
     );
   }
 }

@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -45,33 +44,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
-  private static final SourceName LEFT = SourceName.of("LEFT");
-  private static final SourceName RIGHT = SourceName.of("RIGHT");
-  private static final SourceName ALIAS = SourceName.of("ALIAS");
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-      .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .build();
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
+      .build();
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .build();
   private static final PhysicalSchema LEFT_PHYSICAL =
-      PhysicalSchema.from(LEFT_SCHEMA.withoutAlias(), SerdeOption.none());
+      PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
   private static final PhysicalSchema RIGHT_PHYSICAL =
-      PhysicalSchema.from(RIGHT_SCHEMA.withoutAlias(), SerdeOption.none());
+      PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
   private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(Format.KAFKA),
       FormatInfo.of(Format.JSON),

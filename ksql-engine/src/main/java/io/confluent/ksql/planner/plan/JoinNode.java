@@ -213,7 +213,7 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      return (SchemaKTable<K>) schemaKStream;
+      return ((SchemaKTable<K>) schemaKStream);
     }
 
     static ValueFormat getFormatForSource(final PlanNode sourceNode) {

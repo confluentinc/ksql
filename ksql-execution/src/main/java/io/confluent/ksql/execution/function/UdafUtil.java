@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.execution.function;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -53,10 +53,10 @@ public final class UdafUtil {
       // UDAFs only support one non-constant argument, and that argument must be a column reference
       final Expression arg = functionCall.getArguments().get(0);
 
-      final Optional<Column> possibleValueColumn = arg instanceof ColumnReferenceExp
-          ? schema.findValueColumn(((ColumnReferenceExp) arg).getReference())
+      final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
+          ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getReference())
           // assume that it is a column reference with no alias
-          : schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
+          : schema.findValueColumn(ColumnRef.of(ColumnName.of(arg.toString())));
 
       final Column valueColumn = possibleValueColumn
           .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));

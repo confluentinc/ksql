@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -37,7 +37,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -64,25 +63,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyBuilderTest {
 
-  private static final SourceName ALIAS = SourceName.of("ATL");
-
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
 
-  private static final ColumnReferenceExp KEY =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));
+  private static final UnqualifiedColumnReferenceExp KEY =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("BOI")));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ALIAS, ColumnName.of("BIG"), SqlTypes.BIGINT)
-      .valueColumn(ALIAS, ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .valueColumn(
+          ColumnName.of(SchemaUtil.ROWTIME_NAME.name()), SqlTypes.BIGINT)
+      .valueColumn(
+          ColumnName.of(SchemaUtil.ROWKEY_NAME.name()), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);

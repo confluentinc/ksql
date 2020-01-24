@@ -72,7 +72,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .build();
 
   private static final KeyField KEY_FIELD = KeyField
-      .of(ColumnRef.withoutSource(ColumnName.of("key")));
+      .of(ColumnRef.of(ColumnName.of("key")));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));

@@ -62,7 +62,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +75,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DataSourceNodeTest {
 
   private static final ColumnRef TIMESTAMP_FIELD
-      = ColumnRef.withoutSource(ColumnName.of("timestamp"));
+      = ColumnRef.of(ColumnName.of("timestamp"));
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
@@ -95,7 +94,7 @@ public class DataSourceNodeTest {
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
-      = KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")));
+      = KeyField.of(ColumnRef.of(ColumnName.of("field1")));
   private static final TimestampColumn TIMESTAMP_COLUMN =
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
 
@@ -104,10 +103,10 @@ public class DataSourceNodeTest {
       SourceName.of("datasource"),
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
+      KeyField.of(ColumnRef.of(ColumnName.of("key"))),
       Optional.of(
           new TimestampColumn(
-              ColumnRef.withoutSource(ColumnName.of("timestamp")),
+              ColumnRef.of(ColumnName.of("timestamp")),
               Optional.empty()
           )
       ),
@@ -219,7 +218,7 @@ public class DataSourceNodeTest {
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("field1"))),
         Optional.of(TIMESTAMP_COLUMN),
         false,
         new KsqlTopic(
@@ -241,9 +240,6 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldHaveFullyQualifiedSchema() {
-    // Given:
-    final SourceName sourceName = SOME_SOURCE.getName();
-
     // When:
     final LogicalSchema schema = node.getSchema();
 
@@ -257,7 +253,7 @@ public class DataSourceNodeTest {
             .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
             .valueColumn(TIMESTAMP_FIELD.name(), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
-            .build().withAlias(sourceName)));
+            .build()));
   }
 
   @Test

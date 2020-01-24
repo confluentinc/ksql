@@ -26,6 +26,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -97,7 +98,7 @@ public class QueryAnalyzer {
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
-    final ColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
+    final QualifiedColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
         new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =

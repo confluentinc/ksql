@@ -36,6 +36,9 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -43,6 +46,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -101,13 +105,13 @@ public class JoinNodeTest {
   private static final SourceName LEFT_ALIAS = SourceName.of("left");
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
 
-  private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
-      .withAlias(LEFT_ALIAS);
+  private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withMetaAndKeyColsInValue()
+  );
 
-  private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue()
-      .withAlias(RIGHT_ALIAS);
+  private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue()
+  );
 
   private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
@@ -116,8 +120,8 @@ public class JoinNodeTest {
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(LEFT_ALIAS, ColumnName.of("C0"));
-  private static final ColumnRef RIGHT_JOIN_FIELD_REF = ColumnRef.of(RIGHT_ALIAS, ColumnName.of("R1"));
+  private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(ColumnName.of("C0"));
+  private static final ColumnRef RIGHT_JOIN_FIELD_REF = ColumnRef.of(ColumnName.of("R1"));
 
   private static final KeyField leftJoinField = KeyField.of(LEFT_JOIN_FIELD_REF);
 
@@ -153,6 +157,12 @@ public class JoinNodeTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private KafkaTopicClient mockKafkaTopicClient;
+  @Mock
+  private ProcessingLogContext logContext;
+  @Mock
+  private ProcessingLoggerFactory loggerFactory;
+  @Mock
+  private ProcessingLogger logger;
 
   @Before
   public void setUp() {
@@ -178,6 +188,14 @@ public class JoinNodeTest {
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
     when(left.getKeyField()).thenReturn(KeyField.of(LEFT_JOIN_FIELD_REF));
+
+    when(left.getAlias()).thenReturn(LEFT_ALIAS);
+    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
+
+    when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("foo"));
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(logContext);
+    when(logContext.getLoggerFactory()).thenReturn(loggerFactory);
+    when(loggerFactory.getLogger(any())).thenReturn(logger);
 
     setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
     setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
@@ -632,14 +650,14 @@ public class JoinNodeTest {
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, ColumnName.of("ROWKEY"), SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, ColumnName.of("C0"), SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, ColumnName.of("L1"), SqlTypes.STRING)
-        .valueColumn(RIGHT_ALIAS, ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(RIGHT_ALIAS, ColumnName.of("ROWKEY"), SqlTypes.BIGINT)
-        .valueColumn(RIGHT_ALIAS, ColumnName.of("C0"), SqlTypes.STRING)
-        .valueColumn(RIGHT_ALIAS, ColumnName.of("R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "C0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "L1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "C0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "R1"), SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -780,7 +798,7 @@ public class JoinNodeTest {
             .orElseThrow(AssertionError::new);
 
     final Column field = schema.findValueColumn(column.ref()).get();
-    return ColumnRef.of(alias, field.name());
+    return ColumnRef.of(field.name());
   }
 
   @SuppressWarnings("unchecked")
@@ -795,5 +813,14 @@ public class JoinNodeTest {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
+  }
+
+  private static LogicalSchema prependAlias(final SourceName alias, final LogicalSchema schema) {
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    builder.keyColumns(schema.key());
+    for (final Column c : schema.value()) {
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(alias, c.ref()), c.type());
+    }
+    return builder.build();
   }
 }

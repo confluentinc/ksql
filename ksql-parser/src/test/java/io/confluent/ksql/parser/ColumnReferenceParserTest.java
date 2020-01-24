@@ -16,12 +16,10 @@
 package io.confluent.ksql.parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import java.util.Optional;
 import org.junit.Test;
 
 public class ColumnReferenceParserTest {
@@ -32,17 +30,6 @@ public class ColumnReferenceParserTest {
     final ColumnRef result = ColumnReferenceParser.parse("foo");
 
     // Then:
-    assertThat(result.source(), is(Optional.empty()));
-    assertThat(result.name(), is(ColumnName.of("FOO")));
-  }
-
-  @Test
-  public void shouldParseUnquotedColumnRef() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("a.foo");
-
-    // Then:
-    assertThat(result.source(), is(Optional.of(SourceName.of("A"))));
     assertThat(result.name(), is(ColumnName.of("FOO")));
   }
 
@@ -52,30 +39,6 @@ public class ColumnReferenceParserTest {
     final ColumnRef result = ColumnReferenceParser.parse("`foo`");
 
     // Then:
-    assertThat(result.source(), is(Optional.empty()));
     assertThat(result.name(), is(ColumnName.of("foo")));
   }
-
-  @Test
-  public void shouldParseQuotedIdentifierWithDot() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("`foo.bar`");
-
-    // Then:
-    assertThat(result.source(), is(Optional.empty()));
-    assertThat(result.name(), is(ColumnName.of("foo.bar")));
-  }
-
-
-  @Test
-  public void shouldParseQuotedColumnRef() {
-    // When:
-    final ColumnRef result = ColumnReferenceParser.parse("a.`foo`");
-
-    // Then:
-    assertThat(result.source(), is(Optional.of(SourceName.of("A"))));
-    assertThat(result.name(), is(ColumnName.of("foo")));
-  }
-
-
 }

@@ -4,16 +4,17 @@
   "ksql.security.extension.class" : null,
   "ksql.transient.prefix" : "transient_",
   "ksql.persistence.wrap.single.values" : "true",
-  "ksql.schema.registry.url" : "http://localhost:8081",
+  "ksql.authorization.cache.expiry.time.secs" : "30",
+  "ksql.schema.registry.url" : "",
   "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
   "ksql.output.topic.name.prefix" : "",
   "ksql.streams.auto.offset.reset" : "earliest",
   "ksql.connect.url" : "http://localhost:8083",
   "ksql.service.id" : "some.ksql.service.id",
   "ksql.internal.topic.min.insync.replicas" : "1",
+  "ksql.streams.shutdown.timeout.ms" : "300000",
   "ksql.internal.topic.replicas" : "1",
   "ksql.insert.into.values.enabled" : "true",
-  "ksql.pull.queries.enable" : "true",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.access.validator.enable" : "auto",
   "ksql.streams.bootstrap.servers" : "localhost:0",
@@ -22,12 +23,14 @@
   "ksql.streams.auto.commit.interval.ms" : "0",
   "ksql.metrics.extension" : null,
   "ksql.streams.topology.optimization" : "all",
+  "ksql.execution.plan.enable" : "false",
   "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
   "ksql.streams.num.stream.threads" : "4",
+  "ksql.authorization.cache.max.entries" : "10000",
   "ksql.metrics.tags.custom" : "",
+  "ksql.pull.queries.enable" : "true",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
-  "ksql.query.pull.skip.access.validator" : "false",
   "ksql.connect.worker.config" : "",
   "ksql.query.pull.routing.timeout.ms" : "30000",
   "ksql.sink.window.change.log.additional.retention" : "1000000",
@@ -38,40 +41,46 @@
 CONFIGS_END
 CSAS_OUTPUT_0.KafkaTopic_Left.Source = STRUCT<FOO INT, BAR INT> NOT NULL
 CSAS_OUTPUT_0.KafkaTopic_Right.Source = STRUCT<FOO INT, BAR INT> NOT NULL
-CSAS_OUTPUT_0.Join.Left = STRUCT<ROWTIME BIGINT, ROWKEY INT, FOO INT, BAR INT> NOT NULL
-CSAS_OUTPUT_0.Join.Right = STRUCT<ROWTIME BIGINT, ROWKEY INT, FOO INT, BAR INT> NOT NULL
+CSAS_OUTPUT_0.Join.Left = STRUCT<INPUT_1_ROWTIME BIGINT, INPUT_1_ROWKEY INT, INPUT_1_FOO INT, INPUT_1_BAR INT> NOT NULL
+CSAS_OUTPUT_0.Join.Right = STRUCT<I2_ROWTIME BIGINT, I2_ROWKEY INT, I2_FOO INT, I2_BAR INT> NOT NULL
 CSAS_OUTPUT_0.OUTPUT = STRUCT<INPUT_1_BAR INT, I2_BAR INT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
     Source: KSTREAM-SOURCE-0000000000 (topics: [t1])
       --> KSTREAM-TRANSFORMVALUES-0000000001
-    Source: KSTREAM-SOURCE-0000000002 (topics: [t2])
-      --> KSTREAM-TRANSFORMVALUES-0000000003
+    Source: KSTREAM-SOURCE-0000000003 (topics: [t2])
+      --> KSTREAM-TRANSFORMVALUES-0000000004
     Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
-      --> Join-this-windowed
+      --> PrependAliasLeft
       <-- KSTREAM-SOURCE-0000000000
-    Processor: KSTREAM-TRANSFORMVALUES-0000000003 (stores: [])
-      --> Join-other-windowed
-      <-- KSTREAM-SOURCE-0000000002
-    Processor: Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000007-store])
-      --> Join-other-join
-      <-- KSTREAM-TRANSFORMVALUES-0000000003
-    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000006-store])
-      --> Join-this-join
+    Processor: KSTREAM-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KSTREAM-SOURCE-0000000003
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-this-windowed
       <-- KSTREAM-TRANSFORMVALUES-0000000001
-    Processor: Join-other-join (stores: [KSTREAM-JOINTHIS-0000000006-store])
+    Processor: PrependAliasRight (stores: [])
+      --> Join-other-windowed
+      <-- KSTREAM-TRANSFORMVALUES-0000000004
+    Processor: Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000009-store])
+      --> Join-other-join
+      <-- PrependAliasRight
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000008-store])
+      --> Join-this-join
+      <-- PrependAliasLeft
+    Processor: Join-other-join (stores: [KSTREAM-JOINTHIS-0000000008-store])
       --> Join-merge
       <-- Join-other-windowed
-    Processor: Join-this-join (stores: [KSTREAM-JOINOTHER-0000000007-store])
+    Processor: Join-this-join (stores: [KSTREAM-JOINOTHER-0000000009-store])
       --> Join-merge
       <-- Join-this-windowed
     Processor: Join-merge (stores: [])
       --> Project
       <-- Join-this-join, Join-other-join
     Processor: Project (stores: [])
-      --> KSTREAM-SINK-0000000010
+      --> KSTREAM-SINK-0000000012
       <-- Join-merge
-    Sink: KSTREAM-SINK-0000000010 (topic: OUTPUT)
+    Sink: KSTREAM-SINK-0000000012 (topic: OUTPUT)
       <-- Project
 

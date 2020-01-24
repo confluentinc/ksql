@@ -24,12 +24,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -43,7 +43,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageTy
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -72,16 +71,13 @@ public class SqlPredicateTest {
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
-      .build()
-      .withAlias(SourceName.of("TEST1"));
+      .build();
 
-  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final UnqualifiedColumnReferenceExp COL0 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
 
-  private static final ColumnReferenceExp COL0 =
-      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL0")));
-
-  private static final ColumnReferenceExp COL2 =
-      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL2")));
+  private static final UnqualifiedColumnReferenceExp COL2 =
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
 
   private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
       SqlTypes.INTEGER,
@@ -171,7 +167,7 @@ public class SqlPredicateTest {
     assertThat(
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
         equalTo(
-            "Error evaluating predicate (TEST1.COL0 > 100): "
+            "Error evaluating predicate (COL0 > 100): "
                 + "argument type mismatch")
     );
   }

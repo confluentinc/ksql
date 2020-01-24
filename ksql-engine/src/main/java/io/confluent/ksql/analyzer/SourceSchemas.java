@@ -24,13 +24,14 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Helper for finding fields in the schemas of one or more aliased sources.
  */
-final class SourceSchemas {
+public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
 
@@ -45,7 +46,7 @@ final class SourceSchemas {
   /**
    * @return {@code true} if there is more than one source schema, i.e. its a join.
    */
-  boolean isJoin() {
+  public boolean isJoin() {
     return sourceSchemas.size() > 1;
   }
 
@@ -58,21 +59,24 @@ final class SourceSchemas {
    * @param target the field name to search for. Can be prefixed by source name.
    * @return the set of source names or aliases which contain the supplied {@code target}.
    */
-  Set<SourceName> sourcesWithField(final ColumnRef target) {
-    if (!target.source().isPresent()) {
+  public Set<SourceName> sourcesWithField(
+      final Optional<SourceName> source,
+      final ColumnRef target
+  ) {
+    if (!source.isPresent()) {
       return sourceSchemas.entrySet().stream()
           .filter(e -> e.getValue().findColumn(target).isPresent())
           .map(Entry::getKey)
           .collect(Collectors.toSet());
     }
 
-    final SourceName sourceName = target.source().get();
+    final SourceName sourceName = source.get();
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
       return ImmutableSet.of();
     }
 
-    return sourceSchema.findColumn(target.withoutSource()).isPresent()
+    return sourceSchema.findColumn(target).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
   }
@@ -86,14 +90,14 @@ final class SourceSchemas {
    * @param column the field name to search for. Can be prefixed by source name.
    * @return true if this the supplied {@code column} matches a non-value field
    */
-  boolean matchesNonValueField(final ColumnRef column) {
-    if (!column.source().isPresent()) {
+  boolean matchesNonValueField(final Optional<SourceName> source, final ColumnRef column) {
+    if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->
               schema.isMetaColumn(column.name()) || schema.isKeyColumn(column.name()));
     }
 
-    final SourceName sourceName = column.source().get();
+    final SourceName sourceName = source.get();
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
       throw new IllegalArgumentException("Unknown source: " + sourceName);

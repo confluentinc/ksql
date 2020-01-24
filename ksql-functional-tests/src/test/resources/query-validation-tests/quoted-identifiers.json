@@ -75,6 +75,19 @@
       }
     },
     {
+      "name": "partition by quoted field",
+      "statements": [
+        "CREATE STREAM TEST (`some.key` VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM TEST PARTITION BY `some.key`;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"some.key": "key"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "key", "value": {"some.key": "key"}}
+      ]
+    },
+    {
       "name": "joins using fields that require quotes",
       "statements": [
         "CREATE STREAM L (`SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",

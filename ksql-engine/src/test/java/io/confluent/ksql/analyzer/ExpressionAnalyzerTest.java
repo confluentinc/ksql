@@ -23,20 +23,21 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,8 +49,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExpressionAnalyzerTest {
 
-  private static final Expression WINDOW_START_EXP = new ColumnReferenceExp(
-      ColumnRef.of(SourceName.of("something"), SchemaUtil.WINDOWSTART_NAME)
+  private static final Expression WINDOW_START_EXP = new UnqualifiedColumnReferenceExp(
+      ColumnRef.of(SchemaUtil.WINDOWSTART_NAME)
   );
 
   private static final Expression OTHER_EXP = new StringLiteral("foo");
@@ -93,35 +94,38 @@ public class ExpressionAnalyzerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Column 'something.WINDOWSTART' cannot be resolved.");
+        "Column 'WINDOWSTART' cannot be resolved.");
 
     // When:
     analyzer.analyzeExpression(expression, false);
   }
 
   @Test
-  public void shouldGetSourcesUsingFullColumnRef() {
+  public void shouldGetSourceForUnqualifiedColumnRef() {
     // Given:
-    final ColumnRef column = ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"));
-    final Expression expression = new ColumnReferenceExp(column);
+    final ColumnRef column = ColumnRef.of(ColumnName.of("qualified"));
+    final Expression expression = new QualifiedColumnReferenceExp(
+        SourceName.of("fully"),
+        column
+    );
 
-    when(sourceSchemas.sourcesWithField(any())).thenReturn(sourceNames("something"));
+    when(sourceSchemas.sourcesWithField(any(), any())).thenReturn(sourceNames("something"));
 
     // When:
     analyzer.analyzeExpression(expression, true);
 
     // Then:
-    verify(sourceSchemas).sourcesWithField(column);
+    verify(sourceSchemas).sourcesWithField(Optional.of(SourceName.of("fully")), column);
   }
 
   @Test
   public void shouldThrowOnMultipleSources() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("just-name"))
+    final Expression expression = new UnqualifiedColumnReferenceExp(
+        ColumnRef.of(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(any()))
+    when(sourceSchemas.sourcesWithField(any(), any()))
         .thenReturn(sourceNames("multiple", "sources"));
 
     // Then:
@@ -134,32 +138,37 @@ public class ExpressionAnalyzerTest {
   }
 
   @Test
-  public void shouldAddQualifier() {
+  public void shouldGetSourceForQualifiedColumnRef() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("else"))
+    final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
+        SourceName.of("something"),
+        ColumnRef.of(ColumnName.of("else"))
     );
 
-    when(sourceSchemas.sourcesWithField(any()))
+    when(sourceSchemas.sourcesWithField(any(), any()))
         .thenReturn(ImmutableSet.of(SourceName.of("something")));
 
     // When:
-    final Set<ColumnRef> columnRefs = analyzer.analyzeExpression(expression, true);
+    final Set<SourceName> columnRefs = analyzer.analyzeExpression(expression, true);
 
     // Then:
+    verify(sourceSchemas).sourcesWithField(
+        Optional.of(expression.getQualifier()),
+        expression.getReference()
+    );
     assertThat(
         Iterables.getOnlyElement(columnRefs),
-        is(ColumnRef.of(SourceName.of("something"), ColumnName.of("else"))));
+        is(SourceName.of("something")));
   }
 
   @Test
   public void shouldThrowOnNoSources() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("just-name"))
+    final Expression expression = new UnqualifiedColumnReferenceExp(
+        ColumnRef.of(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(any()))
+    when(sourceSchemas.sourcesWithField(any(), any()))
         .thenReturn(ImmutableSet.of());
 
     // Then:

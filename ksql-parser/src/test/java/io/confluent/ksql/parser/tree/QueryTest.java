@@ -21,8 +21,8 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -40,7 +40,7 @@ public class QueryTest {
   private static final Select SOME_SELECT = new Select(ImmutableList.of(
       new AllColumns(Optional.empty())));
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
-      new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("Bob"))),
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("Bob"))),
       Optional.of(ColumnName.of("B")))));
   private static final Relation SOME_FROM = new Table(SourceName.of("from"));
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(

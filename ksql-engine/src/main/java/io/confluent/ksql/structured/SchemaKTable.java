@@ -169,7 +169,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
     final Optional<ColumnRef> newKeyField = getSchema()
-        .findValueColumn(aggregateKeyName.withoutSource())
+        .findValueColumn(aggregateKeyName)
         .map(Column::ref);
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(

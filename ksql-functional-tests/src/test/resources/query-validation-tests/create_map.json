@@ -43,7 +43,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Cannot construct a map with mismatching value types ([INTEGER, STRING]) from expression MAP(TEST.K1:=TEST.V1, TEST.K2:='hello')."
+        "message": "Cannot construct a map with mismatching value types ([INTEGER, STRING]) from expression MAP(K1:=V1, K2:='hello')."
       }
     },
     {
@@ -54,7 +54,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Cannot construct a map with mismatching value types ([INTEGER, null]) from expression MAP(TEST.K1:=TEST.V1, TEST.K2:=null)."
+        "message": "Cannot construct a map with mismatching value types ([INTEGER, null]) from expression MAP(K1:=V1, K2:=null)."
       }
     },
     {

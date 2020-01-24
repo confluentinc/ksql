@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -185,7 +186,8 @@ public class AggregateNode extends PlanNode {
     final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations
-    final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
+    final InternalSchema internalSchema = new InternalSchema(
+        getRequiredColumns(),
         getAggregateFunctionArguments());
 
     final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
@@ -224,8 +226,8 @@ public class AggregateNode extends PlanNode {
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
     final List<ColumnRef> requiredColumnRefs = requiredColumns.stream()
-        .map(e -> (ColumnReferenceExp) internalSchema.resolveToInternal(e))
-        .map(ColumnReferenceExp::getReference)
+        .map(e -> (UnqualifiedColumnReferenceExp) internalSchema.resolveToInternal(e))
+        .map(UnqualifiedColumnReferenceExp::getReference)
         .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
         requiredColumnRefs,
@@ -298,17 +300,18 @@ public class AggregateNode extends PlanNode {
       final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable);
 
       final Function<Expression, Expression> mapper = e -> {
-        final boolean rowKey = e instanceof ColumnReferenceExp
-            && ((ColumnReferenceExp) e).getReference().name().equals(SchemaUtil.ROWKEY_NAME);
+        final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
+            && ((UnqualifiedColumnReferenceExp) e).getReference().name().equals(
+                SchemaUtil.ROWKEY_NAME);
 
         if (!rowKey || !specialRowTimeHandling) {
           return resolveToInternal(e);
         }
 
-        final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
-        return new ColumnReferenceExp(
+        final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) e;
+        return new UnqualifiedColumnReferenceExp(
             nameRef.getLocation(),
-            nameRef.getReference().withoutSource()
+            nameRef.getReference()
         );
       };
 
@@ -362,9 +365,9 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final ColumnName name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
-        return new ColumnReferenceExp(
+        return new UnqualifiedColumnReferenceExp(
             exp.getLocation(),
-            ColumnRef.withoutSource(name));
+            ColumnRef.of(name));
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
@@ -378,21 +381,21 @@ public class AggregateNode extends PlanNode {
 
       @Override
       public Optional<Expression> visitColumnReference(
-          final ColumnReferenceExp node,
+          final UnqualifiedColumnReferenceExp node,
           final Context<Void> context
       ) {
         // internal names are source-less
         final ColumnName name = expressionToInternalColumnName.get(node.toString());
         if (name != null) {
           return Optional.of(
-              new ColumnReferenceExp(
+              new UnqualifiedColumnReferenceExp(
                   node.getLocation(),
-                  ColumnRef.withoutSource(name)));
+                  ColumnRef.of(name)));
         }
 
         final boolean isAggregate = node.getReference().name().isAggregate();
 
-        if (!isAggregate || node.getReference().source().isPresent()) {
+        if (!isAggregate) {
           throw new KsqlException("Unknown source column: " + node.toString());
         }
 

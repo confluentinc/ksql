@@ -4,16 +4,17 @@
   "ksql.security.extension.class" : null,
   "ksql.transient.prefix" : "transient_",
   "ksql.persistence.wrap.single.values" : "true",
-  "ksql.schema.registry.url" : "http://localhost:8081",
+  "ksql.authorization.cache.expiry.time.secs" : "30",
+  "ksql.schema.registry.url" : "",
   "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
   "ksql.output.topic.name.prefix" : "",
   "ksql.streams.auto.offset.reset" : "earliest",
   "ksql.connect.url" : "http://localhost:8083",
   "ksql.service.id" : "some.ksql.service.id",
   "ksql.internal.topic.min.insync.replicas" : "1",
+  "ksql.streams.shutdown.timeout.ms" : "300000",
   "ksql.internal.topic.replicas" : "1",
   "ksql.insert.into.values.enabled" : "true",
-  "ksql.pull.queries.enable" : "true",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.access.validator.enable" : "auto",
   "ksql.streams.bootstrap.servers" : "localhost:0",
@@ -22,12 +23,14 @@
   "ksql.streams.auto.commit.interval.ms" : "0",
   "ksql.metrics.extension" : null,
   "ksql.streams.topology.optimization" : "all",
+  "ksql.execution.plan.enable" : "false",
   "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
   "ksql.streams.num.stream.threads" : "4",
+  "ksql.authorization.cache.max.entries" : "10000",
   "ksql.metrics.tags.custom" : "",
+  "ksql.pull.queries.enable" : "true",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
-  "ksql.query.pull.skip.access.validator" : "false",
   "ksql.connect.worker.config" : "",
   "ksql.query.pull.routing.timeout.ms" : "30000",
   "ksql.sink.window.change.log.additional.retention" : "1000000",
@@ -38,30 +41,36 @@
 CONFIGS_END
 CSAS_OUTPUT_0.KafkaTopic_Right.Source = BIGINT
 CSAS_OUTPUT_0.KafkaTopic_Left.Source = BIGINT
-CSAS_OUTPUT_0.Join.Left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT> NOT NULL
+CSAS_OUTPUT_0.Join.Left = STRUCT<S_ROWTIME BIGINT, S_ROWKEY VARCHAR, S_ID BIGINT> NOT NULL
 CSAS_OUTPUT_0.OUTPUT = STRUCT<ID1 BIGINT, ID2 BIGINT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
-    Source: KSTREAM-SOURCE-0000000003 (topics: [S])
-      --> KSTREAM-TRANSFORMVALUES-0000000004
-    Processor: KSTREAM-TRANSFORMVALUES-0000000004 (stores: [])
-      --> Join
-      <-- KSTREAM-SOURCE-0000000003
-    Processor: Join (stores: [KafkaTopic_Right-Reduce])
-      --> Project
-      <-- KSTREAM-TRANSFORMVALUES-0000000004
+    Source: KSTREAM-SOURCE-0000000004 (topics: [S])
+      --> KSTREAM-TRANSFORMVALUES-0000000005
+    Processor: KSTREAM-TRANSFORMVALUES-0000000005 (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-SOURCE-0000000004
     Source: KSTREAM-SOURCE-0000000000 (topics: [T])
       --> KTABLE-SOURCE-0000000001
+    Processor: PrependAliasLeft (stores: [])
+      --> Join
+      <-- KSTREAM-TRANSFORMVALUES-0000000005
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project
+      <-- PrependAliasLeft
     Processor: KTABLE-SOURCE-0000000001 (stores: [KafkaTopic_Right-Reduce])
       --> KTABLE-TRANSFORMVALUES-0000000002
       <-- KSTREAM-SOURCE-0000000000
-    Processor: Project (stores: [])
-      --> KSTREAM-SINK-0000000007
-      <-- Join
-    Sink: KSTREAM-SINK-0000000007 (topic: OUTPUT)
-      <-- Project
     Processor: KTABLE-TRANSFORMVALUES-0000000002 (stores: [])
-      --> none
+      --> PrependAliasRight
       <-- KTABLE-SOURCE-0000000001
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000009
+      <-- Join
+    Sink: KSTREAM-SINK-0000000009 (topic: OUTPUT)
+      <-- Project
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000002
 

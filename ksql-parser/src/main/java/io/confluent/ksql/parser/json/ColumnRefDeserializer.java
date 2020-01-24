@@ -18,8 +18,8 @@ package io.confluent.ksql.parser.json;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.parser.ExpressionParser;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.io.IOException;
@@ -30,8 +30,8 @@ class ColumnRefDeserializer extends JsonDeserializer<ColumnRef> {
       throws IOException {
     final Expression expression
         = ExpressionParser.parseExpression(parser.readValueAs(String.class));
-    if (expression instanceof ColumnReferenceExp) {
-      return ((ColumnReferenceExp) expression).getReference();
+    if (expression instanceof UnqualifiedColumnReferenceExp) {
+      return ((UnqualifiedColumnReferenceExp) expression).getReference();
     }
     throw new IllegalArgumentException("Passed JSON is not a column reference: " + expression);
   }

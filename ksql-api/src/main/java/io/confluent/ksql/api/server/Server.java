@@ -23,7 +23,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.PemKeyCertOptions;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -37,48 +37,56 @@ import org.slf4j.LoggerFactory;
  * This class represents the API server. On start-up it deploys multiple server verticles to spread
  * the load across available cores.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class Server {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Server.class);
 
   private final Vertx vertx;
-  private final JsonObject config;
+  private final ApiServerConfig config;
   private final Endpoints endpoints;
-  private final HttpServerOptions httpServerOptions;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
 
-  public Server(final Vertx vertx, final JsonObject config, final Endpoints endpoints,
-      final HttpServerOptions httpServerOptions) {
+  public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
-    this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
+  }
+
+  private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
+    return
+        new HttpServerOptions().setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
+            .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
+            .setUseAlpn(true)
+            .setSsl(true)
+            .setPemKeyCertOptions(
+                new PemKeyCertOptions()
+                    .setKeyPath(apiServerConfig.getString(ApiServerConfig.KEY_PATH))
+                    .setCertPath(apiServerConfig.getString(ApiServerConfig.CERT_PATH))
+            );
   }
 
   public synchronized void start() {
     if (deploymentID != null) {
       throw new IllegalStateException("Already started");
     }
-    final DeploymentOptions options = new DeploymentOptions();
-    final Integer verticleInstances = config.getInteger("verticle-instances");
-    if (verticleInstances == null) {
-      options.setInstances(Runtime.getRuntime().availableProcessors() * 2);
-    } else {
-      options.setInstances(verticleInstances);
-    }
-    log.info("Deploying " + options.getInstances() + " instances of server verticle");
-    options.setConfig(config);
+    final DeploymentOptions options = new DeploymentOptions()
+        .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES))
+        .setConfig(config.toJsonObject());
+    log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
-    vertx.deployVerticle(
-        () -> new ServerVerticle(endpoints, httpServerOptions, this), options, future);
+    vertx.deployVerticle(() ->
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this), options,
+        future);
     try {
       deploymentID = future.get();
     } catch (Exception e) {
       throw new KsqlException("Failed to start API server", e);
     }
-    log.info("API server started: " + deploymentID);
+    log.info("API server started");
   }
 
   public synchronized void stop() {

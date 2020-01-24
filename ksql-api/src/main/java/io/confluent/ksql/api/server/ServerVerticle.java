@@ -15,26 +15,23 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
-import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.impl.Utils;
-import io.confluent.ksql.api.server.protocol.CloseQueryArgs;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
-import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
-import io.confluent.ksql.api.server.protocol.QueryStreamResponseMetadata;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -113,26 +110,34 @@ public class ServerVerticle extends AbstractVerticle {
       conn.closeHandler(connectionQueries);
       server.registerQueryConnection(conn);
     }
-    final QueryStreamArgs queryStreamArgs = deserialiseObject(routingContext.getBody(),
-        routingContext.response(),
-        QueryStreamArgs.class);
-    if (queryStreamArgs == null) {
+    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
+    if (requestBody == null) {
       return;
     }
-
-    final QueryPublisher queryPublisher = endpoints
-        .createQueryPublisher(queryStreamArgs.sql, queryStreamArgs.push,
-            queryStreamArgs.properties);
+    final String sql = requestBody.getString("sql");
+    if (sql == null) {
+      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
+      return;
+    }
+    final Boolean push = requestBody.getBoolean("push");
+    if (push == null) {
+      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No push in arguments");
+      return;
+    }
+    final JsonObject properties = requestBody.getJsonObject("properties");
+    final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
 
     final ApiQueryID queryID = server.registerQuery(querySubscriber);
     connectionQueries.addQuery(queryID);
-    final QueryStreamResponseMetadata metadata = new QueryStreamResponseMetadata(
-        queryPublisher.getColumnNames(),
-        queryPublisher.getColumnTypes(), queryID.toString(),
-        queryStreamArgs.push ? null : queryPublisher.getRowCount());
-    final Buffer buff = PojoCodec.serializeObject(metadata);
-    routingContext.response().write(buff).write("\n");
+    final JsonObject metadata = new JsonObject();
+    metadata.put("columnNames", queryPublisher.getColumnNames());
+    metadata.put("columnTypes", queryPublisher.getColumnTypes());
+    metadata.put("queryID", queryID.toString());
+    if (!push) {
+      metadata.put("rowCount", queryPublisher.getRowCount());
+    }
+    routingContext.response().write(metadata.toBuffer()).write("\n");
     queryPublisher.subscribe(querySubscriber);
 
     // When response is complete, publisher should be closed and query unregistered
@@ -152,14 +157,14 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleCloseQuery(final RoutingContext routingContext) {
-
-    final CloseQueryArgs closeQueryArgs = deserialiseObject(routingContext.getBody(),
-        routingContext.response(),
-        CloseQueryArgs.class);
-    if (closeQueryArgs == null) {
+    final JsonObject requestBody = routingContext.getBodyAsJson();
+    final String queryIDArg = requestBody.getString("queryID");
+    if (queryIDArg == null) {
+      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
+          "No queryID in arguments");
       return;
     }
-    final ApiQueryID queryID = new ApiQueryID(closeQueryArgs.queryID);
+    final ApiQueryID queryID = new ApiQueryID(queryIDArg);
     if (!closeQuery(queryID, routingContext)) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
           "No query with id " + queryID);

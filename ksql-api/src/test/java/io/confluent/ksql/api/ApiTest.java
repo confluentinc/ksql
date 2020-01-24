@@ -16,7 +16,7 @@
 package io.confluent.ksql.api;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_JSON;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static org.junit.Assert.assertEquals;
@@ -155,7 +155,7 @@ public class ApiTest {
     String queryID = queryResponse.responseObject.getString("queryID");
     assertNotNull(queryID);
     assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
-    assertNull(queryResponse.responseObject.getInteger("rowCount"));
+    assertFalse(queryResponse.responseObject.containsKey("rowCount"));
   }
 
   @Test
@@ -396,7 +396,7 @@ public class ApiTest {
   @Test
   public void shouldInsertWithNoAcksStream() throws Exception {
 
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", false);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", false);
 
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
@@ -417,7 +417,7 @@ public class ApiTest {
   @Test
   public void shouldInsertWithAcksStream() throws Exception {
 
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
 
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
@@ -442,7 +442,7 @@ public class ApiTest {
   @Test
   public void shouldStreamInserts() throws Exception {
 
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
 
     // Stream for piping the HTTP request body
     SendStream readStream = new SendStream(vertx);
@@ -491,7 +491,7 @@ public class ApiTest {
   @Test
   public void shouldHandleMissingTargetInInserts() throws Exception {
 
-    JsonObject requestBody = new JsonObject().put("requiresAcks", true);
+    JsonObject requestBody = new JsonObject().put("acks", true);
 
     HttpResponse<Buffer> response = sendRequest("/inserts-stream",
         requestBody.toBuffer().appendString("\n"));
@@ -515,16 +515,14 @@ public class ApiTest {
     assertEquals("Bad Request", response.statusMessage());
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No requiresAcks in arguments",
+    validateError(ERROR_CODE_MISSING_PARAM, "No acks in arguments",
         queryResponse.responseObject);
   }
-
-  // TODO tests for extra params in args!!
 
   @Test
   public void shouldHandleErrorInProcessingInserts() throws Exception {
 
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
 
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
@@ -558,7 +556,7 @@ public class ApiTest {
   @Test
   public void shouldHandleMalformedJsonInInsertsStream() throws Exception {
 
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
 
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
@@ -578,8 +576,7 @@ public class ApiTest {
 
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
-    validateError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
-        insertsResponse.error);
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in inserts stream", insertsResponse.error);
 
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
   }
@@ -611,7 +608,7 @@ public class ApiTest {
     assertEquals(400, response.statusCode());
     assertEquals("Bad Request", response.statusMessage());
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MALFORMED_REQUEST, "Malformed JSON in request",
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in request args",
         queryResponse.responseObject);
   }
 

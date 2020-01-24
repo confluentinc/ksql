@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
+import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.InsertsStreamArgs;
-import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.Context;
@@ -72,19 +71,27 @@ public class InsertsBodyHandler {
 
   public void handleBodyBuffer(final Buffer buff) {
     if (!hasReadArguments) {
-      hasReadArguments = true;
-      final InsertsStreamArgs insertsStreamArgs = deserialiseObject(buff, routingContext.response(),
-          InsertsStreamArgs.class);
-      if (insertsStreamArgs == null) {
+      final JsonObject args = decodeJsonObject(buff, routingContext);
+      if (args == null) {
         return;
       }
-
-      acksSubscriber =
-          insertsStreamArgs.requiresAcks ? new AcksSubscriber(ctx, routingContext.response())
-              : null;
+      hasReadArguments = true;
+      final String target = args.getString("target");
+      if (target == null) {
+        handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
+            "No target in arguments");
+        return;
+      }
+      final Boolean acks = args.getBoolean("acks");
+      if (acks == null) {
+        handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
+            "No acks in arguments");
+        return;
+      }
+      final JsonObject properties = args.getJsonObject("properties");
+      acksSubscriber = acks ? new AcksSubscriber(ctx, routingContext.response()) : null;
       final InsertsSubscriber insertsSubscriber = endpoints
-          .createInsertsSubscriber(insertsStreamArgs.target, insertsStreamArgs.properties,
-              acksSubscriber);
+          .createInsertsSubscriber(target, properties, acksSubscriber);
       publisher = new BufferedPublisher<>(ctx);
 
       // This forces response headers to be written so we know we send a 200 OK
@@ -92,17 +99,15 @@ public class InsertsBodyHandler {
       routingContext.response().write("");
 
       publisher.subscribe(insertsSubscriber);
-
     } else if (publisher != null) {
       final JsonObject row;
       try {
         row = new JsonObject(buff);
       } catch (DecodeException e) {
-        final ErrorResponse errorResponse = new ErrorResponse(
-            ErrorCodes.ERROR_CODE_MALFORMED_REQUEST,
-            "Invalid JSON in inserts stream");
-        routingContext.response().write(PojoCodec.serializeObject(errorResponse).appendString("\n"))
-            .end();
+        final JsonObject errResponse = ServerUtils
+            .createErrResponse(ErrorCodes.ERROR_CODE_INVALID_JSON,
+                "Invalid JSON in inserts stream");
+        routingContext.response().write(errResponse.toBuffer().appendString("\n")).end();
         acksSubscriber.cancel();
         return;
       }

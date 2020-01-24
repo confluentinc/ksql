@@ -23,6 +23,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Handles requests to the close-query endpoint
@@ -44,13 +45,13 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
           "No queryId in arguments");
       return;
     }
-    final PushQueryHolder query = server.removeQuery(new PushQueryId(queryId));
-    if (query == null) {
+    final Optional<PushQueryHolder> query = server.removeQuery(new PushQueryId(queryId));
+    if (!query.isPresent()) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
           "No query with id " + queryId);
       return;
     }
-    query.close();
+    query.get().close();
     routingContext.response().end();
   }
 }

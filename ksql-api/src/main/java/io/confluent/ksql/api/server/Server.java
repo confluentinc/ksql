@@ -27,6 +27,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -102,8 +103,8 @@ public class Server {
     }
   }
 
-  PushQueryHolder removeQuery(final PushQueryId queryId) {
-    return queries.remove(queryId);
+  Optional<PushQueryHolder> removeQuery(final PushQueryId queryId) {
+    return Optional.ofNullable(queries.remove(queryId));
   }
 
   public Set<PushQueryId> getQueryIDs() {

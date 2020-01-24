@@ -25,7 +25,7 @@ public class PushQueryId {
   private final String id;
 
   public PushQueryId(final String id) {
-    this.id = id;
+    this.id = Objects.requireNonNull(id);
   }
 
   @Override

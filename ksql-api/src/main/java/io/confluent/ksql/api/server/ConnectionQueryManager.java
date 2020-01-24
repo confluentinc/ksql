@@ -49,12 +49,7 @@ public class ConnectionQueryManager {
 
   private ConnectionQueries getConnectionQueries(final HttpServerRequest request) {
     final HttpConnection conn = request.connection();
-    ConnectionQueries connectionQueries = connectionsMap.get(conn);
-    if (connectionQueries == null) {
-      connectionQueries = new ConnectionQueries(conn);
-      connectionsMap.put(conn, connectionQueries);
-    }
-    return connectionQueries;
+    return connectionsMap.computeIfAbsent(conn, ConnectionQueries::new);
   }
 
   private void checkContext() {
@@ -69,7 +64,7 @@ public class ConnectionQueryManager {
     private final Set<PushQueryHolder> queries = new HashSet<>();
 
     ConnectionQueries(final HttpConnection conn) {
-      this.conn = conn;
+      this.conn = Objects.requireNonNull(conn);
       conn.closeHandler(this);
       server.registerQueryConnection(conn);
     }

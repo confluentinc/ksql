@@ -157,7 +157,7 @@ docker run -d \
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6 , set to `http://[::]:8088`.
+    If you are using IPv6, set to `http://[::]:8088`.
 
 `KSQL_KSQL_SINK_REPLICAS`
 

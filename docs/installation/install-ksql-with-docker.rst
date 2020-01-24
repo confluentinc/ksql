@@ -249,6 +249,7 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
     -e KSQL_KSQL_SERVICE_ID=default_ \
     -e KSQL_KSQL_SINK_REPLICAS=3 \
     -e KSQL_KSQL_STREAMS_REPLICATION_FACTOR=3 \
+    -e KSQL_KSQL_INTERNAL_TOPIC_REPLICAS=3 \
     -e KSQL_SECURITY_PROTOCOL=SASL_SSL \
     -e KSQL_SASL_MECHANISM=PLAIN \
     -e KSQL_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<username>\" password=\"<strong-password>\";" \
@@ -264,7 +265,7 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6 , set to ``http://[::]:8088``.
+    If you are using IPv6, set to ``http://[::]:8088``.
     
 ``KSQL_KSQL_SINK_REPLICAS``
     The default number of replicas for the topics created by KSQL.
@@ -272,7 +273,11 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
 
 ``KSQL_KSQL_STREAMS_REPLICATION_FACTOR``
     The replication factor for internal topics, the command topic, and output
-    topics. 
+    topics.
+
+``KSQL_KSQL_INTERNAL_TOPIC_REPLICAS``
+    The number of replicas for the internal topics created by KSQL Server.
+    The default is 1.
 
 ``KSQL_SECURITY_PROTOCOL``
     The protocol that your Kafka cluster uses for security.

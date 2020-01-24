@@ -113,7 +113,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY not INTEGER",
+        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
         "status": 400
       }
     },
@@ -214,7 +214,7 @@
       ]
     },
     {
-      "name": "windowed lookup on wrong type type",
+      "name": "windowed lookup on wrong type",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -222,7 +222,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY not INTEGER",
+        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
         "status": 400
       }
     },

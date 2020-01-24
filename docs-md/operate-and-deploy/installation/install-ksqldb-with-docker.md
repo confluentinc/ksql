@@ -137,6 +137,7 @@ docker run -d \
   -e KSQL_KSQL_SERVICE_ID=default_ \
   -e KSQL_KSQL_SINK_REPLICAS=3 \
   -e KSQL_KSQL_STREAMS_REPLICATION_FACTOR=3 \
+  -e KSQL_KSQL_INTERNAL_TOPIC_REPLICAS=3 \
   -e KSQL_SECURITY_PROTOCOL=SASL_SSL \
   -e KSQL_SASL_MECHANISM=PLAIN \
   -e KSQL_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<username>\" password=\"<strong-password>\";" \
@@ -167,6 +168,11 @@ docker run -d \
 
 :   The replication factor for internal topics, the command topic, and
     output topics.
+
+`KSQL_KSQL_INTERNAL_TOPIC_REPLICAS`
+
+:   The number of replicas for the internal topics created by ksqlDB Server.
+    The default is 1.
 
 `KSQL_SECURITY_PROTOCOL`
 

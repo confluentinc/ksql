@@ -16,16 +16,18 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,49 +42,64 @@ class ExpressionAnalyzer {
     this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
-  Set<ColumnRef> analyzeExpression(
+  Set<SourceName> analyzeExpression(
       final Expression expression,
       final boolean allowWindowMetaFields
   ) {
-    final Set<ColumnRef> referencedColumns = new HashSet<>();
-    final ColumnExtractor extractor = new ColumnExtractor(allowWindowMetaFields, referencedColumns);
+    final Set<SourceName> referencedSources = new HashSet<>();
+    final SourceExtractor extractor = new SourceExtractor(allowWindowMetaFields, referencedSources);
     extractor.process(expression, null);
-    return referencedColumns;
+    return referencedSources;
   }
 
-  private final class ColumnExtractor extends TraversalExpressionVisitor<Object> {
+  private final class SourceExtractor extends TraversalExpressionVisitor<Object> {
 
-    private final Set<ColumnRef> referencedColumns;
+    private final Set<SourceName> referencedSources;
     private final boolean allowWindowMetaFields;
 
-    ColumnExtractor(
+    SourceExtractor(
         final boolean allowWindowMetaFields,
-        final Set<ColumnRef> referencedColumns
+        final Set<SourceName> referencedSources
     ) {
       this.allowWindowMetaFields = allowWindowMetaFields;
-      this.referencedColumns = referencedColumns;
+      this.referencedSources = referencedSources;
     }
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
       final ColumnRef reference = node.getReference();
-      referencedColumns.add(getQualifiedColumnRef(reference));
+      getSource(Optional.empty(), reference).ifPresent(referencedSources::add);
       return null;
     }
 
-    private ColumnRef getQualifiedColumnRef(final ColumnRef name) {
-      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(name);
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Object context
+    ) {
+      getSource(Optional.of(node.getQualifier()), node.getReference())
+          .ifPresent(referencedSources::add);
+      return null;
+    }
+
+    private Optional<SourceName> getSource(
+        final Optional<SourceName> sourceName,
+        final ColumnRef name
+    ) {
+      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(sourceName, name);
 
       if (sourcesWithField.isEmpty()) {
         if (allowWindowMetaFields && name.name().equals(SchemaUtil.WINDOWSTART_NAME)) {
-          // window start doesn't need a qualifier as it's a special hacky column
-          return name;
+          // window start doesn't have a source as its a special hacky column
+          return Optional.empty();
         }
 
-        throw new KsqlException("Column '" + name.toString(FormatOptions.noEscape())
+        throw new KsqlException("Column '"
+            + sourceName.map(n -> n.name() + KsqlConstants.DOT + name.name().name())
+                .orElse(name.name().name())
             + "' cannot be resolved.");
       }
 
@@ -96,7 +113,7 @@ class ExpressionAnalyzer {
             + "Could be any of: " + possibilities);
       }
 
-      return name.withSource(Iterables.getOnlyElement(sourcesWithField));
+      return Optional.of(Iterables.getOnlyElement(sourcesWithField));
     }
   }
 }

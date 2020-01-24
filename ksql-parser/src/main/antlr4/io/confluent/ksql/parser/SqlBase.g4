@@ -260,7 +260,7 @@ primaryExpression
     | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
-    | identifier '.' identifier                                                           #columnReference
+    | identifier '.' identifier                                                           #qualifiedColumnReference
     | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
     ;

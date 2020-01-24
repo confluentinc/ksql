@@ -70,10 +70,9 @@ public class DataSourceNode extends PlanNode {
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
-    this.schema = dataSource.getSchema().withAlias(alias).withMetaAndKeyColsInValue();
+    this.schema = dataSource.getSchema().withMetaAndKeyColsInValue();
 
     this.keyField = dataSource.getKeyField()
-        .withAlias(alias)
         .validateKeyExistsIn(schema);
 
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");

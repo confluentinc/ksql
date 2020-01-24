@@ -156,7 +156,7 @@ public class SourceDescriptionFactoryTest {
     final DataSource<?> dataSource = buildDataSource(
         kafkaTopicName,
         Optional.of(
-            new TimestampColumn(ColumnRef.withoutSource(ColumnName.of("foo")), Optional.empty()))
+            new TimestampColumn(ColumnRef.of(ColumnName.of("foo")), Optional.empty()))
     );
 
     // When

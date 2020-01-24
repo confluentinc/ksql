@@ -17,15 +17,16 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.ColumnReferenceContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrimaryExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.QualifiedColumnReferenceContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.ParserUtil;
-import java.util.Optional;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
@@ -57,26 +58,29 @@ public final class ColumnReferenceParser {
     if (primaryExpression instanceof ColumnReferenceContext) {
       return resolve((ColumnReferenceContext) primaryExpression).getReference();
     }
+    if (primaryExpression instanceof QualifiedColumnReferenceContext) {
+      return resolve((QualifiedColumnReferenceContext) primaryExpression).getReference();
+    }
 
     throw new ParseFailedException("Cannot parse text that is not column reference: " + text);
   }
 
-  static ColumnReferenceExp resolve(final ColumnReferenceContext context) {
-    final ColumnName columnName;
-    final SourceName sourceName;
-
-    if (context.identifier(1) == null) {
-      sourceName = null;
-      columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(0)));
-    } else {
-      sourceName = SourceName.of(ParserUtil.getIdentifierText(context.identifier(0)));
-      columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)));
-    }
-
-    return new ColumnReferenceExp(
+  static UnqualifiedColumnReferenceExp resolve(final ColumnReferenceContext context) {
+    return new UnqualifiedColumnReferenceExp(
         getLocation(context),
-        ColumnRef.of(Optional.ofNullable(sourceName), columnName)
+        ColumnRef.of(
+            ColumnName.of(ParserUtil.getIdentifierText(context.identifier()))
+        )
     );
   }
 
+  static QualifiedColumnReferenceExp resolve(final QualifiedColumnReferenceContext context) {
+    return new QualifiedColumnReferenceExp(
+        getLocation(context),
+        SourceName.of(ParserUtil.getIdentifierText(context.identifier(0))),
+        ColumnRef.of(
+            ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)))
+        )
+    );
+  }
 }

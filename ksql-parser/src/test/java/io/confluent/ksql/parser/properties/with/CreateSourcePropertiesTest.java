@@ -97,7 +97,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("KEY")))));
+    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.of(ColumnName.of("KEY")))));
   }
 
   @Test
@@ -110,7 +110,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
   }
 
   @Test

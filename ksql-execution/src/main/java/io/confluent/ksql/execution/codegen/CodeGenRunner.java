@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -25,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -178,8 +178,9 @@ public class CodeGenRunner {
 
     @Override
     public Void visitSubscriptExpression(final SubscriptExpression node, final Void context) {
-      if (node.getBase() instanceof ColumnReferenceExp) {
-        final ColumnReferenceExp arrayBaseName = (ColumnReferenceExp) node.getBase();
+      if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
+        final UnqualifiedColumnReferenceExp arrayBaseName
+            = (UnqualifiedColumnReferenceExp) node.getBase();
         addRequiredColumn(arrayBaseName.getReference());
       } else {
         process(node.getBase(), context);
@@ -218,7 +219,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitColumnReference(final ColumnReferenceExp node, final Void context) {
+    public Void visitColumnReference(final UnqualifiedColumnReferenceExp node, final Void context) {
       addRequiredColumn(node.getReference());
       return null;
     }

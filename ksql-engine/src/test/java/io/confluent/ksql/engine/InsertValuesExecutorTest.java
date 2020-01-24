@@ -874,7 +874,7 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(ColumnRef.withoutSource(kf)))
+        .map(kf -> KeyField.of(ColumnRef.of(kf)))
         .orElse(KeyField.none());
 
     final DataSource<?> dataSource;

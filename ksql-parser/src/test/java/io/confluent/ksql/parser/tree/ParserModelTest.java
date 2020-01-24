@@ -69,7 +69,7 @@ public class ParserModelTest {
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
-      .put(ColumnRef.class, ColumnRef.withoutSource(ColumnName.of("bob")))
+      .put(ColumnRef.class, ColumnRef.of(ColumnName.of("bob")))
       .put(Expression.class, DEFAULT_TYPE)
       .put(KsqlWindowExpression.class, new TumblingWindowExpression(1, TimeUnit.SECONDS))
       .put(Relation.class, DEFAULT_RELATION)

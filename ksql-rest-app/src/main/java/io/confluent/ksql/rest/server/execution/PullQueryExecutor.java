@@ -25,13 +25,14 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -39,7 +40,10 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
@@ -151,7 +155,10 @@ public final class PullQueryExecutor {
     }
 
     try {
-      final Analysis analysis = analyze(statement, executionContext);
+      final ImmutableAnalysis analysis = new RewrittenAnalysis(
+          analyze(statement, executionContext),
+          new ColumnReferenceRewriter()::process
+      );
 
       final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
@@ -227,7 +234,7 @@ public final class PullQueryExecutor {
     return new QueryId("query_" + System.currentTimeMillis());
   }
 
-  private static Analysis analyze(
+  private static ImmutableAnalysis analyze(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext
   ) {
@@ -269,7 +276,7 @@ public final class PullQueryExecutor {
   }
 
   private static WhereInfo extractWhereInfo(
-      final Analysis analysis,
+      final ImmutableAnalysis analysis,
       final PersistentQueryMetadata query
   ) {
     final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
@@ -400,7 +407,7 @@ public final class PullQueryExecutor {
 
   private static Type getSimplifiedBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
-    final boolean inverted = comparison.getRight() instanceof ColumnReferenceExp;
+    final boolean inverted = comparison.getRight() instanceof UnqualifiedColumnReferenceExp;
 
     switch (type) {
       case LESS_THAN:
@@ -453,7 +460,7 @@ public final class PullQueryExecutor {
   }
 
   private static Expression getNonColumnRefSide(final ComparisonExpression comparison) {
-    return comparison.getRight() instanceof ColumnReferenceExp
+    return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
   }
@@ -522,11 +529,11 @@ public final class PullQueryExecutor {
   }
 
   private static ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
-    final ColumnReferenceExp column;
-    if (comparison.getRight() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getRight();
-    } else if (comparison.getLeft() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getLeft();
+    final UnqualifiedColumnReferenceExp column;
+    if (comparison.getRight() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getRight();
+    } else if (comparison.getLeft() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getLeft();
     } else {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
@@ -549,7 +556,7 @@ public final class PullQueryExecutor {
       final Result input,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
-      final Analysis analysis,
+      final ImmutableAnalysis analysis,
       final LogicalSchema outputSchema,
       final QueryId queryId,
       final Stacker contextStacker
@@ -585,14 +592,12 @@ public final class PullQueryExecutor {
       };
     }
 
-    final SourceName sourceName = getSourceName(analysis);
-
     final KsqlConfig ksqlConfig = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
-        intermediateSchema.withAlias(sourceName),
+        intermediateSchema,
         ksqlConfig,
         executionContext.getMetaStore()
     );
@@ -641,14 +646,15 @@ public final class PullQueryExecutor {
   private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
-      final Analysis analysis
+      final ImmutableAnalysis analysis
   ) {
     final Builder schemaBuilder = LogicalSchema.builder()
         .noImplicitColumns();
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        input.schema.withAlias(analysis.getFromDataSources().get(0).getAlias()),
-        executionContext.getMetaStore()
+        input.schema,
+        executionContext.getMetaStore(),
+        false
     );
 
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
@@ -666,7 +672,7 @@ public final class PullQueryExecutor {
 
   private static PersistentQueryMetadata findMaterializingQuery(
       final KsqlExecutionContext executionContext,
-      final Analysis analysis
+      final ImmutableAnalysis analysis
   ) {
     final MetaStore metaStore = executionContext.getMetaStore();
 
@@ -688,7 +694,7 @@ public final class PullQueryExecutor {
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
   }
 
-  private static SourceName getSourceName(final Analysis analysis) {
+  private static SourceName getSourceName(final ImmutableAnalysis analysis) {
     final DataSource<?> source = analysis.getFromDataSources().get(0).getDataSource();
     return source.getName();
   }
@@ -819,5 +825,20 @@ public final class PullQueryExecutor {
         Struct readOnlyKey,
         GenericRow value
     );
+  }
+
+  private static final class ColumnReferenceRewriter
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+    private ColumnReferenceRewriter() {
+      super(Optional.empty());
+    }
+
+    @Override
+    public Optional<Expression> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Context<Void> ctx
+    ) {
+      return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+    }
   }
 }

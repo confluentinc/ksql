@@ -31,7 +31,6 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -51,8 +50,7 @@ public class ColumnTest {
     new NullPointerTester()
         .setDefault(SqlType.class, BIGINT)
         .setDefault(ColumnName.class, SOME_NAME)
-        .setDefault(SourceName.class, SOME_SOURCE)
-        .setDefault(ColumnRef.class, ColumnRef.of(SOME_SOURCE, SOME_NAME))
+        .setDefault(ColumnRef.class, ColumnRef.of(SOME_NAME))
         .testAllPublicStaticMethods(Column.class);
   }
 
@@ -61,67 +59,60 @@ public class ColumnTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            Column.of(Optional.empty(), SOME_NAME, INTEGER, VALUE, 10),
-            Column.of(Optional.empty(), SOME_NAME, INTEGER, VALUE, 10)
+            Column.of(SOME_NAME, INTEGER, VALUE, 10),
+            Column.of(SOME_NAME, INTEGER, VALUE, 10)
         )
         .addEqualityGroup(
-            Column.of(Optional.empty(), SOME_OHTER_NAME, INTEGER, VALUE, 10)
+            Column.of(SOME_OHTER_NAME, INTEGER, VALUE, 10)
         )
         .addEqualityGroup(
-            Column.of(Optional.empty(), SOME_NAME, DOUBLE, VALUE, 10)
+            Column.of(SOME_NAME, DOUBLE, VALUE, 10)
         )
         .addEqualityGroup(
-            Column.of(Optional.empty(), SOME_NAME, INTEGER, KEY, 10)
+            Column.of(SOME_NAME, INTEGER, KEY, 10)
         )
         .addEqualityGroup(
-            Column.of(Optional.empty(), SOME_NAME, INTEGER, VALUE, 5)
-        )
-        .addEqualityGroup(
-            Column.of(Optional.of(SOME_SOURCE), SOME_NAME, INTEGER, VALUE, 10),
-            Column.of(Optional.of(SOME_SOURCE), SOME_NAME, INTEGER, VALUE, 10)
+            Column.of(SOME_NAME, INTEGER, VALUE, 5)
         )
         .testEquals();
   }
 
   @Test
   public void shouldReturnName() {
-    assertThat(Column.of(Optional.empty(), SOME_NAME, BOOLEAN, KEY, 0).name(),
+    assertThat(Column.of(SOME_NAME, BOOLEAN, KEY, 0).name(),
         is(SOME_NAME));
 
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, BOOLEAN, VALUE, 1).name(),
+    assertThat(Column.of(SOME_NAME, BOOLEAN, VALUE, 1).name(),
         is(SOME_NAME));
   }
 
   @Test
   public void shouldReturnType() {
-    assertThat(Column.of(Optional.empty(), SOME_NAME, BOOLEAN, META, 1).type(), is(BOOLEAN));
+    assertThat(Column.of(SOME_NAME, BOOLEAN, META, 1).type(), is(BOOLEAN));
   }
 
   @Test
   public void shouldReturnNamespace() {
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, BOOLEAN, KEY, 10)
+    assertThat(Column.of(SOME_NAME, BOOLEAN, KEY, 10)
         .namespace(), is(KEY));
   }
 
   @Test
   public void shouldReturnIndex() {
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, BOOLEAN, KEY, 10)
+    assertThat(Column.of(SOME_NAME, BOOLEAN, KEY, 10)
         .index(), is(10));
   }
 
   @Test
   public void shouldToString() {
-    assertThat(Column.of(Optional.empty(), SOME_NAME, BOOLEAN, VALUE, 10).toString(),
-        is("`SomeName` BOOLEAN"));
+    assertThat(Column.of(SOME_NAME, INTEGER, VALUE, 10).toString(),
+        is("`SomeName` INTEGER"));
 
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, INTEGER, VALUE, 10).toString(),
-        is("`SomeSource`.`SomeName` INTEGER"));
+    assertThat(Column.of(SOME_NAME, INTEGER, KEY, 10).toString(),
+        is("`SomeName` INTEGER KEY"));
 
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, INTEGER, KEY, 10).toString(),
-        is("`SomeSource`.`SomeName` INTEGER KEY"));
-
-    assertThat(Column.of(Optional.of(SOME_SOURCE), SOME_NAME, INTEGER, META, 10).toString(),
-        is("`SomeSource`.`SomeName` INTEGER META"));
+    assertThat(Column.of(SOME_NAME, INTEGER, META, 10).toString(),
+        is("`SomeName` INTEGER META"));
   }
 
   @Test
@@ -134,23 +125,23 @@ public class ColumnTest {
 
     // Then:
     assertThat(Column
-            .of(Optional.empty(), ColumnName.of("not-reserved"), BIGINT, VALUE, 0)
+            .of(ColumnName.of("not-reserved"), BIGINT, VALUE, 0)
             .toString(options),
         is("not-reserved BIGINT"));
 
     assertThat(Column
-            .of(Optional.empty(), ColumnName.of("reserved"), BIGINT, VALUE, 0)
+            .of(ColumnName.of("reserved"), BIGINT, VALUE, 0)
             .toString(options),
         is("`reserved` BIGINT"));
 
     assertThat(Column
-            .of(Optional.of(SourceName.of("reserved")), ColumnName.of("word"), DOUBLE, VALUE, 0)
+            .of(ColumnName.of("word"), DOUBLE, VALUE, 0)
             .toString(options),
-        is("`reserved`.`word` DOUBLE"));
+        is("`word` DOUBLE"));
 
     assertThat(Column
-            .of(Optional.of(SourceName.of("source")), ColumnName.of("word"), STRING, VALUE, 0)
+            .of(ColumnName.of("word"), STRING, VALUE, 0)
             .toString(options),
-        is("source.`word` STRING"));
+        is("`word` STRING"));
   }
 }

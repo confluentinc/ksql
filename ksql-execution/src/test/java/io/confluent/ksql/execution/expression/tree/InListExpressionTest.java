@@ -29,7 +29,7 @@ public class InListExpressionTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final ColumnRef SOME_NAME = ColumnRef.withoutSource(ColumnName.of("bob"));
+  private static final ColumnRef SOME_NAME = ColumnRef.of(ColumnName.of("bob"));
   private static final List<Expression> SOME_EXPRESSIONS = ImmutableList.of(
       new StringLiteral("jane"));
   private static final List<Expression> OTHER_EXPRESSIONS = ImmutableList.of(

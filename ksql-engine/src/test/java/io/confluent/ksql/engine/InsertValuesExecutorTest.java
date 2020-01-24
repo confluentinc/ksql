@@ -430,7 +430,7 @@ public class InsertValuesExecutorTest {
             new DoubleLiteral(3.0),
             new BooleanLiteral("TRUE"),
             new StringLiteral("str"),
-            new DecimalLiteral("1.2"))
+            new DecimalLiteral(new BigDecimal("1.2")))
     );
 
     // When:

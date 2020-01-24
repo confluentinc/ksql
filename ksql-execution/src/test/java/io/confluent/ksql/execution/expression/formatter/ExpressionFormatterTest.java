@@ -67,6 +67,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
@@ -159,7 +160,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDecimalLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral("3.5")), equalTo("3.5"));
+    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral(new BigDecimal("3.5"))), equalTo("3.5"));
   }
 
   @Test

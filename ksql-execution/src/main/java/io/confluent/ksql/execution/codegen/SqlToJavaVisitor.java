@@ -287,7 +287,7 @@ public class SqlToJavaVisitor {
     ) {
       return new Pair<>(
           "new BigDecimal(\"" + decimalLiteral.getValue() + "\")",
-          DecimalUtil.fromValue(new BigDecimal(decimalLiteral.getValue()))
+          DecimalUtil.fromValue(decimalLiteral.getValue())
       );
     }
 

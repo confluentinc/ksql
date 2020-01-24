@@ -178,7 +178,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
-      return node.getValue();
+      return node.getValue().toString();
     }
 
     @Override

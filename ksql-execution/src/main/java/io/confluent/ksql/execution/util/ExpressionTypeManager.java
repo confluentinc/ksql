@@ -71,7 +71,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -544,8 +543,7 @@ public class ExpressionTypeManager {
     public Void visitDecimalLiteral(
         final DecimalLiteral decimalLiteral, final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSqlType(
-          DecimalUtil.fromValue(new BigDecimal(decimalLiteral.getValue())));
+      expressionTypeContext.setSqlType(DecimalUtil.fromValue(decimalLiteral.getValue()));
 
       return null;
     }

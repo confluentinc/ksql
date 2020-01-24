@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -48,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -68,6 +68,7 @@ import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
@@ -133,7 +134,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -998,9 +998,14 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
-      final ColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
-      final ColumnRef reference = columnReferenceExp.getReference();
-      reference.source().ifPresent(this::throwOnUnknownNameOrAlias);
+      return ColumnReferenceParser.resolve(context);
+    }
+
+    @Override
+    public Node visitQualifiedColumnReference(
+        final SqlBaseParser.QualifiedColumnReferenceContext context) {
+      final QualifiedColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
+      throwOnUnknownNameOrAlias(columnReferenceExp.getQualifier());
       return columnReferenceExp;
     }
 
@@ -1086,6 +1091,11 @@ public class AstBuilder {
     @Override
     public Node visitIntegerLiteral(final SqlBaseParser.IntegerLiteralContext context) {
       return ParserUtil.visitIntegerLiteral(context);
+    }
+
+    @Override
+    public Node visitFloatLiteral(final FloatLiteralContext context) {
+      return ParserUtil.parseFloatLiteral(context);
     }
 
     @Override

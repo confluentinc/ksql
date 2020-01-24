@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -42,6 +41,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -49,6 +49,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
@@ -67,8 +68,10 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -81,13 +84,23 @@ public class ExpressionTypeManager {
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
+  private final boolean referenceValueColumnsOnly;
 
   public ExpressionTypeManager(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry
   ) {
+    this(schema, functionRegistry, true);
+  }
+
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final boolean referenceValueColumnsOnly
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.referenceValueColumnsOnly = referenceValueColumnsOnly;
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
@@ -179,14 +192,28 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitColumnReference(
-        final ColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
+        final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findColumn(node.getReference())
-          .orElseThrow(() ->
-              new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+      final Optional<Column> maybeColumn;
+      if (referenceValueColumnsOnly) {
+        maybeColumn = schema.findValueColumn(node.getReference());
+      }  else {
+        maybeColumn = schema.findColumn(node.getReference());
+      }
+      final Column schemaColumn = maybeColumn.orElseThrow(() ->
+          new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
       expressionTypeContext.setSqlType(schemaColumn.type());
       return null;
+    }
+
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
+    ) {
+      throw new IllegalStateException(
+          "Qualified column references must be resolved to unqualified reference "
+              + "before type can be resolved");
     }
 
     @Override
@@ -517,7 +544,10 @@ public class ExpressionTypeManager {
     public Void visitDecimalLiteral(
         final DecimalLiteral decimalLiteral, final ExpressionTypeContext expressionTypeContext
     ) {
-      throw VisitorUtil.unsupportedOperation(this, decimalLiteral);
+      expressionTypeContext.setSqlType(
+          DecimalUtil.fromValue(new BigDecimal(decimalLiteral.getValue())));
+
+      return null;
     }
 
     @Override

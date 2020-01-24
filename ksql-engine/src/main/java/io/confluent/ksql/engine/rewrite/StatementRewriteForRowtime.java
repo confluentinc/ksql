@@ -111,9 +111,13 @@ public class StatementRewriteForRowtime {
     }
   }
 
+  private static boolean refIsRowtime(final ColumnReferenceExp node) {
+    return node.getReference().name().equals(SchemaUtil.ROWTIME_NAME);
+  }
+
   private static boolean expressionIsRowtime(final Expression node) {
     return (node instanceof ColumnReferenceExp)
-        && ((ColumnReferenceExp) node).getReference().name().equals(SchemaUtil.ROWTIME_NAME);
+        && refIsRowtime((ColumnReferenceExp) node);
   }
 
   private LongLiteral rewriteTimestamp(final String timestamp) {

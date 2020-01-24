@@ -23,16 +23,12 @@ public class JoinParamsFactoryTest {
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-      .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
+      .build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -47,14 +43,10 @@ public class JoinParamsFactoryTest {
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(LEFT, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(LEFT, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(LEFT, ColumnName.of("BLUE"), SqlTypes.STRING)
-        .valueColumn(LEFT, ColumnName.of("GREEN"), SqlTypes.INTEGER)
-        .valueColumn(RIGHT, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(RIGHT, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(RIGHT, ColumnName.of("RED"), SqlTypes.BIGINT)
-        .valueColumn(RIGHT, ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
         .build())
     );
   }
@@ -66,9 +58,7 @@ public class JoinParamsFactoryTest {
         .keyColumn(ColumnName.of("BOB"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-        .build()
-        .withAlias(LEFT)
-        .withMetaAndKeyColsInValue();
+        .build();
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -84,16 +74,12 @@ public class JoinParamsFactoryTest {
     final LogicalSchema leftSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("BOB"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-        .build()
-        .withAlias(LEFT)
-        .withMetaAndKeyColsInValue();
+        .build();
 
     final LogicalSchema rightSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("VIC"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.DOUBLE)
-        .build()
-        .withAlias(RIGHT)
-        .withMetaAndKeyColsInValue();
+        .build();
 
     // when:
     joinParams = JoinParamsFactory.create(leftSchema, rightSchema);

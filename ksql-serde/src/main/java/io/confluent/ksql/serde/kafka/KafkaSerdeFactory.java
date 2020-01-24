@@ -116,7 +116,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
     @Override
     public byte[] serialize(final String topic, final Object struct) {
-      final Object value = ((Struct) struct).get(field);
+      final Object value = struct == null ? null : ((Struct) struct).get(field);
       return delegate.serialize(topic, value);
     }
   }
@@ -140,6 +140,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     public Struct deserialize(final String topic, final byte[] bytes) {
       try {
         final Object primitive = delegate.deserialize(topic, bytes);
+        if (primitive == null) {
+          return null;
+        }
         final Struct struct = new Struct(schema);
         struct.put(field, primitive);
         return struct;

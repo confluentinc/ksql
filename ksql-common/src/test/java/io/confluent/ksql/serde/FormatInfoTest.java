@@ -125,20 +125,20 @@ public class FormatInfoTest {
   }
 
   @Test
-  public void shouldThrowWhenAttemptingToUseValueDelimeterWithAvroFormat() {
+  public void shouldThrowWhenAttemptingToUseValueDelimiterWithAvroFormat() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
+    expectedException.expectMessage("Delimiter only supported with DELIMITED format");
 
     // When:
     FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.of(Delimiter.of('x')));
   }
 
   @Test
-  public void shouldThrowWhenAttemptingToUseValueDelimeterWithJsonFormat() {
+  public void shouldThrowWhenAttemptingToUseValueDelimiterWithJsonFormat() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
+    expectedException.expectMessage("Delimiter only supported with DELIMITED format");
 
     // When:
     FormatInfo.of(Format.JSON, Optional.empty(), Optional.of(Delimiter.of('x')));

@@ -135,7 +135,7 @@ public class DdlCommandExec {
 
   private static KeyField getKeyField(final Optional<ColumnName> keyFieldName) {
     return keyFieldName
-        .map(columnName -> KeyField.of(ColumnRef.withoutSource(columnName)))
+        .map(columnName -> KeyField.of(ColumnRef.of(columnName)))
         .orElseGet(KeyField::none);
   }
 

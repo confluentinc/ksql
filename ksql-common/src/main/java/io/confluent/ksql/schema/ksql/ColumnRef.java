@@ -19,67 +19,28 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * A reference to a column, optionally disambiguated by a qualifier indicating
- * the source of the column.
+ * A reference to a column.
  */
 @Immutable
 public final class ColumnRef {
 
-  private final Optional<SourceName> qualifier;
   private final ColumnName name;
 
   /**
-   * Creates a {@code QualifiedName} with the following qualifier and name. A qualified name
-   * can represent a disambiguation of a specific name using an additional qualifier.
+   * Creates a {@code ColumnRef} with the name.
    *
-   * <p>For example, if two sources {@code A} and {@code B} have the same field {@code foo},
-   * they can be disambiguated by referring to the field with its fully qualified name -
-   * {@code A.foo} and {@code B.foo}</p>
-   *
-   * @param qualifier the qualifier, optionally empty
    * @param name      the name
-   * @return a {@code QualifiedName} wrapping the {@code qualifier} and the {@code name}.
+   * @return a {@code ColumnRef} wrapping the {@code name}.
    */
-  public static ColumnRef of(final Optional<SourceName> qualifier, final ColumnName name) {
-    return new ColumnRef(qualifier, name);
+  public static ColumnRef of(final ColumnName name) {
+    return new ColumnRef(name);
   }
 
-  /**
-   * @see #of(Optional, ColumnName)
-   */
-  public static ColumnRef of(final SourceName qualifier, final ColumnName name) {
-    return of(Optional.of(qualifier), name);
-  }
-
-  /**
-   * @see #of(Optional, ColumnName)
-   */
-  public static ColumnRef withoutSource(final ColumnName name) {
-    return new ColumnRef(Optional.empty(), name);
-  }
-
-  public ColumnRef withoutSource() {
-    return withoutSource(name);
-  }
-
-  public ColumnRef withSource(final SourceName source) {
-    return of(source, name);
-  }
-
-  private ColumnRef(final Optional<SourceName> qualifier, final ColumnName name) {
-    this.qualifier = requireNonNull(qualifier, "qualifier");
+  private ColumnRef(final ColumnName name) {
     this.name = requireNonNull(name, "name");
-  }
-
-  public Optional<SourceName> source() {
-    return qualifier;
   }
 
   public ColumnName name() {
@@ -93,16 +54,10 @@ public final class ColumnRef {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return qualifier
-        .map(q -> q.toString(formatOptions) + KsqlConstants.DOT + name.toString(formatOptions))
-        .orElse(name.toString(formatOptions));
+    return name.toString(formatOptions);
   }
 
   public String aliasedFieldName() {
-    if (qualifier.isPresent()) {
-      return SchemaUtil.buildAliasedFieldName(qualifier.get().name(), name.name());
-    }
-
     return name.name();
   }
 
@@ -115,12 +70,11 @@ public final class ColumnRef {
       return false;
     }
     final ColumnRef that = (ColumnRef) o;
-    return Objects.equals(qualifier, that.qualifier)
-        && Objects.equals(name, that.name);
+    return Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(qualifier, name);
+    return Objects.hash(name);
   }
 }

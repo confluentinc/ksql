@@ -95,6 +95,20 @@ public class StatementRewriteForRowtimeTest {
   }
 
   @Test
+  public void shouldReplaceDateStringComparedToQualifiedRowtimeColumnReference() {
+    // Given:
+    final Query statement = buildSingleAst(
+        "SELECT * FROM orders where ORDERS.ROWTIME > '2017-01-01T00:00:00.000';");
+    final Expression predicate = statement.getWhere().get();
+
+    // When:
+    final Expression rewritten = rewritter.rewriteForRowtime(predicate);
+
+    // Then:
+    assertThat(rewritten.toString(), is(String.format("(ORDERS.ROWTIME > %d)", A_TIMESTAMP)));
+  }
+
+  @Test
   public void shouldHandleBetweenExpression() {
     // Given:
     final Query statement = buildSingleAst(

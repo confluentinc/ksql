@@ -1,6 +1,6 @@
 {
   "version" : "5.5.0",
-  "timestamp" : 1576794350087,
+  "timestamp" : 1579766275923,
   "plan" : [ {
     "@type" : "ksqlPlanV1",
     "statementText" : "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');",
@@ -103,7 +103,7 @@
                   "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
                   "alias" : "TEST"
                 },
-                "selectExpressions" : [ "TEST.ID AS KSQL_INTERNAL_COL_0", "TEST.VALUE AS KSQL_INTERNAL_COL_1" ]
+                "selectExpressions" : [ "ID AS KSQL_INTERNAL_COL_0", "VALUE AS KSQL_INTERNAL_COL_1" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
@@ -167,7 +167,8 @@
     "ksql.security.extension.class" : null,
     "ksql.transient.prefix" : "transient_",
     "ksql.persistence.wrap.single.values" : "true",
-    "ksql.schema.registry.url" : "http://localhost:8081",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.streams.auto.offset.reset" : "earliest",
@@ -175,7 +176,7 @@
     "ksql.service.id" : "some.ksql.service.id",
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent8507459536865147930",
+    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent860940762991400222",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
@@ -189,11 +190,11 @@
     "ksql.execution.plan.enable" : "false",
     "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
     "ksql.streams.num.stream.threads" : "4",
+    "ksql.authorization.cache.max.entries" : "10000",
     "ksql.metrics.tags.custom" : "",
     "ksql.pull.queries.enable" : "true",
     "ksql.udfs.enabled" : "true",
     "ksql.udf.enable.security.manager" : "true",
-    "ksql.query.pull.skip.access.validator" : "false",
     "ksql.connect.worker.config" : "",
     "ksql.query.pull.routing.timeout.ms" : "30000",
     "ksql.sink.window.change.log.additional.retention" : "1000000",

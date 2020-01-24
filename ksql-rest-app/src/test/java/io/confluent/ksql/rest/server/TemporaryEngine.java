@@ -135,7 +135,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
+                KeyField.of(ColumnRef.of(ColumnName.of("val"))),
                 Optional.empty(),
                 false,
                 topic
@@ -148,7 +148,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
+                KeyField.of(ColumnRef.of(ColumnName.of("val"))),
                 Optional.empty(),
                 false,
                 topic

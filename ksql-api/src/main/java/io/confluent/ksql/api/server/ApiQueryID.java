@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -24,15 +24,15 @@ import java.util.UUID;
  * cryptographically secure. This is important as we don't want random users guessing query IDs and
  * closing other peoples queries.
  */
-public final class QueryID {
+public final class ApiQueryID {
 
   private final String id;
 
-  public QueryID() {
+  public ApiQueryID() {
     this.id = UUID.randomUUID().toString();
   }
 
-  public QueryID(final String id) {
+  public ApiQueryID(final String id) {
     this.id = Objects.requireNonNull(id);
   }
 
@@ -44,7 +44,7 @@ public final class QueryID {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final QueryID queryID = (QueryID) o;
+    final ApiQueryID queryID = (ApiQueryID) o;
     return Objects.equals(id, queryID.id);
   }
 

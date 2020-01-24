@@ -26,4 +26,5 @@ public final class ErrorCodes {
   public static final int ERROR_CODE_MISSING_PARAM = 50001;
   public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50002;
   public static final int ERROR_CODE_INTERNAL_ERROR = 50003;
+  public static final int ERROR_CODE_INVALID_JSON = 50004;
 }

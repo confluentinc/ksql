@@ -481,7 +481,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.withoutSource(ELEMENT2.getName()), Optional.empty()))
+            new TimestampColumn(ColumnRef.of(ELEMENT2.getName()), Optional.empty()))
         )
     );
   }
@@ -506,7 +506,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.withoutSource(ELEMENT2.getName()), Optional.empty()))
+            new TimestampColumn(ColumnRef.of(ELEMENT2.getName()), Optional.empty()))
         )
     );
   }
@@ -533,7 +533,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.withoutSource(ELEMENT1.getName()), Optional.of("%s")))
+            new TimestampColumn(ColumnRef.of(ELEMENT1.getName()), Optional.of("%s")))
         )
     );
   }

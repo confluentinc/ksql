@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -52,6 +51,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -59,6 +59,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -92,7 +93,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
@@ -253,14 +253,6 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitDecimalLiteral(
-        final DecimalLiteral decimalLiteral,
-        final Void context
-    ) {
-      return visitUnsupported(decimalLiteral);
-    }
-
-    @Override
     public Pair<String, SqlType> visitSimpleCaseExpression(
         final SimpleCaseExpression simpleCaseExpression, final Void context
     ) {
@@ -285,7 +277,18 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitDoubleLiteral(final DoubleLiteral node, final Void context) {
-      return new Pair<>(Double.toString(node.getValue()), SqlTypes.DOUBLE);
+      return new Pair<>(node.toString(), SqlTypes.DOUBLE);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitDecimalLiteral(
+        final DecimalLiteral decimalLiteral,
+        final Void context
+    ) {
+      return new Pair<>(
+          "new BigDecimal(\"" + decimalLiteral.getValue() + "\")",
+          DecimalUtil.fromValue(new BigDecimal(decimalLiteral.getValue()))
+      );
     }
 
     @Override
@@ -295,7 +298,7 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
       final ColumnRef fieldName = node.getReference();
@@ -304,6 +307,16 @@ public class SqlToJavaVisitor {
               new KsqlException("Field not found: " + node.getReference()));
 
       return new Pair<>(colRefToCodeName.apply(fieldName), schemaColumn.type());
+    }
+
+    @Override
+    public Pair<String, SqlType> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new UnsupportedOperationException(
+          "Qualified column reference must be resolved to unqualified reference before codegen"
+      );
     }
 
     @Override
@@ -821,43 +834,25 @@ public class SqlToJavaVisitor {
         final BetweenPredicate node,
         final Void context
     ) {
-      final Pair<String, SqlType> value = process(node.getValue(), context);
-      final Pair<String, SqlType> min = process(node.getMin(), context);
-      final Pair<String, SqlType> max = process(node.getMax(), context);
-
-      String expression = "(((Object) {value}) == null "
-          + "|| ((Object) {min}) == null "
-          + "|| ((Object) {max}) == null) "
-          + "? false "
-          + ": ";
-
-      final SqlBaseType type = value.getRight().baseType();
-      switch (type) {
-        case DOUBLE:
-        case BIGINT:
-        case INTEGER:
-          expression += "{min} <= {value} && {value} <= {max}";
-          break;
-        case STRING:
-          expression += "({value}.compareTo({min}) >= 0 && {value}.compareTo({max}) <= 0)";
-          break;
-        default:
-          throw new KsqlException("Cannot execute BETWEEN with " + type + " values");
-      }
+      final Pair<String, SqlType> compareMin = process(
+          new ComparisonExpression(
+              ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
+              node.getValue(),
+              node.getMin()),
+          context);
+      final Pair<String, SqlType> compareMax = process(
+          new ComparisonExpression(
+              ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
+              node.getValue(),
+              node.getMax()),
+          context);
 
       // note that the entire expression must be surrounded by parentheses
       // otherwise negations and other higher level operations will not work
-      final String evaluation = StrSubstitutor.replace(
-          "(" + expression + ")",
-          ImmutableMap.of(
-              "value", value.getLeft(),
-              "min", min.getLeft(),
-              "max", max.getLeft()
-          ),
-          "{", "}"
+      return new Pair<>(
+          "(" + compareMin.getLeft() + " && " + compareMax.getLeft() + ")",
+          SqlTypes.BOOLEAN
       );
-
-      return new Pair<>(evaluation, SqlTypes.BOOLEAN);
     }
 
     private String formatBinaryExpression(

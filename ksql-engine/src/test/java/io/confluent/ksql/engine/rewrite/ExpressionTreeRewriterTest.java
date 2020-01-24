@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -54,6 +54,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -65,6 +66,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -647,9 +649,36 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
-  public void shouldRewriteQualifiedNameReference() {
+  public void shouldRewriteQualifiedColumnReference() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.withoutSource(
+    final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
+        SourceName.of("bar"),
+        ColumnRef.of(ColumnName.of("foo"))
+    );
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(expression, context);
+
+    // Then:
+    assertThat(rewritten, is(expression));
+  }
+
+  @Test
+  public void shouldRewriteQualifiedColumnReferenceUsingPlugin() {
+    // Given:
+    final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
+        SourceName.of("bar"),
+        ColumnRef.of(ColumnName.of("foo"))
+    );
+
+    // When/Then:
+    shouldRewriteUsingPlugin(expression);
+  }
+
+  @Test
+  public void shouldRewriteColumnReference() {
+    // Given:
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
         ColumnName.of("foo")));
 
     // When:
@@ -660,9 +689,9 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
-  public void shouldRewriteQualifiedNameReferenceUsingPlugin() {
+  public void shouldRewriteColumnReferenceUsingPlugin() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.withoutSource(
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
         ColumnName.of("foo")));
 
     // When/Then:

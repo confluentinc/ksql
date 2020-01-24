@@ -23,6 +23,20 @@
       ]
     },
     {
+      "name": "select delimited value_format into another format",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=',');",
+        "CREATE STREAM S2 WITH(value_format='{FORMAT}') as SELECT id, name, value FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": "0,zero,0", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": "0", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0}
+      ]
+    },
+    {
       "name": "validate value_delimiter to be single character",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='<~>');"
@@ -35,7 +49,7 @@
       "outputs": []
     },
     {
-      "name": "validate delimeter is not empty",
+      "name": "validate delimiter is not empty",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='');"
       ],
@@ -53,7 +67,7 @@
       "outputs": []
     },
     {
-      "name": "validate delimeter is not a space",
+      "name": "validate delimiter is not a space",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=' ');"
       ],
@@ -65,7 +79,7 @@
       "outputs": []
     },
     {
-      "name": "validate delimeter is not a tab character",
+      "name": "validate delimiter is not a tab character",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='\t');"
       ],
@@ -153,7 +167,7 @@
       ]
     },
     {
-      "name": "validate cannot specify delimeter with json format",
+      "name": "validate cannot specify delimiter with json format",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON', value_delimiter='|');"
       ],
@@ -165,7 +179,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Delimeter only supported with DELIMITED format"
+        "message": "Delimiter only supported with DELIMITED format"
       },
       "inputs": [],
       "outputs": []

@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
@@ -69,7 +68,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("ts")));
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
   }
 
   @Test
@@ -79,7 +78,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("a.ts")));
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(SourceName.of("A"), ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
   }
 
   @Test

@@ -17,12 +17,14 @@ package io.confluent.ksql.execution.expression.formatter;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.ibm.icu.number.Notation;
+import com.ibm.icu.number.NumberFormatter;
+import com.ibm.icu.number.Precision;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -43,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -50,11 +53,13 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
@@ -153,12 +158,27 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitDoubleLiteral(final DoubleLiteral node, final Context context) {
-      return Double.toString(node.getValue());
+      // there is a bug in NumberFormatter that formats Double.MIN_VALUE to 0E0
+      // check that edge case here (https://unicode-org.atlassian.net/browse/CLDR-13549)
+      if (Double.compare(node.getValue(), Double.MIN_VALUE) == 0) {
+        return "4.9E-324";
+      }
+
+      // NOTE: the Precision.unlimited() uses a complex algorithm to determine
+      // the correct way to format the double value in scientific notation
+      // without losing precision - do not change this to use Double#toString
+      // because this may format the literal as a decimal (not scientific notation)
+      return NumberFormatter.with()
+          .notation(Notation.scientific())
+          .precision(Precision.unlimited())
+          .locale(Locale.ROOT)
+          .format(node.getValue())
+          .toString();
     }
 
     @Override
     public String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
-      return "DECIMAL '" + node.getValue() + "'";
+      return node.getValue();
     }
 
     @Override
@@ -177,8 +197,19 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitColumnReference(final ColumnReferenceExp node, final Context context) {
+    public String visitColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Context context
+    ) {
       return node.getReference().toString(context.formatOptions);
+    }
+
+    @Override
+    public String visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Context context) {
+      return formatName(node.getQualifier(), context)
+          + KsqlConstants.DOT + node.getReference().toString(context.formatOptions);
     }
 
     @Override

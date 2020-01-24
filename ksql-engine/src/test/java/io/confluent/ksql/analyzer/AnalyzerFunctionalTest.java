@@ -37,10 +37,10 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -174,8 +174,14 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1")))));
-    assertThat(analysis.getJoin().get().getRightJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1")))));
+    assertThat(
+        analysis.getJoin().get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("COL1"))))
+    );
+    assertThat(
+        analysis.getJoin().get().getRightJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("COL1"))))
+    );
 
     final List<String> selects = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getExpression)
@@ -206,13 +212,15 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1")))));
+    assertThat(
+        analysis.getJoin().get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("COL1")))));
     assertThat(
         analysis.getJoin().get().getRightJoinExpression(),
         is(new FunctionCall(
             FunctionName.of("SUBSTRING"),
             ImmutableList.of(
-                new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))),
+                new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("COL1"))),
                 new IntegerLiteral(2)
             ))));
 
@@ -242,8 +250,12 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY")))));
-    assertThat(join.get().getRightJoinExpression(), is(new ColumnReferenceExp(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY")))));
+    assertThat(
+        join.get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("ROWKEY")))));
+    assertThat(
+        join.get().getRightJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("ROWKEY")))));
   }
 
   @Test
@@ -492,9 +504,9 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectColumnRefs(), containsInAnyOrder(
-        ColumnRef.of(TEST1, COL0),
-        ColumnRef.of(TEST1, COL1),
-        ColumnRef.of(TEST1, COL2)
+        ColumnRef.of(COL0),
+        ColumnRef.of(COL1),
+        ColumnRef.of(COL2)
     ));
   }
 
@@ -508,7 +520,10 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectExpressions(), hasItem(
-        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+        SelectExpression.of(
+            ROWTIME_NAME,
+            new QualifiedColumnReferenceExp(TEST1, ColumnRef.of(ROWTIME_NAME))
+        )
     ));
   }
 
@@ -522,7 +537,8 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectExpressions(), not(hasItem(
-        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+        SelectExpression.of(
+            ROWTIME_NAME, new QualifiedColumnReferenceExp(TEST1, ColumnRef.of(ROWTIME_NAME)))
     )));
   }
 

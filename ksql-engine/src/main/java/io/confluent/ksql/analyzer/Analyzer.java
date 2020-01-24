@@ -20,16 +20,17 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
@@ -258,9 +259,20 @@ class Analyzer {
     }
 
     private Optional<Delimiter> getValueDelimiter(final Sink sink) {
+      if (getValueFormat(sink) != Format.DELIMITED) {
+        // the delimiter is not inherited across non-delimited types
+        // (e.g. if source A is DELIMITED with |, and I create sink B
+        // with JSON from A and then sink C with DELIMITED from B, C
+        // will use the default delimiter, as opposed to |)
+        // see https://github.com/confluentinc/ksql/issues/4368 for
+        // more context
+        return Optional.empty();
+      }
+
       if (sink.getProperties().getValueDelimiter().isPresent()) {
         return sink.getProperties().getValueDelimiter();
       }
+
       return analysis
           .getFromDataSources()
           .get(0)
@@ -350,15 +362,21 @@ class Analyzer {
         );
       }
 
-      final Set<ColumnRef> colsUsedInLeft = new ExpressionAnalyzer(analysis.getFromSourceSchemas())
-          .analyzeExpression(comparisonExpression.getLeft(), false);
-      final Set<ColumnRef> colsUsedInRight = new ExpressionAnalyzer(analysis.getFromSourceSchemas())
-          .analyzeExpression(comparisonExpression.getRight(), false);
+      final Set<SourceName> srcsUsedInLeft =
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas()).analyzeExpression(
+              comparisonExpression.getLeft(),
+              false
+          );
+      final Set<SourceName> srcsUsedInRight =
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas()).analyzeExpression(
+              comparisonExpression.getRight(),
+              false
+          );
 
       final SourceName leftSourceName = getOnlySourceForJoin(
-          comparisonExpression.getLeft(), comparisonExpression, colsUsedInLeft);
+          comparisonExpression.getLeft(), comparisonExpression, srcsUsedInLeft);
       final SourceName rightSourceName = getOnlySourceForJoin(
-          comparisonExpression.getRight(), comparisonExpression, colsUsedInRight);
+          comparisonExpression.getRight(), comparisonExpression, srcsUsedInRight);
 
       if (!validJoin(left.getAlias(), right.getAlias(), leftSourceName, rightSourceName)) {
         throw new KsqlException(
@@ -392,14 +410,10 @@ class Analyzer {
     private SourceName getOnlySourceForJoin(
         final Expression exp,
         final ComparisonExpression join,
-        final Set<ColumnRef> columnRefs
+        final Set<SourceName> sources
     ) {
       try {
-        return columnRefs.stream()
-            .map(ColumnRef::source)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(MoreCollectors.onlyElement());
+        return Iterables.getOnlyElement(sources);
       } catch (final Exception e) {
         throw new KsqlException("Invalid comparison expression '" + exp + "' in join '" + join
             + "'. Each side of the join comparision must contain references from exactly one "
@@ -516,8 +530,10 @@ class Analyzer {
             continue;
           }
 
-          final ColumnReferenceExp selectItem = new ColumnReferenceExp(location,
-              ColumnRef.of(source.getAlias(), column.name()));
+          final QualifiedColumnReferenceExp selectItem = new QualifiedColumnReferenceExp(
+              location,
+              source.getAlias(),
+              ColumnRef.of(column.name()));
 
           final String alias = aliasPrefix + column.name().name();
 
@@ -564,7 +580,16 @@ class Analyzer {
       final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitColumnReference(
-            final ColumnReferenceExp node,
+            final UnqualifiedColumnReferenceExp node,
+            final Void context
+        ) {
+          columnRefs.add(node.getReference());
+          return null;
+        }
+
+        @Override
+        public Void visitQualifiedColumnReference(
+            final QualifiedColumnReferenceExp node,
             final Void context
         ) {
           columnRefs.add(node.getReference());

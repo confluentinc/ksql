@@ -17,9 +17,9 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -49,7 +49,7 @@ public class AggregateExpressionRewriter
       final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
-          new ColumnReferenceExp(node.getLocation(), ColumnRef.withoutSource(aggVarName)));
+          new UnqualifiedColumnReferenceExp(node.getLocation(), ColumnRef.of(aggVarName)));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {

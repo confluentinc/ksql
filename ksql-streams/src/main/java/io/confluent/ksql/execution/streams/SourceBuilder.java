@@ -241,7 +241,6 @@ public final class SourceBuilder {
   private static LogicalSchema buildSchema(final AbstractStreamSource<?> source) {
     return source
         .getSourceSchema()
-        .withAlias(source.getAlias())
         .withMetaAndKeyColsInValue();
   }
 

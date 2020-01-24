@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class MutableAggregateAnalysis implements AggregateAnalysis {
@@ -36,7 +37,7 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> aggFunctions = new ArrayList<>();
-  private Expression havingExpression = null;
+  private Optional<Expression> havingExpression = Optional.empty();
 
 
   @Override
@@ -75,12 +76,12 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   @Override
-  public Expression getHavingExpression() {
+  public Optional<Expression> getHavingExpression() {
     return havingExpression;
   }
 
   void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = havingExpression;
+    this.havingExpression = Optional.of(havingExpression);
   }
 
   void addAggregateFunctionArgument(final Expression argument) {

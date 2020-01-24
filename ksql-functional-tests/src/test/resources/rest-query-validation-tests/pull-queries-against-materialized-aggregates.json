@@ -81,7 +81,7 @@
         "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
         "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY=10.0;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=1.0E1;",
         "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
       ],
       "inputs": [
@@ -888,7 +888,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only AND expressions are supported: ((AGGREGATE.ROWKEY = '10') OR (AGGREGATE.ROWKEY = '11'))",
+        "message": "Only AND expressions are supported: ((ROWKEY = '10') OR (ROWKEY = '11'))",
         "status": 400
       }
     },

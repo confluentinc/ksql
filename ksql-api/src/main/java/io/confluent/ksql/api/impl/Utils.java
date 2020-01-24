@@ -27,6 +27,14 @@ public final class Utils {
   private Utils() {
   }
 
+  /**
+   * Connects promise to the future. I.e. when the future completes it causes the promise to
+   * complete.
+   *
+   * @param future  The future
+   * @param promise The promise
+   * @param <T>     The type of the result
+   */
   public static <T> void connectPromise(final Future<T> future, final Promise<T> promise) {
     future.setHandler(ar -> {
       if (ar.succeeded()) {

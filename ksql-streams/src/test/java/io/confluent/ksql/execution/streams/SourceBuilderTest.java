@@ -105,14 +105,13 @@ public class SourceBuilderTest {
       .build();
   private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
   private static final SourceName ALIAS = SourceName.of("alias");
-  private static final LogicalSchema SCHEMA =
-      SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
+  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA.withMetaAndKeyColsInValue();
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
   private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
       new TimestampColumn(
-          ColumnRef.withoutSource(ColumnName.of("field2")),
+          ColumnRef.of(ColumnName.of("field2")),
           Optional.empty()
       )
   );

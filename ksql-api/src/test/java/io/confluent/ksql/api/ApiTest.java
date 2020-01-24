@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,6 +16,7 @@
 package io.confluent.ksql.api;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_JSON;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static org.junit.Assert.assertEquals;
@@ -26,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
-import io.confluent.ksql.api.server.QueryID;
+import io.confluent.ksql.api.server.ApiQueryID;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -132,7 +133,7 @@ public class ApiTest {
     assertEquals(0, server.getQueryIDs().size());
     String queryID = queryResponse.responseObject.getString("queryID");
     assertNotNull(queryID);
-    assertFalse(server.getQueryIDs().contains(new QueryID(queryID)));
+    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
     Integer rowCount = queryResponse.responseObject.getInteger("rowCount");
     assertNotNull(rowCount);
     assertEquals(DEFAULT_ROWS.size(), rowCount.intValue());
@@ -153,7 +154,7 @@ public class ApiTest {
     assertEquals(1, server.getQueryIDs().size());
     String queryID = queryResponse.responseObject.getString("queryID");
     assertNotNull(queryID);
-    assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
     assertFalse(queryResponse.responseObject.containsKey("rowCount"));
   }
 
@@ -166,7 +167,7 @@ public class ApiTest {
       assertEquals(i + 1, server.getQueryIDs().size());
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
     }
   }
 
@@ -183,7 +184,7 @@ public class ApiTest {
           DEFAULT_PUSH_QUERY_REQUEST_BODY);
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
       assertEquals(i + 1, server.getQueryIDs().size());
       assertEquals(i + 1, server.queryConnectionCount());
     }
@@ -208,7 +209,7 @@ public class ApiTest {
       QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
       String queryID = queryResponse.responseObject.getString("queryID");
       assertNotNull(queryID);
-      assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+      assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
       assertEquals(i + 1, server.getQueryIDs().size());
     }
     assertEquals(1, server.queryConnectionCount());
@@ -237,7 +238,7 @@ public class ApiTest {
             DEFAULT_PUSH_QUERY_REQUEST_BODY);
         String queryID = queryResponse.responseObject.getString("queryID");
         assertNotNull(queryID);
-        assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+        assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
         int queries = i * numQueries + j + 1;
         assertEquals(i * numQueries + j + 1, server.getQueryIDs().size());
         assertEquals(i + 1, server.queryConnectionCount());
@@ -306,6 +307,11 @@ public class ApiTest {
   }
 
   @Test
+  public void shouldRejectMalformedJsonInQueryArgs() throws Exception {
+    shouldRejectMalformedJsonInArgs("/query-stream");
+  }
+
+  @Test
   public void shouldCloseQuery() throws Exception {
 
     // Create a write stream to capture the incomplete response
@@ -334,7 +340,7 @@ public class ApiTest {
     // Assert the query is still live on the server
     QueryResponse queryResponse = new QueryResponse(writeStream.getBody().toString());
     String queryID = queryResponse.responseObject.getString("queryID");
-    assertTrue(server.getQueryIDs().contains(new QueryID(queryID)));
+    assertTrue(server.getQueryIDs().contains(new ApiQueryID(queryID)));
     assertEquals(1, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
 
@@ -345,7 +351,7 @@ public class ApiTest {
     assertEquals(200, closeQueryResponse.statusCode());
 
     // Assert the query no longer exists on the server
-    assertFalse(server.getQueryIDs().contains(new QueryID(queryID)));
+    assertFalse(server.getQueryIDs().contains(new ApiQueryID(queryID)));
     assertEquals(0, server.getQueryIDs().size());
     assertEquals(1, testEndpoints.getQueryPublishers().size());
     assertFalse(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber());
@@ -403,7 +409,7 @@ public class ApiTest {
     assertEquals(200, response.statusCode());
     assertEquals("OK", response.statusMessage());
 
-    assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
+    waitUntil(() -> rows.equals(testEndpoints.getInsertsSubscriber().getRowsInserted()));
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
     assertEquals("test-stream", testEndpoints.getLastTarget());
   }
@@ -429,7 +435,7 @@ public class ApiTest {
     assertEquals(rows.size(), insertsResponse.acks.size());
 
     assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
-    assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+    waitUntil(() -> testEndpoints.getInsertsSubscriber().isCompleted());
     assertEquals("test-stream", testEndpoints.getLastTarget());
   }
 
@@ -476,9 +482,6 @@ public class ApiTest {
     // Make sure all inserts made it to the server
     assertEquals(rows, testEndpoints.getInsertsSubscriber().getRowsInserted());
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
-
-    // When response is complete the acks subscriber should be unsubscribed
-    assertFalse(testEndpoints.getAcksPublisher().hasSubscriber());
 
     // Ensure we received at least some of the response before all the request body was written
     // Yay HTTP2!
@@ -543,6 +546,70 @@ public class ApiTest {
     validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts", insertsResponse.error);
 
     assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+  }
+
+  @Test
+  public void shouldRejectMalformedJsonInInsertsStreamArgs() throws Exception {
+    shouldRejectMalformedJsonInArgs("/inserts-stream");
+  }
+
+  @Test
+  public void shouldHandleMalformedJsonInInsertsStream() throws Exception {
+
+    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+
+    List<JsonObject> rows = generateInsertRows();
+    Buffer requestBody = Buffer.buffer();
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (int i = 0; i < rows.size() - 1; i++) {
+      JsonObject row = rows.get(i);
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+    // Malformed row for the last one
+    requestBody.appendString("{ijqwdijqw");
+
+    // The HTTP response will be OK as the error is later in the stream after response
+    // headers have been written
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
+    assertEquals(200, response.statusCode());
+    assertEquals("OK", response.statusMessage());
+
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in inserts stream", insertsResponse.error);
+
+    assertTrue(testEndpoints.getInsertsSubscriber().isCompleted());
+  }
+
+  @Test
+  public void shouldReturn404ForInvalidUri() throws Exception {
+
+    Buffer requestBody = Buffer.buffer();
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", "/no-such-endpoint")
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(404, response.statusCode());
+  }
+
+  private void shouldRejectMalformedJsonInArgs(String uri) throws Exception {
+
+    Buffer requestBody = Buffer.buffer().appendString("{\"foo\":1");
+
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(8089, "localhost", uri)
+        .sendBuffer(requestBody, requestFuture);
+    HttpResponse<Buffer> response = requestFuture.get();
+
+    assertEquals(400, response.statusCode());
+    assertEquals("Bad Request", response.statusMessage());
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(ERROR_CODE_INVALID_JSON, "Invalid JSON in request args",
+        queryResponse.responseObject);
   }
 
   private QueryResponse executePushQueryAndWaitForRows(final JsonObject requestBody)

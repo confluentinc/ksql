@@ -16,12 +16,16 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
+import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
+import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 
@@ -34,38 +38,44 @@ import java.util.Objects;
  * (also encoded as UTF-8 text) each representing a row to insert. The last JSON object must be
  * followed by a new-line.
  */
-public class InsertsBodyParser {
+public class InsertsBodyHandler {
 
+  private final Context ctx;
   private final Endpoints endpoints;
   private final RoutingContext routingContext;
-  private boolean readArguments;
-  private InsertsPublisher publisher;
+  private final RecordParser recordParser;
+  private boolean hasReadArguments;
+  private BufferedPublisher<JsonObject> publisher;
   private long rowsReceived;
   private AcksSubscriber acksSubscriber;
 
-  public InsertsBodyParser(final Endpoints endpoints, final RoutingContext routingContext) {
+  public InsertsBodyHandler(final Context ctx, final Endpoints endpoints,
+      final RoutingContext routingContext) {
+    this.ctx = ctx;
     this.endpoints = Objects.requireNonNull(endpoints);
     this.routingContext = Objects.requireNonNull(routingContext);
-    routingContext.response().endHandler(v -> {
-      if (publisher != null) {
-        publisher.close();
-      }
-    });
+    this.recordParser = RecordParser.newDelimited("\n", routingContext.request());
   }
 
   public void handleBodyEnd(final Void v) {
-    if (acksSubscriber == null) {
-      routingContext.response().end();
-    } else {
-      // We close the response after the stream of acks has been sent
-      acksSubscriber.insertsSent(rowsReceived);
+    if (publisher != null) {
+      publisher.complete();
+      if (acksSubscriber == null) {
+        routingContext.response().end();
+      } else {
+        // We close the response after the stream of acks has been sent
+        acksSubscriber.insertsSent(rowsReceived);
+      }
     }
   }
 
   public void handleBodyBuffer(final Buffer buff) {
-    if (!readArguments) {
-      final JsonObject args = new JsonObject(buff);
-      readArguments = true;
+    if (!hasReadArguments) {
+      final JsonObject args = decodeJsonObject(buff, routingContext);
+      if (args == null) {
+        return;
+      }
+      hasReadArguments = true;
       final String target = args.getString("target");
       if (target == null) {
         handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
@@ -79,16 +89,35 @@ public class InsertsBodyParser {
         return;
       }
       final JsonObject properties = args.getJsonObject("properties");
-      routingContext.request().endHandler(this::handleBodyEnd);
-      acksSubscriber = acks ? new AcksSubscriber(routingContext.response()) : null;
+      acksSubscriber = acks ? new AcksSubscriber(ctx, routingContext.response()) : null;
       final InsertsSubscriber insertsSubscriber = endpoints
           .createInsertsSubscriber(target, properties, acksSubscriber);
-      publisher = new InsertsPublisher();
+      publisher = new BufferedPublisher<>(ctx);
+
+      // This forces response headers to be written so we know we send a 200 OK
+      // This is important if we subsequently find an error in the stream
+      routingContext.response().write("");
+
       publisher.subscribe(insertsSubscriber);
     } else if (publisher != null) {
-      final JsonObject row = new JsonObject(buff);
-      publisher.receiveRow(row);
+      final JsonObject row;
+      try {
+        row = new JsonObject(buff);
+      } catch (DecodeException e) {
+        final JsonObject errResponse = ServerUtils
+            .createErrResponse(ErrorCodes.ERROR_CODE_INVALID_JSON,
+                "Invalid JSON in inserts stream");
+        routingContext.response().write(errResponse.toBuffer().appendString("\n")).end();
+        acksSubscriber.cancel();
+        return;
+      }
+      final boolean bufferFull = publisher.accept(row);
+      if (bufferFull) {
+        recordParser.pause();
+        publisher.drainHandler(recordParser::resume);
+      }
       rowsReceived++;
     }
   }
+
 }

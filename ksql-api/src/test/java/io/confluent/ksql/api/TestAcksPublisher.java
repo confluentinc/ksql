@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,92 +15,29 @@
 
 package io.confluent.ksql.api;
 
-import io.vertx.core.Vertx;
+import io.confluent.ksql.api.server.BufferedPublisher;
+import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
-public class TestAcksPublisher implements Publisher<Void> {
+public class TestAcksPublisher extends BufferedPublisher<JsonObject> {
 
-  private final Vertx vertx;
   private final int acksBeforePublisherError;
-  private Subscriber<? super Void> subscriber;
-  private long acks;
-  private long tokens;
   private int acksSent;
 
-  public TestAcksPublisher(final Vertx vertx, final int acksBeforePublisherError) {
-    this.vertx = vertx;
+  public TestAcksPublisher(final Context context, final int acksBeforePublisherError) {
+    super(context);
     this.acksBeforePublisherError = acksBeforePublisherError;
   }
 
-  void receiveRow(final JsonObject row) {
-    // run async to simulate some processing time
-    vertx.runOnContext(v -> sendAck());
-  }
-
-  synchronized void sendAck() {
-    if (subscriber == null) {
-      return;
-    }
-    if (tokens == 0) {
-      acks++;
-    } else {
-      tokens--;
-      deliverAck();
-    }
-  }
-
-  synchronized void acceptTokens(final long num) {
-    if (subscriber == null) {
-      throw new IllegalStateException("No subscriber");
-    }
-    tokens += num;
-    while (tokens > 0 && acks > 0) {
-      deliverAck();
-      acks--;
-      tokens--;
-    }
-  }
-
-  private void deliverAck() {
-    if (acksBeforePublisherError != -1 && acksSent == acksBeforePublisherError) {
-      // Inject an error
-      subscriber.onError(new RuntimeException("Failure in processing"));
-    } else {
-      subscriber.onNext(null);
-      acksSent++;
-    }
-  }
-
   @Override
-  public synchronized void subscribe(final Subscriber<? super Void> subscriber) {
-    if (this.subscriber != null) {
-      throw new IllegalStateException("Already subscribed");
+  protected boolean beforeOnNext() {
+    if (acksBeforePublisherError != -1 && acksSent == acksBeforePublisherError) {
+      // We inject an exception after a certain number of rows
+      sendError(new RuntimeException("Failure in processing"));
+      return false;
     }
-    this.subscriber = subscriber;
-    subscriber.onSubscribe(new AcksSubscription());
+    acksSent++;
+    return true;
   }
 
-  public synchronized void cancel() {
-    this.subscriber = null;
-  }
-
-  public synchronized boolean hasSubscriber() {
-    return subscriber != null;
-  }
-
-  class AcksSubscription implements Subscription {
-
-    @Override
-    public void request(final long num) {
-      acceptTokens(num);
-    }
-
-    @Override
-    public void cancel() {
-      TestAcksPublisher.this.cancel();
-    }
-  }
 }

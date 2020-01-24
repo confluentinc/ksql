@@ -64,8 +64,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
     this.casTarget = casTarget;
 
-    if (schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)).isPresent()
-        || schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)).isPresent()) {
+    if (schema.findValueColumn(ColumnRef.of(SchemaUtil.ROWKEY_NAME)).isPresent()
+        || schema.findValueColumn(ColumnRef.of(SchemaUtil.ROWTIME_NAME)).isPresent()) {
       throw new IllegalArgumentException("Schema contains implicit columns in value schema");
     }
   }

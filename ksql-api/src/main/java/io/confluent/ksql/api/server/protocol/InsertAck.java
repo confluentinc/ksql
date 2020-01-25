@@ -18,11 +18,11 @@ package io.confluent.ksql.api.server.protocol;
 /**
  * Represents a response to an insert
  */
-public class InsertResponse {
+public class InsertAck {
 
   public final String status;
 
-  public InsertResponse() {
+  public InsertAck() {
     this.status = "ok";
   }
 

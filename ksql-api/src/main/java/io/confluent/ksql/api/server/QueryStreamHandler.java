@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 
@@ -66,13 +66,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final PushQueryHolder query = connectionQueryManager
         .createApiQuery(querySubscriber, routingContext.request());
 
-    final JsonObject metadata = new JsonObject();
-    metadata.put("columnNames", queryPublisher.getColumnNames());
-    metadata.put("columnTypes", queryPublisher.getColumnTypes());
-    metadata.put("queryId", query.getId().toString());
-    if (!queryStreamArgs.push) {
-      metadata.put("rowCount", queryPublisher.getRowCount());
-    }
+    final QueryResponseMetadata metadata = new QueryResponseMetadata(query.getId().toString(),
+        queryPublisher.getColumnNames(),
+        queryPublisher.getColumnTypes(),
+        queryStreamArgs.push ? null : queryPublisher.getRowCount());
+
     queryStreamResponseWriter.writeMetadata(metadata);
     queryPublisher.subscribe(querySubscriber);
 

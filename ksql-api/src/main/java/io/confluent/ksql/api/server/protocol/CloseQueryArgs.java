@@ -15,25 +15,24 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 
 /**
  * Represents the arguments to a close query request
  */
 public class CloseQueryArgs {
 
-  public final String queryID;
+  public final String queryId;
 
-  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-  public CloseQueryArgs(final @JsonProperty(value = "queryID", required = true) String queryID) {
-    this.queryID = queryID;
+  public CloseQueryArgs(final @JsonProperty(value = "queryId", required = true) String queryId) {
+    this.queryId = Objects.requireNonNull(queryId);
   }
 
   @Override
   public String toString() {
     return "CloseQueryArgs{"
-        + "queryID='" + queryID + '\''
+        + "queryID='" + queryId + '\''
         + '}';
   }
 }

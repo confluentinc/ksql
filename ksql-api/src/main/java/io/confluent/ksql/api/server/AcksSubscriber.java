@@ -18,7 +18,7 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.InsertResponse;
+import io.confluent.ksql.api.server.protocol.InsertAck;
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -38,7 +38,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
   private static final int BATCH_SIZE = 4;
   private static final Buffer OK_INSERT_RESPONSE_LINE = PojoCodec
-      .serializeObject(new InsertResponse())
+      .serializeObject(new InsertAck())
       .appendString("\n");
   private static final int REQUEST_BATCH_SIZE = 1000;
 

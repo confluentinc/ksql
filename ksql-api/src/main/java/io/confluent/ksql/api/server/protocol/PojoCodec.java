@@ -26,17 +26,9 @@ import java.io.IOException;
 
 /**
  * Knows how to deserialize and serialize POJOs to buffers. Encapsulates the Jackson encoding logic
- * and nasty exception handling.
+ * and exception handling.
  */
 public final class PojoCodec {
-
-  /*
-  TODO
-  use objects for:
-
-  Metadata
-  any other shit we're writing to wire, check the response writers for this
-   */
 
   private PojoCodec() {
   }

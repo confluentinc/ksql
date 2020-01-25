@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server.protocol;
 
+import java.util.Objects;
+
 /**
  * Represents an error response
  */
@@ -27,7 +29,7 @@ public class ErrorResponse {
   public ErrorResponse(final int errorCode, final String message) {
     this.status = "error";
     this.errorCode = errorCode;
-    this.message = message;
+    this.message = Objects.requireNonNull(message);
   }
 
   @Override

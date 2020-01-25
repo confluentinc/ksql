@@ -16,15 +16,15 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 
 /**
  * Represents something that knows how to write out a query response
  */
 public interface QueryStreamResponseWriter {
 
-  QueryStreamResponseWriter writeMetadata(JsonObject metaData);
+  QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
   QueryStreamResponseWriter writeRow(JsonArray row);
 

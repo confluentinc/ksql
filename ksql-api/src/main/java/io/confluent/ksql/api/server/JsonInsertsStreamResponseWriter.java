@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.InsertResponse;
+import io.confluent.ksql.api.server.protocol.InsertAck;
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
@@ -36,7 +36,7 @@ import java.util.Objects;
  */
 public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
-  private static final Buffer ACK_RESPONSE_LINE = PojoCodec.serializeObject(new InsertResponse());
+  private static final Buffer ACK_RESPONSE_LINE = PojoCodec.serializeObject(new InsertAck());
 
   protected final HttpServerResponse response;
   private boolean dataWritten;

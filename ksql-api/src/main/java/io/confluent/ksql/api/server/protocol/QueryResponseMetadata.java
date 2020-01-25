@@ -16,32 +16,33 @@
 package io.confluent.ksql.api.server.protocol;
 
 import io.vertx.core.json.JsonArray;
+import java.util.Objects;
 
 /**
- * Represents the query meta-data written initially to the response for a query stream request
+ * Represents the metadata of a query stream response
  */
-public class QueryStreamResponseMetadata {
+public class QueryResponseMetadata {
 
+  public final String queryId;
   public final JsonArray columnNames;
   public final JsonArray columnTypes;
-  public final String queryID;
   public final Integer rowCount;
 
-  public QueryStreamResponseMetadata(final JsonArray columnNames, final JsonArray columnTypes,
-      final String queryID, final Integer rowCount) {
-    this.columnNames = columnNames;
-    this.columnTypes = columnTypes;
-    this.queryID = queryID;
+  public QueryResponseMetadata(final String queryId, final JsonArray columnNames,
+      final JsonArray columnTypes, final Integer rowCount) {
+    this.queryId = Objects.requireNonNull(queryId);
+    this.columnNames = Objects.requireNonNull(columnNames);
+    this.columnTypes = Objects.requireNonNull(columnTypes);
     this.rowCount = rowCount;
   }
 
   @Override
   public String toString() {
-    return "QueryStreamResponseMetadata{"
-        + "columnNames=" + columnNames
+    return "QueryResponseMetadata{"
+        + "queryId='" + queryId + '\''
+        + ", columnNames=" + columnNames
         + ", columnTypes=" + columnTypes
-        + ", queryID='" + queryID + '\''
-        + ", rowCount=" + rowCount
+        + ", rowcount=" + rowCount
         + '}';
   }
 }

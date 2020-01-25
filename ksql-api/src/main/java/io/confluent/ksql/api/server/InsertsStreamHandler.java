@@ -53,7 +53,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
   @Override
   public void handle(final RoutingContext routingContext) {
     // The record parser takes in potentially fragmented buffers from the request and spits
-    // out the chunks delimited by \n
+    // out the chunks delimited by newline
     final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
     final RequestHandler requestHandler = new RequestHandler(routingContext, recordParser);
     recordParser.handler(requestHandler::handleBodyBuffer);

@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents the arguments to an insert stream request
@@ -29,12 +29,11 @@ public class InsertsStreamArgs {
   public final boolean requiresAcks;
   public final JsonObject properties;
 
-  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
   public InsertsStreamArgs(final @JsonProperty(value = "target", required = true) String target,
       final @JsonProperty(value = "requiresAcks", required = true) Boolean requiresAcks,
       final @JsonProperty(value = "properties")
           Map<String, Object> properties) {
-    this.target = target;
+    this.target = Objects.requireNonNull(target);
     this.requiresAcks = requiresAcks;
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
   }

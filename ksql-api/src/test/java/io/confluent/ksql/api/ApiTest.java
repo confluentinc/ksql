@@ -150,7 +150,7 @@ public class ApiTest {
     String queryId = queryResponse.responseObject.getString("queryId");
     assertNotNull(queryId);
     assertTrue(server.getQueryIDs().contains(new PushQueryId(queryId)));
-    assertFalse(queryResponse.responseObject.containsKey("rowCount"));
+    assertNull(queryResponse.responseObject.getInteger("rowCount"));
   }
 
   @Test
@@ -658,7 +658,7 @@ public class ApiTest {
 
   @Test
   public void shouldUseDelimitedFormatWhenNoAcceptHeaderInserts() throws Exception {
-    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -677,7 +677,7 @@ public class ApiTest {
 
   @Test
   public void shouldUseDelimitedFormatWhenDelimitedHeaderInserts() throws Exception {
-    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -697,7 +697,7 @@ public class ApiTest {
 
   @Test
   public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
-    JsonObject params = new JsonObject().put("target", "test-stream").put("acks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");

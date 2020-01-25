@@ -17,9 +17,9 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.server.protocol.PojoCodec;
+import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 
 /**
@@ -48,8 +48,8 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeMetadata(final JsonObject metaData) {
-    response.write(metaData.toBuffer().appendString("\n"));
+  public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
+    response.write(PojoCodec.serializeObject(metaData).appendString("\n"));
     return this;
   }
 

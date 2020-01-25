@@ -15,13 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.protocol.PojoCodec.serializeObject;
-
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,7 @@ public final class ServerUtils {
   public static void handleError(final HttpServerResponse response, final int statusCode,
       final int errorCode, final String errMsg) {
     final ErrorResponse errorResponse = new ErrorResponse(errorCode, errMsg);
-    final Buffer buffer = serializeObject(errorResponse);
+    final Buffer buffer = errorResponse.toBuffer();
     response.setStatusCode(statusCode).end(buffer);
   }
 
@@ -46,7 +45,8 @@ public final class ServerUtils {
     log.error("Unhandled exception", t);
   }
 
-  public static <T> T deserialiseObject(final Buffer buffer, final HttpServerResponse response,
+  public static <T> Optional<T> deserialiseObject(final Buffer buffer,
+      final HttpServerResponse response,
       final Class<T> clazz) {
     return PojoCodec.deserialiseObject(buffer, new HttpResponseErrorHandler(response), clazz);
   }

@@ -16,16 +16,20 @@
 package io.confluent.ksql.api.server.protocol;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.api.server.PushQueryId;
 import java.util.Objects;
 
 /**
  * Represents the arguments to a close query request
  */
+@Immutable
 public class CloseQueryArgs {
 
-  public final String queryId;
+  public final PushQueryId queryId;
 
-  public CloseQueryArgs(final @JsonProperty(value = "queryId", required = true) String queryId) {
+  public CloseQueryArgs(
+      final @JsonProperty(value = "queryId", required = true) PushQueryId queryId) {
     this.queryId = Objects.requireNonNull(queryId);
   }
 

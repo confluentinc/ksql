@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.api.server.protocol;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
  * Represents an error response
  */
-public class ErrorResponse {
+@Immutable
+public class ErrorResponse extends SerializableObject {
 
   public final String status;
   public final int errorCode;

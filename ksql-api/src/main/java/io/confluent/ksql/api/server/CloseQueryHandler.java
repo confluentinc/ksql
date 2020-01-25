@@ -37,18 +37,18 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    final CloseQueryArgs closeQueryArgs = ServerUtils
+    final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
         .deserialiseObject(routingContext.getBody(), routingContext.response(),
             CloseQueryArgs.class);
-    if (closeQueryArgs == null) {
+    if (!closeQueryArgs.isPresent()) {
       return;
     }
 
     final Optional<PushQueryHolder> query = server
-        .removeQuery(new PushQueryId(closeQueryArgs.queryId));
+        .removeQuery(closeQueryArgs.get().queryId);
     if (!query.isPresent()) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
-          "No query with id " + closeQueryArgs.queryId);
+          "No query with id " + closeQueryArgs.get().queryId);
       return;
     }
     query.get().close();

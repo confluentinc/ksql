@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.jackson.DatabindCodec;
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Knows how to deserialize and serialize POJOs to buffers. Encapsulates the Jackson encoding logic
@@ -33,25 +34,25 @@ public final class PojoCodec {
   private PojoCodec() {
   }
 
-  public static <T> T deserialiseObject(final Buffer buffer,
+  public static <T> Optional<T> deserialiseObject(final Buffer buffer,
       final PojoDeserializerErrorHandler errorHandler,
       final Class<T> clazz) {
     final ObjectMapper objectMapper = DatabindCodec.mapper();
     try {
-      return objectMapper.readValue(buffer.getBytes(), clazz);
+      return Optional.of(objectMapper.readValue(buffer.getBytes(), clazz));
     } catch (UnrecognizedPropertyException e) {
       errorHandler.onExtraParam(e.getPropertyName());
-      return null;
+      return Optional.empty();
     } catch (MismatchedInputException e) {
       // This is super ugly but I can't see how else to extract the property name
       final int startIndex = e.getMessage().indexOf('\'');
       final int endIndex = e.getMessage().indexOf('\'', startIndex + 1);
       final String propertyName = e.getMessage().substring(startIndex + 1, endIndex);
       errorHandler.onMissingParam(propertyName);
-      return null;
+      return Optional.empty();
     } catch (JsonParseException e) {
       errorHandler.onInvalidJson();
-      return null;
+      return Optional.empty();
     } catch (IOException e) {
       throw new RuntimeException("Failed to deserialize buffer", e);
     }

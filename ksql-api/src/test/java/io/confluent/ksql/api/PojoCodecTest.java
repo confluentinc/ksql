@@ -16,8 +16,6 @@
 package io.confluent.ksql.api;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.verify;
 
@@ -27,6 +25,7 @@ import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.PojoDeserializerErrorHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -44,34 +43,34 @@ public class PojoCodecTest {
         .put("field2", "foobar")
         .put("field3", true);
     Buffer buff = jsonObject.toBuffer();
-    TestPojo testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
-    assertThat(testPojo, is(notNullValue()));
-    assertThat(testPojo.field1, is(123));
-    assertThat(testPojo.field2, is("foobar"));
-    assertThat(testPojo.field3, is(true));
+    Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
+    assertThat(testPojo.isPresent(), is(true));
+    assertThat(testPojo.get().field1, is(123));
+    assertThat(testPojo.get().field2, is("foobar"));
+    assertThat(testPojo.get().field3, is(true));
   }
 
   @Test
   public void testDeserializeInvalidJson() {
     Buffer buff = Buffer.buffer("{\"foo\":123");
-    TestPojo testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
-    assertThat(testPojo, is(nullValue()));
+    Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
+    assertThat(testPojo.isPresent(), is(false));
     verify(errorHandler).onInvalidJson();
   }
 
   @Test
   public void testDeserializeMissingField() {
     Buffer buff = Buffer.buffer("{\"field1\":123,\"field2\":\"foo\"}");
-    TestPojo testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
-    assertThat(testPojo, is(nullValue()));
+    Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
+    assertThat(testPojo.isPresent(), is(false));
     verify(errorHandler).onMissingParam("field3");
   }
 
   @Test
   public void testDeserializeUnknownField() {
     Buffer buff = Buffer.buffer("{\"field1\":123,\"field2\":\"foo\",\"field3\":true,\"blah\":432}");
-    TestPojo testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
-    assertThat(testPojo, is(nullValue()));
+    Optional<TestPojo> testPojo = PojoCodec.deserialiseObject(buff, errorHandler, TestPojo.class);
+    assertThat(testPojo.isPresent(), is(false));
     verify(errorHandler).onExtraParam("blah");
   }
 

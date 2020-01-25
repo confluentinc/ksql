@@ -22,6 +22,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Handles requests to the query-stream endpoint
@@ -52,13 +53,16 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
     }
 
-    final QueryStreamArgs queryStreamArgs = ServerUtils
+    final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
         .deserialiseObject(routingContext.getBody(), routingContext.response(),
             QueryStreamArgs.class);
+    if (!queryStreamArgs.isPresent()) {
+      return;
+    }
 
     final QueryPublisher queryPublisher = endpoints
-        .createQueryPublisher(queryStreamArgs.sql, queryStreamArgs.push,
-            queryStreamArgs.properties);
+        .createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().push,
+            queryStreamArgs.get().properties);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response(),
         queryStreamResponseWriter);
@@ -69,7 +73,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final QueryResponseMetadata metadata = new QueryResponseMetadata(query.getId().toString(),
         queryPublisher.getColumnNames(),
         queryPublisher.getColumnTypes(),
-        queryStreamArgs.push ? null : queryPublisher.getRowCount());
+        queryStreamArgs.get().push ? null : queryPublisher.getRowCount());
 
     queryStreamResponseWriter.writeMetadata(metadata);
     queryPublisher.subscribe(querySubscriber);

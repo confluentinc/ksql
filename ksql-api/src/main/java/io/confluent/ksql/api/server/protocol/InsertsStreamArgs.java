@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server.protocol;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +24,7 @@ import java.util.Objects;
 /**
  * Represents the arguments to an insert stream request
  */
+@Immutable
 public class InsertsStreamArgs {
 
   public final String target;

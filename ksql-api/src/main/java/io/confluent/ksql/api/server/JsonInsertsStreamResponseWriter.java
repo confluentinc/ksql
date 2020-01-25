@@ -36,7 +36,7 @@ import java.util.Objects;
  */
 public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
-  private static final Buffer ACK_RESPONSE_LINE = PojoCodec.serializeObject(new InsertAck());
+  private static final Buffer ACK_RESPONSE_LINE = new InsertAck().toBuffer();
 
   protected final HttpServerResponse response;
   private boolean dataWritten;

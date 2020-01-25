@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.api.server.protocol;
 
+import com.google.errorprone.annotations.Immutable;
 import io.vertx.core.json.JsonArray;
 import java.util.Objects;
 
 /**
  * Represents the metadata of a query stream response
  */
-public class QueryResponseMetadata {
+@Immutable
+public class QueryResponseMetadata extends SerializableObject {
 
   public final String queryId;
   public final JsonArray columnNames;

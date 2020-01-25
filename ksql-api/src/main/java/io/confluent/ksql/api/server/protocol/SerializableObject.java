@@ -15,24 +15,15 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.google.errorprone.annotations.Immutable;
+import io.vertx.core.buffer.Buffer;
 
 /**
- * Represents a response to an insert
+ * An object that can be serialized to a buffer
  */
-@Immutable
-public class InsertAck extends SerializableObject {
+public abstract class SerializableObject {
 
-  public final String status;
-
-  public InsertAck() {
-    this.status = "ok";
+  public Buffer toBuffer() {
+    return PojoCodec.serializeObject(this);
   }
 
-  @Override
-  public String toString() {
-    return "InsertResponse{"
-        + "status='" + status + '\''
-        + '}';
-  }
 }

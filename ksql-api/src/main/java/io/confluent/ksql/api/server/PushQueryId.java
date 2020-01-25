@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.api.server;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
  * Surprisingly, the id of a push query
  */
+@Immutable
 public class PushQueryId {
 
   private final String id;

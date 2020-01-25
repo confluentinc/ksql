@@ -30,6 +30,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class handles the parsing of the request body for a stream of inserts. The user can send a
@@ -95,17 +96,19 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
     private void handleArgs(final Buffer buff) {
       hasReadArguments = true;
-      final InsertsStreamArgs insertsStreamArgs = deserialiseObject(buff, routingContext.response(),
+      final Optional<InsertsStreamArgs> insertsStreamArgs = deserialiseObject(buff,
+          routingContext.response(),
           InsertsStreamArgs.class);
-      if (insertsStreamArgs == null) {
+      if (!insertsStreamArgs.isPresent()) {
         return;
       }
 
       acksSubscriber =
-          insertsStreamArgs.requiresAcks ? new AcksSubscriber(ctx, routingContext.response(),
+          insertsStreamArgs.get().requiresAcks ? new AcksSubscriber(ctx, routingContext.response(),
               insertsStreamResponseWriter) : null;
       final InsertsSubscriber insertsSubscriber = endpoints
-          .createInsertsSubscriber(insertsStreamArgs.target, insertsStreamArgs.properties,
+          .createInsertsSubscriber(insertsStreamArgs.get().target,
+              insertsStreamArgs.get().properties,
               acksSubscriber);
       publisher = new BufferedPublisher<>(ctx);
 

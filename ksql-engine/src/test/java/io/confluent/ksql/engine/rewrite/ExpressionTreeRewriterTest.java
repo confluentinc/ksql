@@ -75,6 +75,7 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -95,7 +96,7 @@ public class ExpressionTreeRewriterTest {
       new BooleanLiteral("true"),
       new StringLiteral("abcd"),
       new NullLiteral(),
-      new DecimalLiteral("1.0"),
+      new DecimalLiteral(BigDecimal.ONE),
       new TimeLiteral("00:00:00"),
       new TimestampLiteral("00:00:00")
   );

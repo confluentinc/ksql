@@ -138,6 +138,7 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -1082,7 +1083,7 @@ public class AstBuilder {
         return new TimestampLiteral(location, value);
       }
       if (type.equals("DECIMAL")) {
-        return new DecimalLiteral(location, value);
+        return new DecimalLiteral(location, new BigDecimal(value));
       }
 
       throw new KsqlException("Unknown type: " + type + ", location:" + location);

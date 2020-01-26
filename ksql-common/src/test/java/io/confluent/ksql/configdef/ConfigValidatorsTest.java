@@ -182,6 +182,31 @@ public class ConfigValidatorsTest {
     validator.ensureValid("propName", "value");
   }
 
+  @Test
+  public void shouldThrowOnInvalidURL() {
+    // Given:
+    final Validator validator = ConfigValidators.validUrl();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage(
+            "Invalid value INVALID for configuration propName: Not valid URL: no protocol: INVALID");
+
+    // When:
+    validator.ensureValid("propName", "INVALID");
+  }
+
+  @Test
+  public void shouldNotThrowOnValidURL() {
+    // Given:
+    final Validator validator = ConfigValidators.validUrl();
+
+    // When:
+    validator.ensureValid("propName", "http://valid:25896/somePath");
+
+    // Then: did not throw.
+  }
+
   private enum TestEnum {
     FOO, BAR
   }

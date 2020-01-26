@@ -15,18 +15,16 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 
 /**
@@ -34,9 +32,8 @@ import org.apache.kafka.streams.Topology;
  */
 public class TransientQueryMetadata extends QueryMetadata {
 
-  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
+  private final BlockingRowQueue rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
-  private final Consumer<LimitHandler> limitHandlerSetter;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TransientQueryMetadata(
@@ -44,9 +41,8 @@ public class TransientQueryMetadata extends QueryMetadata {
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
-      final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
-      final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
+      final BlockingRowQueue rowQueue,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -63,9 +59,8 @@ public class TransientQueryMetadata extends QueryMetadata {
         topology,
         streamsProperties,
         overriddenProperties,
-        closeCallback
-    );
-    this.limitHandlerSetter = Objects.requireNonNull(limitHandlerSetter, "limitHandlerSetter");
+        closeCallback);
+
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
   }
 
@@ -73,7 +68,7 @@ public class TransientQueryMetadata extends QueryMetadata {
     return isRunning.get();
   }
 
-  public BlockingQueue<KeyValue<String, GenericRow>> getRowQueue() {
+  public BlockingRowQueue getRowQueue() {
     return rowQueue;
   }
 
@@ -94,11 +89,16 @@ public class TransientQueryMetadata extends QueryMetadata {
   }
 
   public void setLimitHandler(final LimitHandler limitHandler) {
-    limitHandlerSetter.accept(limitHandler);
+    rowQueue.setLimitHandler(limitHandler);
   }
 
   @Override
   public void close() {
+    // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
+    // write to the blocking queue, otherwise super.close call can deadlock:
+    rowQueue.close();
+
+    // Now safe to close:
     super.close();
     isRunning.set(false);
   }

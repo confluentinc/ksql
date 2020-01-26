@@ -31,7 +31,7 @@ public class InsertAck extends SerializableObject {
 
   @Override
   public String toString() {
-    return "InsertResponse{"
+    return "InsertAck{"
         + "status='" + status + '\''
         + '}';
   }

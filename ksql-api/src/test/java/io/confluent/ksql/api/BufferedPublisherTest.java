@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.fail;
 
 import io.confluent.ksql.api.TestUtils.AsyncAssert;
 import io.confluent.ksql.api.server.BufferedPublisher;
@@ -57,6 +58,24 @@ public class BufferedPublisherTest {
   @After
   public void tearDown() {
     vertx.close();
+  }
+
+  @Test
+  public void shouldNotAllowSettingDrainHandlerMoreThanOnce() throws Exception {
+    CountDownLatch latch = new CountDownLatch(1);
+    context.runOnContext(v -> {
+      publisher.drainHandler(() -> {
+      });
+      try {
+        publisher.drainHandler(() -> {
+        });
+        fail("Should throw exception");
+      } catch (IllegalStateException e) {
+        // OK
+        latch.countDown();
+      }
+    });
+    TestUtils.awaitLatch(latch);
   }
 
   @Test

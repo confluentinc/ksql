@@ -15,16 +15,14 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
-import static io.confluent.ksql.api.server.ServerUtils.handleError;
-
+import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Handles requests to the query-stream endpoint
@@ -55,22 +53,16 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
     }
 
-    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
-    if (requestBody == null) {
+    final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
+        .deserialiseObject(routingContext.getBody(), routingContext.response(),
+            QueryStreamArgs.class);
+    if (!queryStreamArgs.isPresent()) {
       return;
     }
-    final String sql = requestBody.getString("sql");
-    if (sql == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
-      return;
-    }
-    final Boolean push = requestBody.getBoolean("push");
-    if (push == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No push in arguments");
-      return;
-    }
-    final JsonObject properties = requestBody.getJsonObject("properties");
-    final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
+
+    final QueryPublisher queryPublisher = endpoints
+        .createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().push,
+            queryStreamArgs.get().properties);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response(),
         queryStreamResponseWriter);
@@ -78,13 +70,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final PushQueryHolder query = connectionQueryManager
         .createApiQuery(querySubscriber, routingContext.request());
 
-    final JsonObject metadata = new JsonObject();
-    metadata.put("columnNames", queryPublisher.getColumnNames());
-    metadata.put("columnTypes", queryPublisher.getColumnTypes());
-    metadata.put("queryId", query.getId().toString());
-    if (!push) {
-      metadata.put("rowCount", queryPublisher.getRowCount());
-    }
+    final QueryResponseMetadata metadata = new QueryResponseMetadata(query.getId().toString(),
+        queryPublisher.getColumnNames(),
+        queryPublisher.getColumnTypes(),
+        queryStreamArgs.get().push ? null : queryPublisher.getRowCount());
+
     queryStreamResponseWriter.writeMetadata(metadata);
     queryPublisher.subscribe(querySubscriber);
 

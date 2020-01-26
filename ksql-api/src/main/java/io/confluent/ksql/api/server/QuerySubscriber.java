@@ -17,9 +17,9 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -82,10 +82,9 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   @Override
   public synchronized void onError(final Throwable t) {
     log.error("Error in processing query", t);
-    final JsonObject err = new JsonObject().put("status", "error")
-        .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
-        .put("message", "Error in processing query");
-    queryStreamResponseWriter.writeError(err).end();
+    final ErrorResponse errorResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
+        "Error in processing query");
+    queryStreamResponseWriter.writeError(errorResponse).end();
   }
 
   @Override

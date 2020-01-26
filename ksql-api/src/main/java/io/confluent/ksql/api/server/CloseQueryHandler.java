@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static io.confluent.ksql.api.server.ServerUtils.handleError;
 
+import io.confluent.ksql.api.server.protocol.CloseQueryArgs;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,17 +37,18 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    final JsonObject requestBody = routingContext.getBodyAsJson();
-    final String queryId = requestBody.getString("queryId");
-    if (queryId == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
-          "No queryId in arguments");
+    final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
+        .deserialiseObject(routingContext.getBody(), routingContext.response(),
+            CloseQueryArgs.class);
+    if (!closeQueryArgs.isPresent()) {
       return;
     }
-    final Optional<PushQueryHolder> query = server.removeQuery(new PushQueryId(queryId));
+
+    final Optional<PushQueryHolder> query = server
+        .removeQuery(closeQueryArgs.get().queryId);
     if (!query.isPresent()) {
       handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
-          "No query with id " + queryId);
+          "No query with id " + closeQueryArgs.get().queryId);
       return;
     }
     query.get().close();

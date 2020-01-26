@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
-import io.vertx.core.json.JsonObject;
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
 
 /**
  * Represents something that knows how to write out an inserts response
@@ -24,7 +24,7 @@ public interface InsertsStreamResponseWriter {
 
   InsertsStreamResponseWriter writeInsertResponse();
 
-  InsertsStreamResponseWriter writeError(JsonObject error);
+  InsertsStreamResponseWriter writeError(ErrorResponse error);
 
   void end();
 }

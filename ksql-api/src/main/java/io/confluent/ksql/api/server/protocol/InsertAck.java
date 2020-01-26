@@ -13,21 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.server.protocol;
+
+import com.google.errorprone.annotations.Immutable;
 
 /**
- * The error codes that signify different types of errors that can occur in the API
+ * Represents a response to an insert
  */
-public final class ErrorCodes {
+@Immutable
+public class InsertAck extends SerializableObject {
 
-  private ErrorCodes() {
+  public final String status;
+
+  public InsertAck() {
+    this.status = "ok";
   }
 
-  public static final int ERROR_CODE_MISSING_PARAM = 50001;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 50002;
-  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50003;
-  public static final int ERROR_CODE_MALFORMED_REQUEST = 5004;
-  public static final int ERROR_CODE_INTERNAL_ERROR = 50005;
-
-
+  @Override
+  public String toString() {
+    return "InsertAck{"
+        + "status='" + status + '\''
+        + '}';
+  }
 }

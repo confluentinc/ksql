@@ -13,21 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.server.protocol;
+
+import io.vertx.core.buffer.Buffer;
 
 /**
- * The error codes that signify different types of errors that can occur in the API
+ * An object that can be serialized to a buffer
  */
-public final class ErrorCodes {
+public abstract class SerializableObject {
 
-  private ErrorCodes() {
+  public Buffer toBuffer() {
+    return PojoCodec.serializeObject(this);
   }
-
-  public static final int ERROR_CODE_MISSING_PARAM = 50001;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 50002;
-  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50003;
-  public static final int ERROR_CODE_MALFORMED_REQUEST = 5004;
-  public static final int ERROR_CODE_INTERNAL_ERROR = 50005;
-
 
 }

@@ -13,42 +13,33 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.server.protocol;
 
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
- * Surprisingly, the id of a push query
+ * Represents an error response
  */
 @Immutable
-public class PushQueryId {
+public class ErrorResponse extends SerializableObject {
 
-  private final String id;
+  public final String status;
+  public final int errorCode;
+  public final String message;
 
-  public PushQueryId(final String id) {
-    this.id = Objects.requireNonNull(id);
+  public ErrorResponse(final int errorCode, final String message) {
+    this.status = "error";
+    this.errorCode = errorCode;
+    this.message = Objects.requireNonNull(message);
   }
 
   @Override
   public String toString() {
-    return id;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final PushQueryId that = (PushQueryId) o;
-    return Objects.equals(id, that.id);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id);
+    return "ErrorResponse{"
+        + "status='" + status + '\''
+        + ", errorCode=" + errorCode
+        + ", message='" + message + '\''
+        + '}';
   }
 }

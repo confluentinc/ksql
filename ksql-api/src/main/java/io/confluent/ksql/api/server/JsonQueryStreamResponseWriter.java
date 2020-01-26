@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 
 /**
@@ -48,7 +49,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeMetadata(final JsonObject metaData) {
+  public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
     buff.appendBuffer(metaData.toBuffer());
     response.write(buff);
@@ -62,7 +63,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeError(final JsonObject error) {
+  public QueryStreamResponseWriter writeError(final ErrorResponse error) {
     writeBuffer(error.toBuffer());
     return this;
   }

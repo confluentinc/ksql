@@ -747,7 +747,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (!processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-    
+
     try {
       final SimpleKsqlClient internalClient =
           new ServerInternalKsqlClient(ksqlResource, new KsqlSecurityContext(

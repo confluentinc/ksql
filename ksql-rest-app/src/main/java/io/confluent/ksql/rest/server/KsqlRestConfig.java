@@ -62,9 +62,9 @@ public class KsqlRestConfig extends RestConfig {
       "query.stream.disconnect.check";
 
   private static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC =
-          "How often to send an empty line as part of the response while streaming queries as "
-              + "JSON; this helps proactively determine if the connection has been terminated in "
-              + "order to avoid keeping the created streams job alive longer than necessary";
+      "How often to send an empty line as part of the response while streaming queries as "
+          + "JSON; this helps proactively determine if the connection has been terminated in "
+          + "order to avoid keeping the created streams job alive longer than necessary";
 
   static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
       KSQL_CONFIG_PREFIX + "server.command.response.timeout.ms";

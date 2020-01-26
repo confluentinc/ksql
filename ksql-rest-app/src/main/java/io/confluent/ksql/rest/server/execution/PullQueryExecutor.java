@@ -345,7 +345,8 @@ public final class PullQueryExecutor {
     final SqlType sqlType = schema.key().get(0).type();
 
     return DefaultSqlValueCoercer.INSTANCE.coerce(right, sqlType)
-        .orElseThrow(() -> new KsqlException("ROWKEY not " + sqlType));
+        .orElseThrow(() -> new KsqlException("'" + right + "' can not be converted "
+            + "to the type of column ROWKEY: " + sqlType));
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(

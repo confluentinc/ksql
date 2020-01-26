@@ -114,7 +114,11 @@ public final class TestCaseBuilderUtil {
       if (expectsException) {
         return ImmutableMap.of();
       }
-      throw new InvalidFieldException("statements/topics", "The test does not define any topics");
+      throw new InvalidFieldException("statements/topics", "The test does not define any topics. "
+          + "Topics can be provided explicitly, but are more commonly extracted from the "
+          + "SQL statements. This error is generally caused by an error in on one of the "
+          + "SQL statements, causing it to fail parsing. "
+          + "Check previous output for such failures.");
     }
 
     // Get topics from inputs and outputs fields:

@@ -179,13 +179,8 @@ public class BufferedPublisherTest {
       @Override
       public synchronized void onNext(final String value) {
         super.onNext(value);
-        asyncAssert.assertAsync(this::isCompleted, equalTo(false));
+        asyncAssert.assertAsync(isCompleted(), equalTo(false));
         getSub().request(1);
-      }
-
-      @Override
-      public synchronized void onComplete() {
-        super.onComplete();
       }
     };
     subscribeOnContext(subscriber);
@@ -211,13 +206,8 @@ public class BufferedPublisherTest {
       @Override
       public synchronized void onNext(final String value) {
         super.onNext(value);
-        asyncAssertOnNext.assertAsync(this::isCompleted, equalTo(false));
+        asyncAssertOnNext.assertAsync(isCompleted(), equalTo(false));
         getSub().request(1);
-      }
-
-      @Override
-      public synchronized void onComplete() {
-        super.onComplete();
       }
     };
     subscribeOnContext(subscriber);
@@ -226,7 +216,7 @@ public class BufferedPublisherTest {
       String record = "record" + i;
       execOnContextAndWait(() -> {
         boolean bufferFull = publisher.accept(record);
-        assertNotBufferFull.assertAsync(() -> bufferFull, equalTo(false));
+        assertNotBufferFull.assertAsync(bufferFull, equalTo(false));
       });
       assertThatEventually(subscriber::getValues, hasSize(i + 1));
       assertThat(subscriber.getValues().get(i), equalTo(record));
@@ -264,7 +254,7 @@ public class BufferedPublisherTest {
       final int index = i;
       execOnContextAndWait(() -> {
         boolean bufferFull = publisher.accept(record);
-        asyncAssert.assertAsync(() -> bufferFull, equalTo(index >= 5));
+        asyncAssert.assertAsync(bufferFull, equalTo(index >= 5));
       });
     }
   }
@@ -286,7 +276,7 @@ public class BufferedPublisherTest {
       String record = "record" + i;
       execOnContextAndWait(() -> {
         boolean bufferFull = publisher.accept(record);
-        asyncAssert.assertAsync(() -> bufferFull, equalTo(false));
+        asyncAssert.assertAsync(bufferFull, equalTo(false));
       });
     }
     asyncAssert.throwAssert();
@@ -302,7 +292,7 @@ public class BufferedPublisherTest {
       final int index = i;
       execOnContextAndWait(() -> {
         boolean bufferFull = publisher.accept(record);
-        asyncAssert.assertAsync(() -> bufferFull, equalTo(index >= 5));
+        asyncAssert.assertAsync(bufferFull, equalTo(index >= 5));
       });
 
     }
@@ -322,7 +312,7 @@ public class BufferedPublisherTest {
         super.onNext(value);
         getSub().request(1);
         drainLatchCalledAssert
-            .assertAsync(drainHandlerCalled::get, equalTo(false));
+            .assertAsync(drainHandlerCalled.get(), equalTo(false));
       }
     };
     subscribeOnContext(subscriber);

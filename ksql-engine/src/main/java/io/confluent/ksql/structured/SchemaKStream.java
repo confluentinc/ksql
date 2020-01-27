@@ -326,12 +326,13 @@ public class SchemaKStream<K> {
       final Expression keyExpression,
       final QueryContext.Stacker contextStacker
   ) {
-    if (keyFormat.isWindowed()) {
-      throw new UnsupportedOperationException("Can not selectKey of windowed stream");
-    }
-
     if (!needsRepartition(keyExpression)) {
       return (SchemaKStream<Struct>) this;
+    }
+
+    if (keyFormat.isWindowed()) {
+      throw new KsqlException("Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.");
     }
 
     final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(

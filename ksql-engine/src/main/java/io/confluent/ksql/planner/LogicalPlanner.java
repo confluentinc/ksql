@@ -439,7 +439,7 @@ public class LogicalPlanner {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
 
     final ExpressionTypeManager typeManager =
-        new ExpressionTypeManager(sourceSchema, functionRegistry, true);
+        new ExpressionTypeManager(sourceSchema, functionRegistry, false);
 
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 

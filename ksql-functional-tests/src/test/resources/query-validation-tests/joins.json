@@ -1870,6 +1870,122 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Can not join 'INPUT' to 'INPUT': self joins are not yet supported."
       }
+    },
+    {
+      "name": "matching session-windowed",
+      "comments": [
+        "Note: the first record on the right topic intersects with the session on the right side, but no row is output as keys must",
+        "be an EXACT BINARY match"
+      ],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM OUTPUT as SELECT S1.ID, S2.ID FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 765, "window": {"start": 234, "end": 765, "type": "session"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 2}, "timestamp": 567, "window": {"start": 234, "end": 567, "type": "session"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 3}, "timestamp": 765, "window": {"start": 234, "end": 765, "type": "session"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "S2_ID": 3}, "timestamp": 765, "window": {"start": 234, "end": 765, "type": "session"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "SESSION"},
+            "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "matching time-windowed",
+      "comments": [
+        "Note: the two streams use a different window size. However, only the start of the window is serialized, so its possible to get a matching binary key",
+        "This may meet users requirements, hence KSQL allows such joins",
+        "Note: the key format is currently taken from the left source."
+      ],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM OUTPUT as SELECT S1.ID, S2.ID FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 1000, "end": 6000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 7000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 1, "S2_ID": 4}, "timestamp": 0, "window": {"start": 0, "end":5000, "type": "time"}},
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_ID": 3, "S2_ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end":7000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 5000},
+            "schema": "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "session - timed windowed",
+      "comments": [
+        "Session windows serialize both start and end window bounds, where as tumbling/hopping only serialize the start time.",
+        "Keys will never be binary compatible, and hence KSQL should disallow such joins"
+      ],
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Session');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='TUMBLING', WINDOW_SIZE='1 SECOND');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Incompatible windowed sources.\nLeft source: SESSION\nRight source: TUMBLING\nSession windowed sources can only be joined to other session windowed sources, and may still not result in expected behaviour as session bounds must be an exact match for the join to work\nHopping and tumbling windowed sources can only be joined to other hopping and tumbling windowed sources"
+      }
+    },
+    {
+      "name": "windowed - non-windowed - INT",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can not join windowed source to non-windowed source.\n`S1` is SESSION windowed\n`S2` is not windowed"
+      }
+    },
+    {
+      "name": "windowed - non-windowed - STRING",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY STRING KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM S2 (ROWKEY STRING KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can not join windowed source to non-windowed source.\n`S1` is SESSION windowed\n`S2` is not windowed"
+      }
+    },
+    {
+      "name": "join requiring repartition of windowed source",
+      "statements": [
+        "CREATE STREAM S1 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM S2 (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
+      }
     }
   ]
 }

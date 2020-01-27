@@ -67,7 +67,9 @@ public class PostConditions {
     final String text = values.stream()
         .map(s -> s.getDataSourceType() + ":" + s.getName().name()
             + ", key:" + s.getKeyField().ref()
-            + ", value:" + s.getSchema())
+            + ", value:" + s.getSchema()
+            + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()
+        )
         .collect(Collectors.joining(System.lineSeparator()));
 
     assertThat("metastore sources after the statements have run:"

@@ -171,11 +171,11 @@ public final class CreateSourceFactory {
     }
 
     tableElements.forEach(e -> {
-      if (e.getName().equals(SchemaUtil.ROWTIME_NAME)) {
+      final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
+
+      if (!isRowKey && SchemaUtil.systemColumnNames().contains(e.getName())) {
         throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
       }
-
-      final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
 
       if (e.getNamespace() == Namespace.KEY) {
         if (!isRowKey) {

@@ -45,8 +45,14 @@ public final class SchemaUtil {
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
+  public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
 
-  public static final int ROWKEY_INDEX = 1;
+  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.of(
+      ROWKEY_NAME,
+      ROWTIME_NAME,
+      WINDOWSTART_NAME,
+      WINDOWEND_NAME
+  );
 
   private static final Set<Schema.Type> ARITHMETIC_TYPES = ImmutableSet.of(
       Type.INT8,
@@ -60,6 +66,10 @@ public final class SchemaUtil {
   private static final char FIELD_NAME_DELIMITER = '.';
 
   private SchemaUtil() {
+  }
+
+  public static Set<ColumnName> systemColumnNames() {
+    return SYSTEM_COLUMN_NAMES;
   }
 
   // Do Not use in new code - use `SchemaConverters` directly.

@@ -120,6 +120,18 @@ public final class LogicalSchema {
   }
 
   /**
+   * Checks to see if value namespace contain any of the supplied names.
+   *
+   * @param names the names to check for.
+   * @return {@code true} if <i>any</i> of the supplied names exist in the value namespace.
+   */
+  public boolean valueContainsAny(final Set<ColumnName> names) {
+    return value().stream()
+        .map(Column::name)
+        .anyMatch(names::contains);
+  }
+
+  /**
    * Copies metadata and key columns to the value schema.
    *
    * <p>If the columns already exist in the value schema the function returns the same schema.

@@ -188,8 +188,8 @@ public class SchemaKStream<K> {
     }
 
     final Optional<ColumnRef> filtered = found
-        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
-        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()))
+        // System columns can not be key fields:
+        .filter(f -> !SchemaUtil.systemColumnNames().contains(f.name()))
         .map(Column::ref);
 
     return KeyField.of(filtered);
@@ -326,12 +326,12 @@ public class SchemaKStream<K> {
       final Expression keyExpression,
       final QueryContext.Stacker contextStacker
   ) {
-    if (keyFormat.isWindowed()) {
-      throw new UnsupportedOperationException("Can not selectKey of windowed stream");
-    }
-
     if (!needsRepartition(keyExpression)) {
       return (SchemaKStream<Struct>) this;
+    }
+
+    if (keyFormat.isWindowed()) {
+      throw new UnsupportedOperationException("Can not selectKey of windowed stream");
     }
 
     final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(

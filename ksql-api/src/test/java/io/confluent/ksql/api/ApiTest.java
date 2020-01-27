@@ -21,6 +21,8 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -54,7 +56,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -169,7 +170,7 @@ public class ApiTest {
       assertThat(server.getQueryIDs(), hasSize(i + 1));
       String queryId = queryResponse.responseObject.getString("queryId");
       assertThat(queryId, is(notNullValue()));
-      assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+      assertThat(server.getQueryIDs(), hasItem(new PushQueryId(queryId)));
     }
   }
 
@@ -398,7 +399,7 @@ public class ApiTest {
     assertThat(closeQueryResponse.statusCode(), is(200));
 
     // Assert the query no longer exists on the server
-    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(false));
+    assertThat(server.getQueryIDs(), not(hasItem(new PushQueryId(queryId))));
     assertThat(server.getQueryIDs(), hasSize(0));
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThat(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber(), is(false));
@@ -484,7 +485,6 @@ public class ApiTest {
     // Then
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
-    waitUntil(() -> rows.equals(testEndpoints.getInsertsSubscriber().getRowsInserted()));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
@@ -958,17 +958,6 @@ public class ApiTest {
     testEndpoints.setRowGeneratorFactory(
         () -> new ListRowGenerator(DEFAULT_COLUMN_NAMES, DEFAULT_COLUMN_TYPES,
             DEFAULT_ROWS));
-  }
-
-  private static boolean waitUntil(final Supplier<Boolean> test) throws Exception {
-    long start = System.currentTimeMillis();
-    do {
-      if (test.get()) {
-        return true;
-      }
-      Thread.sleep(1);
-    } while (System.currentTimeMillis() - start < WAIT_TIMEOUT);
-    return false;
   }
 
   private static List<JsonArray> generateRows() {

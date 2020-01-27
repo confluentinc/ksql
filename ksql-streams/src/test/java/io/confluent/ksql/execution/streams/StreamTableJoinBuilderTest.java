@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -46,30 +45,25 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinBuilderTest {
 
-  private static final SourceName LEFT = SourceName.of("LEFT");
-  private static final SourceName RIGHT = SourceName.of("RIGHT");
-
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-      .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue(false);
+      .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue(false);
+      .build();
 
   private static final PhysicalSchema LEFT_PHYSICAL =
-      PhysicalSchema.from(LEFT_SCHEMA.withoutAlias(), SerdeOption.none());
+      PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+
   private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(Format.KAFKA),
       FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
+
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 

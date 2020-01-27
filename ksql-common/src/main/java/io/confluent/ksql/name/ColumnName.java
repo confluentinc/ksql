@@ -53,11 +53,11 @@ public final class ColumnName extends Name<ColumnName> {
    * Used to generate a column alias for a join where the a column with this name exists
    * in both of the sources.
    */
-  public static ColumnName generatedJoinColumnAlias(final ColumnRef ref) {
-    return ref.source()
-        .map(q -> q.name() + "_" + ref.name().name())
-        .map(ColumnName::of)
-        .orElseGet(ref::name);
+  public static ColumnName generatedJoinColumnAlias(
+      final SourceName sourceName,
+      final ColumnRef ref
+  ) {
+    return ColumnName.of(sourceName.name() + "_" + ref.name().name());
   }
 
   @JsonCreator

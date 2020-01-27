@@ -73,7 +73,7 @@ public final class MetaStoreFixture {
         SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("COL0"))),
         Optional.empty(),
         false, 
         ksqlTopic0
@@ -93,7 +93,7 @@ public final class MetaStoreFixture {
         test1Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0"))),
+            ColumnRef.of(ColumnName.of("COL0"))),
         Optional.empty(),
         false,
         ksqlTopic1
@@ -121,7 +121,7 @@ public final class MetaStoreFixture {
         test2Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0"))),
+            ColumnRef.of(ColumnName.of("COL0"))),
         Optional.empty(),
         false,
         ksqlTopic2
@@ -171,7 +171,7 @@ public final class MetaStoreFixture {
         SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ORDERTIME"))),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -199,7 +199,7 @@ public final class MetaStoreFixture {
         testTable3,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0"))),
+            ColumnRef.of(ColumnName.of("COL0"))),
         Optional.empty(),
         false,
         ksqlTopic3
@@ -284,7 +284,7 @@ public final class MetaStoreFixture {
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ID"))),
         Optional.empty(),
         false,
         ksqlTopicSensorReadings

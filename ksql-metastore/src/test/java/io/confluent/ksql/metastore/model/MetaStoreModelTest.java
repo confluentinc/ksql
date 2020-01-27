@@ -62,11 +62,11 @@ public class MetaStoreModelTest {
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))
-      .put(ColumnRef.class, ColumnRef.withoutSource(ColumnName.of("f0")))
+      .put(ColumnRef.class, ColumnRef.of(ColumnName.of("f0")))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty()))
-      .put(Column.class, Column.of(Optional.empty(), ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
+      .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)

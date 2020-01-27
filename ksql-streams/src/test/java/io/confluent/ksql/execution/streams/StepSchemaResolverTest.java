@@ -25,9 +25,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
@@ -91,7 +91,7 @@ public class StepSchemaResolverTest {
       .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
       .build();
 
-  private static final ColumnRef ORANGE_COL_REF = ColumnRef.withoutSource(ColumnName.of("ORANGE"));
+  private static final ColumnRef ORANGE_COL_REF = ColumnRef.of(ColumnName.of("ORANGE"));
 
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       new QueryContext.Stacker().getQueryContext()
@@ -127,7 +127,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 
@@ -151,7 +151,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE")),
         new TumblingWindowExpression(10, TimeUnit.SECONDS)
     );
@@ -240,7 +240,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         formats,
-        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
@@ -273,7 +273,7 @@ public class StepSchemaResolverTest {
   public void shouldResolveSchemaForStreamSelectKey() {
     // Given:
     final Expression keyExpression =
-        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ORANGE")));
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ORANGE")));
 
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
@@ -307,7 +307,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
   }
 
   @Test
@@ -326,7 +326,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
   }
 
   @Test
@@ -337,7 +337,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedTableSource,
         formats,
-        ImmutableList.of(ColumnRef.withoutSource(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 
@@ -360,7 +360,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(new ColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(Optional.empty(), ORANGE_COL_REF))
     );
 
     // When:
@@ -430,7 +430,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(false)));
+    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(false)));
   }
 
   @Test
@@ -450,7 +450,7 @@ public class StepSchemaResolverTest {
     final LogicalSchema result = resolver.resolve(step, SCHEMA);
 
     // Then:
-    assertThat(result, is(SCHEMA.withAlias(SOME_ALIAS).withMetaAndKeyColsInValue(true)));
+    assertThat(result, is(SCHEMA.withMetaAndKeyColsInValue(true)));
   }
 
   private void givenTableFunction(final String name, final SqlType returnType) {
@@ -476,7 +476,7 @@ public class StepSchemaResolverTest {
     return new FunctionCall(
         FunctionName.of(name),
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of(column))))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column))))
     );
   }
 
@@ -485,8 +485,8 @@ public class StepSchemaResolverTest {
         ColumnName.of(alias),
         new ArithmeticBinaryExpression(
             Operator.ADD,
-            new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of(col1))),
-            new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of(col2)))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col1))),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col2)))
         )
     );
   }
@@ -494,7 +494,7 @@ public class StepSchemaResolverTest {
   private static SelectExpression ref(final String alias, final String col) {
     return SelectExpression.of(
         ColumnName.of(alias),
-        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of(col)))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col)))
     );
   }
 }

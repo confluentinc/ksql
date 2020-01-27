@@ -165,6 +165,24 @@
         {"topic": "S2", "key": "100", "value": "100\t100\t500", "timestamp": 0},
         {"topic": "S2", "key": "100", "value": "100\t100\t100", "timestamp": 0}
       ]
+    },
+    {
+      "name": "validate cannot specify delimiter with json format",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON', value_delimiter='|');"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "format": "JSON"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Delimiter only supported with DELIMITED format"
+      },
+      "inputs": [],
+      "outputs": []
     }
   ]
 }

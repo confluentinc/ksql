@@ -45,7 +45,6 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -226,14 +225,14 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final AbstractStreamSource<?> step
   ) {
-    return buildSourceSchema(schema, false, step.getAlias());
+    return buildSourceSchema(schema, false);
   }
 
   private LogicalSchema handleWindowedSource(
       final LogicalSchema schema,
       final AbstractStreamSource<?> step
   ) {
-    return buildSourceSchema(schema, true, step.getAlias());
+    return buildSourceSchema(schema, true);
   }
 
   private LogicalSchema handleJoin(final JoinSchemas schemas, final ExecutionStep<?> step) {
@@ -264,11 +263,9 @@ public final class StepSchemaResolver {
 
   private LogicalSchema buildSourceSchema(
       final LogicalSchema schema,
-      final boolean windowed,
-      final SourceName alias
+      final boolean windowed
   ) {
     return schema
-        .withAlias(alias)
         .withMetaAndKeyColsInValue(windowed);
   }
 

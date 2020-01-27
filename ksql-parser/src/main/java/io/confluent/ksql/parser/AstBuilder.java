@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -48,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -134,11 +134,11 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -999,9 +999,14 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
-      final ColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
-      final ColumnRef reference = columnReferenceExp.getReference();
-      reference.source().ifPresent(this::throwOnUnknownNameOrAlias);
+      return ColumnReferenceParser.resolve(context);
+    }
+
+    @Override
+    public Node visitQualifiedColumnReference(
+        final SqlBaseParser.QualifiedColumnReferenceContext context) {
+      final QualifiedColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
+      throwOnUnknownNameOrAlias(columnReferenceExp.getQualifier());
       return columnReferenceExp;
     }
 
@@ -1078,7 +1083,7 @@ public class AstBuilder {
         return new TimestampLiteral(location, value);
       }
       if (type.equals("DECIMAL")) {
-        return new DecimalLiteral(location, value);
+        return new DecimalLiteral(location, new BigDecimal(value));
       }
 
       throw new KsqlException("Unknown type: " + type + ", location:" + location);

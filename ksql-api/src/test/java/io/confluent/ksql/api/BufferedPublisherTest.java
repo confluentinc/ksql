@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api;
 
-
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

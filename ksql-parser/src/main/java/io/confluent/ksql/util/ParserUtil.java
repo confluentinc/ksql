@@ -133,10 +133,8 @@ public final class ParserUtil {
     final Optional<NodeLocation> location = getLocation(context);
 
     try {
-      // check that we can parse the literal but just pass in the text directly
       final String value = context.getText();
-      new BigDecimal(value);
-      return new DecimalLiteral(location, value);
+      return new DecimalLiteral(location, new BigDecimal(value));
     } catch (final NumberFormatException e) {
       throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }

@@ -107,14 +107,13 @@ public class SourceBuilderTest {
   private static final SourceName ALIAS = SourceName.of("alias");
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
-      .withMetaAndKeyColsInValue(false)
-      .withAlias(ALIAS);
+      .withMetaAndKeyColsInValue(false);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
   private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
       new TimestampColumn(
-          ColumnRef.withoutSource(ColumnName.of("field2")),
+          ColumnRef.of(ColumnName.of("field2")),
           Optional.empty()
       )
   );

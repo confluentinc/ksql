@@ -15,31 +15,16 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
-import static io.confluent.ksql.api.server.ServerUtils.decodeJsonObject;
-import static io.confluent.ksql.api.server.ServerUtils.handleError;
-
 import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +39,7 @@ public class ServerVerticle extends AbstractVerticle {
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
-  private final Map<HttpConnection, ConnectionQueries> connectionsMap = new HashMap<>();
+  private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
@@ -66,6 +51,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void start(final Promise<Void> startPromise) {
+    this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
     final Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
@@ -85,123 +71,17 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
-    router.route(HttpMethod.POST, "/query-stream").handler(BodyHandler.create())
-        .handler(this::handleQueryStream);
-    router.route(HttpMethod.POST, "/inserts-stream").handler(this::handleInsertsStream);
+    router.route(HttpMethod.POST, "/query-stream")
+        .produces("application/vnd.ksqlapi.delimited.v1")
+        .produces("application/json")
+        .handler(BodyHandler.create())
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager));
+    router.route(HttpMethod.POST, "/inserts-stream")
+        .produces("application/vnd.ksqlapi.delimited.v1")
+        .produces("application/json")
+        .handler(new InsertsStreamHandler(context, endpoints));
     router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
-        .handler(this::handleCloseQuery);
+        .handler(new CloseQueryHandler(server));
     return router;
-  }
-
-  private void handleInsertsStream(final RoutingContext routingContext) {
-    final InsertsBodyHandler insertsBodyHandler = new InsertsBodyHandler(context, endpoints,
-        routingContext);
-    final RecordParser recordParser = RecordParser.newDelimited("\n", routingContext.request());
-    recordParser.handler(insertsBodyHandler::handleBodyBuffer);
-    recordParser.endHandler(insertsBodyHandler::handleBodyEnd);
-  }
-
-  private void handleQueryStream(final RoutingContext routingContext) {
-    final HttpConnection conn = routingContext.request().connection();
-    ConnectionQueries connectionQueries = connectionsMap.get(conn);
-    if (connectionQueries == null) {
-      connectionQueries = new ConnectionQueries(conn);
-      connectionsMap.put(conn, connectionQueries);
-      conn.closeHandler(connectionQueries);
-      server.registerQueryConnection(conn);
-    }
-    final JsonObject requestBody = decodeJsonObject(routingContext.getBody(), routingContext);
-    if (requestBody == null) {
-      return;
-    }
-    final String sql = requestBody.getString("sql");
-    if (sql == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No sql in arguments");
-      return;
-    }
-    final Boolean push = requestBody.getBoolean("push");
-    if (push == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM, "No push in arguments");
-      return;
-    }
-    final JsonObject properties = requestBody.getJsonObject("properties");
-    final QueryPublisher queryPublisher = endpoints.createQueryPublisher(sql, push, properties);
-    final QuerySubscriber querySubscriber = new QuerySubscriber(routingContext.response());
-
-    final ApiQueryID queryID = server.registerQuery(querySubscriber);
-    connectionQueries.addQuery(queryID);
-    final JsonObject metadata = new JsonObject();
-    metadata.put("columnNames", queryPublisher.getColumnNames());
-    metadata.put("columnTypes", queryPublisher.getColumnTypes());
-    metadata.put("queryID", queryID.toString());
-    if (!push) {
-      metadata.put("rowCount", queryPublisher.getRowCount());
-    }
-    routingContext.response().write(metadata.toBuffer()).write("\n");
-    queryPublisher.subscribe(querySubscriber);
-
-    // When response is complete, publisher should be closed and query unregistered
-    routingContext.response().endHandler(v -> closeQuery(queryID, routingContext));
-  }
-
-  private boolean closeQuery(final ApiQueryID queryID, final RoutingContext routingContext) {
-    final QuerySubscriber querySubscriber = server.removeQuery(queryID);
-    if (querySubscriber == null) {
-      return false;
-    }
-    final HttpConnection conn = routingContext.request().connection();
-    final ConnectionQueries connectionQueries = connectionsMap.get(conn);
-    connectionQueries.removeQuery(queryID);
-    querySubscriber.close();
-    return true;
-  }
-
-  private void handleCloseQuery(final RoutingContext routingContext) {
-    final JsonObject requestBody = routingContext.getBodyAsJson();
-    final String queryIDArg = requestBody.getString("queryID");
-    if (queryIDArg == null) {
-      handleError(routingContext.response(), 400, ERROR_CODE_MISSING_PARAM,
-          "No queryID in arguments");
-      return;
-    }
-    final ApiQueryID queryID = new ApiQueryID(queryIDArg);
-    if (!closeQuery(queryID, routingContext)) {
-      handleError(routingContext.response(), 400, ERROR_CODE_UNKNOWN_QUERY_ID,
-          "No query with id " + queryID);
-      return;
-    }
-    routingContext.response().end();
-  }
-
-  /*
-  Keep track of which queries are owned by which connection so we can close them when the
-  connection is closed
-   */
-  private class ConnectionQueries implements Handler<Void> {
-
-    private final HttpConnection conn;
-    private final Set<ApiQueryID> queries = new HashSet<>();
-
-    ConnectionQueries(final HttpConnection conn) {
-      this.conn = conn;
-    }
-
-    public void addQuery(final ApiQueryID queryID) {
-      queries.add(queryID);
-    }
-
-    public void removeQuery(final ApiQueryID queryID) {
-      queries.remove(queryID);
-    }
-
-    @Override
-    public void handle(final Void v) {
-      for (ApiQueryID queryID : queries) {
-        final QuerySubscriber querySubscriber = server.removeQuery(queryID);
-        querySubscriber.close();
-      }
-      connectionsMap.remove(conn);
-      server.removeQueryConnection(conn);
-    }
   }
 }

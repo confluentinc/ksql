@@ -38,10 +38,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -76,6 +76,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -144,9 +145,9 @@ public class SchemaKTableTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private static final Expression TEST_2_COL_1 =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
   private static final Expression TEST_2_COL_2 =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL2")));
+      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
   private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
   private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -180,7 +181,7 @@ public class SchemaKTableTest {
 
     mockKTable = EasyMock.niceMock(KTable.class);
     validKeyField = KeyField
-        .of(Optional.of(ColumnRef.of(ksqlTable.getName(), ColumnName.of("COL0"))));
+        .of(Optional.of(ColumnRef.of(ColumnName.of("TEST2_COL0"))));
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
 
@@ -233,10 +234,9 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTable(final KsqlTable ksqlTable, final KTable kTable) {
-    final LogicalSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
+    final LogicalSchema schema = ksqlTable.getSchema();
 
-    final Optional<ColumnRef> newKeyName = ksqlTable.getKeyField().ref()
-        .map(ref -> ref.withSource(ksqlTable.getName()));
+    final Optional<ColumnRef> newKeyName = ksqlTable.getKeyField().ref();
 
     final KeyField keyFieldWithAlias = KeyField.of(newKeyName);
 
@@ -247,10 +247,19 @@ public class SchemaKTableTest {
     );
   }
 
+  private LogicalSchema buildJoinSchema(final KsqlTable table) {
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    builder.keyColumns(table.getSchema().key());
+    for (final Column c : table.getSchema().value()) {
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(table.getName(), c.ref()), c.type());
+    }
+    return builder.build();
+  }
+
   private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
     return buildSchemaKTable(
-        ksqlTable.getSchema().withAlias(ksqlTable.getName()),
-        ksqlTable.getKeyField().withAlias(ksqlTable.getName()),
+        buildJoinSchema(ksqlTable),
+        KeyField.none(),
         kTable
     );
   }
@@ -411,8 +420,7 @@ public class SchemaKTableTest {
         Matchers.equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"),
-                    ColumnName.of("ROWTIME"))),
+                new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
                 new LongLiteral(441763200000L)
             )
         )
@@ -723,7 +731,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -738,7 +746,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -753,7 +761,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -782,7 +790,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")))));
+        is(KeyField.of(ColumnRef.of(ColumnName.of("COL0")))));
   }
 
   @Test
@@ -823,7 +831,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     final List<Expression> groupByExprs =  ImmutableList.of(
-        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
     );
 
     // When:
@@ -832,7 +840,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")))));
+        is(KeyField.of(ColumnRef.of(ColumnName.of("COL0")))));
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

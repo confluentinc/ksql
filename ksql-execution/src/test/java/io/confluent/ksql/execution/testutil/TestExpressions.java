@@ -1,10 +1,9 @@
 package io.confluent.ksql.execution.testutil;
 
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -24,30 +23,29 @@ public final class TestExpressions {
       .build();
 
   public final static LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL0"), SqlTypes.BIGINT)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL1"), SqlTypes.STRING)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL2"), SqlTypes.STRING)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL3"), SqlTypes.DOUBLE)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL6"), ADDRESS_SCHEMA)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL7"), SqlTypes.INTEGER)
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL8"), SqlTypes.decimal(2, 1))
-      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL9"), SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("COL6"), ADDRESS_SCHEMA)
+      .valueColumn(ColumnName.of("COL7"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("COL8"), SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("COL9"), SqlTypes.decimal(2, 1))
       .build();
 
-  private static final String TEST1 = "TEST1";
-  public static final ColumnReferenceExp COL0 = columnRef(TEST1, "COL0");
-  public static final ColumnReferenceExp COL1 = columnRef(TEST1, "COL1");
-  public static final ColumnReferenceExp COL2 = columnRef(TEST1, "COL2");
-  public static final ColumnReferenceExp COL3 = columnRef(TEST1, "COL3");
-  public static final ColumnReferenceExp ADDRESS = columnRef(TEST1, "COL6");
-  public static final ColumnReferenceExp ARRAYCOL = columnRef(TEST1, "COL4");
-  public static final ColumnReferenceExp MAPCOL = columnRef(TEST1, "COL5");
-  public static final ColumnReferenceExp COL7 = columnRef(TEST1, "COL7");
+  public static final UnqualifiedColumnReferenceExp COL0 = columnRef("COL0");
+  public static final UnqualifiedColumnReferenceExp COL1 = columnRef("COL1");
+  public static final UnqualifiedColumnReferenceExp COL2 = columnRef("COL2");
+  public static final UnqualifiedColumnReferenceExp COL3 = columnRef("COL3");
+  public static final UnqualifiedColumnReferenceExp ADDRESS = columnRef("COL6");
+  public static final UnqualifiedColumnReferenceExp ARRAYCOL = columnRef("COL4");
+  public static final UnqualifiedColumnReferenceExp MAPCOL = columnRef("COL5");
+  public static final UnqualifiedColumnReferenceExp COL7 = columnRef("COL7");
 
-  private static ColumnReferenceExp columnRef(final String source, final String name) {
-    return new ColumnReferenceExp(ColumnRef.of(SourceName.of(source), ColumnName.of(name)));
+  private static UnqualifiedColumnReferenceExp columnRef(final String name) {
+    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(name)));
   }
 
   public static Expression literal(final int value) {

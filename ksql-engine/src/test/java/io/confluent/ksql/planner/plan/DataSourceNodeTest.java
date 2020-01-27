@@ -78,8 +78,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DataSourceNodeTest {
 
   private static final ColumnRef TIMESTAMP_FIELD
-      = ColumnRef.withoutSource(ColumnName.of("timestamp"));
-
+      = ColumnRef.of(ColumnName.of("timestamp"));
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final SourceName SOURCE_NAME = SourceName.of("datasource");
 
@@ -100,8 +99,7 @@ public class DataSourceNodeTest {
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
 
-  private static final KeyField KEY_FIELD = KeyField.of(ColumnRef.withoutSource(FIELD1));
-
+  private static final KeyField KEY_FIELD = KeyField.of(ColumnRef.of(FIELD1));
   private static final TimestampColumn TIMESTAMP_COLUMN =
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
 
@@ -113,7 +111,7 @@ public class DataSourceNodeTest {
       KEY_FIELD,
       Optional.of(
           new TimestampColumn(
-              ColumnRef.withoutSource(ColumnName.of("timestamp")),
+              ColumnRef.of(ColumnName.of("timestamp")),
               Optional.empty()
           )
       ),
@@ -234,7 +232,7 @@ public class DataSourceNodeTest {
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("field1"))),
         Optional.of(TIMESTAMP_COLUMN),
         false,
         new KsqlTopic(
@@ -259,14 +257,11 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldHaveFullyQualifiedSchema() {
-    // Given:
-    final SourceName sourceName = SOME_SOURCE.getName();
-
     // When:
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(false).withAlias(sourceName)));
+    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(false)));
   }
 
   @Test
@@ -274,13 +269,12 @@ public class DataSourceNodeTest {
     // Given:
     givenWindowedSource(true);
     givenNodeWithMockSource();
-    final SourceName sourceName = SOME_SOURCE.getName();
 
     // When:
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(true).withAlias(sourceName)));
+    assertThat(schema, is(REAL_SCHEMA.withMetaAndKeyColsInValue(true)));
   }
 
   @Test

@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -52,12 +51,14 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -86,7 +87,6 @@ import org.mockito.junit.MockitoRule;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ExpressionTypeManagerTest {
 
-  private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final ColumnName COL0 = ColumnName.of("COL0");
 
   @Mock
@@ -224,6 +224,21 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldFailOnQualfiedColumnReference() {
+    // Given:
+    final Expression expression = new QualifiedColumnReferenceExp(
+        SourceName.of("foo"),
+        ColumnRef.of(ColumnName.of("bar"))
+    );
+
+    // Then:
+    expectedException.expect(IllegalStateException.class);
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
   public void shouldEvaluateBooleanSchemaForLikeExpression() {
     final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"));
 
@@ -295,7 +310,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL6"))),
         "STREET"
     );
 
@@ -310,13 +325,13 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL6"))),
         "ZIP"
     );
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field 'ZIP' in 'TEST1.COL6'.");
+    expectedException.expectMessage("Could not find field 'ZIP' in 'COL6'.");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -326,7 +341,7 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForCreateArrayExpression() {
     // Given:
     Expression expression = new CreateArrayExpression(
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)))
     );
 
     // When:
@@ -342,7 +357,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
             new NullLiteral()
         )
     );
@@ -376,7 +391,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
             new StringLiteral("foo")
         )
     );
@@ -394,7 +409,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
-            COL1, new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+            COL1, new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))
         )
     );
 
@@ -411,7 +426,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new IntegerLiteral(1),
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))
         )
     );
 
@@ -429,7 +444,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new StringLiteral("foo"),
-            new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
             new StringLiteral("bar"),
             new StringLiteral("bar")
         )
@@ -465,13 +480,13 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForStructExpression() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(TEST1, COL0, SqlTypes.array(SqlTypes.INTEGER))
+        .valueColumn(COL0, SqlTypes.array(SqlTypes.INTEGER))
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
 
     final Expression exp = new CreateStructExpression(ImmutableList.of(
         new Field("field1", new StringLiteral("foo")),
-        new Field("field2", new ColumnReferenceExp(ColumnRef.of(TEST1, COL0))),
+        new Field("field2", new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))),
         new Field("field3", new CreateStructExpression(ImmutableList.of()))
     ));
 
@@ -493,7 +508,7 @@ public class ExpressionTypeManagerTest {
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(TEST1, COL0, SqlTypes.array(inner))
+        .valueColumn(COL0, SqlTypes.array(inner))
         .build();
 
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
@@ -520,14 +535,14 @@ public class ExpressionTypeManagerTest {
         .build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(TEST1, COL0, inner)
+        .valueColumn(COL0, inner)
         .build();
 
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
 
     final Expression structRef = new DereferenceExpression(
         Optional.empty(),
-        new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+        new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
         "IN0"
     );
 
@@ -605,7 +620,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage(
         "WHEN operand type should be boolean."
             + System.lineSeparator()
-            + "Type for '(TEST1.COL0 + 10)' is BIGINT"
+            + "Type for '(COL0 + 10)' is BIGINT"
     );
 
     // When:
@@ -632,7 +647,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage(
         "Invalid Case expression. Type for all 'THEN' clauses should be the same."
             + System.lineSeparator()
-            + "THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' has type: INTEGER."
+            + "THEN expression 'WHEN (COL0 = 10) THEN 10' has type: INTEGER."
             + System.lineSeparator()
             + "Previous THEN expression(s) type: STRING."
     );

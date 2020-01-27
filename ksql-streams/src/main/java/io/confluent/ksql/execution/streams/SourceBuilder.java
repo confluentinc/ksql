@@ -244,7 +244,6 @@ public final class SourceBuilder {
   ) {
     return source
         .getSourceSchema()
-        .withAlias(source.getAlias())
         .withMetaAndKeyColsInValue(windowed);
   }
 

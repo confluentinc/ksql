@@ -35,7 +35,9 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -93,6 +95,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -180,7 +183,7 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -556,7 +559,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.withoutSource(ColumnName.of("USERID")))));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.of(ColumnName.of("USERID")))));
   }
 
   @Test
@@ -1276,6 +1279,31 @@ public class KsqlParserTest {
 
     final TableElement element = elements.iterator().next();
     assertThat(element.getType().getSqlType(), is(cookie));
+  }
+
+  @Test
+  public void shouldParseFloatingPointNumbers() {
+    assertThat(parseDouble("1.23E-1"), is(new DoubleLiteral(0.123)));
+    assertThat(parseDouble("1.230E+1"), is(new DoubleLiteral(12.3)));
+    assertThat(parseDouble("01.23e1"), is(new DoubleLiteral(12.3)));
+  }
+
+  @Test
+  public void shouldParseDecimals() {
+    assertThat(parseDouble("0.1"), is(new DecimalLiteral(new BigDecimal("0.1"))));
+    assertThat(parseDouble("0.123"), is(new DecimalLiteral(new BigDecimal("0.123"))));
+    assertThat(parseDouble("00123.000"), is(new DecimalLiteral(new BigDecimal("123.000"))));
+  }
+
+  private Literal parseDouble(final String literalText) {
+    final PreparedStatement<Query> query = KsqlParserTestUtil
+        .buildSingleAst(
+            "SELECT * FROM TEST1 WHERE COL3 > " + literalText + ";",
+            metaStore
+        );
+
+    final ComparisonExpression where = (ComparisonExpression) query.getStatement().getWhere().get();
+    return (Literal) where.getRight();
   }
 
   private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {

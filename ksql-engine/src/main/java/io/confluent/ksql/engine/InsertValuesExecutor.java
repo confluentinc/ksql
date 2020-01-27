@@ -362,7 +362,7 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
-        .findColumn(ColumnRef.withoutSource(column))
+        .findColumn(ColumnRef.of(column))
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }

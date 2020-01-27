@@ -17,9 +17,9 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
+import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -35,13 +35,16 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
 
   private final HttpServerResponse response;
+  private final QueryStreamResponseWriter queryStreamResponseWriter;
   private Subscription subscription;
   private long tokens;
 
   private static final int BATCH_SIZE = 4;
 
-  public QuerySubscriber(final HttpServerResponse response) {
+  public QuerySubscriber(final HttpServerResponse response,
+      final QueryStreamResponseWriter queryStreamResponseWriter) {
     this.response = Objects.requireNonNull(response);
+    this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
   }
 
   @Override
@@ -58,7 +61,7 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
     if (tokens == 0) {
       throw new IllegalStateException("Unsolicited data");
     }
-    response.write(row.toBuffer().appendString("\n"));
+    queryStreamResponseWriter.writeRow(row);
     tokens--;
     if (response.writeQueueFull()) {
       response.drainHandler(v -> {
@@ -79,15 +82,14 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   @Override
   public synchronized void onError(final Throwable t) {
     log.error("Error in processing query", t);
-    final JsonObject err = new JsonObject().put("status", "error")
-        .put("errorCode", ERROR_CODE_INTERNAL_ERROR)
-        .put("message", "Error in processing query");
-    response.end(err.toBuffer());
+    final ErrorResponse errorResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
+        "Error in processing query");
+    queryStreamResponseWriter.writeError(errorResponse).end();
   }
 
   @Override
   public synchronized void onComplete() {
-    response.end();
+    queryStreamResponseWriter.end();
   }
 
   public synchronized void close() {

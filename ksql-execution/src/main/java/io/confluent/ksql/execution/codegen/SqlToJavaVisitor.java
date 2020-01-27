@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -52,6 +51,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -59,6 +59,7 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -285,7 +286,7 @@ public class SqlToJavaVisitor {
     ) {
       return new Pair<>(
           "new BigDecimal(\"" + decimalLiteral.getValue() + "\")",
-          DecimalUtil.fromValue(new BigDecimal(decimalLiteral.getValue()))
+          DecimalUtil.fromValue(decimalLiteral.getValue())
       );
     }
 
@@ -296,7 +297,7 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
       final ColumnRef fieldName = node.getReference();
@@ -305,6 +306,16 @@ public class SqlToJavaVisitor {
               new KsqlException("Field not found: " + node.getReference()));
 
       return new Pair<>(colRefToCodeName.apply(fieldName), schemaColumn.type());
+    }
+
+    @Override
+    public Pair<String, SqlType> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new UnsupportedOperationException(
+          "Qualified column reference must be resolved to unqualified reference before codegen"
+      );
     }
 
     @Override
@@ -448,11 +459,14 @@ public class SqlToJavaVisitor {
     }
 
     private String toDecimal(final SqlType schema, final int index) {
-      if (schema.baseType() == SqlBaseType.DECIMAL) {
-        return "%" + index + "$s";
+      switch (schema.baseType()) {
+        case DECIMAL:
+          return "%" + index + "$s";
+        case DOUBLE:
+          return "BigDecimal.valueOf(%" + index + "$s)";
+        default:
+          return "new BigDecimal(%" + index + "$s)";
       }
-
-      return "new BigDecimal(%" + index + "$s)";
     }
 
     private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {

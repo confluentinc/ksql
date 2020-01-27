@@ -23,8 +23,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -49,7 +49,7 @@ public class UdafUtilTest {
       .build();
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(
       FunctionName.of("AGG"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("BAR"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("BAR"))))
   );
 
   @Mock

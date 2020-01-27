@@ -16,12 +16,11 @@
 package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Optional;
@@ -40,12 +39,12 @@ public class SelectExpressionTestCase {
       ColumnName.of("TEST"),
       new DereferenceExpression(
           Optional.empty(),
-          new ColumnReferenceExp(ColumnRef.of(SourceName.of("FOO"), ColumnName.of("STREAM"))),
+          new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("STREAM"))),
           "foo"
       )
   );
   static final String SELECT_EXPRESSION_NEEDS_QUOTES_TXT =
-      "\"FOO.`STREAM`->`foo` AS TEST\"";
+      "\"`STREAM`->`foo` AS TEST\"";
   static final SelectExpression SELECT_EXPRESSION_NAME_NEEDS_QUOTES = SelectExpression.of(
       ColumnName.of("STREAM"),
       new ArithmeticBinaryExpression(

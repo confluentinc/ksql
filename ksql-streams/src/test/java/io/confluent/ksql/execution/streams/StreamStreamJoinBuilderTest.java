@@ -44,34 +44,35 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build();
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build();
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build();
+
   private static final PhysicalSchema LEFT_PHYSICAL =
       PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+
   private static final PhysicalSchema RIGHT_PHYSICAL =
       PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
+
   private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(Format.KAFKA),
       FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
+
   private static final Formats RIGHT_FMT = Formats.of(
       FormatInfo.of(Format.KAFKA),
       FormatInfo.of(Format.AVRO),
       SerdeOption.none()
   );
+
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
   private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);

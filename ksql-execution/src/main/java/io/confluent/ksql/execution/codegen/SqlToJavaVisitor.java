@@ -169,8 +169,7 @@ public class SqlToJavaVisitor {
       final Function<FunctionName, String> funNameToCodeName,
       final Function<CreateStructExpression, String> structToCodeName
   ) {
-    this.expressionTypeManager =
-        new ExpressionTypeManager(schema, functionRegistry);
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");

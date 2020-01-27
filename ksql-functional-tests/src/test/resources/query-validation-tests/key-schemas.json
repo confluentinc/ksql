@@ -350,6 +350,89 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "a"}}
       ]
+    },
+    {
+      "name": "windowed table explicit non-STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT ROWKEY AS ID, max(value) AS MAX FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) group by ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"value": 1}},
+        {"topic": "input", "key": 10, "value": {"value": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"ID": 10, "MAX": 1}, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"ID": 10, "MAX": 2}, "window": {"start": 0, "end": 30000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
+            "keyField": null,
+            "schema": "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MAX` BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "windowed table explicit non-STRING ROWKEY udf",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT EXP(ROWKEY) AS EXP, COUNT(1) FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"value": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718, "KSQL_COL_1": 1}, "window": {"start": 0, "end": 30000, "type":  "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
+            "schema": "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_1` BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "filter by non-STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE ROWKEY > 10;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 9, "value": {"id": 0}},
+        {"topic": "input", "key": 10, "value": {"id": 1}},
+        {"topic": "input", "key": 11, "value": {"id": 2}},
+        {"topic": "input", "key": 12, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 12, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "filter by non-STRING ROWKEY in UDF",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE EXP(ROWKEY) >= 1;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": -0.2, "value": {"id": 0}},
+        {"topic": "input", "key": -0.1, "value": {"id": 1}},
+        {"topic": "input", "key": 0.0, "value": {"id": 2}},
+        {"topic": "input", "key": 0.1, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0.0, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 0.1, "value": {"ID": 3}}
+      ]
     }
   ]
 }

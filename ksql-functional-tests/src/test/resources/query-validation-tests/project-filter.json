@@ -1,11 +1,6 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "tests for projections and filters"
   ],
   "tests": [
     {
@@ -369,6 +364,25 @@
       ],
       "outputs": [
         {"topic": "topic_s", "key": "0", "value": "4294967296,456,foo"}
+      ]
+    },
+    {
+      "name": "Filter on non-STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROwKEY > 0.1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1.1, "value": "0"},
+        {"topic": "test_topic", "key": 0.09999, "value": "1"},
+        {"topic": "test_topic", "key": 0.0, "value": "2"},
+        {"topic": "test_topic", "key": 0.11, "value": "3"},
+        {"topic": "test_topic", "key": 1.1, "value": "4"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1.1, "value": "0"},
+        {"topic": "OUTPUT", "key": 0.11, "value": "3"},
+        {"topic": "OUTPUT", "key": 1.1, "value": "4"}
       ]
     }
   ]

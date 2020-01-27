@@ -44,27 +44,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinBuilderTest {
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build();
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build();
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build();
+
   private static final PhysicalSchema LEFT_PHYSICAL =
       PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+
   private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(Format.KAFKA),
       FormatInfo.of(Format.JSON),
       SerdeOption.none()
   );
+
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -125,7 +124,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
         LEFT_FMT,
@@ -134,9 +133,8 @@ public class StreamTableJoinBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
         LEFT_FMT,
@@ -148,7 +146,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenInnerJoin() {
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
         LEFT_FMT,

@@ -106,11 +106,11 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withMetaAndKeyColsInValue()
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue()
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
   private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();

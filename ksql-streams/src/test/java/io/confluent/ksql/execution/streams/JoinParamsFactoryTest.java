@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -16,9 +15,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class JoinParamsFactoryTest {
-
-  private static final SourceName LEFT = SourceName.of("LEFT");
-  private static final SourceName RIGHT = SourceName.of("RIGHT");
 
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
@@ -58,7 +54,8 @@ public class JoinParamsFactoryTest {
         .keyColumn(ColumnName.of("BOB"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-        .build();
+        .build()
+        .withMetaAndKeyColsInValue(false);
 
     // Expect:
     expectedException.expect(KsqlException.class);

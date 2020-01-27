@@ -97,7 +97,7 @@ public final class SourceBuilder {
 
     return new KStreamHolder<>(
         kstream,
-        buildSchema(source),
+        buildSchema(source, false),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
@@ -137,7 +137,7 @@ public final class SourceBuilder {
 
     return new KStreamHolder<>(
         kstream,
-        buildSchema(source),
+        buildSchema(source, true),
         KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
@@ -184,7 +184,7 @@ public final class SourceBuilder {
 
     return KTableHolder.unmaterialized(
         ktable,
-        buildSchema(source),
+        buildSchema(source, false),
         KeySerdeFactory.unwindowed(queryBuilder)
     );
   }
@@ -233,15 +233,18 @@ public final class SourceBuilder {
 
     return KTableHolder.unmaterialized(
         ktable,
-        buildSchema(source),
+        buildSchema(source, true),
         KeySerdeFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
-  private static LogicalSchema buildSchema(final AbstractStreamSource<?> source) {
+  private static LogicalSchema buildSchema(
+      final AbstractStreamSource<?> source,
+      final boolean windowed
+  ) {
     return source
         .getSourceSchema()
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(windowed);
   }
 
   private static Serde<GenericRow> getValueSerde(

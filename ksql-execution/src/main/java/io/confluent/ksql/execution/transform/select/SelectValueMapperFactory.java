@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.transform.select;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -37,7 +39,7 @@ public final class SelectValueMapperFactory {
 
   @VisibleForTesting
   SelectValueMapperFactory(final CodeGenRunner codeGenerator) {
-    this.codeGenerator = codeGenerator;
+    this.codeGenerator = requireNonNull(codeGenerator, "codeGenerator");
   }
 
   public static <K> SelectValueMapper<K> create(

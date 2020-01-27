@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "non-windowed transient stream query - STRING key",
+      "name": "non-windowed stream - STRING key",
       "statements": [
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "name": "non-windowed transient stream query - INT key",
+      "name": "non-windowed stream - INT key",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
@@ -44,7 +44,7 @@
       ]
     },
     {
-      "name": "non-windowed transient stream query - BIGINT key",
+      "name": "non-windowed stream - BIGINT key",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
@@ -64,7 +64,7 @@
       ]
     },
     {
-      "name": "non-windowed transient stream query - DOUBLE key",
+      "name": "non-windowed stream - DOUBLE key",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
@@ -79,6 +79,172 @@
           {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE, `ID` INTEGER"}},
           {"row":{"columns":[12345, 11.0, 100]}},
           {"row":{"columns":[12365, 11.0, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - STRING key",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":[12345, "11 : Window{start=12000 end=-}", 1]}},
+          {"row":{"columns":[12365, "11 : Window{start=12000 end=-}", 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - INT key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":[12345, "11 : Window{start=12000 end=-}", 1]}},
+          {"row":{"columns":[12365, "11 : Window{start=12000 end=-}", 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - BIGINT key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":[12345, "11 : Window{start=12000 end=-}", 1]}},
+          {"row":{"columns":[12365, "11 : Window{start=12000 end=-}", 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - DOUBLE key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11.1, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":[12345, "11.1 : Window{start=12000 end=-}", 1]}},
+          {"row":{"columns":[12365, "11.1 : Window{start=12000 end=-}", 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "join on STRING key",
+      "statements": [
+        "CREATE STREAM INPUT_1 (ROWKEY STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (ROWKEY STRING KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "SELECT * FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 60 SECONDS ON I1.ROWKEY = I2.ROWKEY EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic_1", "timestamp": 12345, "key": "x", "value": {"id": 100}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I1_ROWTIME` BIGINT, `I1_ROWKEY` STRING, `I1_ID` INTEGER, `I2_ROWTIME` BIGINT, `I2_ROWKEY` STRING, `I2_ID` INTEGER"}},
+          {"row":{"columns":[12345, "x", 100, 12365, "x", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "join on non-STRING key",
+      "statements": [
+        "CREATE STREAM INPUT_1 (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "SELECT * FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 60 SECONDS ON I1.ROWKEY = I2.ROWKEY EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic_1", "timestamp": 12345, "key": 11.1, "value": {"id": 100}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": 11.1, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I1_ROWTIME` BIGINT, `I1_ROWKEY` DOUBLE, `I1_ID` INTEGER, `I2_ROWTIME` BIGINT, `I2_ROWKEY` DOUBLE, `I2_ID` INTEGER"}},
+          {"row":{"columns":[12345, 11.1, 100, 12365, 11.1, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "imported windowed stream - BIGINT KEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 34555, "key": 11, "value": {"id": 100}, "window": {"start": 12345, "end": 34555, "type": "session"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[34555, "11 : Window{start=12345 end=34555}", 100]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "imported windowed table - DOUBLE KEY",
+      "statements": [
+        "CREATE TABLE INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {"id": 100}, "window": {"start": 12000, "end": 13000, "type": "time"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[12345, "11.1 : Window{start=12000 end=-}", 100]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

@@ -67,7 +67,7 @@ public class StreamSelectBuilderTest {
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);

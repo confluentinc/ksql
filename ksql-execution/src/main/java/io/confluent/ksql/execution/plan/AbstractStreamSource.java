@@ -27,6 +27,7 @@ import java.util.Optional;
 
 @Immutable
 public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
+
   final ExecutionStepPropertiesV1 properties;
   final String topicName;
   final Formats formats;

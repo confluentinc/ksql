@@ -385,7 +385,8 @@ public class LogicalPlanner {
       final List<SelectExpression> projection) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         schema,
-        functionRegistry
+        functionRegistry,
+        true
     );
 
     final Builder builder = LogicalSchema.builder();
@@ -415,7 +416,7 @@ public class LogicalPlanner {
       keyType = SqlTypes.STRING;
     } else {
       final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourcePlanNode.getSchema(), functionRegistry);
+          new ExpressionTypeManager(sourcePlanNode.getSchema(), functionRegistry, true);
 
       keyType = typeManager.getExpressionSqlType(groupByExps.get(0));
     }
@@ -438,7 +439,7 @@ public class LogicalPlanner {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
 
     final ExpressionTypeManager typeManager =
-        new ExpressionTypeManager(sourceSchema, functionRegistry);
+        new ExpressionTypeManager(sourceSchema, functionRegistry, true);
 
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 

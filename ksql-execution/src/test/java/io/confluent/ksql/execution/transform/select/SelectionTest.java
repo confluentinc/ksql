@@ -49,7 +49,7 @@ public class SelectionTest {
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
-      .build().withMetaAndKeyColsInValue();
+      .build().withMetaAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 =
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("GIRAFFE")));

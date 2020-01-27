@@ -124,10 +124,13 @@ public final class LogicalSchema {
    *
    * <p>If the columns already exist in the value schema the function returns the same schema.
    *
+   * @param windowed indicates that the source is windowed; meaning key column copied to
+   *     value will be of type {@link SqlTypes#STRING}, inline with how {@code SourceBuilder}
+   *     creates a {@code String} {@code ROWKEY} for windowed sources.
    * @return the new schema.
    */
-  public LogicalSchema withMetaAndKeyColsInValue() {
-    return rebuild(true);
+  public LogicalSchema withMetaAndKeyColsInValue(final boolean windowed) {
+    return rebuild(true, windowed);
   }
 
   /**
@@ -136,7 +139,7 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutMetaAndKeyColsInValue() {
-    return rebuild(false);
+    return rebuild(false, false);
   }
 
   /**
@@ -208,7 +211,10 @@ public final class LogicalSchema {
     return byNamespace;
   }
 
-  private LogicalSchema rebuild(final boolean withMetaAndKeyColsInValue) {
+  private LogicalSchema rebuild(
+      final boolean withMetaAndKeyColsInValue,
+      final boolean windowedKey
+  ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> metadata = byNamespace.get(Namespace.META);
@@ -227,7 +233,8 @@ public final class LogicalSchema {
       }
 
       for (final Column c : key) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+        final SqlType type = windowedKey ? SqlTypes.STRING : c.type();
+        builder.add(Column.of(c.name(), type, Namespace.VALUE, valueIndex++));
       }
     }
 

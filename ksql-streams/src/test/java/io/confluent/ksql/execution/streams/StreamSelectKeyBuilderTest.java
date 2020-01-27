@@ -68,7 +68,7 @@ public class StreamSelectKeyBuilderTest {
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
   private static final UnqualifiedColumnReferenceExp KEY =
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("BOI")));

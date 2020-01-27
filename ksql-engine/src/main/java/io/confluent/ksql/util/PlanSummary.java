@@ -18,8 +18,8 @@ package io.confluent.ksql.util;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -137,7 +137,7 @@ public class PlanSummary {
       case 0: break;
       default: throw new IllegalStateException();
     }
-    return schemaResolver.resolve(step, ((AbstractStreamSource) step).getSourceSchema());
+    return schemaResolver.resolve(step, ((SourceStep) step).getSourceSchema());
   }
 
   private static final class StepSummary {

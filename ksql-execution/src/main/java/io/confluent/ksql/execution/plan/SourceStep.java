@@ -26,7 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
+public abstract class SourceStep<K> implements ExecutionStep<K> {
 
   final ExecutionStepPropertiesV1 properties;
   final String topicName;
@@ -36,13 +36,14 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   final SourceName alias;
 
   @VisibleForTesting
-  public AbstractStreamSource(
+  public SourceStep(
       final ExecutionStepPropertiesV1 properties,
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
       final LogicalSchema sourceSchema,
-      final SourceName alias) {
+      final SourceName alias
+  ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");

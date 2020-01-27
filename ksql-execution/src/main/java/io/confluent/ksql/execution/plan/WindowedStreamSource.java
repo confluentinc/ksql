@@ -27,8 +27,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
-public final class WindowedStreamSource
-    extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
+public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowed<Struct>>> {
 
   private final WindowInfo windowInfo;
 

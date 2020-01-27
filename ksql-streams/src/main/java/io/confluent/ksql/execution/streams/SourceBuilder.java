@@ -19,11 +19,11 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -239,7 +239,7 @@ public final class SourceBuilder {
   }
 
   private static LogicalSchema buildSchema(
-      final AbstractStreamSource<?> source,
+      final SourceStep<?> source,
       final boolean windowed
   ) {
     return source
@@ -249,7 +249,7 @@ public final class SourceBuilder {
 
   private static Serde<GenericRow> getValueSerde(
       final KsqlQueryBuilder queryBuilder,
-      final AbstractStreamSource<?> streamSource,
+      final SourceStep<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
         streamSource.getFormats().getValueFormat(),
@@ -258,7 +258,7 @@ public final class SourceBuilder {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchema(final AbstractStreamSource<?> streamSource) {
+  private static PhysicalSchema getPhysicalSchema(final SourceStep<?> streamSource) {
     return PhysicalSchema.from(
         streamSource.getSourceSchema(),
         streamSource.getFormats().getOptions()
@@ -266,7 +266,7 @@ public final class SourceBuilder {
   }
 
   private static <K> KStream<K, GenericRow> buildKStream(
-      final AbstractStreamSource<?> streamSource,
+      final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Object> rowKeyGenerator
@@ -279,7 +279,7 @@ public final class SourceBuilder {
   }
 
   private static <K> KTable<K, GenericRow> buildKTable(
-      final AbstractStreamSource<?> streamSource,
+      final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Object> rowKeyGenerator,
@@ -312,7 +312,7 @@ public final class SourceBuilder {
   }
 
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
-      final AbstractStreamSource<?> streamSource,
+      final SourceStep<?> streamSource,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
       final Topology.AutoOffsetReset defaultReset,

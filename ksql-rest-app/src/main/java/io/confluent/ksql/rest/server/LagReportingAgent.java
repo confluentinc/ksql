@@ -108,7 +108,7 @@ public final class LagReportingAgent implements HostStatusListener {
     this.clock = clock;
     this.serviceManager = new ServiceManager(Arrays.asList(new SendLagService()));
     this.receivedLagInfo = new ConcurrentHashMap<>();
-    this.aliveHostsRef = new AtomicReference<>();
+    this.aliveHostsRef = new AtomicReference<>(Collections.emptySet());
   }
 
   void setLocalAddress(final String applicationServer) {

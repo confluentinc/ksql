@@ -113,7 +113,6 @@ public class JoinNodeTest {
       RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
-  private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
   private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
@@ -121,7 +120,6 @@ public class JoinNodeTest {
   private JoinNode joinNode;
 
   private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(ColumnName.of("C0"));
-  private static final ColumnRef RIGHT_JOIN_FIELD_REF = ColumnRef.of(ColumnName.of("R1"));
 
   private static final KeyField leftJoinField = KeyField.of(LEFT_JOIN_FIELD_REF);
 
@@ -801,14 +799,13 @@ public class JoinNodeTest {
     return ColumnRef.of(field.name());
   }
 
-  @SuppressWarnings("unchecked")
   private static void setUpSource(
       final DataSourceNode node,
       final ValueFormat valueFormat,
       final DataSource dataSource,
       final String name
   ) {
-    when(node.getDataSource()).thenReturn((DataSource)dataSource);
+    when(node.getDataSource()).thenReturn(dataSource);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);

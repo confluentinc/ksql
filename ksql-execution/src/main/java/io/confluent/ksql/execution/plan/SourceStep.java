@@ -77,8 +77,4 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   public String getTopicName() {
     return topicName;
   }
-
-  public SourceName getAlias() {
-    return alias;
-  }
 }

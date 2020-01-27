@@ -378,24 +378,24 @@
       }
     },
     {
-      "name": "windowed stream explicit non-STRING ROWKEY udf",
+      "name": "windowed table explicit non-STRING ROWKEY udf",
       "statements": [
         "CREATE STREAM INPUT (ROWKEY BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT EXP(ROWKEY) AS EXP FROM INPUT;"
+        "CREATE TABLE OUTPUT as SELECT EXP(ROWKEY) AS EXP, COUNT(1) FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) GROUP BY ROWKEY;"
       ],
       "inputs": [
         {"topic": "input", "key": 10, "value": {"value": 1}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718}}
+        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718, "KSQL_COL_1": 1}, "window": {"start": 0, "end": 30000, "type":  "time"}}
       ],
       "post": {
         "sources": [
           {
             "name": "OUTPUT",
-            "type": "stream",
-            "keyFormat": {"format": "KAFKA"},
-            "schema": "`ROWKEY` BIGINT KEY, `EXP` DOUBLE"
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
+            "schema": "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_1` BIGINT"
           }
         ]
       }

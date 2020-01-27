@@ -84,7 +84,7 @@ public class PushQueryValidatorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "KSQL does not support persistent push queries on windowed tables.");
+        "KSQL does not support persistent queries on windowed tables.");
 
     // When:
     validator.validate(analysis);

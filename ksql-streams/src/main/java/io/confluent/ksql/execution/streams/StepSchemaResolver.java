@@ -18,9 +18,9 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -221,17 +221,11 @@ public final class StepSchemaResolver {
         .build();
   }
 
-  private LogicalSchema handleSource(
-      final LogicalSchema schema,
-      final AbstractStreamSource<?> step
-  ) {
+  private LogicalSchema handleSource(final LogicalSchema schema, final SourceStep<?> step) {
     return buildSourceSchema(schema, false);
   }
 
-  private LogicalSchema handleWindowedSource(
-      final LogicalSchema schema,
-      final AbstractStreamSource<?> step
-  ) {
+  private LogicalSchema handleWindowedSource(final LogicalSchema schema, final SourceStep<?> step) {
     return buildSourceSchema(schema, true);
   }
 

@@ -25,8 +25,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public final class WindowedTableSource
-    extends AbstractStreamSource<KTableHolder<Windowed<Struct>>> {
+public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<Struct>>> {
 
   private final WindowInfo windowInfo;
 

@@ -18,11 +18,11 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -210,7 +210,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final AbstractStreamSource<KStreamHolder<K>> streamSource,
+      final SourceStep<KStreamHolder<K>> streamSource,
       final KeyField keyField
   ) {
     return new SchemaKStream<>(
@@ -227,7 +227,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final AbstractStreamSource<KTableHolder<K>> tableSource,
+      final SourceStep<KTableHolder<K>> tableSource,
       final KeyField keyField
   ) {
     return new SchemaKTable<>(

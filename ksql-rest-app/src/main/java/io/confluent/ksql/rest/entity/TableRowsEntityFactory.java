@@ -18,10 +18,10 @@ package io.confluent.ksql.rest.entity;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,12 +37,12 @@ public final class TableRowsEntityFactory {
 
   @SuppressWarnings("deprecation")
   private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
-      .of(Column.legacySystemWindowColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
+      .of(Column.legacySystemWindowColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT));
 
   @SuppressWarnings("deprecation")
   private static final List<Column> SESSION_WINDOW_COLUMNS = ImmutableList.<Column>builder()
       .addAll(TIME_WINDOW_COLUMNS)
-      .add(Column.legacySystemWindowColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
+      .add(Column.legacySystemWindowColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT))
       .build();
 
   private TableRowsEntityFactory() {

@@ -17,10 +17,10 @@ package io.confluent.ksql.execution.transform.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.CodeGenSpec;
-import io.confluent.ksql.execution.codegen.SqlToJavaVisitor;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -28,17 +28,15 @@ import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
+import java.util.stream.Stream;
 
 public final class SqlPredicate {
 
   private final Expression filterExpression;
-  private final IExpressionEvaluator ee;
-  private final CodeGenSpec spec;
+  private final ExpressionMetadata evaluator;
 
   public SqlPredicate(
       final Expression filterExpression,
@@ -48,30 +46,17 @@ public final class SqlPredicate {
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
 
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
-    spec = codeGenRunner.getCodeGenSpec(this.filterExpression);
+    this.evaluator = Iterables.getOnlyElement(CodeGenRunner.compileExpressions(
+        Stream.of(filterExpression),
+        "Predicate",
+        schema,
+        ksqlConfig,
+        functionRegistry
+    ));
 
-    try {
-      ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
-      ee.setParameters(spec.argumentNames(), spec.argumentTypes());
-
-      ee.setExpressionType(boolean.class);
-
-      final String expressionStr = SqlToJavaVisitor.of(
-          schema,
-          functionRegistry,
-          spec
-      ).process(this.filterExpression);
-
-      ee.cook(expressionStr);
-    } catch (final Exception e) {
-      throw new KsqlException(
-          "Failed to generate code for SqlPredicate."
-              + " filterExpression: " + filterExpression
-              + ", schema:" + schema,
-          e
-      );
+    if (!this.evaluator.getExpressionType().equals(SqlTypes.BOOLEAN)) {
+      throw new IllegalArgumentException(
+          "Filter expression must resolve to boolean: " + filterExpression);
     }
   }
 
@@ -104,9 +89,7 @@ public final class SqlPredicate {
       }
 
       try {
-        final Object[] values = new Object[spec.arguments().size()];
-        spec.resolve(value, values);
-        final boolean result = (Boolean) ee.evaluate(values);
+        final boolean result = (Boolean) evaluator.evaluate(value);
         return result
             ? Optional.of(value)
             : Optional.empty();

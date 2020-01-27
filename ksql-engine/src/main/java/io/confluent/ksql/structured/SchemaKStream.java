@@ -188,8 +188,8 @@ public class SchemaKStream<K> {
     }
 
     final Optional<ColumnRef> filtered = found
-        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
-        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()))
+        // System columns can not be key fields:
+        .filter(f -> !SchemaUtil.systemColumnNames().contains(f.name()))
         .map(Column::ref);
 
     return KeyField.of(filtered);

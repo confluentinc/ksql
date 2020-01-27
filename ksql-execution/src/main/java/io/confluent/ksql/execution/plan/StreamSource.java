@@ -24,7 +24,8 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
+public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
+
   public StreamSource(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,

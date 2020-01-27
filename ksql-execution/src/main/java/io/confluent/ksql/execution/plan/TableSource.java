@@ -25,7 +25,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public final class TableSource extends AbstractStreamSource<KTableHolder<Struct>> {
+public final class TableSource extends SourceStep<KTableHolder<Struct>> {
 
   public TableSource(
       @JsonProperty(value = "properties", required = true)

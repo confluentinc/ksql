@@ -35,12 +35,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -637,7 +637,7 @@ public class SourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromStreamSource(
-      final AbstractStreamSource<?> streamSource
+      final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
@@ -648,7 +648,7 @@ public class SourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromTableSource(
-      final AbstractStreamSource<?> streamSource
+      final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder);
     verify(kTable).transformValues(transformSupplierCaptor.capture());

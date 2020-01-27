@@ -25,6 +25,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,17 +36,20 @@ public class CreateSourceCommandTest {
   private static final SourceName SOURCE_NAME = SourceName.of("bob");
   private static final String TOPIC_NAME = "vic";
   private static final Formats FORAMTS = mock(Formats.class);
+  private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
+  private static final ColumnName KEY_FIELD = ColumnName.of("keyField");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-  private static final ColumnName KEY_FIELD = ColumnName.of("keyField");
+
 
   @Test(expected = UnsupportedOperationException.class)
   public void shouldThrowOnMultipleKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.STRING)
+        .keyColumn(K0, SqlTypes.STRING)
+        .keyColumn(K1, SqlTypes.STRING)
         .build();
 
     // When:
@@ -66,7 +70,7 @@ public class CreateSourceCommandTest {
     final ColumnName keyField = ColumnName.of("keyField");
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .keyColumn(K0, SqlTypes.INTEGER)
         .valueColumn(keyField, SqlTypes.STRING)
         .build();
 
@@ -96,7 +100,7 @@ public class CreateSourceCommandTest {
   public void shouldNotThrowIfKeyFieldMatchesRowKeyType() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .keyColumn(K0, SqlTypes.INTEGER)
         .valueColumn(KEY_FIELD, SqlTypes.INTEGER)
         .build();
 
@@ -112,6 +116,54 @@ public class CreateSourceCommandTest {
     );
 
     // Then: builds without error
+  }
+
+  @Test
+  public void shouldThrowOnWindowStartColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.INTEGER)
+        .build();
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Schema contains system columns in value schema");
+
+    // When:
+    new TestCommand(
+        SOURCE_NAME,
+        schema,
+        Optional.empty(),
+        Optional.empty(),
+        TOPIC_NAME,
+        FORAMTS,
+        Optional.empty()
+    );
+  }
+
+  @Test
+  public void shouldThrowOnWindowEndColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.INTEGER)
+        .build();
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Schema contains system columns in value schema");
+
+    // When:
+    new TestCommand(
+        SOURCE_NAME,
+        schema,
+        Optional.empty(),
+        Optional.empty(),
+        TOPIC_NAME,
+        FORAMTS,
+        Optional.empty()
+    );
   }
 
   private static final class TestCommand extends CreateSourceCommand {

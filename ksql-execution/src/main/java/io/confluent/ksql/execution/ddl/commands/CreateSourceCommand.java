@@ -92,9 +92,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static void validate(final LogicalSchema schema, final Optional<ColumnName> keyField) {
-    if (schema.findValueColumn(ColumnRef.of(SchemaUtil.ROWKEY_NAME)).isPresent()
-        || schema.findValueColumn(ColumnRef.of(SchemaUtil.ROWTIME_NAME)).isPresent()) {
-      throw new IllegalArgumentException("Schema contains implicit columns in value schema");
+    if (schema.valueContainsAny(SchemaUtil.systemColumnNames())) {
+      throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
 
     if (schema.key().size() != 1) {

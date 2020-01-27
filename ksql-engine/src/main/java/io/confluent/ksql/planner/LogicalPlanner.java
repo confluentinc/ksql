@@ -175,9 +175,7 @@ public class LogicalPlanner {
         : null;
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
-            expression.equals(groupBy)
-                && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
-                && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
+            expression.equals(groupBy) && !SchemaUtil.systemColumnNames().contains(alias),
         sourcePlanNode.getSelectExpressions());
 
     return new AggregateNode(

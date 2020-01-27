@@ -83,6 +83,36 @@ public class StructuredDataSourceTest {
     );
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsWindowStart() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    new TestStructuredDataSource(
+        schema,
+        keyField
+    );
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsWindowEnd() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    new TestStructuredDataSource(
+        schema,
+        keyField
+    );
+  }
+
   /**
    * Test class to allow the abstract base class to be instantiated.
    */

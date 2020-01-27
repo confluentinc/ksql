@@ -46,8 +46,8 @@ public class SingleColumn extends SelectItem {
   ) {
     super(location);
 
-    checkForReservedToken(expression, alias, SchemaUtil.ROWTIME_NAME);
-    checkForReservedToken(expression, alias, SchemaUtil.ROWKEY_NAME);
+    SchemaUtil.systemColumnNames()
+        .forEach(columnName -> checkForReservedToken(expression, alias, columnName));
 
     this.expression = requireNonNull(expression, "expression");
     this.alias = requireNonNull(alias, "alias");

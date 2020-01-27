@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
@@ -630,6 +631,33 @@ public class LogicalSchemaTest {
         valueColumn(ROWTIME_NAME, BIGINT),
         valueColumn(K0, BIGINT)
     ));
+  }
+
+  @Test
+  public void shouldMatchAnyValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, STRING)
+        .keyColumn(K0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(schema.valueContainsAny(ImmutableSet.of(F0)), is(true));
+    assertThat(schema.valueContainsAny(ImmutableSet.of(V0, F0, F1, V1)), is(true));
+  }
+
+  @Test
+  public void shouldOnlyMatchValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, STRING)
+        .keyColumn(K0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(schema.valueContainsAny(ImmutableSet.of(K0, V0, ROWTIME_NAME)), is(false));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

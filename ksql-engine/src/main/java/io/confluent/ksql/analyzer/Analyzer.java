@@ -569,8 +569,7 @@ class Analyzer {
 
     private void addSelectItem(final Expression exp, final ColumnName columnName) {
       if (persistent) {
-        if (SchemaUtil.ROWTIME_NAME.equals(columnName)
-            || SchemaUtil.ROWKEY_NAME.equals(columnName)) {
+        if (SchemaUtil.systemColumnNames().contains(columnName)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
         }

@@ -426,8 +426,8 @@
         "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT F0, ROWTIME AS TIME, ROWKEY AS KEY FROM INPUT;"
       ],
-      "inputs": [{"topic": "input", "key": "k", "value": {"F0": 4}, "timestamp": 1, "window": {"start": 12, "end": 465, "type": "session"}}],
-      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "TIME": 1, "WSTART": 12, "WEND": 465, "KEY": "k"}, "timestamp": 1, "window": {"start": 12, "end": 465, "type": "session"}}]
+      "inputs": [{"topic": "input", "key": "k", "value": {"F0": 4}, "timestamp": 1}],
+      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "TIME": 1, "KEY": "k"}, "timestamp": 1}]
     },
     {
       "name": "join should reject ROWTIME in projection",
@@ -488,7 +488,7 @@
         {"topic": "left", "key": "k", "value": {"F0": 4}, "timestamp": 1, "window": {"start": 0, "end": 1000, "type": "time"}},
         {"topic": "right", "key": "k", "value": {"F1": 6}, "timestamp": 2, "window": {"start": 0, "end": 1000, "type": "time"}}
       ],
-      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "F1": 6, "TIME": 1, "WSTART": 0, "WEND": 1000, "KEY": "k"}, "timestamp": 2, "window": {"start": 0, "end": 1000, "type": "time"}}]
+      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "F1": 6, "TIME": 1, "KEY": "k : Window{start=0 end=-}"}, "timestamp": 2, "window": {"start": 0, "end": 1000, "type": "time"}}]
     },
     {
       "name": "group-by rejects ROWKEY in projection",

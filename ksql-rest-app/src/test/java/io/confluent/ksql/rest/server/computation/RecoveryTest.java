@@ -307,8 +307,8 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<DataSource<?>> {
-    final DataSource<?> source;
+      extends TypeSafeDiagnosingMatcher<DataSource> {
+    final DataSource source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
@@ -316,7 +316,7 @@ public class RecoveryTest {
     final Matcher<Optional<TimestampColumn>> extractionColumnMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final DataSource<?> source) {
+    StructuredDataSourceMatcher(final DataSource source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -342,7 +342,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final DataSource<?> other,
+        final DataSource other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -387,12 +387,12 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<DataSource<?>> sameSource(final DataSource<?> source) {
+  private static Matcher<DataSource> sameSource(final DataSource source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<SourceName, Matcher<DataSource<?>>> sourceMatchers;
+    final Map<SourceName, Matcher<DataSource>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
@@ -422,7 +422,7 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<SourceName, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
+      for (final Entry<SourceName, Matcher<DataSource>> e : sourceMatchers.entrySet()) {
         final SourceName name = e.getKey();
         if (!test(
             e.getValue(),

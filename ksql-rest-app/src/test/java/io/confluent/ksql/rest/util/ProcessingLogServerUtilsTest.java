@@ -148,7 +148,7 @@ public class ProcessingLogServerUtilsTest {
   }
 
   private void assertLogStream(final String topicName) {
-    final DataSource<?> dataSource = metaStore.getSource(SourceName.of(STREAM));
+    final DataSource dataSource = metaStore.getSource(SourceName.of(STREAM));
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();

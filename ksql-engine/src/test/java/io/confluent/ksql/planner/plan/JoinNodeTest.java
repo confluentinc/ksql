@@ -136,9 +136,9 @@ public class JoinNodeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private DataSource<?> leftSource;
+  private DataSource leftSource;
   @Mock
-  private DataSource<?> rightSource;
+  private DataSource rightSource;
   @Mock
   private DataSourceNode left;
   @Mock
@@ -805,7 +805,7 @@ public class JoinNodeTest {
   private static void setUpSource(
       final DataSourceNode node,
       final ValueFormat valueFormat,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final String name
   ) {
     when(node.getDataSource()).thenReturn((DataSource)dataSource);

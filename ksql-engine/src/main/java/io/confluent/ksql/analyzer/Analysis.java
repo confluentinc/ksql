@@ -190,7 +190,7 @@ public class Analysis implements ImmutableAnalysis {
     return new SourceSchemas(schemaBySource);
   }
 
-  void addDataSource(final SourceName alias, final DataSource<?> dataSource) {
+  void addDataSource(final SourceName alias, final DataSource dataSource) {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
     }
@@ -272,11 +272,11 @@ public class Analysis implements ImmutableAnalysis {
   public static final class AliasedDataSource {
 
     private final SourceName alias;
-    private final DataSource<?> dataSource;
+    private final DataSource dataSource;
 
     AliasedDataSource(
         final SourceName alias,
-        final DataSource<?> dataSource
+        final DataSource dataSource
     ) {
       this.alias = requireNonNull(alias, "alias");
       this.dataSource = requireNonNull(dataSource, "dataSource");
@@ -286,7 +286,7 @@ public class Analysis implements ImmutableAnalysis {
       return alias;
     }
 
-    public DataSource<?> getDataSource() {
+    public DataSource getDataSource() {
       return dataSource;
     }
   }

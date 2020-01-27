@@ -65,7 +65,7 @@ public class LogicalPlannerTest {
   public void shouldCreatePlanWithTableAsSource() {
     final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 EMIT CHANGES limit 5;");
     assertThat(planNode.getSources().size(), equalTo(1));
-    final DataSource<?> dataSource = ((DataSourceNode) planNode
+    final DataSource dataSource = ((DataSourceNode) planNode
         .getSources()
         .get(0)
         .getSources()

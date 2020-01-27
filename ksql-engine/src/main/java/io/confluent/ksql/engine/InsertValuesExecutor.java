@@ -179,7 +179,7 @@ public class InsertValuesExecutor {
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final DataSource<?> dataSource = executionContext
+    final DataSource dataSource = executionContext
         .getMetaStore()
         .getSource(insertValues.getTarget());
 
@@ -234,7 +234,7 @@ public class InsertValuesExecutor {
 
   private RowData extractRow(
       final InsertValues insertValues,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config
   ) {
@@ -293,7 +293,7 @@ public class InsertValuesExecutor {
 
   @SuppressWarnings("UnstableApiUsage")
   private static List<ColumnName> implicitColumns(
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final List<Expression> values
   ) {
     final LogicalSchema schema = dataSource.getSchema();
@@ -369,7 +369,7 @@ public class InsertValuesExecutor {
 
   private byte[] serializeKey(
       final Struct keyValue,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
@@ -398,7 +398,7 @@ public class InsertValuesExecutor {
 
   private byte[] serializeValue(
       final GenericRow row,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {

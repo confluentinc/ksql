@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Immutable
-abstract class StructuredDataSource<K> implements DataSource<K> {
+abstract class StructuredDataSource<K> implements DataSource {
 
   private final SourceName dataSourceName;
   private final DataSourceType dataSourceType;

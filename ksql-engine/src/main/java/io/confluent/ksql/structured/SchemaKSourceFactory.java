@@ -46,7 +46,7 @@ public final class SchemaKSourceFactory {
 
   public static SchemaKStream<?> buildSource(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final QueryContext.Stacker contextStacker,
       final KeyField keyField,
       final SourceName alias
@@ -92,7 +92,7 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKStream<?> buildWindowedStream(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
       final KeyField keyField,
       final SourceName alias
@@ -121,7 +121,7 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKStream<?> buildStream(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
       final KeyField keyField,
       final SourceName alias
@@ -150,7 +150,7 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKTable<?> buildWindowedTable(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
       final KeyField keyField,
       final SourceName alias
@@ -179,7 +179,7 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKTable<?> buildTable(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
       final KeyField keyField,
       final SourceName alias
@@ -240,7 +240,7 @@ public final class SchemaKSourceFactory {
     );
   }
 
-  private static Formats buildFormats(final DataSource<?> dataSource) {
+  private static Formats buildFormats(final DataSource dataSource) {
     return Formats.of(
         dataSource.getKsqlTopic().getKeyFormat(),
         dataSource.getKsqlTopic().getValueFormat(),

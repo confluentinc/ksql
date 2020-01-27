@@ -23,9 +23,9 @@ import java.util.Set;
 
 public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
-  DataSource<?> getSource(SourceName sourceName);
+  DataSource getSource(SourceName sourceName);
 
-  Map<SourceName, DataSource<?>> getAllDataSources();
+  Map<SourceName, DataSource> getAllDataSources();
 
   Set<String> getQueriesWithSource(SourceName sourceName);
 

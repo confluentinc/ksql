@@ -107,7 +107,7 @@ public class QueryExecutorTest {
   @Mock
   private KStream<Struct, GenericRow> kstream;
   @Mock
-  private DataSource<?> sink;
+  private DataSource sink;
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock

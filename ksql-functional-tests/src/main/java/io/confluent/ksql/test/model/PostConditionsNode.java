@@ -43,11 +43,11 @@ public final class PostConditionsNode {
 
   @SuppressWarnings("unchecked")
   public PostConditions build() {
-    final Matcher<DataSource<?>>[] matchers = sources.stream()
+    final Matcher<DataSource>[] matchers = sources.stream()
         .map(SourceNode::build)
         .toArray(Matcher[]::new);
 
-    final Matcher<Iterable<DataSource<?>>> sourcesMatcher = hasItems(matchers);
+    final Matcher<Iterable<DataSource>> sourcesMatcher = hasItems(matchers);
     final Pattern blackListPattern = topics.build();
 
     return new PostConditions(sourcesMatcher, blackListPattern);

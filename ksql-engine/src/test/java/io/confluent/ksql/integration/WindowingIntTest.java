@@ -21,7 +21,6 @@ import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
@@ -216,7 +215,7 @@ public class WindowingIntTest {
 
   private void givenTable(final String sql) {
     ksqlContext.sql(String.format(sql, resultStream0));
-    final DataSource<?> source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream0));
+    final DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream0));
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
         source.getSerdeOptions()
@@ -242,7 +241,7 @@ public class WindowingIntTest {
   ) {
     ksqlContext.sql("CREATE TABLE " + resultStream1 + " AS SELECT * FROM " + resultStream0 + ";");
 
-    final DataSource<?> source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream1));
+    final DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream1));
 
     resultSchema = PhysicalSchema.from(
         source.getSchema(),

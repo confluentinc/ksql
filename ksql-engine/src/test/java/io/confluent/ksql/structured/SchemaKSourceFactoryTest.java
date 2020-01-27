@@ -71,7 +71,7 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private KsqlQueryBuilder builder;
   @Mock
-  private DataSource<?> dataSource;
+  private DataSource dataSource;
   @Mock
   private Stacker contextStacker;
   @Mock

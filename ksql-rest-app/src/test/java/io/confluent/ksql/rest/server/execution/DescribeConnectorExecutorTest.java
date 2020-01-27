@@ -99,7 +99,7 @@ public class DescribeConnectorExecutorTest {
   @Mock
   private MetaStore metaStore;
   @Mock
-  private DataSource<?> source;
+  private DataSource source;
   @Mock
   private ServiceContext serviceContext;
   @Mock

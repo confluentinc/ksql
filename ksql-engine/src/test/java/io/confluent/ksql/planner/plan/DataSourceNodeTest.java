@@ -124,7 +124,7 @@ public class DataSourceNodeTest {
   );
 
   @Mock
-  private DataSource<?> dataSource;
+  private DataSource dataSource;
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
@@ -168,7 +168,7 @@ public class DataSourceNodeTest {
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
     when(schemaKStreamFactory.create(any(), any(), any(), any(), any()))
-        .thenAnswer(inv -> inv.<DataSource<?>>getArgument(1)
+        .thenAnswer(inv -> inv.<DataSource>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
         );

@@ -134,7 +134,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
     if (drainHandler != null) {
       throw new IllegalStateException("drainHandler already set");
     }
-    this.drainHandler = handler;
+    this.drainHandler = Objects.requireNonNull(handler);
   }
 
   /**

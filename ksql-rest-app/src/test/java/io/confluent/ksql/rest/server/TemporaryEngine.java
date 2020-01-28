@@ -114,7 +114,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends DataSource<?>> T givenSource(
+  public <T extends DataSource> T givenSource(
       final DataSourceType type,
       final String name
   ) {
@@ -126,7 +126,7 @@ public class TemporaryEngine extends ExternalResource {
         ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
-    final DataSource<?> source;
+    final DataSource source;
     switch (type) {
       case KSTREAM:
         source =

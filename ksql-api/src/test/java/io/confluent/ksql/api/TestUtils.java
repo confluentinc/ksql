@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.hamcrest.Matcher;
 
 public class TestUtils {
@@ -33,10 +32,10 @@ public class TestUtils {
 
     private AssertionError error;
 
-    public synchronized <T> void assertAsync(Supplier<? extends T> actualSupplier,
+    public synchronized <T> void assertAsync(T t,
         Matcher<? super T> expected) {
       try {
-        assertThat(actualSupplier.get(), expected);
+        assertThat(t, expected);
       } catch (AssertionError e) {
         error = e;
       }

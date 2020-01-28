@@ -99,7 +99,7 @@ public class ClusterTerminatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  private final Map<SourceName, DataSource<?>> dataSources = new HashMap<>();
+  private final Map<SourceName, DataSource> dataSources = new HashMap<>();
 
   private ClusterTerminator clusterTerminator;
 
@@ -445,7 +445,7 @@ public class ClusterTerminatorTest {
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format)));
 
-    final DataSource<?> source = mock(DataSource.class);
+    final DataSource source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);
     when(source.isCasTarget()).thenReturn(sink);
 

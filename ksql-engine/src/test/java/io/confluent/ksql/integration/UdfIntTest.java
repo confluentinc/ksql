@@ -252,7 +252,7 @@ public class UdfIntTest {
 
   private <K> Map<K, GenericRow> consumeOutputMessages() {
 
-    final DataSource<?> source = ksqlContext
+    final DataSource source = ksqlContext
         .getMetaStore()
         .getSource(SourceName.of(resultStreamName));
 

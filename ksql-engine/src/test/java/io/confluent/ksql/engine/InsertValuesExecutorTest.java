@@ -876,7 +876,7 @@ public class InsertValuesExecutorTest {
         .map(kf -> KeyField.of(ColumnRef.of(kf)))
         .orElse(KeyField.none());
 
-    final DataSource<?> dataSource;
+    final DataSource dataSource;
     if (table) {
       dataSource = new KsqlTable<>(
           "",

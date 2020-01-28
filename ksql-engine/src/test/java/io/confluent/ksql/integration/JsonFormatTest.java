@@ -247,7 +247,7 @@ public class JsonFormatTest {
       final String resultTopic,
       final int expectedNumMessages
   ) {
-    final DataSource<?> source = metaStore.getSource(SourceName.of(streamName));
+    final DataSource source = metaStore.getSource(SourceName.of(streamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),

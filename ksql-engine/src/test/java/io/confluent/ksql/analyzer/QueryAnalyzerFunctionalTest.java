@@ -200,7 +200,7 @@ public class QueryAnalyzerFunctionalTest {
     assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("TEST1")));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
-    final DataSource<?> test0 = metaStore.getSource(SourceName.of("TEST0"));
+    final DataSource test0 = metaStore.getSource(SourceName.of("TEST0"));
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
   }

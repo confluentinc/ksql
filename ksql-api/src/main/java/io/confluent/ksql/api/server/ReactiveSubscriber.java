@@ -38,6 +38,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   protected final Context context;
   private Subscription subscription;
   private boolean complete;
+  private boolean cancelled;
 
   /**
    * Construct a ReactiveSubscriber
@@ -66,6 +67,14 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   public final void onError(final Throwable t) {
     Objects.requireNonNull(t);
     context.runOnContext(v -> doOnError(t));
+  }
+
+  public void cancel() {
+    checkContext();
+    cancelled = true;
+    if (subscription != null) {
+      subscription.cancel();
+    }
   }
 
   @Override
@@ -159,7 +168,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private void doOnNext(final T val) {
     checkContext();
-    if (complete) {
+    if (complete || cancelled) {
       return;
     }
     if (subscription == null) {
@@ -177,6 +186,9 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private void doOnError(final Throwable t) {
     checkContext();
+    if (cancelled) {
+      return;
+    }
     if (subscription == null) {
       logError(new IllegalStateException("onError must not be called before onSubscribe", t));
     } else {
@@ -187,6 +199,9 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private void doOnComplete() {
     checkContext();
+    if (cancelled) {
+      return;
+    }
     if (subscription == null) {
       logError(new IllegalStateException("onComplete must not be called before onSubscribe"));
     } else {

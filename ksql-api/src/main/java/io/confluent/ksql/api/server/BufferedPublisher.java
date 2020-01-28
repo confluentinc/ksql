@@ -113,7 +113,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
       throw new IllegalStateException("Cannot call accept after complete is called");
     }
     if (!cancelled) {
-      if (demand == 0 || cancelled) {
+      if (demand == 0) {
         buffer.add(t);
       } else {
         doOnNext(t);
@@ -125,13 +125,16 @@ public class BufferedPublisher<T> implements Publisher<T> {
   /**
    * If you set a drain handler. It will be called if, after delivery is attempted there are zero
    * elements buffered internally and there is demand from the subscriber for more elements. Drain
-   * handlers are one shot handlers, after being it will never be called more than once.
+   * handlers are one shot handlers, after being called it will never be called more than once.
    *
    * @param handler The handler
    */
   public void drainHandler(final Runnable handler) {
     checkContext();
-    this.drainHandler = handler;
+    if (drainHandler != null) {
+      throw new IllegalStateException("drainHandler already set");
+    }
+    this.drainHandler = Objects.requireNonNull(handler);
   }
 
   /**
@@ -141,7 +144,7 @@ public class BufferedPublisher<T> implements Publisher<T> {
    */
   public void complete() {
     checkContext();
-    if (cancelled || complete) {
+    if (cancelled || completing) {
       return;
     }
     completing = true;

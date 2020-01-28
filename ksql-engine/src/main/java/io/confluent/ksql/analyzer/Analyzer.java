@@ -176,7 +176,7 @@ class Analyzer {
       setSerdeOptions(sink);
 
       if (!sink.shouldCreateSink()) {
-        final DataSource<?> existing = metaStore.getSource(sink.getName());
+        final DataSource existing = metaStore.getSource(sink.getName());
         if (existing == null) {
           throw new KsqlException("Unknown source: "
               + sink.getName().toString(FormatOptions.noEscape()));
@@ -514,7 +514,7 @@ class Analyzer {
     protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
       final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
 
-      final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
+      final DataSource source = metaStore.getSource(structuredDataSourceName);
       if (source == null) {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }

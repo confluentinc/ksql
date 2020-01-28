@@ -130,7 +130,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
   }
 
   private String getSourceTopicName(final MetaStore metaStore, final SourceName streamOrTable) {
-    final DataSource<?> dataSource = metaStore.getSource(streamOrTable);
+    final DataSource dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
           + streamOrTable);

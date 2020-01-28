@@ -192,7 +192,7 @@ public final class QueryExecutor {
   public PersistentQueryMetadata buildQuery(
       final String statementText,
       final QueryId queryId,
-      final DataSource<?> sinkDataSource,
+      final DataSource sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary

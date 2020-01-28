@@ -45,8 +45,6 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   private Long insertsSent;
   private long acksSent;
   private boolean drainHandlerSet;
-  private Subscription subscription;
-  private boolean cancelled;
 
   public AcksSubscriber(final Context context, final HttpServerResponse response,
       final InsertsStreamResponseWriter insertsStreamResponseWriter) {
@@ -58,15 +56,11 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   @Override
   protected void afterSubscribe(final Subscription subscription) {
     makeRequest(REQUEST_BATCH_SIZE);
-    this.subscription = subscription;
   }
 
   @Override
   public void handleValue(final JsonObject value) {
     checkContext();
-    if (cancelled) {
-      return;
-    }
     insertsStreamResponseWriter.writeInsertResponse();
     acksSent++;
     if (insertsSent != null && insertsSent == acksSent) {
@@ -91,23 +85,12 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
 
   @Override
   public void handleError(final Throwable t) {
-    if (cancelled) {
-      return;
-    }
     log.error("Error in processing inserts", t);
 
     final ErrorResponse errResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
         "Error in processing inserts");
     insertsStreamResponseWriter.writeError(errResponse).end();
 
-  }
-
-  public void cancel() {
-    checkContext();
-    cancelled = true;
-    if (subscription != null) {
-      subscription.cancel();
-    }
   }
 
   private void checkMakeRequest() {

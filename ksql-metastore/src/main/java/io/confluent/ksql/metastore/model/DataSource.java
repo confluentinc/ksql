@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @EffectivelyImmutable
-public interface DataSource<K> {
+public interface DataSource {
 
   enum DataSourceType {
     KSTREAM("STREAM"),

@@ -68,33 +68,33 @@ final class SourceNode {
   }
 
   @SuppressWarnings("unchecked")
-  Matcher<? super DataSource<?>> build() {
+  Matcher<? super DataSource> build() {
     if (name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
     }
 
-    final Matcher<DataSource<?>> nameMatcher = MetaStoreMatchers
+    final Matcher<DataSource> nameMatcher = MetaStoreMatchers
         .hasName(name);
 
     final Matcher<Object> typeMatcher = IsInstanceOf
         .instanceOf(type);
 
-    final Matcher<DataSource<?>> keyFieldMatcher = keyField
+    final Matcher<DataSource> keyFieldMatcher = keyField
         .map(KeyFieldNode::build)
         .map(MetaStoreMatchers::hasKeyField)
         .orElse(null);
 
-    final Matcher<DataSource<?>> schemaMatcher = schema
+    final Matcher<DataSource> schemaMatcher = schema
         .map(Matchers::is)
         .map(MetaStoreMatchers::hasSchema)
         .orElse(null);
 
-    final Matcher<DataSource<?>> keyFormatMatcher = keyFormat
+    final Matcher<DataSource> keyFormatMatcher = keyFormat
         .map(KeyFormatNode::build)
         .map(MetaStoreMatchers::hasKeyFormat)
         .orElse(null);
 
-    final Matcher<DataSource<?>>[] matchers = Stream
+    final Matcher<DataSource>[] matchers = Stream
         .of(nameMatcher, typeMatcher, keyFieldMatcher, schemaMatcher, keyFormatMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);

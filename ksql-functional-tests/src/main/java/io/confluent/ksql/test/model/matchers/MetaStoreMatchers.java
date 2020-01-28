@@ -34,58 +34,58 @@ public final class MetaStoreMatchers {
   private MetaStoreMatchers() {
   }
 
-  public static Matcher<DataSource<?>> hasName(final String name) {
-    return new FeatureMatcher<DataSource<?>, SourceName>(
+  public static Matcher<DataSource> hasName(final String name) {
+    return new FeatureMatcher<DataSource, SourceName>(
         is(SourceName.of(name)),
         "source with name",
         "name"
     ) {
       @Override
-      protected SourceName featureValueOf(final DataSource<?> actual) {
+      protected SourceName featureValueOf(final DataSource actual) {
         return actual.getName();
       }
     };
   }
 
-  public static Matcher<DataSource<?>> hasKeyField(
+  public static Matcher<DataSource> hasKeyField(
       final Matcher<KeyField> fieldMatcher
   ) {
-    return new FeatureMatcher<DataSource<?>, KeyField>(
+    return new FeatureMatcher<DataSource, KeyField>(
         fieldMatcher,
         "source with key field",
         "key field"
     ) {
       @Override
-      protected KeyField featureValueOf(final DataSource<?> actual) {
+      protected KeyField featureValueOf(final DataSource actual) {
         return actual.getKeyField();
       }
     };
   }
 
-  public static Matcher<DataSource<?>> hasSchema(
+  public static Matcher<DataSource> hasSchema(
       final Matcher<LogicalSchema> schemaMatcher
   ) {
-    return new FeatureMatcher<DataSource<?>, LogicalSchema>(
+    return new FeatureMatcher<DataSource, LogicalSchema>(
         schemaMatcher,
         "source with schema",
         "schema"
     ) {
       @Override
-      protected LogicalSchema featureValueOf(final DataSource<?> actual) {
+      protected LogicalSchema featureValueOf(final DataSource actual) {
         return actual.getSchema();
       }
     };
   }
 
-  public static Matcher<DataSource<?>> hasKeyFormat(
+  public static Matcher<DataSource> hasKeyFormat(
       final Matcher<? super KeyFormat> matcher
   ) {
-    return new FeatureMatcher<DataSource<?>, KeyFormat>(
+    return new FeatureMatcher<DataSource, KeyFormat>(
         matcher,
         "source with key format",
         "key format") {
       @Override
-      protected KeyFormat featureValueOf(final DataSource<?> actual) {
+      protected KeyFormat featureValueOf(final DataSource actual) {
         return actual.getKsqlTopic().getKeyFormat();
       }
     };

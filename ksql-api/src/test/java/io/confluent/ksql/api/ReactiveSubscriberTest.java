@@ -16,6 +16,8 @@
 package io.confluent.ksql.api;
 
 import static io.confluent.ksql.api.TestUtils.awaitLatch;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.api.server.ReactiveSubscriber;
 import io.vertx.core.Context;
@@ -83,6 +85,84 @@ public class ReactiveSubscriberTest {
     subscriber.onNext("record0");
     subscriber.onComplete();
     awaitLatch(latch);
+  }
+
+  @Test
+  public void shouldCancel() {
+    // Given
+    TestReactiveSubscriber subscriber = new TestReactiveSubscriber(context);
+    final TestSubscription sub = new TestSubscription();
+    subscriber.onSubscribe(sub);
+
+    // When
+    context.runOnContext(v -> subscriber.cancel());
+    subscriber.onError(new IllegalStateException("foo"));
+    subscriber.onNext("record0");
+    subscriber.onComplete();
+
+    // Then
+    final CountDownLatch latch = new CountDownLatch(1); // Wait for async processing to complete
+    vertx.runOnContext(v -> latch.countDown());
+    assertThat(sub.isCancelled(), is(true));
+    assertThat(subscriber.isHandleValueCalled(), is(false));
+    assertThat(subscriber.isHandleCompleteCalled(), is(false));
+    assertThat(subscriber.isHandleErrorCalled(), is(false));
+  }
+
+  private static class TestSubscription implements Subscription {
+
+    private boolean cancelled;
+
+    @Override
+    public void request(final long n) {
+    }
+
+    @Override
+    public synchronized void cancel() {
+      cancelled = true;
+    }
+
+    synchronized boolean isCancelled() {
+      return cancelled;
+    }
+  }
+
+  private static class TestReactiveSubscriber extends ReactiveSubscriber<String> {
+
+    private boolean handleValueCalled;
+    private boolean handleCompleteCalled;
+    private boolean handleErrorCalled;
+
+    public TestReactiveSubscriber(final Context context) {
+      super(context);
+    }
+
+    @Override
+    protected synchronized void handleValue(final String record) {
+      handleValueCalled = true;
+    }
+
+    @Override
+    protected synchronized void handleComplete() {
+      handleCompleteCalled = true;
+    }
+
+    @Override
+    protected synchronized void handleError(final Throwable t) {
+      handleErrorCalled = true;
+    }
+
+    synchronized boolean isHandleValueCalled() {
+      return handleValueCalled;
+    }
+
+    synchronized boolean isHandleCompleteCalled() {
+      return handleCompleteCalled;
+    }
+
+    synchronized boolean isHandleErrorCalled() {
+      return handleErrorCalled;
+    }
   }
 
 }

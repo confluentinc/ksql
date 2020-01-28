@@ -235,8 +235,9 @@ public final class LagReportingAgent implements HostStatusListener {
 
       final Map<QueryStateStoreId, Map<Integer, LagInfo>> localLagMap
           = currentQueries.stream()
+          .map(this::getLocalLagMap)
           .filter(Objects::nonNull)
-          .flatMap(pmd -> getLocalLagMap(pmd).entrySet().stream())
+          .flatMap(map -> map.entrySet().stream())
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
       final LagReportingRequest request = createLagReportingRequest(localLagMap);

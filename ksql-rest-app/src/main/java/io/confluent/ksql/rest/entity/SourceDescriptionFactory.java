@@ -30,7 +30,7 @@ public final class SourceDescriptionFactory {
   }
 
   public static SourceDescription create(
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final boolean extended,
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,

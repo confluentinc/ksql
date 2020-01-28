@@ -274,7 +274,7 @@ final class EngineExecutor {
       final KeyField keyField
   ) {
     final SourceName name = outputNode.getIntoSourceName();
-    final DataSource<?> existing = engineContext.getMetaStore().getSource(name);
+    final DataSource existing = engineContext.getMetaStore().getSource(name);
 
     if (existing == null) {
       throw new KsqlException(String.format("%s does not exist.", outputNode));

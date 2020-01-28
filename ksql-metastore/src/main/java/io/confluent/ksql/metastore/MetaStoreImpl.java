@@ -68,7 +68,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public DataSource<?> getSource(final SourceName sourceName) {
+  public DataSource getSource(final SourceName sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -77,7 +77,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final DataSource<?> dataSource) {
+  public void putSource(final DataSource dataSource) {
     final SourceInfo existing = dataSources
         .putIfAbsent(dataSource.getName(), new SourceInfo(dataSource));
 
@@ -129,7 +129,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<SourceName, DataSource<?>> getAllDataSources() {
+  public Map<SourceName, DataSource> getAllDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -290,18 +290,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
 
-    private final DataSource<?> source;
+    private final DataSource source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     private SourceInfo(
-        final DataSource<?> source
+        final DataSource source
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
-        final DataSource<?> source,
+        final DataSource source,
         final ReferentialIntegrityTableEntry referentialIntegrity
     ) {
       this.source = Objects.requireNonNull(source, "source");

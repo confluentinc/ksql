@@ -99,7 +99,7 @@ public final class AstSanitizer {
         final InsertInto node,
         final StatementRewriter.Context<Void> ctx
     ) {
-      final DataSource<?> target = getSource(
+      final DataSource target = getSource(
           node.getTarget(),
           node.getLocation().map(
               l -> new NodeLocation(
@@ -166,11 +166,11 @@ public final class AstSanitizer {
           .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
     }
 
-    private DataSource<?> getSource(
+    private DataSource getSource(
         final SourceName name,
         final Optional<NodeLocation> location
     ) {
-      final DataSource<?> source = metaStore.getSource(name);
+      final DataSource source = metaStore.getSource(name);
       if (source == null) {
         throw new InvalidColumnReferenceException(location, name.name() + " does not exist.");
       }

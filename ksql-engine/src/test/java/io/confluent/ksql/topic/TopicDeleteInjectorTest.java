@@ -75,7 +75,7 @@ public class TopicDeleteInjectorTest {
   @Mock
   private MutableMetaStore metaStore;
   @Mock
-  private DataSource<?> source;
+  private DataSource source;
   @Mock
   private KsqlTopic topic;
   @Mock
@@ -182,8 +182,8 @@ public class TopicDeleteInjectorTest {
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource(SourceName.of("OTHER"), "other");
-    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
+    final DataSource other1 = givenSource(SourceName.of("OTHER"), "other");
+    final Map<SourceName, DataSource> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
     sources.put(SourceName.of("OTHER"), other1);
     when(metaStore.getAllDataSources()).thenReturn(sources);
@@ -201,9 +201,9 @@ public class TopicDeleteInjectorTest {
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
-    final DataSource<?> other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
-    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
+    final DataSource other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
+    final DataSource other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
+    final Map<SourceName, DataSource> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
     sources.put(SourceName.of("OTHER1"), other1);
     sources.put(SourceName.of("OTHER2"), other2);
@@ -223,7 +223,7 @@ public class TopicDeleteInjectorTest {
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
     final SourceName STREAM_1 = SourceName.of("stream1");
-    final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
+    final DataSource other1 = givenSource(STREAM_1, "topicName");
     when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
     when(other1.getKafkaTopicName()).thenReturn("topicName");
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
@@ -254,7 +254,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
-  private static DataSource<?> givenSource(final SourceName name, final String topicName) {
+  private static DataSource givenSource(final SourceName name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);

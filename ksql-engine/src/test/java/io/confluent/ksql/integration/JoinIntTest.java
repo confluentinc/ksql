@@ -106,7 +106,7 @@ public class JoinIntTest {
 
     ksqlContext.sql(queryString);
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -174,7 +174,7 @@ public class JoinIntTest {
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -247,7 +247,7 @@ public class JoinIntTest {
 
     final String outputStream = "OUTPUT";
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(outputStream));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(

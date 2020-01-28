@@ -59,7 +59,7 @@ public final class ListSourceExecutor {
       final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final List<? extends DataSource<?>> sources
+      final List<? extends DataSource> sources
   ) {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
@@ -180,7 +180,7 @@ public final class ListSourceExecutor {
       final SourceName name,
       final boolean extended,
       final String statementText) {
-    final DataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",

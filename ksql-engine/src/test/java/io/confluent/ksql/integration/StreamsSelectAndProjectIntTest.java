@@ -414,7 +414,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   private PhysicalSchema getResultSchema() {
-    final DataSource<?> source = ksqlContext
+    final DataSource source = ksqlContext
         .getMetaStore()
         .getSource(SourceName.of(resultStream.toUpperCase()));
 

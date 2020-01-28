@@ -94,7 +94,7 @@ public class TopicDeleteInjector implements Injector {
     }
 
     final SourceName sourceName = dropStatement.getName();
-    final DataSource<?> source = metastore.getSource(sourceName);
+    final DataSource source = metastore.getSource(sourceName);
 
     if (source != null) {
       checkTopicRefs(source);
@@ -134,10 +134,10 @@ public class TopicDeleteInjector implements Injector {
     }
   }
 
-  private void checkTopicRefs(final DataSource<?> source) {
+  private void checkTopicRefs(final DataSource source) {
     final String topicName = source.getKafkaTopicName();
     final SourceName sourceName = source.getName();
-    final Map<SourceName, DataSource<?>> sources = metastore.getAllDataSources();
+    final Map<SourceName, DataSource> sources = metastore.getAllDataSources();
     final String using = sources.values().stream()
         .filter(s -> s.getKafkaTopicName().equals(topicName))
         .map(DataSource::getName)

@@ -146,7 +146,7 @@ public final class TestExecutorUtil {
   }
 
   private static Topic buildSinkTopic(
-      final DataSource<?> sinkDataSource,
+      final DataSource sinkDataSource,
       final StubKafkaService stubKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -171,7 +171,7 @@ public final class TestExecutorUtil {
   }
 
   private static Optional<Schema> getAvroSchema(
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final SchemaRegistryClient schemaRegistryClient) {
     if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
       try {
@@ -278,16 +278,16 @@ public final class TestExecutorUtil {
         plan
     );
 
-    final Optional<List<DataSource<?>>> dataSources = plan.getPlan().getQueryPlan()
+    final Optional<List<DataSource>> dataSources = plan.getPlan().getQueryPlan()
         .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
 
     return new ExecuteResultAndSources(executeResult, dataSources);
   }
 
-  private static List<DataSource<?>> getSources(
+  private static List<DataSource> getSources(
       final Collection<SourceName> sources,
       final MetaStore metaStore) {
-    final ImmutableList.Builder<DataSource<?>> sourceBuilder = new Builder<>();
+    final ImmutableList.Builder<DataSource> sourceBuilder = new Builder<>();
     for (final SourceName name : sources) {
       if (metaStore.getSource(name) == null) {
         throw new KsqlException("Source does not exist: " + name.toString());
@@ -421,11 +421,11 @@ public final class TestExecutorUtil {
   private static final class ExecuteResultAndSources {
 
     private final ExecuteResult executeResult;
-    private final Optional<List<DataSource<?>>> sources;
+    private final Optional<List<DataSource>> sources;
 
     ExecuteResultAndSources(
         final ExecuteResult executeResult,
-        final Optional<List<DataSource<?>>> sources
+        final Optional<List<DataSource>> sources
     ) {
       this.executeResult = requireNonNull(executeResult, "executeResult");
       this.sources = requireNonNull(sources, "sources");
@@ -435,7 +435,7 @@ public final class TestExecutorUtil {
       return executeResult;
     }
 
-    Optional<List<DataSource<?>>> getSources() {
+    Optional<List<DataSource>> getSources() {
       return sources;
     }
   }
@@ -443,11 +443,11 @@ public final class TestExecutorUtil {
   private static final class PersistentQueryAndSources {
 
     private final PersistentQueryMetadata persistentQueryMetadata;
-    private final List<DataSource<?>> sources;
+    private final List<DataSource> sources;
 
     PersistentQueryAndSources(
         final PersistentQueryMetadata persistentQueryMetadata,
-        final List<DataSource<?>> sources
+        final List<DataSource> sources
     ) {
       this.persistentQueryMetadata =
           requireNonNull(persistentQueryMetadata, "persistentQueryMetadata");
@@ -458,7 +458,7 @@ public final class TestExecutorUtil {
       return persistentQueryMetadata;
     }
 
-    List<DataSource<?>> getSources() {
+    List<DataSource> getSources() {
       return sources;
     }
   }

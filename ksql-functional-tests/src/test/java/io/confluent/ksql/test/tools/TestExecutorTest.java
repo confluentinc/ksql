@@ -104,7 +104,7 @@ public class TestExecutorTest {
   private SchemaRegistryClient srClient;
 
   private TestExecutor executor;
-  private final Map<SourceName, DataSource<?>> allSources = new HashMap<>();
+  private final Map<SourceName, DataSource> allSources = new HashMap<>();
 
   @Before
   public void setUp() {
@@ -360,7 +360,7 @@ public class TestExecutorTest {
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
 
-    final DataSource<?> dataSource = mock(DataSource.class);
+    final DataSource dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);

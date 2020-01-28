@@ -68,7 +68,7 @@ public class SourceDescriptionFactoryTest {
     consumerCollector.close();
   }
 
-  private static DataSource<?> buildDataSource(
+  private static DataSource buildDataSource(
       final String kafkaTopicName,
       final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
@@ -110,7 +110,7 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
     consumerCollector.onConsume(buildRecords(kafkaTopicName));
     StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 
@@ -135,7 +135,7 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnEmptyTimestampColumn() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
 
     // When
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
@@ -153,7 +153,7 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnTimestampColumnIfPresent() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(
+    final DataSource dataSource = buildDataSource(
         kafkaTopicName,
         Optional.of(
             new TimestampColumn(ColumnRef.of(ColumnName.of("foo")), Optional.empty()))

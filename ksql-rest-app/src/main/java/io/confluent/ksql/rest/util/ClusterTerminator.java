@@ -79,7 +79,7 @@ public class ClusterTerminator {
         .map(Pattern::compile)
         .collect(Collectors.toList());
 
-    final List<DataSource<?>> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+    final List<DataSource> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
 
     deleteTopics(topicNames(toDelete));
     cleanUpSinkAvroSchemas(subjectNames(toDelete));
@@ -123,7 +123,7 @@ public class ClusterTerminator {
     }
   }
 
-  private static List<DataSource<?>> getSourcesToDelete(
+  private static List<DataSource> getSourcesToDelete(
       final List<Pattern> patterns,
       final MetaStore metaStore
   ) {
@@ -136,14 +136,14 @@ public class ClusterTerminator {
         .collect(Collectors.toList());
   }
 
-  private static Set<String> topicNames(final List<DataSource<?>> sources) {
+  private static Set<String> topicNames(final List<DataSource> sources) {
     return sources.stream()
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> subjectNames(final List<DataSource<?>> sources) {
+  private static Set<String> subjectNames(final List<DataSource> sources) {
     return sources.stream()
         .filter(s -> s.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO)
         .map(DataSource::getKsqlTopic)

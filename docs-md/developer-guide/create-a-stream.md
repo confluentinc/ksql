@@ -6,7 +6,7 @@ description: Learn how to use the CREATE STREAM statement on a Kafka topic
 ---
 
 In ksqlDB, you create streams from existing {{ site.aktm }} topics, create
-streams that will create new {{ site.aktm }} topics, or create streams of 
+streams that will create new {{ site.ak }} topics, or create streams of
 query results from other streams.
 
 -   Use the CREATE STREAM statement to create a stream from an existing Kafka
@@ -103,8 +103,8 @@ The previous SQL statement makes no assumptions about the Kafka message
 key in the underlying Kafka topic. If the value of the message key in
 the topic is the same as one of the columns defined in the stream, you
 can specify the key in the WITH clause of the CREATE STREAM statement.
-If you later use this column name to perform a join or a repartition KSQL
-knows no repartition is needed. In effect, the named column becomes an
+If you use this column name later to perform a join or a repartition, ksqlDB
+knows that no repartition is needed. In effect, the named column becomes an
 alias for ROWKEY.
 
 For example, if the Kafka message key has the same value as the `pageid`
@@ -187,7 +187,7 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 Create a Stream backed by a new Kafka Topic
 -------------------------------------------
 
-Use the CREATE STREAM statement to create a stream without a preexisting 
+Use the CREATE STREAM statement to create a stream without a preexisting
 topic by providing the PARTITIONS count, and optionally the REPLICA count,
 in the WITH clause.
 

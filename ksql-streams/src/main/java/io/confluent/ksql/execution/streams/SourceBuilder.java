@@ -36,6 +36,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -54,12 +57,15 @@ import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class SourceBuilder {
+
+  private static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
+      Arrays.asList(null, null, null)
+  );
 
   private SourceBuilder() {
   }
@@ -269,7 +275,7 @@ public final class SourceBuilder {
       final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, Object> rowKeyGenerator
+      final Function<K, Collection<?>> rowKeyGenerator
   ) {
     final KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
@@ -282,7 +288,7 @@ public final class SourceBuilder {
       final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, Object> rowKeyGenerator,
+      final Function<K, Collection<?>> rowKeyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
   ) {
     final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
@@ -346,43 +352,41 @@ public final class SourceBuilder {
     return StreamsUtil.buildOpName(stacker.push("Reduce").getQueryContext());
   }
 
-  private static Function<Windowed<Struct>, Object> windowedRowKeyGenerator(
+  private static Function<Windowed<Struct>, Collection<?>> windowedRowKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
 
     return windowedKey -> {
       if (windowedKey == null) {
-        return null;
+        return NULL_WINDOWED_KEY_COLUMNS;
       }
 
       final Window window = windowedKey.window();
-      final long start = window.start();
-      final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
       final Object key = windowedKey.key().get(keyField);
-      return String.format("%s : Window{start=%d end=%s}", key, start, end);
+      return Arrays.asList(window.start(), window.end(), key);
     };
   }
 
-  private static Function<Struct, Object> nonWindowedRowKeyGenerator(
+  private static Function<Struct, Collection<?>> nonWindowedRowKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
     return key -> {
       if (key == null) {
-        return null;
+        return Collections.singletonList(null);
       }
 
-      return key.get(keyField);
+      return Collections.singletonList(key.get(keyField));
     };
   }
 
   private static class AddKeyAndTimestampColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
-    private final Function<K, Object> rowKeyGenerator;
+    private final Function<K, Collection<?>> rowKeyGenerator;
 
-    AddKeyAndTimestampColumns(final Function<K, Object> rowKeyGenerator) {
+    AddKeyAndTimestampColumns(final Function<K, Collection<?>> rowKeyGenerator) {
       this.rowKeyGenerator = requireNonNull(rowKeyGenerator, "rowKeyGenerator");
     }
 
@@ -403,7 +407,7 @@ public final class SourceBuilder {
           }
 
           row.getColumns().add(0, processorContext.timestamp());
-          row.getColumns().add(1, rowKeyGenerator.apply(key));
+          row.getColumns().addAll(1, rowKeyGenerator.apply(key));
           return row;
         }
 

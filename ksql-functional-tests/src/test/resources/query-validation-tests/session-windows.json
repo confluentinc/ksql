@@ -40,19 +40,60 @@
         "CREATE STREAM S2 as SELECT *, ROWKEY as Key FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "test_topic", "key": "0", "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "test_topic", "key": "0", "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
-        {"topic": "test_topic", "key": "1", "value": "1,100", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
-        {"topic": "test_topic", "key": "1", "value": "1,200", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
+        {"topic": "test_topic", "key": "a", "value": "1,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": "a", "value": "2,5", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": "b", "value": "3,100", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": "b", "value": "4,200", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": "0,0,0 : Window{start=0 end=0}", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "S2", "key": "0", "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "S2", "key": "0", "value": "0,5,0 : Window{start=0 end=10000}", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
-        {"topic": "S2", "key": "1", "value": "1,100,1 : Window{start=10000 end=10000}", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
-        {"topic": "S2", "key": "1", "value": "1,200,1 : Window{start=10000 end=40000}", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
-      ]
+        {"topic": "S2", "key": "a", "value": "1,0,a", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": "a", "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": "a", "value": "2,5,a", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": "b", "value": "3,100,b", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": "b", "value": "4,200,b", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "SESSION", "windowSize": null},
+            "schema": "ROWKEY STRING KEY, ID BIGINT, VALUE BIGINT, KEY STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "import session stream with non-STRING key",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='SESSION');",
+        "CREATE STREAM S2 as SELECT *, WINDOWSTART as WSTART, WINDOWEND as WEND, ROWKEY as Key FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "1", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": 0, "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "test_topic", "key": 0, "value": "2", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": 1, "value": "3", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "test_topic", "key": 1, "value": "4", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "1,0,0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": "2,0,10000,0", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "3,10000,10000,1", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "4,10000,40000,1", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "SESSION", "windowSize": null},
+            "schema": "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER"
+          }
+        ]
+      }
     },
     {
       "name": "import table with invalid window size",

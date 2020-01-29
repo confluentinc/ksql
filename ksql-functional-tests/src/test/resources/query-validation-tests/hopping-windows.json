@@ -135,24 +135,34 @@
       "name": "import hopping stream",
       "statements": [
         "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='HoPping', WINDOW_SIZE='30 seconds');",
-        "CREATE STREAM S2 as SELECT *, ROWKEY as KEY FROM test;"
+        "CREATE STREAM S2 as SELECT *, WINDOWSTART as WSTART, WINDOWEND as WEND, ROWKEY as RKEY FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "test_topic", "key": "0", "value": "0,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "test_topic", "key": "0", "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "test_topic", "key": "100", "value": "100,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "test_topic", "key": "100", "value": "100,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
-        {"topic": "test_topic", "key": "100", "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        {"topic": "test_topic", "key": "a", "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": "a", "value": "0,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": "a", "value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": "b", "value": "100,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": "b", "value": "100,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "test_topic", "key": "b", "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": "0", "value": "0,0,0 : Window{start=0 end=-}", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": "0", "value": "0,0,0 : Window{start=0 end=-}", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": "0", "value": "0,5,0 : Window{start=10000 end=-}", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "S2", "key": "100", "value": "100,100,100 : Window{start=10000 end=-}", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "S2", "key": "100", "value": "100,100,100 : Window{start=20000 end=-}", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
-        {"topic": "S2", "key": "100", "value": "100,100,100 : Window{start=30000 end=-}", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
-      ]
+        {"topic": "S2", "key": "a", "value": "0,0,0,30000,a", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": "a", "value": "0,0,0,30000,a", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": "a", "value": "0,5,10000,40000,a", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": "b", "value": "100,100,10000,40000,b", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": "b", "value": "100,100,20000,50000,b", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "S2", "key": "b", "value": "100,100,30000,60000,b", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 30000},
+            "schema": "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `RKEY` STRING"
+          }
+        ]
+      }
     },
     {
       "name": "import table with invalid window size",
@@ -168,24 +178,34 @@
       "name": "import hopping stream with non-STRING key",
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='HoPping', WINDOW_SIZE='30 seconds');",
-        "CREATE STREAM S2 as SELECT *, ROWKEY as KEY FROM test;"
+        "CREATE STREAM S2 as SELECT *, WINDOWSTART as WSTART, WINDOWEND as WEND, ROWKEY as KEY FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0,"value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "test_topic", "key": 0,"value": "0,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "test_topic", "key": 0,"value": "0,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "test_topic", "key": 100,"value": "100,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "test_topic", "key": 100,"value": "100,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
-        {"topic": "test_topic", "key": 100,"value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        {"topic": "test_topic", "key": 0, "value": "1,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": 0, "value": "2,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": 0, "value": "3,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "4,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "5,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "6,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0,"value": "0,0,0 : Window{start=0 end=-}", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 0,"value": "0,0,0 : Window{start=0 end=-}", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 0,"value": "0,5,0 : Window{start=10000 end=-}", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "100,100,100 : Window{start=10000 end=-}", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "100,100,100 : Window{start=20000 end=-}", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
-        {"topic": "S2", "key": 100,"value": "100,100,100 : Window{start=30000 end=-}", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
-      ]
+        {"topic": "S2", "key": 0, "value": "1,0,0,30000,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "2,0,0,30000,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "3,5,10000,40000,0", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "4,100,10000,40000,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "5,100,20000,50000,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "6,100,30000,60000,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 30000},
+            "schema": "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT"
+          }
+        ]
+      }
     }
   ]
 }

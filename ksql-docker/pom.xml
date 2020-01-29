@@ -48,7 +48,26 @@
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-functional-tests</artifactId>
     </dependency>
+
+    <!-- Need to explicitly add dependencies with classifier as they are not automatically pulled
+         in. -->
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka.version}</version>
+      <classifier>test</classifier>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_${kafka.scala.version}</artifactId>
+      <classifier>test</classifier>
+      <scope>compile</scope>
+    </dependency>
+
   </dependencies>
+
 
   <build>
     <plugins>

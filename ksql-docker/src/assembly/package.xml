@@ -58,7 +58,7 @@
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>share/java/ksql-rest-app</outputDirectory>
+            <outputDirectory>share/java/ksql-docker</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <!-- Warning: Enabling useTransitiveFiltering is potentially unsafe,
                  cf. https://github.com/miguno/maven-assembly-transitive-deps-woes

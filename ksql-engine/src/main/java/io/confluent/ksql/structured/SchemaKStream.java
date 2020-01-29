@@ -331,7 +331,8 @@ public class SchemaKStream<K> {
     }
 
     if (keyFormat.isWindowed()) {
-      throw new UnsupportedOperationException("Can not selectKey of windowed stream");
+      throw new KsqlException("Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.");
     }
 
     final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(

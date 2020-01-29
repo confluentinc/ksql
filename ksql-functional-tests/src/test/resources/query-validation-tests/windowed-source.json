@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KSQL does not support persistent push queries on windowed tables."
+        "message": "KSQL does not support persistent queries on windowed tables."
       }
     }
   ]

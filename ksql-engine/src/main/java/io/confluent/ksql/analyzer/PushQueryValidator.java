@@ -36,7 +36,7 @@ public class PushQueryValidator implements QueryValidator {
       return;
     }
     if (analysis.getFromDataSources().stream().anyMatch(PushQueryValidator::isWindowedTable)) {
-      throw new KsqlException("KSQL does not support persistent push queries on windowed tables.");
+      throw new KsqlException("KSQL does not support persistent queries on windowed tables.");
     }
   }
 

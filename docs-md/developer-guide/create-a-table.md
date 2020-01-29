@@ -6,7 +6,7 @@ description: Learn how to use the CREATE TABLE statement on a Kafka topic
 ---
 
 In ksqlDB, you create tables from existing {{ site.aktm }} topics, create
-tables that will create new {{ site.aktm }} topics, or create tables of 
+tables that will create new {{ site.ak }} topics, or create tables of 
 query results from other tables or streams.
 
 -   Use the CREATE TABLE statement to create a table from an existing Kafka topic,

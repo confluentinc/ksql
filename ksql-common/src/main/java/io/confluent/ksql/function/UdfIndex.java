@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -141,8 +142,21 @@ public class UdfIndex<T extends FunctionSignature> {
 
   T getFunction(final List<SqlType> arguments) {
     final List<Node> candidates = new ArrayList<>();
-    getCandidates(arguments, 0, root, candidates, new HashMap<>());
 
+    // first try to get the candidates without any implicit casting
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), false);
+    final Optional<T> fun = candidates
+        .stream()
+        .max(Node::compare)
+        .map(node -> node.value);
+
+    if (fun.isPresent()) {
+      return fun.get();
+    }
+
+    // if none were found (candidates is empty) try again with
+    // implicit casting
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), true);
     return candidates
         .stream()
         .max(Node::compare)
@@ -155,7 +169,8 @@ public class UdfIndex<T extends FunctionSignature> {
       final int argIndex,
       final Node current,
       final List<Node> candidates,
-      final Map<GenericType, SqlType> reservedGenerics
+      final Map<GenericType, SqlType> reservedGenerics,
+      final boolean allowCasts
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
@@ -167,9 +182,9 @@ public class UdfIndex<T extends FunctionSignature> {
     final SqlType arg = arguments.get(argIndex);
     for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
       final Map<GenericType, SqlType> reservedCopy = new HashMap<>(reservedGenerics);
-      if (candidate.getKey().accepts(arg, reservedCopy)) {
+      if (candidate.getKey().accepts(arg, reservedCopy, allowCasts)) {
         final Node node = candidate.getValue();
-        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy);
+        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy, allowCasts);
       }
     }
   }
@@ -285,12 +300,13 @@ public class UdfIndex<T extends FunctionSignature> {
      * @param reservedGenerics a mapping of generics to already reserved types - this map
      *                         will be updated if the parameter is generic to point to the
      *                         current argument for future checks to accept
-     *
+     * @param allowCasts       whether or not to accept an implicit cast
      * @return whether or not this argument can be used as a value for
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics) {
+    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics,
+        final boolean allowCasts) {
       if (argument == null) {
         return true;
       }
@@ -299,7 +315,7 @@ public class UdfIndex<T extends FunctionSignature> {
         return reserveGenerics(type, argument, reservedGenerics);
       }
 
-      return SchemaUtil.areCompatible(argument, type);
+      return SchemaUtil.areCompatible(argument, type, allowCasts);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 

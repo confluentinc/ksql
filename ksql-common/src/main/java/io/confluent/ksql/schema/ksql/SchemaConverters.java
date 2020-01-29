@@ -89,6 +89,8 @@ public final class SchemaConverters {
 
   private static final FunctionToSqlConverter FUNCTION_TO_SQL_CONVERTER = new FunctionToSql();
 
+  private static final FunctionToSqlBase FUNCTION_TO_BASE_CONVERTER = new FunctionToSqlBase();
+
   private SchemaConverters() {
   }
 
@@ -159,6 +161,10 @@ public final class SchemaConverters {
     SqlType toSqlType(ParamType paramType);
   }
 
+  public interface FunctionToSqlBaseConverter {
+    SqlBaseType toBaseType(ParamType paramType);
+  }
+
   public static ConnectToSqlTypeConverter connectToSqlConverter() {
     return CONNECT_TO_SQL_CONVERTER;
   }
@@ -181,6 +187,10 @@ public final class SchemaConverters {
 
   public static FunctionToSqlConverter functionToSqlConverter() {
     return FUNCTION_TO_SQL_CONVERTER;
+  }
+
+  public static FunctionToSqlBaseConverter functionToSqlBaseConverter() {
+    return FUNCTION_TO_BASE_CONVERTER;
   }
 
   private static final class ConnectToSqlConverter implements ConnectToSqlTypeConverter {
@@ -371,6 +381,41 @@ public final class SchemaConverters {
         ((StructType) paramType).getSchema()
             .forEach((name, type) -> struct.field(name, toSqlType(type)));
         return struct.build();
+      }
+
+      throw new KsqlException("Cannot convert param type to sql type: " + paramType);
+    }
+  }
+
+  private static class FunctionToSqlBase implements FunctionToSqlBaseConverter {
+
+    private static final BiMap<ParamType, SqlBaseType> FUNCTION_TO_BASE =
+        ImmutableBiMap.<ParamType, SqlBaseType>builder()
+            .put(ParamTypes.STRING, SqlBaseType.STRING)
+            .put(ParamTypes.BOOLEAN, SqlBaseType.BOOLEAN)
+            .put(ParamTypes.INTEGER, SqlBaseType.INTEGER)
+            .put(ParamTypes.LONG, SqlBaseType.BIGINT)
+            .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
+            .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
+            .build();
+
+    @Override
+    public SqlBaseType toBaseType(final ParamType paramType) {
+      final SqlBaseType sqlType = FUNCTION_TO_BASE.get(paramType);
+      if (sqlType != null) {
+        return sqlType;
+      }
+
+      if (paramType instanceof MapType) {
+        return SqlBaseType.MAP;
+      }
+
+      if (paramType instanceof ArrayType) {
+        return SqlBaseType.ARRAY;
+      }
+
+      if (paramType instanceof StructType) {
+        return SqlBaseType.STRUCT;
       }
 
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);

@@ -24,14 +24,14 @@ import java.util.Objects;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LagReportingRequest {
+public class LagReportingMessage {
 
   private HostInfoEntity hostInfo;
   private Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
   private long lastLagUpdateMs;
 
   @JsonCreator
-  public LagReportingRequest(
+  public LagReportingMessage(
       @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
       @JsonProperty("storeToPartitionToLagMap")
       final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap,
@@ -64,7 +64,7 @@ public class LagReportingRequest {
       return false;
     }
 
-    final LagReportingRequest that = (LagReportingRequest) o;
+    final LagReportingMessage that = (LagReportingMessage) o;
     return Objects.equals(hostInfo, that.hostInfo)
         && Objects.equals(storeToPartitionToLagMap, that.storeToPartitionToLagMap)
         && lastLagUpdateMs == that.lastLagUpdateMs;

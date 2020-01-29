@@ -16,14 +16,18 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 /**
  * This represents a unique store in the system and the basis for getting lag information from
  * KafkaStreams, exposed by the QueryMetadata.
  */
+@Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class QueryStateStoreId {
   private static final String SEPARATOR = "$";
 
@@ -51,6 +55,14 @@ public final class QueryStateStoreId {
     this.stateStoreName = Objects.requireNonNull(parts[1]);
   }
 
+  public String getQueryApplicationId() {
+    return queryApplicationId;
+  }
+
+  public String getStateStoreName() {
+    return stateStoreName;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -76,5 +88,4 @@ public final class QueryStateStoreId {
   public String toString() {
     return queryApplicationId + SEPARATOR + stateStoreName;
   }
-
 }

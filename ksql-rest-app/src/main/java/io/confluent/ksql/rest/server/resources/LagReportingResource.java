@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.LagReportingAgent;
@@ -37,9 +37,8 @@ public class LagReportingResource {
     this.lagReportingAgent = lagReportingAgent;
   }
 
-  @Path("/report")
   @POST
-  public Response receiveHostLag(final LagReportingRequest request) {
+  public Response receiveHostLag(final LagReportingMessage request) {
     lagReportingAgent.receiveHostLag(request);
     return Response.ok(new LagReportingResponse(true)).build();
   }

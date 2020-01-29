@@ -1,18 +1,19 @@
 package io.confluent.ksql.rest.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.server.LagReportingAgent.Builder;
 import io.confluent.ksql.rest.server.LagReportingAgent.SendLagService;
@@ -22,8 +23,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.time.Clock;
 import java.util.Map;
-import java.util.Set;
-import org.apache.kafka.streams.KafkaStreams;
+import java.util.Map.Entry;
+import java.util.Optional;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
@@ -42,7 +43,6 @@ public class LagReportingAgentTest {
   private static HostInfoEntity HOST2 = new HostInfoEntity("host2", 1234);
   private static HostInfo HI1 = new HostInfo("host1", 1234);
   private static HostInfo HI2 = new HostInfo("host2", 1234);
-  private static Set<HostInfo> HOSTS = ImmutableSet.of(HI1, HI2);
   private static HostStatusEntity HOST1_STATUS_ALIVE = new HostStatusEntity(HOST1, true, 0L);
   private static HostStatusEntity HOST2_STATUS_ALIVE = new HostStatusEntity(HOST2, true, 0L);
   private static HostStatusEntity HOST1_STATUS_DEAD = new HostStatusEntity(HOST1, false, 0L);
@@ -75,24 +75,41 @@ public class LagReportingAgentTest {
   private static final QueryStateStoreId QUERY_STORE_B =
       QueryStateStoreId.of(QUERY_ID1, STATE_STORE1);
 
+  private static final long M1_A1_CUR = 1;
+  private static final long M1_A1_END = 10;
+  private static final long M1_A1_LAG = 9;
+  private static final long M1_A3_CUR = 3;
+  private static final long M1_A3_END = 10;
+  private static final long M1_A3_LAG = 7;
+  private static final long M1_B4_CUR = 6;
+  private static final long M1_B4_END = 10;
+  private static final long M1_B4_LAG = 4;
+
   private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP1
       = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
       .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
-          .put(1, new LagInfoEntity(1, 10, 9))
-          .put(3, new LagInfoEntity(3, 10, 7))
+          .put(1, new LagInfoEntity(M1_A1_CUR, M1_A1_END, M1_A1_LAG))
+          .put(3, new LagInfoEntity(M1_A3_CUR, M1_A3_END, M1_A3_LAG))
           .build())
       .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
-          .put(4, new LagInfoEntity(6, 10, 4))
+          .put(4, new LagInfoEntity(M1_B4_CUR, M1_B4_END, M1_B4_LAG))
           .build())
       .build();
+
+  private static final long M2_A1_CUR = 4;
+  private static final long M2_A1_END = 10;
+  private static final long M2_A1_LAG = 6;
+  private static final long M2_B4_CUR = 7;
+  private static final long M2_B4_END = 10;
+  private static final long M2_B4_LAG = 3;
 
   private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP2
       = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
       .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
-          .put(1, new LagInfoEntity(4, 10, 6))
+          .put(1, new LagInfoEntity(M2_A1_CUR, M2_A1_END, M2_A1_LAG))
           .build())
       .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
-          .put(4, new LagInfoEntity(7, 10, 3))
+          .put(4, new LagInfoEntity(M2_B4_CUR, M2_B4_END, M2_B4_LAG))
           .build())
       .build();
 
@@ -100,10 +117,6 @@ public class LagReportingAgentTest {
   private PersistentQueryMetadata query0;
   @Mock
   private PersistentQueryMetadata query1;
-  @Mock
-  private KafkaStreams kafkaStreams0;
-  @Mock
-  private KafkaStreams kafkaStreams1;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -139,42 +152,52 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    Map<HostInfo, LagInfoEntity> hostPartitionLagList
-        = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, QueryStateStoreId.of("query0", "a"), 1);
-    assertEquals(2, hostPartitionLagList.size());
-    assertEquals(1, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
-    assertEquals(9, hostPartitionLagList.get(HI1).getOffsetLag());
-    assertEquals(4, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI2).getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI2).getOffsetLag());
+    Optional<LagInfoEntity> lagInfo
+        = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 1);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M1_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
+    assertEquals(M1_A1_END, lagInfo.get().getEndOffsetPosition());
+    assertEquals(M1_A1_LAG, lagInfo.get().getOffsetLag());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_A, 1);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
+    assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
+    assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
 
-    hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
-        QueryStateStoreId.of("query0", "a"), 3);
-    assertEquals(1, hostPartitionLagList.size());
-    assertEquals(3, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
+    // Partition where just one of the hosts has lag data
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 3);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M1_A3_CUR, lagInfo.get().getCurrentOffsetPosition());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_A, 3);
+    assertFalse(lagInfo.isPresent());
 
-    hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
-        QueryStateStoreId.of("query1", "b"), 4);
-    assertEquals(2, hostPartitionLagList.size());
-    assertEquals(6, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
-    assertEquals(7, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
+    // Second parition where they both have lag data
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_B, 4);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M1_B4_CUR, lagInfo.get().getCurrentOffsetPosition());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_B, 4);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M2_B4_CUR, lagInfo.get().getCurrentOffsetPosition());
 
+    // Host 1 is dead
     lagReportingAgent.onHostStatusUpdated(HOSTS_HOST1_DEAD);
-    hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
-        QueryStateStoreId.of("query0", "a"), 1);
-    assertEquals(1, hostPartitionLagList.size());
-    assertEquals(4, hostPartitionLagList.get(HI2).getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI2).getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI2).getOffsetLag());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 1);
+    assertFalse(lagInfo.isPresent());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_A, 1);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
+    assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
+    assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
 
+    // Host 2 is dead
     lagReportingAgent.onHostStatusUpdated(HOSTS_HOST2_DEAD);
-    hostPartitionLagList = lagReportingAgent.getHostsPartitionLagInfo(HOSTS,
-        QueryStateStoreId.of("query0", "a"), 1);
-    assertEquals(1, hostPartitionLagList.size());
-    assertEquals(1, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
-    assertEquals(9, hostPartitionLagList.get(HI1).getOffsetLag());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_A, 1);
+    assertFalse(lagInfo.isPresent());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 1);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M1_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
+    assertEquals(M1_A1_END, lagInfo.get().getEndOffsetPosition());
+    assertEquals(M1_A1_LAG, lagInfo.get().getOffsetLag());
   }
 
   @Test
@@ -185,16 +208,15 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    Map<HostInfo, LagInfoEntity> hostPartitionLagList
-        = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, QueryStateStoreId.of("query0", "a"), 1);
-    assertEquals(1, hostPartitionLagList.size());
-    assertEquals(4, hostPartitionLagList.get(HI1).getCurrentOffsetPosition());
-    assertEquals(10, hostPartitionLagList.get(HI1).getEndOffsetPosition());
-    assertEquals(6, hostPartitionLagList.get(HI1).getOffsetLag());
+    Optional<LagInfoEntity> lagInfo
+        = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 1);
+    assertTrue(lagInfo.isPresent());
+    assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
+    assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
+    assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
 
-    hostPartitionLagList
-        = lagReportingAgent.getHostsPartitionLagInfo(HOSTS, QueryStateStoreId.of("query0", "a"), 3);
-    assertEquals(0, hostPartitionLagList.size());
+    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_A, 3);
+    assertFalse(lagInfo.isPresent());
   }
 
   @Test
@@ -208,37 +230,37 @@ public class LagReportingAgentTest {
     Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> allLags
         = lagReportingAgent.listAllLags();
     LagInfoEntity lag = allLags.get(HOST1).get(QUERY_STORE_A).get(1);
-    assertEquals(1, lag.getCurrentOffsetPosition());
-    assertEquals(10, lag.getEndOffsetPosition());
-    assertEquals(9, lag.getOffsetLag());
+    assertEquals(M1_A1_CUR, lag.getCurrentOffsetPosition());
+    assertEquals(M1_A1_END, lag.getEndOffsetPosition());
+    assertEquals(M1_A1_LAG, lag.getOffsetLag());
     lag = allLags.get(HOST1).get(QUERY_STORE_A).get(3);
-    assertEquals(3, lag.getCurrentOffsetPosition());
-    assertEquals(10, lag.getEndOffsetPosition());
-    assertEquals(7, lag.getOffsetLag());
+    assertEquals(M1_A3_CUR, lag.getCurrentOffsetPosition());
+    assertEquals(M1_A3_END, lag.getEndOffsetPosition());
+    assertEquals(M1_A3_LAG, lag.getOffsetLag());
     lag = allLags.get(HOST1).get(QUERY_STORE_B).get(4);
-    assertEquals(6, lag.getCurrentOffsetPosition());
-    assertEquals(10, lag.getEndOffsetPosition());
-    assertEquals(4, lag.getOffsetLag());
+    assertEquals(M1_B4_CUR, lag.getCurrentOffsetPosition());
+    assertEquals(M1_B4_END, lag.getEndOffsetPosition());
+    assertEquals(M1_B4_LAG, lag.getOffsetLag());
     lag = allLags.get(HOST2).get(QUERY_STORE_A).get(1);
-    assertEquals(4, lag.getCurrentOffsetPosition());
-    assertEquals(10, lag.getEndOffsetPosition());
-    assertEquals(6, lag.getOffsetLag());
+    assertEquals(M2_A1_CUR, lag.getCurrentOffsetPosition());
+    assertEquals(M2_A1_END, lag.getEndOffsetPosition());
+    assertEquals(M2_A1_LAG, lag.getOffsetLag());
     lag = allLags.get(HOST2).get(QUERY_STORE_B).get(4);
-    assertEquals(7, lag.getCurrentOffsetPosition());
-    assertEquals(10, lag.getEndOffsetPosition());
-    assertEquals(3, lag.getOffsetLag());
+    assertEquals(M2_B4_CUR, lag.getCurrentOffsetPosition());
+    assertEquals(M2_B4_END, lag.getEndOffsetPosition());
+    assertEquals(M2_B4_LAG, lag.getOffsetLag());
   }
 
   @Test
   public void shouldSendLags() {
     // Given:
     when(clock.millis()).thenReturn(TIME_NOW_MS);
-    when(lagInfo0.currentOffsetPosition()).thenReturn(4L);
-    when(lagInfo0.endOffsetPosition()).thenReturn(10L);
-    when(lagInfo0.offsetLag()).thenReturn(6L);
-    when(lagInfo1.currentOffsetPosition()).thenReturn(7L);
-    when(lagInfo1.endOffsetPosition()).thenReturn(10L);
-    when(lagInfo1.offsetLag()).thenReturn(3L);
+    when(lagInfo0.currentOffsetPosition()).thenReturn(M2_A1_CUR);
+    when(lagInfo0.endOffsetPosition()).thenReturn(M2_A1_END);
+    when(lagInfo0.offsetLag()).thenReturn(M2_A1_LAG);
+    when(lagInfo1.currentOffsetPosition()).thenReturn(M2_B4_CUR);
+    when(lagInfo1.endOffsetPosition()).thenReturn(M2_B4_END);
+    when(lagInfo1.offsetLag()).thenReturn(M2_B4_LAG);
     Map<String, Map<Integer, LagInfo>> query0Lag
         = ImmutableMap.<String, Map<Integer, LagInfo>>builder()
         .put(STATE_STORE0, ImmutableMap.<Integer, LagInfo>builder()
@@ -253,12 +275,10 @@ public class LagReportingAgentTest {
         .build();
 
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
-    when(query0.getKafkaStreams()).thenReturn(kafkaStreams0);
+    when(query0.getAllLocalStorePartitionLags()).thenReturn(query0Lag);
     when(query0.getQueryApplicationId()).thenReturn(QUERY_ID0);
-    when(query1.getKafkaStreams()).thenReturn(kafkaStreams1);
+    when(query1.getAllLocalStorePartitionLags()).thenReturn(query1Lag);
     when(query1.getQueryApplicationId()).thenReturn(QUERY_ID1);
-    when(kafkaStreams0.allLocalStorePartitionLags()).thenReturn(query0Lag);
-    when(kafkaStreams1.allLocalStorePartitionLags()).thenReturn(query1Lag);
     SendLagService sendLagService = lagReportingAgent.new SendLagService();
 
     // When:
@@ -266,15 +286,15 @@ public class LagReportingAgentTest {
     sendLagService.runOneIteration();
 
     // Then:
-    LagReportingRequest exp = new LagReportingRequest(LOCALHOST_INFO, LAG_MAP2, TIME_NOW_MS);
+    LagReportingMessage exp = new LagReportingMessage(LOCALHOST_INFO, LAG_MAP2, TIME_NOW_MS);
     verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host2:1234/")), eq(exp));
     verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host1:1234/")), eq(exp));
   }
 
-  private LagReportingRequest hostLag(
+  private LagReportingMessage hostLag(
       HostInfoEntity host,
       Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> lagMap,
       long lastUpdateMs) {
-    return new LagReportingRequest(host, lagMap, lastUpdateMs);
+    return new LagReportingMessage(host, lagMap, lastUpdateMs);
   }
 }

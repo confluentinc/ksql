@@ -22,7 +22,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -92,7 +92,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncLagReportRequest(
       final URI serverEndPoint,
-      final LagReportingRequest lagReportingRequest
+      final LagReportingMessage lagReportingMessage
   ) {
     throw new UnsupportedOperationException();
   }

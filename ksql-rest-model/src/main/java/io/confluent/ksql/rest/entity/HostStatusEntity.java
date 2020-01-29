@@ -50,6 +50,10 @@ public class HostStatusEntity {
     return lastStatusUpdateMs;
   }
 
+  public HostStatusEntity copyWithStatus(final boolean hostAlive) {
+    return new HostStatusEntity(hostInfoEntity, hostAlive, lastStatusUpdateMs);
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import org.apache.kafka.streams.state.HostInfo;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HostInfoEntity {
@@ -49,6 +50,10 @@ public class HostInfoEntity {
 
   public int getPort() {
     return port;
+  }
+
+  public HostInfo toHostInfo() {
+    return new HostInfo(host, port);
   }
 
   @Override

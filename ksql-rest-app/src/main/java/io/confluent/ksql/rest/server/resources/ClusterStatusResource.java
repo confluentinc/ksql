@@ -57,10 +57,9 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags =
-        lagReportingAgent.isPresent() ?
-            lagReportingAgent.get().listAllLags() :
-            Collections.emptyMap();
+    final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags =
+        lagReportingAgent.isPresent()
+            ? lagReportingAgent.get().listAllLags() : Collections.emptyMap();
     return new ClusterStatusResponse(heartbeatAgent.getHostsStatus(), lags);
   }
 }

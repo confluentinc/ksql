@@ -239,27 +239,22 @@ public final class HeartbeatAgent {
     private void processHeartbeats(final long windowStart, final long windowEnd) {
       // No heartbeats received -> mark all hosts as dead
       if (receivedHeartbeats.isEmpty()) {
-        hostsStatus.forEach((host, status) -> {
+        hostsStatus.replaceAll((host, status) -> {
           if (!host.equals(localHostString)) {
-            hostsStatus.put(host, new HostStatusEntity(status.getHostInfoEntity(),
-                                                       false,
-                                                       status.getLastStatusUpdateMs()));
+            return status.copyWithStatus(false);
           }
+          return status;
         });
       }
 
-      for (Entry<String, HostStatusEntity> entry: hostsStatus.entrySet()) {
-        final String host = entry.getKey();
-        final HostStatusEntity status = entry.getValue();
+      for (String host : hostsStatus.keySet()) {
         if (host.equals(localHostString)) {
           continue;
         }
         final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.get(host);
         //For previously discovered hosts, if they have not received any heartbeats, mark them dead
         if (heartbeats == null || heartbeats.isEmpty()) {
-          hostsStatus.put(host, new HostStatusEntity(status.getHostInfoEntity(),
-                                                     false,
-                                                     status.getLastStatusUpdateMs()));
+          hostsStatus.computeIfPresent(host, (h, s) -> s.copyWithStatus(false));
         } else {
           final TreeMap<Long, HeartbeatInfo> copy;
           synchronized (heartbeats) {
@@ -270,8 +265,8 @@ public final class HeartbeatAgent {
           }
           // 2. count consecutive missed heartbeats and mark as alive or dead
           final  boolean isAlive = decideStatus(host, windowStart, windowEnd, copy);
-          hostsStatus.put(host,
-              new HostStatusEntity(status.getHostInfoEntity(), isAlive, windowEnd));
+          hostsStatus.computeIfPresent(host,
+              (h, s) -> new HostStatusEntity(s.getHostInfoEntity(), isAlive, windowEnd));
         }
       }
 

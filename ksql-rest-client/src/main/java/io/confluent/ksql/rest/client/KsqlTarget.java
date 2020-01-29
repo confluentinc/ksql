@@ -26,7 +26,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.LagReportingRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
@@ -54,7 +54,7 @@ public final class KsqlTarget {
   private static final String QUERY_PATH = "/query";
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
-  private static final String LAG_REPORT_PATH = "/lag/report";
+  private static final String LAG_REPORT_PATH = "/lag";
 
   private final WebTarget target;
   private final LocalProperties localProperties;
@@ -98,11 +98,11 @@ public final class KsqlTarget {
   }
 
   public Future<Response> postAsyncLagReportingRequest(
-      final LagReportingRequest lagReportingRequest
+      final LagReportingMessage lagReportingMessage
   ) {
     return postAsync(
         LAG_REPORT_PATH,
-        lagReportingRequest,
+        lagReportingMessage,
         Optional.empty()
     );
   }

@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "< operator",
+      "statements": [
+        "CREATE STREAM INPUT (text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select text, text < 'b2' from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "a1"},
+        {"topic": "test_topic", "value": "b1"},
+        {"topic": "test_topic", "value": "B2"},
+        {"topic": "test_topic", "value": "b2"},
+        {"topic": "test_topic", "value": "b3"},
+        {"topic": "test_topic", "value": "b10"},
+        {"topic": "test_topic", "value": "b01"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "a1,true"},
+        {"topic": "OUTPUT", "value": "b1,true"},
+        {"topic": "OUTPUT", "value": "B2,true"},
+        {"topic": "OUTPUT", "value": "b2,false"},
+        {"topic": "OUTPUT", "value": "b3,false"},
+        {"topic": "OUTPUT", "value": "b10,true"},
+        {"topic": "OUTPUT", "value": "b01,true"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN"
+          }
+        ]
+      }
+    }
+  ]
+}

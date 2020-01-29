@@ -48,7 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"UnstableApiUsage","unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings({"UnstableApiUsage","unchecked"})
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -65,6 +65,11 @@ public class LogicalSchemaTest {
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
+
+  // Constants used to represent column counts:
+  private static final int ROWTIME = 1;
+  private static final int ROWKEY = 1;
+  private static final int WINDOW_BOUNDS = 2;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -399,15 +404,16 @@ public class LogicalSchemaTest {
         .withMetaAndKeyColsInValue(false);
 
     // Then:
-    assertThat(result.value(), hasSize(schema.value().size() + 2));
+    assertThat(result.value(), hasSize(schema.value().size() + ROWTIME + ROWKEY));
     assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
     assertThat(result.value().get(0).type(), is(BIGINT));
     assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
     assertThat(result.value().get(1).type(), is(STRING));
+    assertThat(result.value().get(2).name(), is(F0));
   }
 
   @Test
-  public void shouldAddKeyAsStringWhenAddingToValue() {
+  public void shouldAddWindowedMetaAndKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, DOUBLE)
@@ -420,9 +426,16 @@ public class LogicalSchemaTest {
         .withMetaAndKeyColsInValue(true);
 
     // Then:
-    assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().get(1).type(), is(STRING));
-    assertThat(result.key().get(0).type(), is(DOUBLE));
+    assertThat(result.value(), hasSize(schema.value().size() + ROWTIME + WINDOW_BOUNDS + ROWKEY));
+    assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
+    assertThat(result.value().get(0).type(), is(BIGINT));
+    assertThat(result.value().get(1).name(), is(SchemaUtil.WINDOWSTART_NAME));
+    assertThat(result.value().get(1).type(), is(BIGINT));
+    assertThat(result.value().get(2).name(), is(SchemaUtil.WINDOWEND_NAME));
+    assertThat(result.value().get(2).type(), is(BIGINT));
+    assertThat(result.value().get(3).name(), is(SchemaUtil.ROWKEY_NAME));
+    assertThat(result.value().get(3).type(), is(DOUBLE));
+    assertThat(result.value().get(4).name(), is(F0));
   }
 
   @Test
@@ -472,6 +485,26 @@ public class LogicalSchemaTest {
         .valueColumn(F1, BIGINT)
         .build()
         .withMetaAndKeyColsInValue(false);
+
+    // When
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+    ));
+  }
+
+ @Test
+  public void shouldRemoveWindowedMetaColumnsFromValue() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+        .withMetaAndKeyColsInValue(true);
 
     // When
     final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();

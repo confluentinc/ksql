@@ -184,7 +184,7 @@ public class Analysis implements ImmutableAnalysis {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
-            s -> s.getDataSource().getSchema()
+            Analysis::buildStreamsSchema
         ));
 
     return new SourceSchemas(schemaBySource);
@@ -228,6 +228,14 @@ public class Analysis implements ImmutableAnalysis {
   @Override
   public List<FunctionCall> getTableFunctions() {
     return tableFunctions;
+  }
+
+  private static LogicalSchema buildStreamsSchema(final AliasedDataSource s) {
+    // Include metadata & key columns in the value schema to match the schema the streams
+    // topology will use.
+    return s.getDataSource()
+        .getSchema()
+        .withMetaAndKeyColsInValue(s.getDataSource().getKsqlTopic().getKeyFormat().isWindowed());
   }
 
   @Immutable

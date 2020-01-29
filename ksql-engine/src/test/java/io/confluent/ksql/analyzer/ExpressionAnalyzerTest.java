@@ -23,8 +23,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -68,39 +66,6 @@ public class ExpressionAnalyzerTest {
   }
 
   @Test
-  public void shouldNotThrowOnWindowStartIfAllowed() {
-    // Given:
-    final Expression expression = new ComparisonExpression(
-        Type.EQUAL,
-        WINDOW_START_EXP,
-        OTHER_EXP
-    );
-
-    // When:
-    analyzer.analyzeExpression(expression, true);
-
-    // Then: did not throw
-  }
-
-  @Test
-  public void shouldThrowOnWindowStartIfNotAllowed() {
-    // Given:
-    final Expression expression = new ComparisonExpression(
-        Type.EQUAL,
-        WINDOW_START_EXP,
-        OTHER_EXP
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'WINDOWSTART' cannot be resolved.");
-
-    // When:
-    analyzer.analyzeExpression(expression, false);
-  }
-
-  @Test
   public void shouldGetSourceForUnqualifiedColumnRef() {
     // Given:
     final ColumnRef column = ColumnRef.of(ColumnName.of("qualified"));
@@ -112,7 +77,7 @@ public class ExpressionAnalyzerTest {
     when(sourceSchemas.sourcesWithField(any(), any())).thenReturn(sourceNames("something"));
 
     // When:
-    analyzer.analyzeExpression(expression, true);
+    analyzer.analyzeExpression(expression);
 
     // Then:
     verify(sourceSchemas).sourcesWithField(Optional.of(SourceName.of("fully")), column);
@@ -134,7 +99,7 @@ public class ExpressionAnalyzerTest {
         "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
 
     // When:
-    analyzer.analyzeExpression(expression, true);
+    analyzer.analyzeExpression(expression);
   }
 
   @Test
@@ -149,7 +114,7 @@ public class ExpressionAnalyzerTest {
         .thenReturn(ImmutableSet.of(SourceName.of("something")));
 
     // When:
-    final Set<SourceName> columnRefs = analyzer.analyzeExpression(expression, true);
+    final Set<SourceName> columnRefs = analyzer.analyzeExpression(expression);
 
     // Then:
     verify(sourceSchemas).sourcesWithField(
@@ -177,7 +142,7 @@ public class ExpressionAnalyzerTest {
         "Column 'just-name' cannot be resolved.");
 
     // When:
-    analyzer.analyzeExpression(expression, true);
+    analyzer.analyzeExpression(expression);
   }
 
   private static Set<SourceName> sourceNames(final String... names) {

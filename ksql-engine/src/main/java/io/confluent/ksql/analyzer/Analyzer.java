@@ -313,26 +313,19 @@ class Analyzer {
           new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
       for (final SelectExpression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression.getExpression(), false);
+        expressionAnalyzer.analyzeExpression(selectExpression.getExpression());
       }
 
       analysis.getWhereExpression().ifPresent(where -> {
-        final boolean allowWindowMetaFields = pullQuery
-            && analysis.getFromDataSources().get(0)
-            .getDataSource()
-            .getKsqlTopic()
-            .getKeyFormat()
-            .isWindowed();
-
-        expressionAnalyzer.analyzeExpression(where, allowWindowMetaFields);
+        expressionAnalyzer.analyzeExpression(where);
       });
 
       for (final Expression expression : analysis.getGroupByExpressions()) {
-        expressionAnalyzer.analyzeExpression(expression, false);
+        expressionAnalyzer.analyzeExpression(expression);
       }
 
       analysis.getHavingExpression().ifPresent(having ->
-          expressionAnalyzer.analyzeExpression(having, false)
+          expressionAnalyzer.analyzeExpression(having)
       );
     }
 
@@ -356,16 +349,14 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final Set<SourceName> srcsUsedInLeft =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas()).analyzeExpression(
-              comparisonExpression.getLeft(),
-              false
-          );
-      final Set<SourceName> srcsUsedInRight =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas()).analyzeExpression(
-              comparisonExpression.getRight(),
-              false
-          );
+      final ExpressionAnalyzer expressionAnalyzer =
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
+
+      final Set<SourceName> srcsUsedInLeft = expressionAnalyzer
+          .analyzeExpression(comparisonExpression.getLeft());
+
+      final Set<SourceName> srcsUsedInRight = expressionAnalyzer
+          .analyzeExpression(comparisonExpression.getRight());
 
       final SourceName leftSourceName = getOnlySourceForJoin(
           comparisonExpression.getLeft(), comparisonExpression, srcsUsedInLeft);
@@ -587,13 +578,14 @@ class Analyzer {
             : "";
 
         final LogicalSchema schema = source.getDataSource().getSchema();
+        final boolean windowed = source.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
 
         // Non-join persistent queries only require value columns on SELECT *
         // where as joins and transient queries require all columns in the select:
         // See https://github.com/confluentinc/ksql/issues/3731 for more info
         final List<Column> valueColumns = persistent && !analysis.isJoin()
             ? schema.value()
-            : schema.columns();
+            : schema.withMetaAndKeyColsInValue(windowed).value();
 
         for (final Column column : valueColumns) {
 

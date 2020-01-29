@@ -136,9 +136,8 @@ public final class LogicalSchema {
    *
    * <p>If the columns already exist in the value schema the function returns the same schema.
    *
-   * @param windowed indicates that the source is windowed; meaning key column copied to
-   *     value will be of type {@link SqlTypes#STRING}, inline with how {@code SourceBuilder}
-   *     creates a {@code String} {@code ROWKEY} for windowed sources.
+   * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
+   * WINDOWEND} columns will added to the value schema to represent the window bounds.
    * @return the new schema.
    */
   public LogicalSchema withMetaAndKeyColsInValue(final boolean windowed) {
@@ -244,16 +243,27 @@ public final class LogicalSchema {
         builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
       }
 
+      if (windowedKey) {
+        builder.add(
+            Column.of(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
+        builder.add(
+            Column.of(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
+      }
+
       for (final Column c : key) {
-        final SqlType type = windowedKey ? SqlTypes.STRING : c.type();
-        builder.add(Column.of(c.name(), type, Namespace.VALUE, valueIndex++));
+        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
       }
     }
 
     for (final Column c : value) {
+      if (c.name().equals(SchemaUtil.WINDOWSTART_NAME)
+          || c.name().equals(SchemaUtil.WINDOWEND_NAME)
+      ) {
+        continue;
+      }
+
       if (findColumnMatching(
-          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-              .and(withRef(c.ref()))
+          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY)).and(withRef(c.ref()))
           )).isPresent()) {
         continue;
       }

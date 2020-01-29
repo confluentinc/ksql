@@ -103,7 +103,7 @@ The previous SQL statement makes no assumptions about the Kafka message
 key in the underlying Kafka topic. If the value of the message key in
 the topic is the same as one of the columns defined in the stream, you
 can specify the key in the WITH clause of the CREATE STREAM statement.
-If you later use this column name to perform a join or a repartition KSQL
+If you use this column name later to perform a join or a repartition, ksqlDB
 knows no repartition is needed. In effect, the named column becomes an
 alias for ROWKEY.
 

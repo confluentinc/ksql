@@ -99,7 +99,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
   void addFunction(final T function) {
     final List<ParamType> parameters = function.parameters();
-    if (allFunctions.put(function.parameters(), function) != null) {
+    if (allFunctions.put(parameters, function) != null) {
       throw new KsqlException(
           "Can't add function "
               + function
@@ -125,7 +125,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
       // then add a new child node with the parameter value type
       // and add this function to that node
-      final ParamType varargSchema = Iterables.getLast(function.parameters());
+      final ParamType varargSchema = Iterables.getLast(parameters);
       final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
       leaf.update(function, order);
@@ -177,12 +177,23 @@ public class UdfIndex<T extends FunctionSignature> {
   private KsqlException createNoMatchingFunctionException(final List<SqlType> paramTypes) {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
-    final String sqlParamTypes = paramTypes.stream()
+    final String requiredTypes = paramTypes.stream()
         .map(type -> type == null ? "null" : type.toString(FormatOptions.noEscape()))
-        .collect(Collectors.joining(", ", "[", "]"));
+        .collect(Collectors.joining(", ", "(", ")"));
+
+    final String acceptedTypes = allFunctions.values().stream()
+        .map(UdfIndex::formatAvailableSignatures)
+        .collect(Collectors.joining(System.lineSeparator()));
 
     return new KsqlException("Function '" + udfName
-        + "' does not accept parameters of types:" + sqlParamTypes);
+        + "' does not accept parameters " + requiredTypes + "."
+        + System.lineSeparator()
+        + "Valid alternatives are:"
+        + System.lineSeparator()
+        + acceptedTypes
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;"
+    );
   }
 
   public Collection<T> values() {
@@ -194,6 +205,34 @@ public class UdfIndex<T extends FunctionSignature> {
     sb.append("-ROOT\n");
     root.describe(sb, 1);
     return sb.toString();
+  }
+
+  private static <T extends FunctionSignature> String formatAvailableSignatures(final T function) {
+    final boolean variadicFunction = function.isVariadic();
+    final List<ParameterInfo> parameters = function.parameterInfo();
+
+    final StringBuilder result = new StringBuilder();
+    result.append(function.name().toString(FormatOptions.noEscape())).append("(");
+
+    for (int i = 0; i < parameters.size(); i++) {
+      final ParameterInfo param = parameters.get(i);
+      final boolean variadicParam = variadicFunction && i == (parameters.size() - 1);
+      final String type = variadicParam
+          ? ((ArrayType) param.type()).element().toString() + "..."
+          : param.type().toString();
+
+      if (i != 0) {
+        result.append(", ");
+      }
+
+      result.append(type);
+
+      if (!param.name().isEmpty()) {
+        result.append(" ").append(param.name());
+      }
+    }
+
+    return result.append(")").toString();
   }
 
   private final class Node {
@@ -330,5 +369,4 @@ public class UdfIndex<T extends FunctionSignature> {
       return type + (isVararg ? "(VARARG)" : "");
     }
   }
-
 }

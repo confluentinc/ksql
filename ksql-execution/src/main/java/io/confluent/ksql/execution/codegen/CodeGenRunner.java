@@ -82,7 +82,7 @@ public class CodeGenRunner {
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry, true);
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {

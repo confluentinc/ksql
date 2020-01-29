@@ -58,6 +58,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
@@ -96,6 +97,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -199,10 +201,11 @@ public final class PullQueryExecutor {
       final LogicalSchema outputSchema;
       final List<List<?>> rows;
       if (isSelectStar(statement.getStatement().getSelect())) {
-        outputSchema = TableRowsEntityFactory.buildSchema(result.schema, mat.windowType());
+        outputSchema = TableRowsEntityFactory
+            .buildSchema(result.schema, mat.windowType().isPresent());
         rows = TableRowsEntityFactory.createRows(result.rows);
       } else {
-        outputSchema = selectOutputSchema(result, executionContext, analysis);
+        outputSchema = selectOutputSchema(result, executionContext, analysis, mat.windowType());
 
         rows = handleSelects(
             result,
@@ -210,6 +213,7 @@ public final class PullQueryExecutor {
             executionContext,
             analysis,
             outputSchema,
+            mat.windowType(),
             queryId,
             contextStacker
         );
@@ -559,37 +563,43 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis,
       final LogicalSchema outputSchema,
+      final Optional<WindowType> windowType,
       final QueryId queryId,
       final Stacker contextStacker
   ) {
-    final boolean referencesRowTime = analysis.getSelectColumnRefs().stream()
-        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWTIME_NAME));
-
-    final boolean referencesRowKey = analysis.getSelectColumnRefs().stream()
-        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWKEY_NAME));
+    final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
+        .noneMatch(ref -> SchemaUtil.systemColumnNames().contains(ref.name()));
 
     final LogicalSchema intermediateSchema;
-    final PreSelectTransformer preSelectTransform;
-    if (!referencesRowTime && !referencesRowKey) {
+    final Function<TableRow, GenericRow> preSelectTransform;
+    if (noSystemColumns) {
       intermediateSchema = input.schema;
-      preSelectTransform = (rowTime, key, value) -> value;
+      preSelectTransform = TableRow::value;
     } else {
       // SelectValueMapper requires the rowTime & key fields in the value schema :(
-      intermediateSchema = LogicalSchema.builder()
-          .keyColumns(input.schema.key())
-          .valueColumns(input.schema.value())
-          .valueColumns(input.schema.metadata())
-          .valueColumns(input.schema.key())
-          .build();
+      final boolean windowed = windowType.isPresent();
 
-      preSelectTransform = (rowTime, key, value) -> {
-        value.getColumns().add(rowTime);
+      intermediateSchema = input.schema
+          .withMetaAndKeyColsInValue(windowed);
 
-        key.schema().fields().forEach(f -> {
-          final Object keyField = key.get(f);
-          value.getColumns().add(keyField);
+      preSelectTransform = row -> {
+        final Struct key = row.key();
+        final List<Object> columns = row.value().getColumns();
+
+        columns.add(0, row.rowTime());
+
+        final List<Object> keyFields = key.schema().fields().stream()
+            .map(key::get)
+            .collect(Collectors.toList());
+
+        columns.addAll(1, keyFields);
+
+        row.window().ifPresent(window -> {
+          columns.add(1, window.start().toEpochMilli());
+          columns.add(2, window.end().toEpochMilli());
         });
-        return value;
+
+        return row.value();
       };
     }
 
@@ -616,7 +626,7 @@ public final class PullQueryExecutor {
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
-      final GenericRow intermediate = preSelectTransform.transform(r.rowTime(), r.key(), r.value());
+      final GenericRow intermediate = preSelectTransform.apply(r);
 
       final GenericRow mapped = transformer.transform(
           r.key(),
@@ -647,22 +657,27 @@ public final class PullQueryExecutor {
   private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final Optional<WindowType> windowType
   ) {
     final Builder schemaBuilder = LogicalSchema.builder()
         .noImplicitColumns();
 
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        input.schema,
-        executionContext.getMetaStore(),
-        false
-    );
+    // Copy meta & key columns into the value schema as SelectValueMapper expects it:
+    final LogicalSchema schema = input.schema
+        .withMetaAndKeyColsInValue(windowType.isPresent());
+
+    final ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, executionContext.getMetaStore());
 
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
       final SelectExpression select = analysis.getSelectExpressions().get(idx);
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
-      if (input.schema.isKeyColumn(select.getAlias())) {
+      if (input.schema.isKeyColumn(select.getAlias())
+          || select.getAlias().equals(SchemaUtil.WINDOWSTART_NAME)
+          || select.getAlias().equals(SchemaUtil.WINDOWEND_NAME)
+      ) {
         schemaBuilder.keyColumn(select.getAlias(), type);
       } else {
         schemaBuilder.valueColumn(select.getAlias(), type);
@@ -817,15 +832,6 @@ public final class PullQueryExecutor {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
     key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
     return key;
-  }
-
-  private interface PreSelectTransformer {
-
-    GenericRow transform(
-        long rowTime,
-        Struct readOnlyKey,
-        GenericRow value
-    );
   }
 
   private static final class ColumnReferenceRewriter

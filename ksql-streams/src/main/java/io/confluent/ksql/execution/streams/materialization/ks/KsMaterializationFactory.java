@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.streams.materialization.Locator;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -65,7 +65,7 @@ public final class KsMaterializationFactory {
    * @param stateStoreName the name of the state store in the Kafka Streams instance.
    * @param kafkaStreams the Kafka Streams instance.
    * @param keySerializer the key serializer - used purely for location lookups.
-   * @param windowType the window type of the key.
+   * @param windowInfo the window type of the key.
    * @param streamsProperties the Kafka Streams properties.
    * @return the new instance if the streams props support IQ.
    */
@@ -74,7 +74,7 @@ public final class KsMaterializationFactory {
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
       final Serializer<Struct> keySerializer,
-      final Optional<WindowType> windowType,
+      final Optional<WindowInfo> windowInfo,
       final Map<String, ?> streamsProperties,
       final KsqlConfig ksqlConfig
   ) {
@@ -100,7 +100,7 @@ public final class KsMaterializationFactory {
     );
 
     final KsMaterialization materialization = materializationFactory.create(
-        windowType,
+        windowInfo,
         locator,
         stateStore
     );
@@ -144,7 +144,7 @@ public final class KsMaterializationFactory {
   interface MaterializationFactory {
 
     KsMaterialization create(
-        Optional<WindowType> windowType,
+        Optional<WindowInfo> windowInfo,
         Locator locator,
         KsStateStore stateStore
     );

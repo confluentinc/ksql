@@ -29,7 +29,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -59,7 +58,7 @@ public class WindowedRowTest {
       .put("k0", "key")
       .put("k1", 11);
 
-  private static final Window A_WINDOW = Window.of(Instant.MIN, Optional.empty());
+  private static final Window A_WINDOW = Window.of(Instant.MIN, Instant.MIN.plusMillis(1));
 
   private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 12335L;

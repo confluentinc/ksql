@@ -286,7 +286,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.empty());
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
@@ -332,7 +332,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.empty());
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
@@ -376,7 +376,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.of(k.window().endTime()));
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));

@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -37,7 +36,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Test;
 
 public class TableRowsEntityFactoryTest {
@@ -89,8 +87,8 @@ public class TableRowsEntityFactoryTest {
   public void shouldAddWindowedRowToValues() {
     // Given:
     final Instant now = Instant.now();
-    final Window window0 = Window.of(now, Optional.empty());
-    final Window window1 = Window.of(now, Optional.of(now));
+    final Window window0 = Window.of(now, now.plusMillis(2));
+    final Window window1 = Window.of(now, now.plusMillis(1));
 
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
@@ -114,9 +112,10 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(2));
-    assertThat(output.get(0), contains("x", now.toEpochMilli(), ROWTIME, true));
+    assertThat(output.get(0),
+        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), ROWTIME, true));
     assertThat(output.get(1),
-        contains("y", now.toEpochMilli(), now.toEpochMilli(), ROWTIME, false));
+        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), ROWTIME, false));
   }
 
   @Test
@@ -143,7 +142,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldJustDuplicateRowTimeInValueIfNotWindowed() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, Optional.empty());
+    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, false);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -160,46 +159,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldAddHoppingWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.HOPPING));
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
-        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldAddTumblingWindowFieldsToSchema() {
-    // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.TUMBLING));
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
-        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldAddSessionWindowFieldsToSchema() {
-    // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.SESSION));
+    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, true);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()

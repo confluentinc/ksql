@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -76,7 +75,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
           final Window window = Window.of(
               next.key.window().startTime(),
-              Optional.of(next.key.window().endTime())
+              next.key.window().endTime()
           );
 
           final WindowedRow row = WindowedRow.of(

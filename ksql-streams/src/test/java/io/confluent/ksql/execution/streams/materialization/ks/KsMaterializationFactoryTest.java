@@ -30,6 +30,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -151,15 +152,16 @@ public class KsMaterializationFactoryTest {
   @Test
   public void shouldBuildMaterializationWithCorrectParams() {
     // Given:
-    final Optional<WindowType> windowType = Optional.of(WindowType.SESSION);
+    final Optional<WindowInfo> windowInfo =
+        Optional.of(WindowInfo.of(WindowType.SESSION, Optional.empty()));
 
     // When:
-    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowType, streamsProperties,
+    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowInfo, streamsProperties,
         ksqlConfig);
 
     // Then:
     verify(materializationFactory).create(
-        windowType,
+        windowInfo,
         locator,
         stateStore
     );

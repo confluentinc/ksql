@@ -70,7 +70,7 @@ public class KsqlMaterializationTest {
   );
   private static final GenericRow A_VALUE = new GenericRow("a", "b");
   private static final GenericRow TRANSFORMED = new GenericRow("x", "y");
-  private static final Window A_WINDOW = Window.of(Instant.now(), Optional.empty());
+  private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
 
   private static final Row ROW = Row.of(
       SCHEMA,

@@ -256,7 +256,7 @@ pages that have a `pageid` value that's less than `Page_20`:
 ```sql
 CREATE STREAM pageviews_intro AS
       SELECT * FROM pageviews
-      WHERE CAST(SUBSTRING(pageid, LEN('Page_') + 1) AS INT) < 20
+      WHERE pageid < 'Page_20'
       EMIT CHANGES;
 ```
 
@@ -306,7 +306,7 @@ Your output should resemble:
 ```
      Query ID               | Kafka Topic     | Query String
 
-     CSAS_PAGEVIEWS_INTRO_0 | PAGEVIEWS_INTRO | CREATE STREAM pageviews_intro AS       SELECT * FROM pageviews       WHERE CAST(SUBSTRING(pageid, LEN('Page_') + 1) AS INT) < 20 EMIT CHANGES;
+     CSAS_PAGEVIEWS_INTRO_0 | PAGEVIEWS_INTRO | CREATE STREAM pageviews_intro AS       SELECT * FROM pageviews       WHERE pageid < 'Page_20' EMIT CHANGES;
 
     For detailed information on a Query run: EXPLAIN <Query ID>;
 ```

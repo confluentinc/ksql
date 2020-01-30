@@ -19,10 +19,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.apache.kafka.streams.state.HostInfo;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Immutable
 public class HostInfoEntity {
 
   private final String host;
@@ -33,7 +35,7 @@ public class HostInfoEntity {
       final int port
   ) {
     this.host = Objects.requireNonNull(host, "host");
-    this.port = Objects.requireNonNull(port, "port");
+    this.port = port;
   }
 
   @JsonCreator

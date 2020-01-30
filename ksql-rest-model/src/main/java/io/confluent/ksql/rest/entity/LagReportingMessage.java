@@ -26,9 +26,9 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingMessage {
 
-  private HostInfoEntity hostInfo;
-  private Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
-  private long lastLagUpdateMs;
+  private final HostInfoEntity hostInfo;
+  private final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
+  private final long lastLagUpdateMs;
 
   @JsonCreator
   public LagReportingMessage(

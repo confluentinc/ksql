@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql;
+package io.confluent.ksql.rest;
 
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
@@ -25,7 +25,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Windows;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,7 +43,7 @@ public class ImmutabilityTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Class<?>> data() {
     return ImmutableTester
-        .classesMarkedImmutable(ImmutabilityTest.class.getPackage().getName());
+        .classesMarkedImmutable("io.confluent.ksql");
   }
 
   public ImmutabilityTest(final Class<?> modelClass) {
@@ -61,7 +60,6 @@ public class ImmutabilityTest {
         .withKnownImmutableType(KGroupedStream.class)
         .withKnownImmutableType(KGroupedTable.class)
         .withKnownImmutableType(Serde.class)
-        .withKnownImmutableType(Windows.class)
         .test(modelClass);
   }
 }

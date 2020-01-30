@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql;
+package io.confluent.ksql.cli;
 
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
@@ -43,7 +43,7 @@ public class ImmutabilityTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Class<?>> data() {
     return ImmutableTester
-        .classesMarkedImmutable(ImmutabilityTest.class.getPackage().getName());
+        .classesMarkedImmutable("io.confluent.ksql");
   }
 
   public ImmutabilityTest(final Class<?> modelClass) {

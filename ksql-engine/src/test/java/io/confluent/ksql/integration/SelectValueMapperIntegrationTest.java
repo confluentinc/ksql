@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -112,9 +113,5 @@ public class SelectValueMapperIntegrationTest {
         ksqlConfig,
         TestFunctionRegistry.INSTANCE.get()
     ).getTransformer(processingLogger);
-  }
-
-  private static GenericRow genericRow(final Object... columns) {
-    return new GenericRow(columns);
   }
 }

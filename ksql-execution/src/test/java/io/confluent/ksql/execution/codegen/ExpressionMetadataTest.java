@@ -70,7 +70,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    final Object result = expressionMetadata.evaluate(new GenericRow(123, 456));
+    final Object result = expressionMetadata.evaluate(GenericRow.genericRow(123, 456));
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
@@ -98,7 +98,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    final Object result = expressionMetadata.evaluate(new GenericRow(123));
+    final Object result = expressionMetadata.evaluate(GenericRow.genericRow(123));
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
@@ -138,7 +138,7 @@ public class ExpressionMetadataTest {
     );
 
     final Thread thread = new Thread(
-        () -> expressionMetadata.evaluate(new GenericRow(123, 456))
+        () -> expressionMetadata.evaluate(GenericRow.genericRow(123, 456))
     );
 
     // When:
@@ -148,7 +148,7 @@ public class ExpressionMetadataTest {
     assertThat(threadLatch.await(10, TimeUnit.SECONDS), is(true));
 
     // When:
-    expressionMetadata.evaluate(new GenericRow(100, 200));
+    expressionMetadata.evaluate(GenericRow.genericRow(100, 200));
     mainLatch.countDown();
 
     // Then:

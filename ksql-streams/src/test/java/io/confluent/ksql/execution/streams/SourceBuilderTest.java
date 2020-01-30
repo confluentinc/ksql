@@ -282,7 +282,7 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final ConsumerRecord<Object, Object> record = mock(ConsumerRecord.class);
-    when(record.value()).thenReturn(new GenericRow("123", A_ROWTIME));
+    when(record.value()).thenReturn(GenericRow.genericRow("123", A_ROWTIME));
 
     // When:
     streamSource.build(planBuilder);
@@ -464,7 +464,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -478,7 +478,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -494,7 +494,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
   }
 
   @Test
@@ -514,7 +514,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -534,7 +534,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        is(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -554,7 +554,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -574,7 +574,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test

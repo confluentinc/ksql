@@ -37,8 +37,8 @@ public class GenericRow {
     this.columns = new ArrayList<>(columns);
   }
 
-  public GenericRow(final Object ...columns) {
-    this(Arrays.asList(columns));
+  public static GenericRow genericRow(final Object... columns) {
+    return new GenericRow(Arrays.asList(columns));
   }
 
   /**

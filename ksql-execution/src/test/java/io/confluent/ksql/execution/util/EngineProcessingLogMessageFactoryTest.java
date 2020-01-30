@@ -34,7 +34,7 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, error, new GenericRow(123, "data")
+        errorMsg, error, GenericRow.genericRow(123, "data")
     ).apply(config);
 
     // Then:
@@ -89,7 +89,7 @@ public class EngineProcessingLogMessageFactoryTest {
 
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, error, new GenericRow(123, "data")
+        errorMsg, error, GenericRow.genericRow(123, "data")
     ).apply(config);
 
     // Then:

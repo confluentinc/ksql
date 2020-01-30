@@ -298,7 +298,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow row = new GenericRow("str", 10);
+    final GenericRow row = GenericRow.genericRow("str", 10);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
@@ -337,7 +337,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow tooFew = new GenericRow("str");
+    final GenericRow tooFew = GenericRow.genericRow("str");
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -353,7 +353,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow tooFew = new GenericRow("str", 10, "extra");
+    final GenericRow tooFew = GenericRow.genericRow("str", 10, "extra");
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -369,7 +369,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(WRAPPED_SINGLE_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow row = new GenericRow("str");
+    final GenericRow row = GenericRow.genericRow("str");
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
@@ -390,7 +390,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow row = new GenericRow("str");
+    final GenericRow row = GenericRow.genericRow("str");
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
@@ -424,7 +424,7 @@ public class GenericRowSerDeTest {
     final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
         .serializer();
 
-    final GenericRow row = new GenericRow("str", "too many fields");
+    final GenericRow row = GenericRow.genericRow("str", "too many fields");
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -451,7 +451,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
 
-    assertThat(row, is(new GenericRow("str", 10)));
+    assertThat(row, is(GenericRow.genericRow("str", 10)));
   }
 
   @Test
@@ -487,7 +487,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
 
-    assertThat(row, is(new GenericRow("str")));
+    assertThat(row, is(GenericRow.genericRow("str")));
   }
 
   @Test
@@ -504,7 +504,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
 
-    assertThat(row, is(new GenericRow("str")));
+    assertThat(row, is(GenericRow.genericRow("str")));
   }
 
   @Test

@@ -254,6 +254,6 @@ public class StreamSelectKeyBuilderTest {
       final int rowTime,
       final String rowKey
   ) {
-    return new GenericRow(big, boi, rowTime, rowKey);
+    return GenericRow.genericRow(big, boi, rowTime, rowKey);
   }
 }

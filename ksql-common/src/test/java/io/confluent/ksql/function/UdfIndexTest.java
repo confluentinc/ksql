@@ -34,6 +34,8 @@ public class UdfIndexTest {
   private static final ParamType STRING = ParamTypes.STRING;
   private static final ParamType DECIMAL = ParamTypes.DECIMAL;
   private static final ParamType INT = ParamTypes.INTEGER;
+  private static final ParamType LONG = ParamTypes.LONG;
+  private static final ParamType DOUBLE = ParamTypes.DOUBLE;
   private static final ParamType STRUCT1 = StructType.builder().field("a", STRING).build();
   private static final ParamType STRUCT2 = StructType.builder().field("b", INT).build();
   private static final ParamType MAP1 = MapType.of(STRING);
@@ -83,6 +85,37 @@ public class UdfIndexTest {
 
     // When:
     final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlTypes.STRING));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindOneArgWithCast() {
+    // Given:
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, LONG)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindPreferredOneArgWithCast() {
+    // Given:
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(OTHER, false, LONG),
+        function(EXPECTED, false, INT),
+        function(OTHER, false, DOUBLE)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlTypes.INTEGER));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));

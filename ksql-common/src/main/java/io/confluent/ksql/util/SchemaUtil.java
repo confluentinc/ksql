@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseConverter;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.BooleanType;
@@ -152,14 +154,26 @@ public final class SchemaUtil {
   }
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
+    return areCompatible(actual, declared, false);
+  }
+
+  public static boolean areCompatible(
+      final SqlType actual,
+      final ParamType declared,
+      final boolean allowCast
+  ) {
     if (actual.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
-      return areCompatible(((SqlArray) actual).getItemType(), ((ArrayType) declared).element());
+      return areCompatible(
+          ((SqlArray) actual).getItemType(),
+          ((ArrayType) declared).element(),
+          allowCast);
     }
 
     if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
       return areCompatible(
           ((SqlMap) actual).getValueType(),
-          ((MapType) declared).value()
+          ((MapType) declared).value(),
+          allowCast
       );
     }
 
@@ -167,7 +181,7 @@ public final class SchemaUtil {
       return isStructCompatible(actual, declared);
     }
 
-    return isPrimitiveMatch(actual, declared);
+    return isPrimitiveMatch(actual, declared, allowCast);
   }
 
   private static boolean isStructCompatible(final SqlType actual, final ParamType declared) {
@@ -181,6 +195,7 @@ public final class SchemaUtil {
     for (final Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
       final String k = entry.getKey();
       final Optional<io.confluent.ksql.schema.ksql.types.Field> field = actualStruct.field(k);
+      // intentionally do not allow implicit casting within structs
       if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
         return false;
       }
@@ -189,15 +204,21 @@ public final class SchemaUtil {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private static boolean isPrimitiveMatch(final SqlType actual, final ParamType declared) {
+  private static boolean isPrimitiveMatch(
+      final SqlType actual,
+      final ParamType declared,
+      final boolean allowCast
+  ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    return actual.baseType() == SqlBaseType.STRING  && declared instanceof StringType
-        || actual.baseType() == SqlBaseType.INTEGER && declared instanceof IntegerType
-        || actual.baseType() == SqlBaseType.BIGINT  && declared instanceof LongType
-        || actual.baseType() == SqlBaseType.BOOLEAN && declared instanceof BooleanType
-        || actual.baseType() == SqlBaseType.DOUBLE  && declared instanceof DoubleType
-        || actual.baseType() == SqlBaseType.DECIMAL && declared instanceof DecimalType;
+    final SqlBaseType base = actual.baseType();
+    return base == SqlBaseType.STRING   && declared instanceof StringType
+        || base == SqlBaseType.INTEGER  && declared instanceof IntegerType
+        || base == SqlBaseType.BIGINT   && declared instanceof LongType
+        || base == SqlBaseType.BOOLEAN  && declared instanceof BooleanType
+        || base == SqlBaseType.DOUBLE   && declared instanceof DoubleType
+        || base == SqlBaseType.DECIMAL  && declared instanceof DecimalType
+        || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }
 }

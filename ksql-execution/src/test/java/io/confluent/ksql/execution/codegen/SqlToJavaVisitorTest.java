@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -62,6 +63,9 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -71,6 +75,7 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
@@ -244,7 +249,11 @@ public class SqlToJavaVisitorTest {
     final UdfFactory catFactory = mock(UdfFactory.class);
     final KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
     givenUdf("SUBSTRING", ssFactory, ssFunction);
+    when(ssFunction.parameters())
+        .thenReturn(ImmutableList.of(ParamTypes.STRING, ParamTypes.INTEGER, ParamTypes.INTEGER));
     givenUdf("CONCAT", catFactory, catFunction);
+    when(catFunction.parameters())
+        .thenReturn(ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING));
     final FunctionName ssName = FunctionName.of("SUBSTRING");
     final FunctionName catName = FunctionName.of("CONCAT");
     final FunctionCall substring1 = new FunctionCall(
@@ -273,6 +282,76 @@ public class SqlToJavaVisitorTest {
             + "((String) SUBSTRING_1.evaluate(COL1, 1, 3)), "
             + "((String) CONCAT_2.evaluate(\"-\","
             + " ((String) SUBSTRING_3.evaluate(COL1, 4, 5))))))"));
+  }
+
+  @Test
+  public void shouldImplicitlyCastFunctionCallParameters() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("FOO", udfFactory, udf);
+    when(udf.parameters()).thenReturn(ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.LONG));
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(
+        new FunctionCall(
+            FunctionName.of("FOO"),
+            ImmutableList.of(new DecimalLiteral(new BigDecimal("1.2")), new IntegerLiteral(1))
+        )
+    );
+
+    // Then:
+    assertThat(javaExpression, is(
+        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue())))"
+    ));
+  }
+
+  @Test
+  public void shouldImplicitlyCastFunctionCallParametersVariadic() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("FOO", udfFactory, udf);
+    when(udf.parameters()).thenReturn(ImmutableList.of(ParamTypes.DOUBLE, ArrayType.of(ParamTypes.LONG)));
+    when(udf.isVariadic()).thenReturn(true);
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(
+        new FunctionCall(
+            FunctionName.of("FOO"),
+            ImmutableList.of(
+                new DecimalLiteral(new BigDecimal("1.2")),
+                new IntegerLiteral(1),
+                new IntegerLiteral(1))
+        )
+    );
+
+    // Then:
+    assertThat(javaExpression, is(
+        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue()), (new Integer(1).longValue())))"
+    ));
+  }
+
+  @Test
+  public void shouldHandleFunctionCallsWithGenerics() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("FOO", udfFactory, udf);
+    when(udf.parameters()).thenReturn(ImmutableList.of(GenericType.of("T"), GenericType.of("T")));
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(
+        new FunctionCall(
+            FunctionName.of("FOO"),
+            ImmutableList.of(
+                new IntegerLiteral(1),
+                new IntegerLiteral(1))
+        )
+    );
+
+    // Then:
+    assertThat(javaExpression, is("((String) FOO_0.evaluate(1, 1))"));
   }
 
   @Test

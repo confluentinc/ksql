@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
@@ -63,8 +65,13 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
@@ -88,6 +95,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -352,24 +360,56 @@ public class SqlToJavaVisitor {
 
       final String instanceName = funNameToCodeName.apply(functionName);
 
-      final SqlType functionReturnSchema = getFunctionReturnSchema(node);
-      final String javaReturnType =
-          SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
-      final String arguments = node.getArguments().stream()
-          .map(arg -> process(arg, context).getLeft())
-          .collect(Collectors.joining(", "));
-      final String codeString = "((" + javaReturnType + ") " + instanceName
-          + ".evaluate(" + arguments + "))";
-      return new Pair<>(codeString, functionReturnSchema);
-    }
-
-    private SqlType getFunctionReturnSchema(final FunctionCall node) {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final List<SqlType> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSqlType)
           .collect(Collectors.toList());
 
-      return udfFactory.getFunction(argumentSchemas).getReturnType(argumentSchemas);
+      final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
+
+      final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
+      final String javaReturnType =
+          SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
+
+      final List<Expression> arguments = node.getArguments();
+
+      final StringJoiner joiner = new StringJoiner(", ");
+      for (int i = 0; i < arguments.size(); i++) {
+        final Expression arg = arguments.get(i);
+        final SqlType sqlType = argumentSchemas.get(i);
+
+        final ParamType paramType;
+        if (i >= function.parameters().size() - 1 && function.isVariadic()) {
+          paramType = ((ArrayType) Iterables.getLast(function.parameters())).element();
+        } else {
+          paramType = function.parameters().get(i);
+        }
+
+        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+      }
+
+
+      final String argumentsString = joiner.toString();
+      final String codeString = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + argumentsString + "))";
+      return new Pair<>(codeString, functionReturnSchema);
+    }
+
+    private Expression convertArgument(
+        final Expression argument,
+        final SqlType argType,
+        final ParamType funType
+    ) {
+      if (argType == null
+          || GenericsUtil.hasGenerics(funType)
+          || sqlToFunctionConverter().toFunctionType(argType).equals(funType)) {
+        return argument;
+      }
+
+      final SqlType target = funType == ParamTypes.DECIMAL
+          ? DecimalUtil.toSqlDecimal(argType)
+          : SchemaConverters.functionToSqlConverter().toSqlType(funType);
+      return new Cast(argument, new Type(target));
     }
 
     @Override

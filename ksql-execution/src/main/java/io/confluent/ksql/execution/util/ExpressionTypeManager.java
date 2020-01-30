@@ -82,16 +82,13 @@ public class ExpressionTypeManager {
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
-  private final boolean referenceValueColumnsOnly;
 
   public ExpressionTypeManager(
       final LogicalSchema schema,
-      final FunctionRegistry functionRegistry,
-      final boolean referenceValueColumnsOnly
+      final FunctionRegistry functionRegistry
   ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.referenceValueColumnsOnly = referenceValueColumnsOnly;
   }
 
   public SqlType getExpressionSqlType(final Expression expression) {
@@ -185,9 +182,7 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Optional<Column> possibleColumn = referenceValueColumnsOnly
-          ? schema.findValueColumn(node.getReference())
-          : schema.findColumn(node.getReference());
+      final Optional<Column> possibleColumn = schema.findValueColumn(node.getReference());
 
       final Column schemaColumn = possibleColumn.orElseThrow(() ->
           new KsqlException(String.format("Invalid Expression %s.", node.toString())));
@@ -468,7 +463,7 @@ public class ExpressionTypeManager {
         final AggregateFunctionInitArguments args =
             UdafUtil.createAggregateFunctionInitArgs(0, node);
 
-        final KsqlAggregateFunction aggFunc = functionRegistry
+        final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
             .getAggregateFunction(node.getName(), schema, args);
 
         expressionTypeContext.setSqlType(aggFunc.returnType());

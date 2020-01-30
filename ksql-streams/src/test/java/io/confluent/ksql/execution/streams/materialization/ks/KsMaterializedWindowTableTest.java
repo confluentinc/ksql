@@ -36,9 +36,9 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -57,6 +57,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializedWindowTableTest {
+
+  private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
@@ -93,7 +95,7 @@ public class KsMaterializedWindowTableTest {
 
   @Before
   public void setUp() {
-    table = new KsMaterializedWindowTable(stateStore);
+    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE);
 
     when(stateStore.store(any())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
@@ -206,14 +208,14 @@ public class KsMaterializedWindowTableTest {
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(bounds.lowerEndpoint(), Optional.empty()),
+            Window.of(bounds.lowerEndpoint(), windowEnd(bounds.lowerEndpoint())),
             VALUE_1.value(),
             VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(bounds.upperEndpoint(), Optional.empty()),
+            Window.of(bounds.upperEndpoint(), windowEnd(bounds.upperEndpoint())),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -250,7 +252,10 @@ public class KsMaterializedWindowTableTest {
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(bounds.lowerEndpoint().plusMillis(1), Optional.empty()),
+            Window.of(
+                bounds.lowerEndpoint().plusMillis(1),
+                windowEnd(bounds.lowerEndpoint().plusMillis(1))
+            ),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -284,21 +289,21 @@ public class KsMaterializedWindowTableTest {
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(start, Optional.empty()),
+            Window.of(start, windowEnd(start)),
             VALUE_1.value(),
             VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(start.plusMillis(1), Optional.empty()),
+            Window.of(start.plusMillis(1), windowEnd(start.plusMillis(1))),
             VALUE_2.value(),
             VALUE_2.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(start.plusMillis(2), Optional.empty()),
+            Window.of(start.plusMillis(2), windowEnd(start.plusMillis(2))),
             VALUE_3.value(),
             VALUE_3.timestamp()
         )
@@ -316,5 +321,9 @@ public class KsMaterializedWindowTableTest {
         Instant.ofEpochMilli(0L),
         Instant.ofEpochMilli(Long.MAX_VALUE)
     );
+  }
+
+  private static Instant windowEnd(final Instant windowStart) {
+    return windowStart.plus(WINDOW_SIZE);
   }
 }

@@ -40,7 +40,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -218,7 +217,7 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(LOWER_INSTANT, Optional.of(wend)),
+        Window.of(LOWER_INSTANT, wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -259,7 +258,7 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(UPPER_INSTANT, Optional.of(wend)),
+        Window.of(UPPER_INSTANT, wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -295,7 +294,7 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         A_KEY,
-        Window.of(LOWER_INSTANT.plusMillis(1), Optional.of(wend)),
+        Window.of(LOWER_INSTANT.plusMillis(1), wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -319,14 +318,14 @@ public class KsMaterializedSessionTableTest {
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(LOWER_INSTANT, Optional.of(wend0)),
+            Window.of(LOWER_INSTANT, wend0),
             A_VALUE,
             wend0.toEpochMilli()
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(UPPER_INSTANT, Optional.of(wend1)),
+            Window.of(UPPER_INSTANT, wend1),
             A_VALUE,
             wend1.toEpochMilli()
         )

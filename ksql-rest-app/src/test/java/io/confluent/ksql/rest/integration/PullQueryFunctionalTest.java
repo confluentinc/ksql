@@ -38,7 +38,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
@@ -98,6 +97,7 @@ public class PullQueryFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final int BASE_TIME = 1_000_000;
+  private static final int ONE_SECOND = (int)TimeUnit.SECONDS.toMillis(1);
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
@@ -226,7 +226,13 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
+        key,                    // ROWKEY
+        BASE_TIME,              // WINDOWSTART
+        BASE_TIME + ONE_SECOND, // WINDOWEND
+        BASE_TIME,              // ROWTIME
+        1                       // COUNT
+    )));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

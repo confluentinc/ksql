@@ -37,7 +37,7 @@ public final class UdtfUtil {
       final LogicalSchema schema
   ) {
     final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, functionRegistry, true);
+        new ExpressionTypeManager(schema, functionRegistry);
 
     final List<Expression> functionArgs = functionCall.getArguments();
 

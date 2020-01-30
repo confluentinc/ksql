@@ -133,11 +133,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -157,11 +157,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[10, 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -181,11 +181,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[10, 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -205,11 +205,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.1, 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.1, 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -243,11 +243,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -269,15 +269,15 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 22000, 13345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 13000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 13000, 23000, 13345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -331,21 +331,21 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 2]}},
-          {"row":{"columns":["10", 14000, 14253, 1]}},
-          {"row":{"columns":["10", 15000, 15364, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}},
+          {"row":{"columns":["10", 15000, 16000, 15364, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 2]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 14000, 14253, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -367,21 +367,21 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 7000, 10345, 1]}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 13251, 2]}},
-          {"row":{"columns":["10", 10000, 13251, 2]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 7000, 12000, 10345, 1]}},
+          {"row":{"columns":["10", 8000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 2]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 2]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 13251, 2]}},
-          {"row":{"columns":["10", 10000, 13251, 2]}},
-          {"row":{"columns":["10", 11000, 13251, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 8000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 2]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 2]}},
+          {"row":{"columns":["10", 11000, 16000, 13251, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -434,9 +434,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 11000, 11345, 1]}},
-          {"row":{"columns":["10", 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 11000, 12000, 11345, 1]}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
         ]}
       ]
     },
@@ -456,14 +456,14 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 7000, 10345, 1]}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 10345, 1]}},
-          {"row":{"columns":["10", 10000, 13345, 2]}},
-          {"row":{"columns":["10", 11000, 13345, 1]}},
-          {"row":{"columns":["10", 12000, 13345, 1]}},
-          {"row":{"columns":["10", 13000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 7000, 11000, 10345, 1]}},
+          {"row":{"columns":["10", 8000, 12000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 10000, 14000, 13345, 2]}},
+          {"row":{"columns":["10", 11000, 15000, 13345, 1]}},
+          {"row":{"columns":["10", 12000, 16000, 13345, 1]}},
+          {"row":{"columns":["10", 13000, 17000, 13345, 1]}}
         ]}
       ]
     },
@@ -687,8 +687,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-           {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}}
+           {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}}
         ]}
       ]
     },
@@ -707,8 +707,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}}
         ]}
       ]
     },
@@ -730,9 +730,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}},
-          {"row":{"columns":["10", 1582501552000, 1582501552456, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}},
+          {"row":{"columns":["10", 1582501552000, 1582501553000, 1582501552456, 1]}}
         ]}
       ]
     },
@@ -835,8 +835,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT, `AVG` DOUBLE"}},
-          {"row":{"columns":["10", 11000, 11346, 2, 5.0]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT, `AVG` DOUBLE"}},
+          {"row":{"columns":["10", 11000, 12000, 11346, 2, 5.0]}}
         ]}
       ]
     },
@@ -955,6 +955,25 @@
         "message": "Column 'AGGREGATE.WINDOWSTART' cannot be resolved",
         "status": 400
       }
+    },
+    {
+      "name": "window bounds in projection UDF",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWKEY, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z') AS WEND, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580318385000, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WSTART` STRING, `WEND` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", "2020-01-29 17:19:45 +0000", "2020-01-29 17:19:46 +0000", 1]}}
+        ]}
+      ]
     }
   ]
 }

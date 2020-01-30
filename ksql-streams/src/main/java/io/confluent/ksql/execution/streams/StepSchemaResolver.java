@@ -210,7 +210,7 @@ public final class StepSchemaResolver {
       final StreamSelectKey step
   ) {
     final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(sourceSchema, functionRegistry, true);
+        new ExpressionTypeManager(sourceSchema, functionRegistry);
 
     final SqlType keyType = expressionTypeManager
         .getExpressionSqlType(step.getKeyExpression());

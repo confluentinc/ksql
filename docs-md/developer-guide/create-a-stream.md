@@ -6,7 +6,7 @@ description: Learn how to use the CREATE STREAM statement on a Kafka topic
 ---
 
 In ksqlDB, you create streams from existing {{ site.aktm }} topics, create
-streams that will create new {{ site.aktm }} topics, or create streams of 
+streams that will create new {{ site.ak }} topics, or create streams of
 query results from other streams.
 
 -   Use the CREATE STREAM statement to create a stream from an existing Kafka
@@ -187,7 +187,7 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 Create a Stream backed by a new Kafka Topic
 -------------------------------------------
 
-Use the CREATE STREAM statement to create a stream without a preexisting 
+Use the CREATE STREAM statement to create a stream without a preexisting
 topic by providing the PARTITIONS count, and optionally the REPLICA count,
 in the WITH clause.
 

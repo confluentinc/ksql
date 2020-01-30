@@ -106,8 +106,8 @@ public final class StreamFlatMapBuilder {
       schemaBuilder.valueColumn(col);
     }
 
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        inputSchema, functionRegistry, true);
+    final ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(inputSchema, functionRegistry);
 
     // And add new columns representing the exploded values at the end
     for (int i = 0; i < tableFunctions.size(); i++) {

@@ -6,7 +6,7 @@ description: Learn how to use the CREATE TABLE statement on a Kafka topic
 ---
 
 In ksqlDB, you create tables from existing {{ site.aktm }} topics, create
-tables that will create new {{ site.ak }} topics, or create tables of 
+tables that will create new {{ site.ak }} topics, or create tables of
 query results from other tables or streams.
 
 -   Use the CREATE TABLE statement to create a table from an existing Kafka topic,
@@ -21,7 +21,7 @@ query results from other tables or streams.
 Create a Table from an existing Kafka Topic
 -------------------------------------------
 
-Use the CREATE TABLE statement to create a table from an existing 
+Use the CREATE TABLE statement to create a table from an existing
 underlying Kafka topic. The Kafka topic must exist already in your Kafka cluster.
 
 The following examples show how to create tables from a Kafka topic,
@@ -132,7 +132,7 @@ because the underlying `users` topic receives new messages continuously.
 Create a Table backed by a new Kafka Topic
 ------------------------------------------
 
-Use the CREATE TABLE statement to create a table without a preexisting 
+Use the CREATE TABLE statement to create a table without a preexisting
 topic by providing the PARTITIONS count, and optionally the REPLICA count,
 in the WITH clause.
 
@@ -310,10 +310,10 @@ SELECT * FROM pageviews_table WHERE ROWKEY='User_9|+|Page_39';
 Your output should resemble:
 
 ```
-+-----------------+---------------+---------------+--------+---------+-------+
- ROWKEY           | WINDOWSTART   | ROWTIME       | USERID | PAGEID  | TOTAL |
-------------------+---------------+---------------+--------+---------+-------+
- User_9|+|Page_39 | 1557183900000 | 1557183929488 | User_9 | Page_39 | 1     |
++------------------+---------------+---------------+---------------+--------+---------+-------+
+| ROWKEY           | WINDOWSTART   | WINDOWEND     | ROWTIME       | USERID | PAGEID  | TOTAL |
++------------------+---------------+---------------+---------------+--------+---------+-------+
+| User_9|+|Page_39 | 1557183900000 | 1557183960000 | 1557183929488 | User_9 | Page_39 | 1     |
 Query terminated
 ```
 

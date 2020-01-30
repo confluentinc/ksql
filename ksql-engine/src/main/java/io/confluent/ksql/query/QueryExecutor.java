@@ -362,7 +362,7 @@ public final class QueryExecutor {
             kafkaStreams,
             info.getStateStoreSchema(),
             keySerializer,
-            keyFormat.getWindowType(),
+            keyFormat.getWindowInfo(),
             streamsProperties,
             ksqlConfig
         );

@@ -312,7 +312,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         columns.add(columnVal);
       }
 
-      return new GenericRow(columns);
+      return row;
     }
   }
 }

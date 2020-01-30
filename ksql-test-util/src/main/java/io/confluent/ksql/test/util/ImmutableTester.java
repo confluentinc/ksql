@@ -104,7 +104,6 @@ public final class ImmutableTester {
   public static List<Class<?>> classesMarkedImmutable(final String packageName) {
     return ClassFinder.getClasses(packageName).stream()
         .filter(c -> c.isAnnotationPresent(Immutable.class))
-        .peek(c -> System.out.println("Found Immutable class: " + c))
         .collect(Collectors.toList());
   }
 

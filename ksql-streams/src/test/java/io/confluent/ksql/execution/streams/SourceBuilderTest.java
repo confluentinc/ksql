@@ -131,6 +131,7 @@ public class SourceBuilderTest {
 
   private static final long A_WINDOW_START = 10L;
   private static final long A_WINDOW_END = 20L;
+  private static final long A_ROWTIME = 456L;
 
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
@@ -202,7 +203,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
-    when(processorCtx.timestamp()).thenReturn(456L);
+    when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
@@ -281,7 +282,7 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final ConsumerRecord<Object, Object> record = mock(ConsumerRecord.class);
-    when(record.value()).thenReturn(new GenericRow("123", 456L));
+    when(record.value()).thenReturn(new GenericRow("123", A_ROWTIME));
 
     // When:
     streamSource.build(planBuilder);
@@ -289,7 +290,7 @@ public class SourceBuilderTest {
     // Then:
     verify(consumed).withTimestampExtractor(timestampExtractorCaptor.capture());
     final TimestampExtractor extractor = timestampExtractorCaptor.getValue();
-    assertThat(extractor.extract(record, 789), is(456L));
+    assertThat(extractor.extract(record, 789), is(A_ROWTIME));
   }
 
   @Test
@@ -463,7 +464,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, A_KEY, "baz", 123)));
+    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -477,7 +478,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, A_KEY, "baz", 123)));
+    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -493,7 +494,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, null, "baz", 123)));
+    assertThat(withTimestamp, equalTo(new GenericRow("baz", 123, A_ROWTIME, null)));
   }
 
   @Test
@@ -513,7 +514,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, A_WINDOW_START, A_WINDOW_END, A_KEY, "baz", 123)));
+        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -533,7 +534,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        is(new GenericRow(456L, A_WINDOW_START, A_WINDOW_END, A_KEY, "baz", 123)));
+        is(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -553,7 +554,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, A_WINDOW_START, A_WINDOW_END, A_KEY, "baz", 123)));
+        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -573,7 +574,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, A_WINDOW_START, A_WINDOW_END, A_KEY, "baz", 123)));
+        equalTo(new GenericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test

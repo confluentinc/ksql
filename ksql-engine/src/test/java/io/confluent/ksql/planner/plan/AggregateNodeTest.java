@@ -82,7 +82,6 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -149,7 +148,7 @@ public class AggregateNodeTest {
     final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null, new GenericRow("rowtime", "rowkey", 0L, "1", "2", 3.0D));
+        .transform(null, new GenericRow(0L, "1", "2", 3.0D, "rowtime", "rowkey"));
     assertThat("should select col0, col1, col2, col3", result.getColumns(),
         contains(0L, "1", "2", 3.0));
   }

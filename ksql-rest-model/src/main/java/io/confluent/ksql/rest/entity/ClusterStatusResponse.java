@@ -30,15 +30,23 @@ import java.util.Objects;
 public final class ClusterStatusResponse {
 
   private final ImmutableMap<String, HostStatusEntity> clusterStatus;
+  private final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags;
 
   @JsonCreator
   public ClusterStatusResponse(
-      @JsonProperty("clusterStatus") final Map<String, HostStatusEntity> clusterStatus) {
+      @JsonProperty("clusterStatus") final Map<String, HostStatusEntity> clusterStatus,
+      @JsonProperty("lags")
+      final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags) {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
+    this.lags = requireNonNull(lags, "lags");
   }
 
   public Map<String, HostStatusEntity> getClusterStatus() {
     return clusterStatus;
+  }
+
+  public Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> getLags() {
+    return lags;
   }
 
   @Override
@@ -52,11 +60,12 @@ public final class ClusterStatusResponse {
     }
 
     final ClusterStatusResponse that = (ClusterStatusResponse) o;
-    return Objects.equals(clusterStatus, that.clusterStatus);
+    return Objects.equals(clusterStatus, that.clusterStatus)
+        && Objects.equals(lags, that.lags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterStatus);
+    return Objects.hash(clusterStatus, lags);
   }
 }

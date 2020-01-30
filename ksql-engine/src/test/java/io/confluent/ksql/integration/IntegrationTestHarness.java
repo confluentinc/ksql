@@ -147,6 +147,14 @@ public final class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
+   * Deletes internal topics for the given application.
+   */
+  public void deleteInternalTopics(String applicationId) {
+    final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+    topicClient.deleteInternalTopics(applicationId);
+  }
+
+  /**
    * Produce a single record to a Kafka topic.
    *
    * @param topicName the topic to produce the record to.

@@ -16,8 +16,15 @@
 package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.LagInfoEntity;
+import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
+import io.confluent.ksql.rest.server.LagReportingAgent;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -35,9 +42,12 @@ import javax.ws.rs.core.Response;
 public class ClusterStatusResource {
 
   private final HeartbeatAgent heartbeatAgent;
+  private final Optional<LagReportingAgent> lagReportingAgent;
 
-  public ClusterStatusResource(final HeartbeatAgent heartbeatAgent) {
+  public ClusterStatusResource(final HeartbeatAgent heartbeatAgent,
+                               final Optional<LagReportingAgent> lagReportingAgent) {
     this.heartbeatAgent = heartbeatAgent;
+    this.lagReportingAgent = lagReportingAgent;
   }
 
   @GET
@@ -47,6 +57,9 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    return new ClusterStatusResponse(heartbeatAgent.getHostsStatus());
+    final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags =
+        lagReportingAgent.isPresent()
+            ? lagReportingAgent.get().listAllLags() : Collections.emptyMap();
+    return new ClusterStatusResponse(heartbeatAgent.getHostsStatus(), lags);
   }
 }

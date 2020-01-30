@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
+import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -44,6 +45,7 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -418,12 +420,13 @@ public class TestKsqlRestApp extends ExternalResource {
 
   private static ServiceContext defaultServiceContext(
       final Supplier<String> bootstrapServers,
-      final Map<String, ?> baseConfig
+      final Map<String, ?> baseConfig,
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
   ) {
     final KsqlConfig config =
         new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties());
 
-    return ServiceContextFactory.create(config, DisabledKsqlClient::instance);
+    return ServiceContextFactory.create(config, ksqlClientSupplier);
   }
 
   public static final class Builder {
@@ -440,7 +443,8 @@ public class TestKsqlRestApp extends ExternalResource {
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
-          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              DisabledKsqlClient::instance);
       this.securityContextBinder = (config, securityExtension) ->
         new KsqlSecurityContextBinder(config, securityExtension,
             new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
@@ -455,6 +459,15 @@ public class TestKsqlRestApp extends ExternalResource {
     @SuppressWarnings("unused") // Part of public API
     public Builder withProperties(final Map<String, ?> props) {
       additionalProps.putAll(props);
+      return this;
+    }
+
+    // Rather than having ksql client calls disabled, creates a real instance suitable for
+    // functional tests.
+    public Builder withEnabledKsqlClient() {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              TestDefaultKsqlClientFactory::instance);
       return this;
     }
 

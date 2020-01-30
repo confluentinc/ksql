@@ -151,6 +151,16 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC =
       "Size of thread pool used for sending / processing heartbeats and cluster discovery.";
 
+  public static final String KSQL_LAG_REPORTING_ENABLE_CONFIG =
+      KSQL_CONFIG_PREFIX + "lag.reporting.enable";
+  private static final String KSQL_LAG_REPORTING_ENABLE_DOC =
+      "Whether lag reporting is enabled or not. It is disabled by default.";
+
+  public static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "lag.reporting.send.interval.ms";
+  private static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC =
+      "Interval at which lag reports are broadcasted to servers.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -258,6 +268,18 @@ public class KsqlRestConfig extends RestConfig {
         3,
         Importance.MEDIUM,
         KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG_DOC
+    ).define(
+        KSQL_LAG_REPORTING_ENABLE_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.MEDIUM,
+        KSQL_LAG_REPORTING_ENABLE_DOC
+    ).define(
+        KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG,
+        Type.LONG,
+        5000L,
+        Importance.MEDIUM,
+        KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
     );
   }
 

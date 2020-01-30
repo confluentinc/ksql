@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
 import java.util.List;
@@ -59,6 +60,14 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
 
   @Override
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
+    throw new UnsupportedOperationException("KSQL client is disabled");
+  }
+
+  @Override
+  public void makeAsyncLagReportRequest(
+      final URI serverEndPoint,
+      final LagReportingMessage lagReportingMessage
+  ) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 }

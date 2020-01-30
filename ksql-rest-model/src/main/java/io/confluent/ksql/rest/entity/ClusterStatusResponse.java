@@ -60,7 +60,8 @@ public final class ClusterStatusResponse {
     }
 
     final ClusterStatusResponse that = (ClusterStatusResponse) o;
-    return Objects.equals(clusterStatus, that.clusterStatus);
+    return Objects.equals(clusterStatus, that.clusterStatus)
+        && Objects.equals(lags, that.lags);
   }
 
   @Override

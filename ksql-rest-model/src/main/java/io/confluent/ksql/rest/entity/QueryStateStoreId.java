@@ -29,7 +29,7 @@ import java.util.Objects;
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class QueryStateStoreId {
-  private static final String SEPARATOR = "$";
+  private static final String SEPARATOR = "#";
 
   private final String queryApplicationId;
   private final String stateStoreName;

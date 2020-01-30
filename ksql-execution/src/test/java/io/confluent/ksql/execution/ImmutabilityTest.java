@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest;
+package io.confluent.ksql.execution;
 
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
@@ -32,7 +32,22 @@ import org.junit.runners.Parameterized;
 /**
  * Test that any type annotated as immutable _is_ immutable
  *
- * <p>Note: there are multiple copies of this test to ensure all types are tested.
+ * <p>Note: each module has a copy of this test in a unique package to ensure the classes in that
+ * module are correctly annotated.
+ *
+ * <p>Running any of these tests in IntelliJ will test most, if not all, the classes.
+ *
+ * <p>Running in via Maven varies depending on the target. While the {@code test} target
+ * detects classes both from the current module and any module it depends on, the {@code install}
+ * target only detects classes within the current module.
+ *
+ * <p>The build server runs the {@code install} target. Hence the need for each module to have a
+ * copy of this test.
+ *
+ * <p>Having each test in a unique package ensures the build server doesn't overwrite one test's
+ * output with another.
+ *
+ * there are multiple copies of this test to ensure all types are tested.
  * However, this does mean some times are tested multiple types.
  */
 @RunWith(Parameterized.class)

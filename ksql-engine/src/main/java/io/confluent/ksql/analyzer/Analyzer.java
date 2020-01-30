@@ -72,6 +72,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -585,7 +586,7 @@ class Analyzer {
         // See https://github.com/confluentinc/ksql/issues/3731 for more info
         final List<Column> valueColumns = persistent && !analysis.isJoin()
             ? schema.value()
-            : schema.withMetaAndKeyColsInValue(windowed).value();
+            : systemColumnsToTheFront(schema.withMetaAndKeyColsInValue(windowed).value());
 
         for (final Column column : valueColumns) {
 
@@ -603,6 +604,18 @@ class Analyzer {
           addSelectItem(selectItem, ColumnName.of(alias));
         }
       }
+    }
+
+    private List<Column> systemColumnsToTheFront(final List<Column> columns) {
+      // When doing a `select *` the system columns should be at the front of the column list
+      // but are added at the back during processing for performance reasons.
+      // Switch them around here:
+      final Map<Boolean, List<Column>> partitioned = columns.stream()
+          .collect(Collectors.groupingBy(c -> SchemaUtil.systemColumnNames().contains(c.name())));
+
+      final List<Column> all = partitioned.get(true);
+      all.addAll(partitioned.get(false));
+      return all;
     }
 
     public void validate() {

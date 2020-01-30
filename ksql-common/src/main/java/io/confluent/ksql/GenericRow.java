@@ -22,19 +22,35 @@ import java.util.Objects;
 
 public class GenericRow {
 
-  private final List<Object> columns;
+  private final ArrayList<Object> columns;
 
   public GenericRow() {
-    columns = new ArrayList<>();
+    this(0);
+  }
+
+  public GenericRow(final int initialCapacity) {
+    this.columns = new ArrayList<>(initialCapacity);
   }
 
   public GenericRow(final List<Object> columns) {
     Objects.requireNonNull(columns);
-    this.columns = columns;
+    this.columns = new ArrayList<>(columns);
   }
 
   public GenericRow(final Object ...columns) {
     this(Arrays.asList(columns));
+  }
+
+  /**
+   * Ensure the row has enough capacity to hold {@code additionalCapacity} more elements
+   * that its current size.
+   *
+   * <p>Useful to avoid unnecessary array copies when adding multiple elements.
+   *
+   * @param additionalCapacity the number of additional elements
+   */
+  public void ensureAdditionalCapacity(final int additionalCapacity) {
+    columns.ensureCapacity(additionalCapacity + columns.size());
   }
 
   @Override

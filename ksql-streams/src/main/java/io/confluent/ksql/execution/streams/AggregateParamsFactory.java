@@ -31,8 +31,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -41,15 +39,21 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AggregateParamsFactory {
+
   private final KudafAggregatorFactory aggregatorFactory;
+  private final KudafUndoAggregatorFactory undoAggregatorFactory;
 
   public AggregateParamsFactory() {
-    this(KudafAggregator::new);
+    this(KudafAggregator::new, KudafUndoAggregator::new);
   }
 
   @VisibleForTesting
-  AggregateParamsFactory(final KudafAggregatorFactory aggregatorFactory) {
+  AggregateParamsFactory(
+      final KudafAggregatorFactory aggregatorFactory,
+      final KudafUndoAggregatorFactory undoAggregatorFactory
+  ) {
     this.aggregatorFactory = Objects.requireNonNull(aggregatorFactory);
+    this.undoAggregatorFactory = Objects.requireNonNull(undoAggregatorFactory);
   }
 
   public AggregateParams createUndoable(
@@ -77,8 +81,6 @@ public class AggregateParamsFactory {
       final List<FunctionCall> functionList,
       final boolean table
   ) {
-    final List<Integer> nonAggColumnIndexes = nonAggColumnIndexes(schema, nonAggregateColumns);
-
     final List<KsqlAggregateFunction<?, ?, ?>> functions =
         resolveAggregateFunctions(schema, functionRegistry, functionList);
 
@@ -87,7 +89,7 @@ public class AggregateParamsFactory {
         .collect(Collectors.toList());
 
     final Optional<KudafUndoAggregator> undoAggregator =
-        buildUndoAggregators(nonAggColumnIndexes, table, functions);
+        buildUndoAggregators(nonAggregateColumns.size(), table, functions);
 
     final LogicalSchema aggregateSchema = buildSchema(schema, nonAggregateColumns, functions, true);
 
@@ -95,7 +97,7 @@ public class AggregateParamsFactory {
 
     return new AggregateParams(
         new KudafInitializer(nonAggregateColumns.size(), initialValueSuppliers),
-        aggregatorFactory.create(nonAggColumnIndexes.size(), functions),
+        aggregatorFactory.create(nonAggregateColumns.size(), functions),
         undoAggregator,
         new WindowSelectMapper(nonAggregateColumns.size(), functions),
         aggregateSchema,
@@ -103,21 +105,8 @@ public class AggregateParamsFactory {
     );
   }
 
-  private static List<Integer> nonAggColumnIndexes(
-      final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns
-  ) {
-    final List<Integer> indexes = new ArrayList<>(nonAggregateColumns.size());
-    for (final ColumnRef columnRef : nonAggregateColumns) {
-      indexes.add(schema.findValueColumn(columnRef).map(Column::index).orElseThrow(
-          () -> new IllegalStateException("invalid column ref: "  + columnRef)
-      ));
-    }
-    return Collections.unmodifiableList(indexes);
-  }
-
-  private static Optional<KudafUndoAggregator> buildUndoAggregators(
-      final List<Integer> nonAggColumnIndexes,
+  private Optional<KudafUndoAggregator> buildUndoAggregators(
+      final int nonAggColumnCount,
       final boolean table,
       final List<KsqlAggregateFunction<?, ?, ?>> functions
   ) {
@@ -129,7 +118,7 @@ public class AggregateParamsFactory {
     for (final KsqlAggregateFunction<?, ?, ?> function : functions) {
       tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
     }
-    return Optional.of(new KudafUndoAggregator(nonAggColumnIndexes, tableFunctions));
+    return Optional.of(undoAggregatorFactory.create(nonAggColumnCount, tableFunctions));
   }
 
   private static List<KsqlAggregateFunction<?, ?, ?>> resolveAggregateFunctions(
@@ -176,9 +165,18 @@ public class AggregateParamsFactory {
   }
 
   interface KudafAggregatorFactory {
+
     KudafAggregator<?> create(
         int nonAggColumnCount,
         List<KsqlAggregateFunction<?, ?, ?>> functions
+    );
+  }
+
+  interface KudafUndoAggregatorFactory {
+
+    KudafUndoAggregator create(
+        int nonAggColumnCount,
+        List<TableAggregationFunction<?, ?, ?>> functions
     );
   }
 }

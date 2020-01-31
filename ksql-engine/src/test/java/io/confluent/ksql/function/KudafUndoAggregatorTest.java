@@ -30,20 +30,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class KudafUndoAggregatorTest {
+
   private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
-  private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregateFunction(
-      FunctionName.of("SUM"),
-      SqlTypes.INTEGER,
-      new AggregateFunctionInitArguments(2)
-  );
+  private static final TableAggregationFunction<?, ?, ?> SUM_INFO =
+      (TableAggregationFunction<?, ?, ?>) FUNCTION_REGISTRY
+          .getAggregateFunction(
+              FunctionName.of("SUM"),
+              SqlTypes.INTEGER,
+              new AggregateFunctionInitArguments(2)
+          );
 
   private KudafUndoAggregator aggregator;
 
   @Before
   public void init() {
-    final List<TableAggregationFunction<?, ?, ?>> functions =
-        ImmutableList.of((TableAggregationFunction)SUM_INFO);
-    aggregator = new KudafUndoAggregator(ImmutableList.of(0, 1), functions);
+    final List<TableAggregationFunction<?, ?, ?>> functions = ImmutableList.of(SUM_INFO);
+    aggregator = new KudafUndoAggregator(2, functions);
   }
 
   @Test

@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
@@ -87,7 +88,11 @@ public class AggregateParamsFactoryTest {
   @Mock
   private KudafAggregatorFactory udafFactory;
   @Mock
+  private KudafUndoAggregatorFactory undoUdafFactory;
+  @Mock
   private KudafAggregator aggregator;
+  @Mock
+  private KudafUndoAggregator undoAggregator;
   @Mock
   private KsqlProcessingContext ctx;
 
@@ -122,8 +127,9 @@ public class AggregateParamsFactoryTest {
     when(windowStart.getAggregateType()).thenReturn(SqlTypes.BIGINT);
 
     when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
+    when(undoUdafFactory.create(anyInt(), any())).thenReturn(undoAggregator);
 
-    aggregateParams = new AggregateParamsFactory(udafFactory).create(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
@@ -135,6 +141,20 @@ public class AggregateParamsFactoryTest {
   @Test
   public void shouldCreateAggregatorWithCorrectParams() {
     verify(udafFactory).create(2, ImmutableList.of(agg0, agg1));
+  }
+
+  @Test
+  public void shouldCreateUndoAggregatorWithCorrectParams() {
+    // When:
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).createUndoable(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        ImmutableList.of(TABLE_AGG)
+    );
+
+    // Then:
+    verify(undoUdafFactory).create(2, ImmutableList.of(tableAgg));
   }
 
   @Test
@@ -170,7 +190,7 @@ public class AggregateParamsFactoryTest {
   @Test
   public void shouldReturnUndoAggregator() {
     // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory).createUndoable(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).createUndoable(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
@@ -181,11 +201,7 @@ public class AggregateParamsFactoryTest {
     final KudafUndoAggregator undoAggregator = aggregateParams.getUndoAggregator().get();
 
     // Then:
-    assertThat(undoAggregator.getNonAggColumnIndexes(), equalTo(ImmutableList.of(0, 2)));
-    assertThat(
-        undoAggregator.getAggregateFunctions(),
-        equalTo(ImmutableList.of(tableAgg))
-    );
+    assertThat(undoAggregator, is(undoAggregator));
   }
 
   @Test
@@ -200,7 +216,7 @@ public class AggregateParamsFactoryTest {
   @Test
   public void shouldReturnCorrectWindowSelectMapperForWindowSelections() {
     // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory).create(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,

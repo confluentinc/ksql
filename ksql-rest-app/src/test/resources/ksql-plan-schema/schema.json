@@ -112,11 +112,9 @@
           "type" : "string",
           "enum" : [ "JSON", "AVRO", "DELIMITED", "KAFKA" ]
         },
-        "fullSchemaName" : {
-          "type" : "string"
-        },
-        "delimiter" : {
-          "type" : "string"
+        "properties" : {
+          "type" : "object",
+          "additionalProperties": {"type": "string"}
         }
       },
       "required" : [ "format" ]

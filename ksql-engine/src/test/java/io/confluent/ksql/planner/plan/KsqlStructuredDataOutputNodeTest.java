@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -179,8 +180,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name"),
-        Optional.empty()));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+        .of(FormatInfo.FULL_SCHEMA_NAME, "name")));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 

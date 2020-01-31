@@ -48,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -589,7 +588,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format, Optional.empty(), Optional.empty()),
+        FormatInfo.of(format),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -612,7 +611,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format, Optional.empty(), Optional.empty()),
+        FormatInfo.of(format),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

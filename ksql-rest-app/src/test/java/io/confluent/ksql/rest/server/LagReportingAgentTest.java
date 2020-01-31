@@ -172,7 +172,7 @@ public class LagReportingAgentTest {
     lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI2, QUERY_STORE_A, 3);
     assertFalse(lagInfo.isPresent());
 
-    // Second parition where they both have lag data
+    // Second partition where they both have lag data
     lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HI1, QUERY_STORE_B, 4);
     assertTrue(lagInfo.isPresent());
     assertEquals(M1_B4_CUR, lagInfo.get().getCurrentOffsetPosition());

@@ -186,12 +186,10 @@ public final class LagReportingAgent implements HostStatusListener {
    * and debug resources.
    */
   public ImmutableMap<HostInfoEntity, HostStoreLags> getAllLags() {
-    final ImmutableMap.Builder<HostInfoEntity, HostStoreLags> builder = ImmutableMap.builder();
-    for (Entry<HostInfo, HostStoreLags> e : receivedLagInfo.entrySet()) {
-      final HostInfo hostInfo = e.getKey();
-      builder.put(new HostInfoEntity(hostInfo.host(), hostInfo.port()), e.getValue());
-    }
-    return builder.build();
+    return receivedLagInfo.entrySet().stream()
+        .collect(ImmutableMap.toImmutableMap(
+            e -> new HostInfoEntity(e.getKey().host(), e.getKey().port()),
+            Entry::getValue));
   }
 
   @Override

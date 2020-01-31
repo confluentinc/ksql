@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents a the lags associated with a particular state store on a particular host.
+ * Represents the lags associated with a particular state store on a particular host.
  */
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)

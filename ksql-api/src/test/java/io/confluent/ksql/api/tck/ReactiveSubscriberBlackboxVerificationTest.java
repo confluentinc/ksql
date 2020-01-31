@@ -30,7 +30,7 @@ public class ReactiveSubscriberBlackboxVerificationTest extends
   private final Vertx vertx;
 
   public ReactiveSubscriberBlackboxVerificationTest() {
-    super(new TestEnvironment(500));
+    super(new TestEnvironment(1000));
     this.vertx = Vertx.vertx();
   }
 

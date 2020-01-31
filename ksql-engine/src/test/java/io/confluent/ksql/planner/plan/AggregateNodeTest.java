@@ -150,7 +150,7 @@ public class AggregateNodeTest {
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
         .transform(null, genericRow(0L, "1", "2", 3.0D, "rowtime", "rowkey"));
-    assertThat("should select col0, col1, col2, col3", result.getColumns(),
+    assertThat("should select col0, col1, col2, col3", result.values(),
         contains(0L, "1", "2", 3.0));
   }
 
@@ -173,7 +173,7 @@ public class AggregateNodeTest {
     postAggSelect.init(ctx);
     final GenericRow result = (GenericRow) postAggSelect
         .transform(null, genericRow(0L, "-1", 2.0D, 3L, 4.0D));
-    assertThat("should select col0, agg1, agg2", result.getColumns(), contains(0L, 2.0, 3L, 4.0));
+    assertThat("should select col0, agg1, agg2", result.values(), contains(0L, 2.0, 3L, 4.0));
   }
 
   @Test

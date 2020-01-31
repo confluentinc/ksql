@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
@@ -587,7 +588,7 @@ public class SchemaKTableTest {
     result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
-    final GenericRow value = new GenericRow(Arrays.asList(100, "foo", "bar", 0, "key"));
+    final GenericRow value = genericRow(100, "foo", "bar", 0, "key");
     final KeyValue<String, GenericRow> keyValue =
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 

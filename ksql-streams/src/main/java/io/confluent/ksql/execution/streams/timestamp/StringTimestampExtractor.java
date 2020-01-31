@@ -39,7 +39,7 @@ public class StringTimestampExtractor implements TimestampExtractor {
   public long extract(final ConsumerRecord<Object, Object> consumerRecord,
                       final long previousTimestamp) {
     final GenericRow row = (GenericRow) consumerRecord.value();
-    final String value = row.getColumnValue(timestampColumn);
+    final String value = (String)row.get(timestampColumn);
     try {
       return timestampParser.parse(value);
     } catch (final KsqlException e) {

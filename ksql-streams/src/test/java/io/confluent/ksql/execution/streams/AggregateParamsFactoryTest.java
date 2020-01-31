@@ -1,9 +1,11 @@
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -119,7 +121,7 @@ public class AggregateParamsFactoryTest {
     when(windowStart.returnType()).thenReturn(SqlTypes.BIGINT);
     when(windowStart.getAggregateType()).thenReturn(SqlTypes.BIGINT);
 
-    when(udafFactory.create(any(), any())).thenReturn(aggregator);
+    when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
 
     aggregateParams = new AggregateParamsFactory(udafFactory).create(
         INPUT_SCHEMA,
@@ -132,10 +134,7 @@ public class AggregateParamsFactoryTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateAggregatorWithCorrectParams() {
-    verify(udafFactory).create(
-        ImmutableList.of(0, 2),
-         ImmutableList.of(agg0, agg1)
-    );
+    verify(udafFactory).create(2, ImmutableList.of(agg0, agg1));
   }
 
   @Test
@@ -155,7 +154,7 @@ public class AggregateParamsFactoryTest {
     // Then:
     assertThat(
         initializer.apply(),
-        equalTo(GenericRow.genericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
+        equalTo(genericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
     );
   }
 
@@ -217,8 +216,8 @@ public class AggregateParamsFactoryTest {
     // Then:
     final Windowed<Object> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
-        windowSelectMapper.transform(window, GenericRow.genericRow("fiz", "baz", null), ctx),
-        equalTo(GenericRow.genericRow("fiz", "baz", 10))
+        windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
+        equalTo(genericRow("fiz", "baz", 10L))
     );
   }
 

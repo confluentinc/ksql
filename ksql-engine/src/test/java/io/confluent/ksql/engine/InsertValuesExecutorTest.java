@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,8 +55,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.types.SqlArray;
-import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -70,7 +69,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -103,15 +101,6 @@ public class InsertValuesExecutorTest {
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
-
-  private static final LogicalSchema SINGLE_ARRAY_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("COL0"), SqlArray.of(SqlTypes.INTEGER))
-      .build();
-
-  private static final LogicalSchema SINGLE_MAP_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("COL0"), SqlMap.of(SqlTypes.INTEGER))
-      .build();
-
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(COL0, SqlTypes.STRING)
@@ -207,7 +196,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -226,7 +215,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("new")));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("new"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -249,7 +238,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("new")));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("new"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -270,7 +259,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -291,7 +280,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1234L, KEY, VALUE));
   }
 
@@ -311,7 +300,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -332,7 +321,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -351,7 +340,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(Arrays.asList("str", null)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -371,7 +360,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -391,7 +380,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -410,7 +399,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -439,8 +428,8 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer)
-        .serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(
-            "str", 0, 2L, 3.0, true, "str", new BigDecimal(1.2, new MathContext(2))))
+        .serialize(TOPIC_NAME, genericRow(
+            "str", 0, 2L, 3.0, true, "str", new BigDecimal("1.2", new MathContext(2)))
         );
 
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
@@ -464,7 +453,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", -1L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", -1L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -485,7 +474,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("oo")));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("oo"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -512,7 +501,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("o")));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("o"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -534,7 +523,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 1L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 1L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -703,7 +692,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -725,7 +714,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -746,7 +735,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
-    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

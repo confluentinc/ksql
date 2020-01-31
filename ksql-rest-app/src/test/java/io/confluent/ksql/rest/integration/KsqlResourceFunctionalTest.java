@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
@@ -22,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -184,7 +184,7 @@ public class KsqlResourceFunctionalTest {
         "books",
         contains(matches(
             "Metamorphosis",
-            new GenericRow(ImmutableList.of("Metamorphosis", "Franz Kafka")),
+            genericRow("Metamorphosis", "Franz Kafka"),
             0,
             0L,
             123L)),

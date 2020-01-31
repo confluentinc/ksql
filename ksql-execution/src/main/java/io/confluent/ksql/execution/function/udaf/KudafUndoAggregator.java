@@ -43,13 +43,13 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
     int idx = 0;
     for (; idx < nonAggColumnIndexes.size(); idx++) {
       final int idxInRow = nonAggColumnIndexes.get(idx);
-      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idxInRow));
+      aggRowValue.set(idx, rowValue.get(idxInRow));
     }
 
     for (final TableAggregationFunction function : aggregateFunctions) {
-      final Object argument = rowValue.getColumns().get(function.getArgIndexInValue());
-      final Object previous = aggRowValue.getColumns().get(idx);
-      aggRowValue.getColumns().set(idx, function.undo(argument, previous));
+      final Object argument = rowValue.get(function.getArgIndexInValue());
+      final Object previous = aggRowValue.get(idx);
+      aggRowValue.set(idx, function.undo(argument, previous));
       idx++;
     }
 

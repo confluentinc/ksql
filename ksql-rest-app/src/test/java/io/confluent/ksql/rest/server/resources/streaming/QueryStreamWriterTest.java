@@ -197,11 +197,15 @@ public class QueryStreamWriterTest {
 
       Arrays.stream(rows)
           .map(ImmutableList::of)
-          .map(GenericRow::new)
+          .map(QueryStreamWriterTest::genericRow)
           .forEach(row -> output.add(new KeyValue<>("no used", row)));
 
       return rows.length;
     };
+  }
+
+  private static GenericRow genericRow(final List<Object> values) {
+    return new GenericRow().appendAll(values);
   }
 
   private static List<String> getOutput(final ByteArrayOutputStream out) {

@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.logging.processing;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
@@ -43,7 +43,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class LoggingDeserializerTest {
 
-  private static final GenericRow SOME_ROW = new GenericRow(ImmutableList.of("some", "fields"));
+  private static final GenericRow SOME_ROW = genericRow("some", "fields");
   private static final byte[] SOME_BYTES = "some bytes".getBytes(StandardCharsets.UTF_8);
   private static final ProcessingLogConfig LOG_CONFIG = new ProcessingLogConfig(ImmutableMap.of(
       ProcessingLogConfig.INCLUDE_ROWS, true

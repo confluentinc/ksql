@@ -197,7 +197,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
   @Test
@@ -226,7 +226,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
         key,                    // ROWKEY
         BASE_TIME,              // WINDOWSTART
         BASE_TIME + ONE_SECOND, // WINDOWEND

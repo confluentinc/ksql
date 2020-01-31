@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -32,7 +32,6 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -210,7 +209,8 @@ public class StreamsSelectAndProjectIntTest {
 
     final Map<Long, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put(8L,
-        new GenericRow(Arrays.asList(null,
+        genericRow(
+            null,
             null,
             "8",
             recordMetadataMap.get(8L).timestamp() + 10000,
@@ -218,7 +218,8 @@ public class StreamsSelectAndProjectIntTest {
             recordMetadataMap.get(8L).timestamp() + 10000,
             recordMetadataMap.get(8L).timestamp() + 100,
             "ORDER_6",
-            "ITEM_8")));
+            "ITEM_8")
+    );
 
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
@@ -244,8 +245,8 @@ public class StreamsSelectAndProjectIntTest {
     );
 
     assertThat(results.get(0).key(), is(8L));
-    assertThat(results.get(0).value(), is(new GenericRow(
-        ImmutableList.of(8L, recordMetadataMap.get(8L).timestamp(), "ITEM_8"))));
+    assertThat(results.get(0).value(),
+        is(genericRow(8L, recordMetadataMap.get(8L).timestamp(), "ITEM_8")));
   }
 
   private void testSelectProject(
@@ -262,7 +263,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    assertThat(value.getColumns().get(0), is("ITEM_1"));
+    assertThat(value.get(0), is("ITEM_1"));
   }
 
 
@@ -281,7 +282,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    assertThat(value.getColumns().get(0), is("ITEM_1"));
+    assertThat(value.get(0), is("ITEM_1"));
   }
 
   private void testSelectStar(
@@ -330,7 +331,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    assertThat(value.getColumns().get(0), is("ITEM_1"));
+    assertThat(value.get(0), is("ITEM_1"));
   }
 
   @Test
@@ -348,7 +349,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    assertThat(value.getColumns().get(0), is("ITEM_1"));
+    assertThat(value.get(0), is("ITEM_1"));
   }
 
   @Test

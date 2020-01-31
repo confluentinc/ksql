@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -31,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.FakeException;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
@@ -154,7 +154,7 @@ public class ConsoleTest {
   @Test
   public void testPrintGenericStreamedRow() {
     // Given:
-    final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
+    final StreamedRow row = StreamedRow.row(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);

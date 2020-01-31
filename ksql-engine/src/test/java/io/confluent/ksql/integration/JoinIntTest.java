@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -115,7 +115,7 @@ public class JoinIntTest {
     );
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -184,7 +184,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -257,7 +257,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "home cinema", 1))
+        genericRow("ORDER_1", "home cinema", 1L)
     );
 
     final Map<String, GenericRow> results = new HashMap<>();

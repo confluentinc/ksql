@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -34,7 +35,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class TableRowsEntityFactoryTest {
         Row.of(
             SIMPLE_SCHEMA,
             STRING_KEY_BUILDER.build("x"),
-            GenericRow.genericRow(false),
+            genericRow(false),
             ROWTIME
         )
     );
@@ -95,14 +95,14 @@ public class TableRowsEntityFactoryTest {
             SIMPLE_SCHEMA,
             STRING_KEY_BUILDER.build("x"),
             window0,
-            GenericRow.genericRow(true),
+            genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
             STRING_KEY_BUILDER.build("y"),
             window1,
-            GenericRow.genericRow(false),
+            genericRow(false),
             ROWTIME
         )
     );
@@ -121,12 +121,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldSupportNullColumns() {
     // Given:
-    final List<Object> newColumns = new ArrayList<>();
-    newColumns.add(null);
-    newColumns.add(null);
-    newColumns.add(null);
-    newColumns.add(null);
-    final GenericRow row = new GenericRow(newColumns);
+    final GenericRow row = genericRow(null, null, null, null);
 
     final Builder<Row> builder = ImmutableList.builder();
     builder.add(Row.of(SCHEMA_NULL, STRING_KEY_BUILDER.build("k"), row, ROWTIME));

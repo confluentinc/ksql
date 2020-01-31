@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -29,7 +30,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -58,7 +58,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -176,7 +175,7 @@ public class SourceBuilderTest {
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
-  private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
+  private final GenericRow row = genericRow("baz", 123);
   private PlanBuilder planBuilder;
 
   private StreamSource streamSource;

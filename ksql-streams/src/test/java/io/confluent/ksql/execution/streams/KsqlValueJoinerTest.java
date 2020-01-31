@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.junit.Assert.assertEquals;
 
 import io.confluent.ksql.GenericRow;
@@ -42,8 +43,8 @@ public class KsqlValueJoinerTest {
 
     rightSchema = leftSchema;
 
-    leftRow = new GenericRow(Arrays.asList(12L, "foobar"));
-    rightRow = new GenericRow(Arrays.asList(20L, "baz"));
+    leftRow = genericRow(12L, "foobar");
+    rightRow = genericRow(20L, "baz");
   }
 
   @Test
@@ -52,7 +53,7 @@ public class KsqlValueJoinerTest {
 
     final GenericRow joined = joiner.apply(leftRow, rightRow);
     final List<Object> expected = Arrays.asList(12L, "foobar", 20L, "baz");
-    assertEquals(expected, joined.getColumns());
+    assertEquals(expected, joined.values());
   }
 
   @Test
@@ -61,7 +62,7 @@ public class KsqlValueJoinerTest {
 
     final GenericRow joined = joiner.apply(leftRow, null);
     final List<Object> expected = Arrays.asList(12L, "foobar", null, null);
-    assertEquals(expected, joined.getColumns());
+    assertEquals(expected, joined.values());
   }
 
   @Test
@@ -70,6 +71,6 @@ public class KsqlValueJoinerTest {
 
     final GenericRow joined = joiner.apply(null, rightRow);
     final List<Object> expected = Arrays.asList(null, null, 20L, "baz");
-    assertEquals(expected, joined.getColumns());
+    assertEquals(expected, joined.values());
   }
 }

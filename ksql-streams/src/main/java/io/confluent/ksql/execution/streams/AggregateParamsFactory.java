@@ -95,7 +95,7 @@ public class AggregateParamsFactory {
 
     return new AggregateParams(
         new KudafInitializer(nonAggregateColumns.size(), initialValueSuppliers),
-        aggregatorFactory.create(nonAggColumnIndexes, functions),
+        aggregatorFactory.create(nonAggColumnIndexes.size(), functions),
         undoAggregator,
         new WindowSelectMapper(nonAggregateColumns.size(), functions),
         aggregateSchema,
@@ -177,7 +177,7 @@ public class AggregateParamsFactory {
 
   interface KudafAggregatorFactory {
     KudafAggregator<?> create(
-        List<Integer> nonAggColumnIndexes,
+        int nonAggColumnCount,
         List<KsqlAggregateFunction<?, ?, ?>> functions
     );
   }

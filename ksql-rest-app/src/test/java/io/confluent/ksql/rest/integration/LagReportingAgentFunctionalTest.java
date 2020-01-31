@@ -10,8 +10,10 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
+import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.Format;
@@ -147,8 +149,8 @@ public class LagReportingAgentFunctionalTest {
     // When:
     ClusterStatusResponse resp =
         waitForClusterCondition(LagReportingAgentFunctionalTest::allLagsReported);
-    Map<Integer, LagInfoEntity> partitions =
-        resp.getLags().entrySet().iterator().next().getValue().get(STORE_0);
+    StateStoreLags stateStoreLags =
+        resp.getLags().entrySet().iterator().next().getValue().getStateStoreLags(STORE_0);
 
     // Then:
     // Read the raw Kafka data from the topic to verify the reported lags
@@ -160,8 +162,8 @@ public class LagReportingAgentFunctionalTest {
         .collect(Collectors.groupingBy(ConsumerRecord::partition, Collectors.maxBy(
             Comparator.comparingLong(ConsumerRecord::offset))));
     Assert.assertEquals(2, partitionToMaxOffset.size());
-    long partition0Offset = partitions.get(0).getCurrentOffsetPosition();
-    long partition1Offset = partitions.get(1).getCurrentOffsetPosition();
+    long partition0Offset = stateStoreLags.getLagByPartition(0).getCurrentOffsetPosition();
+    long partition1Offset = stateStoreLags.getLagByPartition(1).getCurrentOffsetPosition();
     Assert.assertEquals(partition0Offset, partitionToMaxOffset.get(0).get().offset() + 1);
     Assert.assertEquals(partition1Offset, partitionToMaxOffset.get(1).get().offset() + 1);
   }
@@ -204,8 +206,8 @@ public class LagReportingAgentFunctionalTest {
 
   private static boolean allLagsReported(ClusterStatusResponse response) {
     if (response.getLags().size() == 2) {
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store0 = response.getLags().get(HOST0);
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> store1 = response.getLags().get(HOST1);
+      HostStoreLags store0 = response.getLags().get(HOST0);
+      HostStoreLags store1 = response.getLags().get(HOST1);
       if (arePartitionsCurrent(store0) && arePartitionsCurrent(store1)) {
         LOG.info("Found expected lags: {}", response.getLags().toString());
         return true;
@@ -215,29 +217,29 @@ public class LagReportingAgentFunctionalTest {
     return false;
   }
 
-  private static boolean arePartitionsCurrent(
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> stores) {
-    return stores.size() == 2 &&
-        stores.get(STORE_0).size() == 2 && stores.get(STORE_1).size() == 2 &&
+  private static boolean arePartitionsCurrent(HostStoreLags stores) {
+    return stores.getStateStoreLags().size() == 2 &&
+        stores.getStateStoreLags(STORE_0).getSize() == 2 &&
+        stores.getStateStoreLags(STORE_1).getSize() == 2 &&
         isCurrent(stores, STORE_0, 0) && isCurrent(stores, STORE_0, 1) &&
         isCurrent(stores, STORE_1, 0) && isCurrent(stores, STORE_1, 1) &&
         (numMessages(stores, STORE_0, 0) + numMessages(stores, STORE_0, 1) == NUM_ROWS) &&
         (numMessages(stores, STORE_1, 0) + numMessages(stores, STORE_1, 1) == NUM_ROWS);
   }
 
-  private static boolean isCurrent(final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> stores,
+  private static boolean isCurrent(final HostStoreLags hostStoreLags,
                                    final QueryStateStoreId queryStateStoreId,
                                    final int partition) {
-    final Map<Integer, LagInfoEntity> partitions = stores.get(queryStateStoreId);
-    final LagInfoEntity lagInfo = partitions.get(partition);
+    final StateStoreLags stateStoreLags = hostStoreLags.getStateStoreLags(queryStateStoreId);
+    final LagInfoEntity lagInfo = stateStoreLags.getLagByPartition(partition);
     return lagInfo.getCurrentOffsetPosition() > 0 && lagInfo.getOffsetLag() == 0;
   }
 
-  private static long numMessages(final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> stores,
+  private static long numMessages(final HostStoreLags hostStoreLags,
                                   final QueryStateStoreId queryStateStoreId,
                                   final int partition) {
-    final Map<Integer, LagInfoEntity> partitions = stores.get(queryStateStoreId);
-    final LagInfoEntity lagInfo = partitions.get(partition);
+    final StateStoreLags stateStoreLags = hostStoreLags.getStateStoreLags(queryStateStoreId);
+    final LagInfoEntity lagInfo = stateStoreLags.getLagByPartition(partition);
     return lagInfo.getCurrentOffsetPosition();
   }
 

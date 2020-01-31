@@ -18,14 +18,16 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HostStatusEntity {
 
-  private HostInfoEntity hostInfoEntity;
-  private boolean hostAlive;
-  private long lastStatusUpdateMs;
+  private final HostInfoEntity hostInfoEntity;
+  private final boolean hostAlive;
+  private final long lastStatusUpdateMs;
 
   @JsonCreator
   public HostStatusEntity(

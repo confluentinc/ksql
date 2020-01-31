@@ -19,39 +19,30 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
 import java.util.Objects;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingMessage {
 
-  private HostInfoEntity hostInfo;
-  private Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap;
-  private long lastLagUpdateMs;
+  private final HostInfoEntity hostInfo;
+  private final HostStoreLags hostStoreLags;
 
   @JsonCreator
   public LagReportingMessage(
       @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
-      @JsonProperty("storeToPartitionToLagMap")
-      final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> storeToPartitionToLagMap,
-      @JsonProperty("lastLagUpdateMs") final long lastLagUpdateMs
+      @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
   ) {
     this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
-    this.storeToPartitionToLagMap = Objects.requireNonNull(storeToPartitionToLagMap);
-    this.lastLagUpdateMs = lastLagUpdateMs;
+    this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
   }
 
   public HostInfoEntity getHostInfo() {
     return hostInfo;
   }
 
-  public Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> getStoreToPartitionToLagMap() {
-    return storeToPartitionToLagMap;
-  }
-
-  public long getLastLagUpdateMs() {
-    return lastLagUpdateMs;
+  public HostStoreLags getHostStoreLags() {
+    return hostStoreLags;
   }
 
   @Override
@@ -66,17 +57,16 @@ public class LagReportingMessage {
 
     final LagReportingMessage that = (LagReportingMessage) o;
     return Objects.equals(hostInfo, that.hostInfo)
-        && Objects.equals(storeToPartitionToLagMap, that.storeToPartitionToLagMap)
-        && lastLagUpdateMs == that.lastLagUpdateMs;
+        && Objects.equals(hostStoreLags, that.hostStoreLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfo, storeToPartitionToLagMap, lastLagUpdateMs);
+    return Objects.hash(hostInfo, hostStoreLags);
   }
 
   @Override
   public String toString() {
-    return hostInfo + "," + storeToPartitionToLagMap + "," + lastLagUpdateMs;
+    return hostInfo + "," + hostStoreLags;
   }
 }

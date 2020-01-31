@@ -30,23 +30,22 @@ import java.util.Objects;
 public final class ClusterStatusResponse {
 
   private final ImmutableMap<String, HostStatusEntity> clusterStatus;
-  private final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags;
+  private final ImmutableMap<HostInfoEntity, HostStoreLags> hostStoreLags;
 
   @JsonCreator
   public ClusterStatusResponse(
       @JsonProperty("clusterStatus") final Map<String, HostStatusEntity> clusterStatus,
-      @JsonProperty("lags")
-      final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags) {
+      @JsonProperty("lags") final Map<HostInfoEntity, HostStoreLags> hostStoreLags) {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
-    this.lags = requireNonNull(lags, "lags");
+    this.hostStoreLags = ImmutableMap.copyOf(requireNonNull(hostStoreLags, "hostStoreLags"));
   }
 
   public Map<String, HostStatusEntity> getClusterStatus() {
     return clusterStatus;
   }
 
-  public Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> getLags() {
-    return lags;
+  public Map<HostInfoEntity, HostStoreLags> getLags() {
+    return hostStoreLags;
   }
 
   @Override
@@ -61,11 +60,11 @@ public final class ClusterStatusResponse {
 
     final ClusterStatusResponse that = (ClusterStatusResponse) o;
     return Objects.equals(clusterStatus, that.clusterStatus)
-        && Objects.equals(lags, that.lags);
+        && Objects.equals(hostStoreLags, that.hostStoreLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterStatus, lags);
+    return Objects.hash(clusterStatus, hostStoreLags);
   }
 }

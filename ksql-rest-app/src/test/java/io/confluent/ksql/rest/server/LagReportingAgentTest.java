@@ -12,9 +12,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
+import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
+import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.LagReportingAgent.Builder;
 import io.confluent.ksql.rest.server.LagReportingAgent.SendLagService;
 import io.confluent.ksql.services.ServiceContext;
@@ -85,15 +87,15 @@ public class LagReportingAgentTest {
   private static final long M1_B4_END = 10;
   private static final long M1_B4_LAG = 4;
 
-  private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP1
-      = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
-      .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
+  private static final ImmutableMap<QueryStateStoreId, StateStoreLags> LAG_MAP1
+      = ImmutableMap.<QueryStateStoreId, StateStoreLags>builder()
+      .put(QUERY_STORE_A, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(1, new LagInfoEntity(M1_A1_CUR, M1_A1_END, M1_A1_LAG))
           .put(3, new LagInfoEntity(M1_A3_CUR, M1_A3_END, M1_A3_LAG))
-          .build())
-      .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
+          .build()))
+      .put(QUERY_STORE_B, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(4, new LagInfoEntity(M1_B4_CUR, M1_B4_END, M1_B4_LAG))
-          .build())
+          .build()))
       .build();
 
   private static final long M2_A1_CUR = 4;
@@ -103,14 +105,14 @@ public class LagReportingAgentTest {
   private static final long M2_B4_END = 10;
   private static final long M2_B4_LAG = 3;
 
-  private static final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> LAG_MAP2
-      = ImmutableMap.<QueryStateStoreId, Map<Integer, LagInfoEntity>>builder()
-      .put(QUERY_STORE_A, ImmutableMap.<Integer, LagInfoEntity>builder()
+  private static final ImmutableMap<QueryStateStoreId, StateStoreLags> LAG_MAP2
+      = ImmutableMap.<QueryStateStoreId, StateStoreLags>builder()
+      .put(QUERY_STORE_A, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(1, new LagInfoEntity(M2_A1_CUR, M2_A1_END, M2_A1_LAG))
-          .build())
-      .put(QUERY_STORE_B, ImmutableMap.<Integer, LagInfoEntity>builder()
+          .build()))
+      .put(QUERY_STORE_B, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
           .put(4, new LagInfoEntity(M2_B4_CUR, M2_B4_END, M2_B4_LAG))
-          .build())
+          .build()))
       .build();
 
   @Mock
@@ -227,25 +229,24 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> allLags
-        = lagReportingAgent.listAllLags();
-    LagInfoEntity lag = allLags.get(HOST1).get(QUERY_STORE_A).get(1);
+    ImmutableMap<HostInfoEntity, HostStoreLags> allLags = lagReportingAgent.listAllLags();
+    LagInfoEntity lag = allLags.get(HOST1).getStateStoreLags(QUERY_STORE_A).getLagByPartition(1);
     assertEquals(M1_A1_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_A1_END, lag.getEndOffsetPosition());
     assertEquals(M1_A1_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST1).get(QUERY_STORE_A).get(3);
+    lag = allLags.get(HOST1).getStateStoreLags(QUERY_STORE_A).getLagByPartition(3);
     assertEquals(M1_A3_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_A3_END, lag.getEndOffsetPosition());
     assertEquals(M1_A3_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST1).get(QUERY_STORE_B).get(4);
+    lag = allLags.get(HOST1).getStateStoreLags(QUERY_STORE_B).getLagByPartition(4);
     assertEquals(M1_B4_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_B4_END, lag.getEndOffsetPosition());
     assertEquals(M1_B4_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST2).get(QUERY_STORE_A).get(1);
+    lag = allLags.get(HOST2).getStateStoreLags(QUERY_STORE_A).getLagByPartition(1);
     assertEquals(M2_A1_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M2_A1_END, lag.getEndOffsetPosition());
     assertEquals(M2_A1_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST2).get(QUERY_STORE_B).get(4);
+    lag = allLags.get(HOST2).getStateStoreLags(QUERY_STORE_B).getLagByPartition(4);
     assertEquals(M2_B4_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M2_B4_END, lag.getEndOffsetPosition());
     assertEquals(M2_B4_LAG, lag.getOffsetLag());
@@ -286,15 +287,15 @@ public class LagReportingAgentTest {
     sendLagService.runOneIteration();
 
     // Then:
-    LagReportingMessage exp = new LagReportingMessage(LOCALHOST_INFO, LAG_MAP2, TIME_NOW_MS);
+    LagReportingMessage exp = hostLag(LOCALHOST_INFO, LAG_MAP2, TIME_NOW_MS);
     verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host2:1234/")), eq(exp));
     verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host1:1234/")), eq(exp));
   }
 
   private LagReportingMessage hostLag(
       HostInfoEntity host,
-      Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> lagMap,
+      ImmutableMap<QueryStateStoreId, StateStoreLags> lagMap,
       long lastUpdateMs) {
-    return new LagReportingMessage(host, lagMap, lastUpdateMs);
+    return new LagReportingMessage(host, new HostStoreLags(lagMap, lastUpdateMs));
   }
 }

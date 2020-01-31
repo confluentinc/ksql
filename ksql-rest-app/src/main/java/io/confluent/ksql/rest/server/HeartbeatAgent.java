@@ -16,26 +16,25 @@
 package io.confluent.ksql.rest.server;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.kafka.common.utils.Utils.getHost;
-import static org.apache.kafka.common.utils.Utils.getPort;
 
 import com.clearspring.analytics.util.Lists;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.HostStatus;
+import io.confluent.ksql.util.KsqlHost;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,8 +46,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -77,19 +76,19 @@ public final class HeartbeatAgent {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int CHECK_HEARTBEAT_DELAY_MS = 1000;
   private static final int SEND_HEARTBEAT_DELAY_MS = 100;
+  private static final int DISCOVER_CLUSTER_DELAY_MS = 50;
   private static final Logger LOG = LoggerFactory.getLogger(HeartbeatAgent.class);
 
   private final KsqlEngine engine;
   private final ServiceContext serviceContext;
   private final HeartbeatConfig config;
   private final List<HostStatusListener> hostStatusListeners;
-  private final ConcurrentHashMap<String, TreeMap<Long, HeartbeatInfo>> receivedHeartbeats;
-  private final ConcurrentHashMap<String, HostStatusEntity> hostsStatus;
+  private final ConcurrentHashMap<KsqlHost, TreeMap<Long, HeartbeatInfo>> receivedHeartbeats;
+  private final AtomicReference<ImmutableMap<KsqlHost, HostStatus>> hostsStatus;
   private final ScheduledExecutorService scheduledExecutorService;
   private final ServiceManager serviceManager;
   private final Clock clock;
-  private HostInfo localHostInfo;
-  private String localHostString;
+  private KsqlHost localHostInfo;
   private URL localURL;
 
   public static HeartbeatAgent.Builder builder() {
@@ -109,7 +108,7 @@ public final class HeartbeatAgent {
     this.serviceManager = new ServiceManager(Arrays.asList(
         new DiscoverClusterService(), new SendHeartbeatService(), new CheckHeartbeatService()));
     this.receivedHeartbeats = new ConcurrentHashMap<>();
-    this.hostsStatus = new ConcurrentHashMap<>();
+    this.hostsStatus = new AtomicReference<>(ImmutableMap.of());
     this.clock = Clock.systemUTC();
   }
 
@@ -119,11 +118,10 @@ public final class HeartbeatAgent {
    * @param timestamp The timestamp the heartbeat was sent.
    */
   public void receiveHeartbeat(final HostInfo hostInfo, final long timestamp) {
-    final String hostKey = hostInfo.toString();
     final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.computeIfAbsent(
-        hostKey, key -> new TreeMap<>());
+        hostInfo, key -> new TreeMap<>());
     synchronized (heartbeats) {
-      LOG.debug("Receive heartbeat at: {} from host: {} ", timestamp, hostKey);
+      LOG.debug("Receive heartbeat at: {} from host: {} ", timestamp, hostInfo);
       heartbeats.put(timestamp, new HeartbeatInfo(timestamp));
     }
   }
@@ -132,13 +130,13 @@ public final class HeartbeatAgent {
    * Returns the current view of the cluster containing all hosts discovered (whether alive or dead)
    * @return status of discovered hosts
    */
-  public Map<String, HostStatusEntity> getHostsStatus() {
-    return Collections.unmodifiableMap(hostsStatus);
+  public Map<KsqlHost, HostStatus> getHostsStatus() {
+    return hostsStatus.get();
   }
 
   @VisibleForTesting
-  void setHostsStatus(final Map<String, HostStatusEntity> status) {
-    hostsStatus.putAll(status);
+  void setHostsStatus(final Map<KsqlHost, HostStatus> status) {
+    hostsStatus.set(ImmutableMap.copyOf(status));
   }
 
   void startAgent() {
@@ -161,8 +159,8 @@ public final class HeartbeatAgent {
 
   void setLocalAddress(final String applicationServer) {
 
-    this.localHostInfo = parseHostInfo(applicationServer);
-    this.localHostString = localHostInfo.toString();
+    final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
+    this.localHostInfo = new KsqlHost(hostInfo.host(), hostInfo.port());
     try {
       this.localURL = new URL(applicationServer);
     } catch (final Exception e) {
@@ -170,27 +168,10 @@ public final class HeartbeatAgent {
                                           + " remoteInfo: " + localHostInfo.host() + ":"
                                           + localHostInfo.host());
     }
-    this.hostsStatus.putIfAbsent(localHostString, new HostStatusEntity(
-        new HostInfoEntity(localHostInfo.host(), localHostInfo.port()),
-        true,
-        clock.millis()));
+    //This is called on startup of the heartbeat agent, no other entries should exist in the map
+    Preconditions.checkState(hostsStatus.get().isEmpty(), "expected empty host info on startup");
+    hostsStatus.set(ImmutableMap.of(localHostInfo, new HostStatus(true, clock.millis())));
   }
-
-  private static HostInfo parseHostInfo(final String endPoint) {
-    if (endPoint == null || endPoint.trim().isEmpty()) {
-      return StreamsMetadataState.UNKNOWN_HOST;
-    }
-    final String host = getHost(endPoint);
-    final Integer port = getPort(endPoint);
-
-    if (host == null || port == null) {
-      throw new KsqlException(String.format(
-          "Error parsing host address %s. Expected format host:port.", endPoint));
-    }
-
-    return new HostInfo(host, port);
-  }
-
 
   /**
    * Check the heartbeats received from remote hosts and apply policy to determine whether a host
@@ -237,47 +218,55 @@ public final class HeartbeatAgent {
      * @param windowEnd the end time in ms of the current window
      */
     private void processHeartbeats(final long windowStart, final long windowEnd) {
+
+      final Map<KsqlHost, HostStatus> copyOnWrite = new HashMap<>(hostsStatus.get());
       // No heartbeats received -> mark all hosts as dead
       if (receivedHeartbeats.isEmpty()) {
-        hostsStatus.replaceAll((host, status) -> {
-          if (!host.equals(localHostString)) {
-            return status.copyWithStatus(false);
+        copyOnWrite.replaceAll((host, status) -> {
+          if (!host.equals(localHostInfo)) {
+            return status.withHostAlive(false);
           }
           return status;
         });
+        hostsStatus.set(ImmutableMap.copyOf(copyOnWrite));
+        return;
       }
 
-      for (String host : hostsStatus.keySet()) {
-        if (host.equals(localHostString)) {
+      for (Entry<KsqlHost, HostStatus> hostEntry: copyOnWrite.entrySet()) {
+        final KsqlHost ksqlHost = hostEntry.getKey();
+        final HostStatus hostStatus = hostEntry.getValue();
+        if (ksqlHost.equals(localHostInfo)) {
           continue;
         }
-        final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.get(host);
+        final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.get(ksqlHost);
         //For previously discovered hosts, if they have not received any heartbeats, mark them dead
         if (heartbeats == null || heartbeats.isEmpty()) {
-          hostsStatus.computeIfPresent(host, (h, s) -> s.copyWithStatus(false));
+          copyOnWrite.computeIfPresent(ksqlHost, (host, status) -> status.withHostAlive(false));
         } else {
           final TreeMap<Long, HeartbeatInfo> copy;
           synchronized (heartbeats) {
-            LOG.debug("Process heartbeats: {} of host: {}", heartbeats, host);
+            LOG.debug("Process heartbeats: {} of host: {}", heartbeats, ksqlHost);
             // 1. remove heartbeats older than window
             heartbeats.headMap(windowStart).clear();
             copy = new TreeMap<>(heartbeats.subMap(windowStart, true, windowEnd, true));
           }
           // 2. count consecutive missed heartbeats and mark as alive or dead
-          final  boolean isAlive = decideStatus(host, windowStart, windowEnd, copy);
-          hostsStatus.computeIfPresent(host,
-              (h, s) -> new HostStatusEntity(s.getHostInfoEntity(), isAlive, windowEnd));
+          final  boolean isAlive = decideStatus(ksqlHost, windowStart, windowEnd, copy);
+          copyOnWrite.computeIfPresent(ksqlHost, (host, status) -> status.withHostAlive(isAlive));
+          copyOnWrite.computeIfPresent(ksqlHost,
+                                       (host, status) -> status.setLastStatusUpdateMs(windowEnd));
         }
       }
-
       final Map<String, HostStatusEntity> hostStatusEntityMap = getHostsStatus();
       for (HostStatusListener listener : hostStatusListeners) {
         listener.onHostStatusUpdated(hostStatusEntityMap);
       }
     }
 
-    private boolean decideStatus(final String host, final long windowStart, final long windowEnd,
-                              final TreeMap<Long, HeartbeatInfo> heartbeats) {
+    private boolean decideStatus(
+        final KsqlHost ksqlHost, final long windowStart, final long windowEnd,
+        final TreeMap<Long, HeartbeatInfo> heartbeats
+    ) {
       long missedCount = 0;
       long prev = windowStart;
       // No heartbeat received in this window
@@ -306,7 +295,7 @@ public final class HeartbeatAgent {
         missedCount = (windowEnd - prev - 1) / config.heartbeatSendIntervalMs;
       }
 
-      LOG.debug("Host: {} has {} missing heartbeats", host, missedCount);
+      LOG.debug("Host: {} has {} missing heartbeats", ksqlHost, missedCount);
       return (missedCount < config.heartbeatMissedThreshold);
     }
   }
@@ -323,22 +312,23 @@ public final class HeartbeatAgent {
 
     @Override
     protected void runOneIteration() {
-      for (Entry<String, HostStatusEntity> hostStatusEntry: hostsStatus.entrySet()) {
-        final String host = hostStatusEntry.getKey();
-        final HostStatusEntity status = hostStatusEntry.getValue();
+      for (Entry<KsqlHost, HostStatus> hostStatusEntry: hostsStatus.get().entrySet()) {
+        final KsqlHost remoteHost = hostStatusEntry.getKey();
         try {
-          if (!host.equals(localHostString)) {
-            final URI remoteUri = buildLocation(localURL, status.getHostInfoEntity().getHost(),
-                                          status.getHostInfoEntity().getPort());
-            LOG.debug("Send heartbeat to host {} at {}", status.getHostInfoEntity().getHost(),
-                      clock.millis());
-            serviceContext.getKsqlClient().makeAsyncHeartbeatRequest(remoteUri, localHostInfo,
-                                                                     clock.millis());
+          if (!remoteHost.equals(localHostInfo)) {
+            final URI remoteUri = buildLocation(
+                localURL, remoteHost.host(), remoteHost.port());
+            System.out.println(localHostInfo + " Send heartbeat to host " + remoteHost
+                                   + " at timestamp " + System.currentTimeMillis());
+            LOG.debug("Send heartbeat to host {} at {}", remoteHost, clock.millis());
+            serviceContext.getKsqlClient().makeAsyncHeartbeatRequest(
+                remoteUri, localHostInfo, clock.millis());
           }
         } catch (Throwable t) {
-          LOG.error("Request to server: " + status.getHostInfoEntity().getHost() + ":"
-                        + status.getHostInfoEntity().getPort()
-                        + " failed with exception: " + t.getMessage(), t);
+          System.out.println(localHostInfo + " FAILED to Send heartbeat to host " + remoteHost
+                                 + " at timestamp " + System.currentTimeMillis());
+          LOG.error("Request to server: " + remoteHost + " failed with exception: "
+                        + t.getMessage(), t);
         }
       }
     }
@@ -380,23 +370,24 @@ public final class HeartbeatAgent {
         }
 
         final Set<HostInfo> uniqueHosts = currentQueries.stream()
-            .map(queryMetadata -> ((QueryMetadata) queryMetadata).getAllMetadata())
+            .map(queryMetadata -> queryMetadata.getAllMetadata())
             .filter(Objects::nonNull)
             .flatMap(Collection::stream)
+            .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
             .map(StreamsMetadata::hostInfo)
             .filter(hostInfo -> !(hostInfo.host().equals(localHostInfo.host())
                 && hostInfo.port() == (localHostInfo.port())))
             .collect(Collectors.toSet());
 
+        final Map<HostInfo, HostStatus> copyOnWrite = new HashMap<>(hostsStatus.get());
         for (HostInfo hostInfo : uniqueHosts) {
           // Only add to map if it is the first time it is discovered. Design decision to
           // optimistically consider every newly discovered server as alive to avoid situations of
           // unavailability until the heartbeating kicks in.
-          hostsStatus.computeIfAbsent(hostInfo.toString(), key -> new HostStatusEntity(
-              new HostInfoEntity(hostInfo.host(), hostInfo.port()),
-              true,
-              clock.millis()));
+          copyOnWrite.computeIfAbsent(hostInfo, key -> new HostStatus(true, clock.millis()));
         }
+        hostsStatus.set(new ImmutableMap.Builder<HostInfo, HostStatus>()
+                            .putAll(copyOnWrite).build());
       } catch (Throwable t) {
         LOG.error("Failed to discover cluster with exception " + t.getMessage(), t);
       }
@@ -404,8 +395,10 @@ public final class HeartbeatAgent {
 
     @Override
     protected Scheduler scheduler() {
-      return Scheduler.newFixedRateSchedule(0, config.discoverClusterIntervalMs,
-                                            TimeUnit.MILLISECONDS);
+      return Scheduler.newFixedRateSchedule(
+          DISCOVER_CLUSTER_DELAY_MS,
+          config.discoverClusterIntervalMs,
+          TimeUnit.MILLISECONDS);
     }
 
     @Override

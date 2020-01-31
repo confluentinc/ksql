@@ -209,12 +209,12 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         return inner.serialize(topic, null);
       }
 
-      if (data.getColumns().size() != 1) {
+      if (data.size() != 1) {
         throw new SerializationException("Expected single-field value. "
-            + "got: " + data.getColumns().size());
+            + "got: " + data.size());
       }
 
-      final Object singleField = data.getColumns().get(0);
+      final Object singleField = data.get(0);
       return inner.serialize(topic, (K) singleField);
     }
   }
@@ -240,7 +240,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       }
 
       final GenericRow row = new GenericRow(1 + ADDITIONAL_CAPACITY);
-      row.getColumns().add(value);
+      row.append(value);
       return row;
     }
   }
@@ -266,16 +266,16 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         return inner.serialize(topic, null);
       }
 
-      if (data.getColumns().size() != schema.fields().size()) {
+      if (data.size() != schema.fields().size()) {
         throw new SerializationException("Field count mismatch."
             + " expected: " + schema.fields().size()
-            + ", got: " + data.getColumns().size()
+            + ", got: " + data.size()
         );
       }
 
       final Struct struct = new Struct(schema);
-      for (int i = 0; i < data.getColumns().size(); i++) {
-        struct.put(schema.fields().get(i), data.getColumns().get(i));
+      for (int i = 0; i < data.size(); i++) {
+        struct.put(schema.fields().get(i), data.get(i));
       }
 
       return inner.serialize(topic, struct);
@@ -305,11 +305,10 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final List<Field> fields = struct.schema().fields();
 
       final GenericRow row = new GenericRow(fields.size() + ADDITIONAL_CAPACITY);
-      final List<Object> columns = row.getColumns();
 
       for (final Field field : fields) {
         final Object columnVal = struct.get(field);
-        columns.add(columnVal);
+        row.append(columnVal);
       }
 
       return row;

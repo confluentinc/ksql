@@ -56,7 +56,7 @@ public class ClusterStatusResource {
 
   private ClusterStatusResponse getResponse() {
     final ImmutableMap<HostInfoEntity, HostStoreLags> lags = lagReportingAgent.isPresent()
-            ? lagReportingAgent.get().listAllLags() : ImmutableMap.of();
+            ? lagReportingAgent.get().getAllLags() : ImmutableMap.of();
     return new ClusterStatusResponse(heartbeatAgent.getHostsStatus(), lags);
   }
 }

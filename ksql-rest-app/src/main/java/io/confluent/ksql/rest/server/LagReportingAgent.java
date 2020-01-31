@@ -185,7 +185,7 @@ public final class LagReportingAgent implements HostStatusListener {
    * Returns a map of host -> store -> partition -> LagInfo.  Meant for being exposed in testing
    * and debug resources.
    */
-  public ImmutableMap<HostInfoEntity, HostStoreLags> listAllLags() {
+  public ImmutableMap<HostInfoEntity, HostStoreLags> getAllLags() {
     final ImmutableMap.Builder<HostInfoEntity, HostStoreLags> builder = ImmutableMap.builder();
     for (Entry<HostInfo, HostStoreLags> e : receivedLagInfo.entrySet()) {
       final HostInfo hostInfo = e.getKey();

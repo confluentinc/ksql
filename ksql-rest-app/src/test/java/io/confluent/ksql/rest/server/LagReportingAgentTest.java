@@ -25,7 +25,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.time.Clock;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.state.HostInfo;
@@ -229,7 +228,7 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    ImmutableMap<HostInfoEntity, HostStoreLags> allLags = lagReportingAgent.listAllLags();
+    ImmutableMap<HostInfoEntity, HostStoreLags> allLags = lagReportingAgent.getAllLags();
     LagInfoEntity lag = allLags.get(HOST1).getStateStoreLags(QUERY_STORE_A).getLagByPartition(1);
     assertEquals(M1_A1_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_A1_END, lag.getEndOffsetPosition());

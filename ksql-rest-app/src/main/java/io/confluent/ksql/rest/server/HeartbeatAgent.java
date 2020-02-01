@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
@@ -88,7 +87,7 @@ public final class HeartbeatAgent {
   private final ScheduledExecutorService scheduledExecutorService;
   private final ServiceManager serviceManager;
   private final Clock clock;
-  private KsqlHost localHostInfo;
+  private KsqlHost localHost;
   private URL localURL;
 
   public static HeartbeatAgent.Builder builder() {
@@ -117,7 +116,7 @@ public final class HeartbeatAgent {
    * @param hostInfo The host information of the remote Ksql server.
    * @param timestamp The timestamp the heartbeat was sent.
    */
-  public void receiveHeartbeat(final HostInfo hostInfo, final long timestamp) {
+  public void receiveHeartbeat(final KsqlHost hostInfo, final long timestamp) {
     final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.computeIfAbsent(
         hostInfo, key -> new TreeMap<>());
     synchronized (heartbeats) {
@@ -158,19 +157,18 @@ public final class HeartbeatAgent {
   }
 
   void setLocalAddress(final String applicationServer) {
-
     final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
-    this.localHostInfo = new KsqlHost(hostInfo.host(), hostInfo.port());
+    this.localHost = new KsqlHost(hostInfo.host(), hostInfo.port());
     try {
       this.localURL = new URL(applicationServer);
     } catch (final Exception e) {
       throw new IllegalStateException("Failed to convert remote host info to URL."
-                                          + " remoteInfo: " + localHostInfo.host() + ":"
-                                          + localHostInfo.host());
+                                          + " remoteInfo: " + localHost.host() + ":"
+                                          + localHost.host());
     }
     //This is called on startup of the heartbeat agent, no other entries should exist in the map
     Preconditions.checkState(hostsStatus.get().isEmpty(), "expected empty host info on startup");
-    hostsStatus.set(ImmutableMap.of(localHostInfo, new HostStatus(true, clock.millis())));
+    hostsStatus.set(ImmutableMap.of(localHost, new HostStatus(true, clock.millis())));
   }
 
   /**
@@ -223,7 +221,7 @@ public final class HeartbeatAgent {
       // No heartbeats received -> mark all hosts as dead
       if (receivedHeartbeats.isEmpty()) {
         copyOnWrite.replaceAll((host, status) -> {
-          if (!host.equals(localHostInfo)) {
+          if (!host.equals(localHost)) {
             return status.withHostAlive(false);
           }
           return status;
@@ -235,7 +233,7 @@ public final class HeartbeatAgent {
       for (Entry<KsqlHost, HostStatus> hostEntry: copyOnWrite.entrySet()) {
         final KsqlHost ksqlHost = hostEntry.getKey();
         final HostStatus hostStatus = hostEntry.getValue();
-        if (ksqlHost.equals(localHostInfo)) {
+        if (ksqlHost.equals(localHost)) {
           continue;
         }
         final TreeMap<Long, HeartbeatInfo> heartbeats = receivedHeartbeats.get(ksqlHost);
@@ -253,13 +251,13 @@ public final class HeartbeatAgent {
           // 2. count consecutive missed heartbeats and mark as alive or dead
           final  boolean isAlive = decideStatus(ksqlHost, windowStart, windowEnd, copy);
           copyOnWrite.computeIfPresent(ksqlHost, (host, status) -> status.withHostAlive(isAlive));
-          copyOnWrite.computeIfPresent(ksqlHost,
-                                       (host, status) -> status.setLastStatusUpdateMs(windowEnd));
+          copyOnWrite.computeIfPresent(ksqlHost, (host, status) ->
+              status.setLastStatusUpdateMs(windowEnd));
         }
       }
-      final Map<String, HostStatusEntity> hostStatusEntityMap = getHostsStatus();
+      hostsStatus.set(ImmutableMap.copyOf(copyOnWrite));
       for (HostStatusListener listener : hostStatusListeners) {
-        listener.onHostStatusUpdated(hostStatusEntityMap);
+        listener.onHostStatusUpdated(hostsStatus.get());
       }
     }
 
@@ -315,17 +313,17 @@ public final class HeartbeatAgent {
       for (Entry<KsqlHost, HostStatus> hostStatusEntry: hostsStatus.get().entrySet()) {
         final KsqlHost remoteHost = hostStatusEntry.getKey();
         try {
-          if (!remoteHost.equals(localHostInfo)) {
-            final URI remoteUri = buildLocation(
+          if (!remoteHost.equals(localHost)) {
+            final URI remoteUri = ServerUtil.buildRemoteUri(
                 localURL, remoteHost.host(), remoteHost.port());
-            System.out.println(localHostInfo + " Send heartbeat to host " + remoteHost
+            System.out.println(localHost + " Send heartbeat to host " + remoteHost
                                    + " at timestamp " + System.currentTimeMillis());
             LOG.debug("Send heartbeat to host {} at {}", remoteHost, clock.millis());
             serviceContext.getKsqlClient().makeAsyncHeartbeatRequest(
-                remoteUri, localHostInfo, clock.millis());
+                remoteUri, localHost, clock.millis());
           }
         } catch (Throwable t) {
-          System.out.println(localHostInfo + " FAILED to Send heartbeat to host " + remoteHost
+          System.out.println(localHost + " FAILED to Send heartbeat to host " + remoteHost
                                  + " at timestamp " + System.currentTimeMillis());
           LOG.error("Request to server: " + remoteHost + " failed with exception: "
                         + t.getMessage(), t);
@@ -343,15 +341,6 @@ public final class HeartbeatAgent {
     @Override
     protected ScheduledExecutorService executor() {
       return scheduledExecutorService;
-    }
-
-    private URI buildLocation(final URL localHost, final String host, final int port) {
-      try {
-        return new URL(localHost.getProtocol(), host, port, "/").toURI();
-      } catch (final Exception e) {
-        throw new IllegalStateException("Failed to convert remote host info to URL."
-                                            + " remoteInfo: " + host + ":" + port);
-      }
     }
   }
 
@@ -375,19 +364,19 @@ public final class HeartbeatAgent {
             .flatMap(Collection::stream)
             .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
             .map(StreamsMetadata::hostInfo)
-            .filter(hostInfo -> !(hostInfo.host().equals(localHostInfo.host())
-                && hostInfo.port() == (localHostInfo.port())))
+            .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
+                && hostInfo.port() == (localHost.port())))
             .collect(Collectors.toSet());
 
-        final Map<HostInfo, HostStatus> copyOnWrite = new HashMap<>(hostsStatus.get());
+        final Map<KsqlHost, HostStatus> copyOnWrite = new HashMap<>(hostsStatus.get());
         for (HostInfo hostInfo : uniqueHosts) {
           // Only add to map if it is the first time it is discovered. Design decision to
           // optimistically consider every newly discovered server as alive to avoid situations of
           // unavailability until the heartbeating kicks in.
-          copyOnWrite.computeIfAbsent(hostInfo, key -> new HostStatus(true, clock.millis()));
+          final KsqlHost host = new KsqlHost(hostInfo.host(), hostInfo.port());
+          copyOnWrite.computeIfAbsent(host, key -> new HostStatus(true, clock.millis()));
         }
-        hostsStatus.set(new ImmutableMap.Builder<HostInfo, HostStatus>()
-                            .putAll(copyOnWrite).build());
+        hostsStatus.set(ImmutableMap.copyOf(copyOnWrite));
       } catch (Throwable t) {
         LOG.error("Failed to discover cluster with exception " + t.getMessage(), t);
       }
@@ -513,6 +502,6 @@ public final class HeartbeatAgent {
      * Call when the map of host statuses are updated
      * @param hostsStatusMap The new host status map
      */
-    void onHostStatusUpdated(Map<String, HostStatusEntity> hostsStatusMap);
+    void onHostStatusUpdated(ImmutableMap<KsqlHost, HostStatus> hostsStatusMap);
   }
 }

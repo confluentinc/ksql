@@ -25,23 +25,19 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HostStatusEntity {
 
-  private final HostInfoEntity hostInfoEntity;
-  private final boolean hostAlive;
-  private final long lastStatusUpdateMs;
+  private boolean hostAlive;
+  private long lastStatusUpdateMs;
+  private HostStoreLags hostStoreLags;
 
   @JsonCreator
   public HostStatusEntity(
-      @JsonProperty("hostInfoEntity") final HostInfoEntity hostInfoEntity,
       @JsonProperty("hostAlive") final boolean hostAlive,
-      @JsonProperty("lastStatusUpdateMs") final long lastStatusUpdateMs
+      @JsonProperty("lastStatusUpdateMs") final long lastStatusUpdateMs,
+      @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
   ) {
-    this.hostInfoEntity = Objects.requireNonNull(hostInfoEntity, "hostInfoEntity");
     this.hostAlive = hostAlive;
     this.lastStatusUpdateMs = lastStatusUpdateMs;
-  }
-
-  public HostInfoEntity getHostInfoEntity() {
-    return hostInfoEntity;
+    this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
   }
 
   public boolean getHostAlive() {
@@ -52,8 +48,8 @@ public class HostStatusEntity {
     return lastStatusUpdateMs;
   }
 
-  public HostStatusEntity copyWithStatus(final boolean hostAlive) {
-    return new HostStatusEntity(hostInfoEntity, hostAlive, lastStatusUpdateMs);
+  public HostStoreLags getHostStoreLags() {
+    return hostStoreLags;
   }
 
   @Override
@@ -67,17 +63,18 @@ public class HostStatusEntity {
     }
 
     final HostStatusEntity that = (HostStatusEntity) o;
-    return Objects.equals(hostInfoEntity, that.hostInfoEntity)
-        && hostAlive == that.hostAlive && lastStatusUpdateMs == that.lastStatusUpdateMs;
+    return hostAlive == that.hostAlive
+        && lastStatusUpdateMs == that.lastStatusUpdateMs
+        && Objects.equals(hostStoreLags, that.hostStoreLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfoEntity, hostAlive, lastStatusUpdateMs);
+    return Objects.hash(hostAlive, lastStatusUpdateMs, hostStoreLags);
   }
 
   @Override
   public String toString() {
-    return hostInfoEntity + "," + hostAlive + "," + lastStatusUpdateMs;
+    return hostAlive + "," + lastStatusUpdateMs;
   }
 }

@@ -17,12 +17,17 @@ package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
+import io.confluent.ksql.util.HostStatus;
+import io.confluent.ksql.util.KsqlHost;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -41,6 +46,8 @@ public class ClusterStatusResource {
 
   private final HeartbeatAgent heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
+  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
+      new HostStoreLags(ImmutableMap.of(), 0);
 
   public ClusterStatusResource(final HeartbeatAgent heartbeatAgent,
                                final Optional<LagReportingAgent> lagReportingAgent) {
@@ -55,8 +62,22 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    final ImmutableMap<HostInfoEntity, HostStoreLags> lags = lagReportingAgent.isPresent()
-            ? lagReportingAgent.get().getAllLags() : ImmutableMap.of();
-    return new ClusterStatusResponse(heartbeatAgent.getHostsStatus(), lags);
+    final Map<KsqlHost, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
+    final ImmutableMap<KsqlHostEntity, HostStoreLags> lags = lagReportingAgent.isPresent()
+        ? lagReportingAgent.get().getAllLags() : ImmutableMap.of();
+
+    final Map<KsqlHostEntity, HostStatusEntity> response = allHostStatus
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> new KsqlHostEntity(entry.getKey().host(), entry.getKey().port()) ,
+            entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
+                                          entry.getValue().getLastStatusUpdateMs(),
+                                          lagReportingAgent.isPresent()
+                                              ? lagReportingAgent.get().getLagPerHost(entry.getKey())
+                                              : EMPTY_HOST_STORE_LAGS)
+        ));
+
+    return new ClusterStatusResponse(response);
   }
 }

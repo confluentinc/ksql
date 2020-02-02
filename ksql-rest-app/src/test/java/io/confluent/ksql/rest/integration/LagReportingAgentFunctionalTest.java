@@ -9,8 +9,8 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.entity.StateStoreLags;
@@ -66,8 +66,8 @@ public class LagReportingAgentFunctionalTest {
       "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final HostInfoEntity HOST0 = new HostInfoEntity("localhost", 8088);
-  private static final HostInfoEntity HOST1 = new HostInfoEntity("localhost", 8089);
+  private static final KsqlHostEntity HOST0 = new KsqlHostEntity("localhost", 8088);
+  private static final KsqlHostEntity HOST1 = new KsqlHostEntity("localhost", 8089);
   private static final String HOST0_STR = "localhost:8088";
   private static final String HOST1_STR = "localhost:8089";
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -150,7 +150,7 @@ public class LagReportingAgentFunctionalTest {
     ClusterStatusResponse resp =
         waitForClusterCondition(LagReportingAgentFunctionalTest::allLagsReported);
     StateStoreLags stateStoreLags =
-        resp.getLags().entrySet().iterator().next().getValue().getStateStoreLags(STORE_0);
+        resp.getClusterStatus().entrySet().iterator().next().getValue().getHostStoreLags().getStateStoreLags(STORE_0);
 
     // Then:
     // Read the raw Kafka data from the topic to verify the reported lags
@@ -205,15 +205,15 @@ public class LagReportingAgentFunctionalTest {
   }
 
   private static boolean allLagsReported(ClusterStatusResponse response) {
-    if (response.getLags().size() == 2) {
-      HostStoreLags store0 = response.getLags().get(HOST0);
-      HostStoreLags store1 = response.getLags().get(HOST1);
+    if (response.getClusterStatus().size() == 2) {
+      HostStoreLags store0 = response.getClusterStatus().get(HOST0).getHostStoreLags();
+      HostStoreLags store1 = response.getClusterStatus().get(HOST1).getHostStoreLags();
       if (arePartitionsCurrent(store0) && arePartitionsCurrent(store1)) {
-        LOG.info("Found expected lags: {}", response.getLags().toString());
+        LOG.info("Found expected lags: {}", response.getClusterStatus().toString());
         return true;
       }
     }
-    LOG.info("Didn't yet find expected lags: {}", response.getLags().toString());
+    LOG.info("Didn't yet find expected lags: {}", response.getClusterStatus().toString());
     return false;
   }
 

@@ -63,8 +63,6 @@ public class ClusterStatusResource {
 
   private ClusterStatusResponse getResponse() {
     final Map<KsqlHost, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
-    final ImmutableMap<KsqlHostEntity, HostStoreLags> lags = lagReportingAgent.isPresent()
-        ? lagReportingAgent.get().getAllLags() : ImmutableMap.of();
 
     final Map<KsqlHostEntity, HostStatusEntity> response = allHostStatus
         .entrySet()
@@ -74,7 +72,8 @@ public class ClusterStatusResource {
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
                                           lagReportingAgent.isPresent()
-                                              ? lagReportingAgent.get().getLagPerHost(entry.getKey())
+                                              ? lagReportingAgent.get().getLagPerHost(
+                                                  entry.getKey())
                                               : EMPTY_HOST_STORE_LAGS)
         ));
 

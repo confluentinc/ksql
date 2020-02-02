@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.StoreQueryParams;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
@@ -142,7 +143,7 @@ public class KsStateStoreTest {
         .thenReturn(State.RUNNING)
         .thenReturn(State.NOT_RUNNING);
 
-    when(kafkaStreams.store(any(), any())).thenThrow(new IllegalStateException());
+    when(kafkaStreams.store(any())).thenThrow(new IllegalStateException());
 
     // When:
     expectedException.expect(NotRunningException.class);
@@ -163,7 +164,7 @@ public class KsStateStoreTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams, atLeast(1)).state();
-    inOrder.verify(kafkaStreams).store(any(), any());
+    inOrder.verify(kafkaStreams).store(any());
   }
 
   @Test
@@ -176,13 +177,13 @@ public class KsStateStoreTest {
     store.store(storeType);
 
     // Then:
-    verify(kafkaStreams).store(STORE_NAME, storeType);
+    verify(kafkaStreams).store(StoreQueryParams.fromNameAndType(STORE_NAME, storeType));
   }
 
   @Test
   public void shouldThrowIfStoreNotAvailableWhenRequested() {
     // Given:
-    when(kafkaStreams.store(any(), any())).thenThrow(new InvalidStateStoreException("boom"));
+    when(kafkaStreams.store(any())).thenThrow(new InvalidStateStoreException("boom"));
 
     // Then:
     expectedException.expect(MaterializationException.class);
@@ -197,7 +198,7 @@ public class KsStateStoreTest {
   public void shouldReturnSessionStore() {
     // Given:
     final ReadOnlySessionStore<?, ?> sessionStore = mock(ReadOnlySessionStore.class);
-    when(kafkaStreams.store(any(), any())).thenReturn(sessionStore);
+    when(kafkaStreams.store(any())).thenReturn(sessionStore);
 
     // When:
     final ReadOnlySessionStore<Double, String> result = store
@@ -211,7 +212,7 @@ public class KsStateStoreTest {
   public void shouldReturnWindowStore() {
     // Given:
     final ReadOnlyWindowStore<?, ?> windowStore = mock(ReadOnlyWindowStore.class);
-    when(kafkaStreams.store(any(), any())).thenReturn(windowStore);
+    when(kafkaStreams.store(any())).thenReturn(windowStore);
 
     // When:
     final ReadOnlyWindowStore<Boolean, String> result = store

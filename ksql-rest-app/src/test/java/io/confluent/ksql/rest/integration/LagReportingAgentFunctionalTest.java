@@ -68,8 +68,6 @@ public class LagReportingAgentFunctionalTest {
 
   private static final KsqlHostEntity HOST0 = new KsqlHostEntity("localhost", 8088);
   private static final KsqlHostEntity HOST1 = new KsqlHostEntity("localhost", 8089);
-  private static final String HOST0_STR = "localhost:8088";
-  private static final String HOST1_STR = "localhost:8089";
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -86,7 +84,6 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
-      .withProperties(ClientTrustStore.trustStoreProps())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -103,7 +100,6 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
-      .withProperties(ClientTrustStore.trustStoreProps())
       .build();
 
   @ClassRule

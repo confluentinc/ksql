@@ -23,6 +23,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.apache.kafka.streams.state.HostInfo;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
 public class HostInfoEntity {

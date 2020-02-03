@@ -15,34 +15,42 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Represents the lags associated with a particular state store on a particular host.
+ */
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LagReportingMessage {
+public class StateStoreLags {
 
-  private final HostInfoEntity hostInfo;
-  private final HostStoreLags hostStoreLags;
+  private final ImmutableMap<Integer, LagInfoEntity> lagByPartition;
 
   @JsonCreator
-  public LagReportingMessage(
-      @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
-      @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
-  ) {
-    this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
-    this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
+  public StateStoreLags(
+      @JsonProperty("lagByPartition") final Map<Integer, LagInfoEntity> lagByPartition) {
+    this.lagByPartition = ImmutableMap.copyOf(requireNonNull(lagByPartition, "lagByPartition"));
   }
 
-  public HostInfoEntity getHostInfo() {
-    return hostInfo;
+  public LagInfoEntity getLagByPartition(final int partition) {
+    return lagByPartition.get(partition);
   }
 
-  public HostStoreLags getHostStoreLags() {
-    return hostStoreLags;
+  public Map<Integer, LagInfoEntity> getLagByPartition() {
+    return lagByPartition;
+  }
+
+  public int getSize() {
+    return lagByPartition.size();
   }
 
   @Override
@@ -55,18 +63,19 @@ public class LagReportingMessage {
       return false;
     }
 
-    final LagReportingMessage that = (LagReportingMessage) o;
-    return Objects.equals(hostInfo, that.hostInfo)
-        && Objects.equals(hostStoreLags, that.hostStoreLags);
+    final StateStoreLags that = (StateStoreLags) o;
+    return Objects.equals(lagByPartition, that.lagByPartition);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfo, hostStoreLags);
+    return Objects.hash(lagByPartition);
   }
 
   @Override
   public String toString() {
-    return hostInfo + "," + hostStoreLags;
+    return toStringHelper(this)
+        .add("lagByPartition", lagByPartition)
+        .toString();
   }
 }

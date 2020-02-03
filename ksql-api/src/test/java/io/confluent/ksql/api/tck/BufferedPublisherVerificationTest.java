@@ -32,7 +32,7 @@ public class BufferedPublisherVerificationTest extends PublisherVerification<Jso
   public BufferedPublisherVerificationTest() {
     // We need to increase the default timeouts as they are a bit low and can lead to
     // non deterministic runs
-    super(new TestEnvironment(500), 1000);
+    super(new TestEnvironment(1000), 1000);
     this.vertx = Vertx.vertx();
   }
 

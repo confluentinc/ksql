@@ -15,15 +15,13 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.LagInfoEntity;
-import io.confluent.ksql.rest.entity.QueryStateStoreId;
+import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -57,9 +55,8 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags =
-        lagReportingAgent.isPresent()
-            ? lagReportingAgent.get().listAllLags() : Collections.emptyMap();
+    final ImmutableMap<HostInfoEntity, HostStoreLags> lags = lagReportingAgent.isPresent()
+            ? lagReportingAgent.get().getAllLags() : ImmutableMap.of();
     return new ClusterStatusResponse(heartbeatAgent.getHostsStatus(), lags);
   }
 }

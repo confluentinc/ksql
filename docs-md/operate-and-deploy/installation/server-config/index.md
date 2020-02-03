@@ -267,7 +267,9 @@ differs between interactive and non-interactive mode.
 
 !!! important
     If your ksqlDB applications use Avro and you run them in non-interactive
-    mode, ensure that the schemas don't change between ksqlDB Server restarts.
+    mode, ensure that the schemas don't change between ksqlDB Server restarts,
+    or provide the schema explicitly. If the schema may evolve, it's safer to
+    provide the schema explicitly.
 
 ### Start headless ksqlDB Server from the command line
 

@@ -187,8 +187,8 @@ public final class LagReportingAgent implements HostStatusListener {
             Entry::getValue));
   }
 
-  public HostStoreLags getLagPerHost(final KsqlHost host) {
-    return receivedLagInfo.getOrDefault(host, EMPTY_HOST_STORE_LAGS);
+  public Optional<HostStoreLags> getLagPerHost(final KsqlHost host) {
+    return Optional.ofNullable(receivedLagInfo.get(host));
   }
 
   @Override

@@ -135,12 +135,6 @@ public class LagReportingAgentFunctionalTest {
     );
   }
 
-  @AfterClass
-  public static void tearDownClass() {
-    REST_APP_0.closePersistentQueries();
-    REST_APP_0.dropSourcesExcept();
-  }
-
   @Test(timeout = 60000)
   public void shouldExchangeLags() {
     // Given:

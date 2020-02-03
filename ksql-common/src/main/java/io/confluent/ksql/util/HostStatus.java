@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 /**
  * Represent the status of a ksql host in the cluster as determined by the Heartbeat agent.
@@ -24,8 +25,8 @@ import com.google.errorprone.annotations.Immutable;
 @Immutable
 public class HostStatus {
 
-  private boolean hostAlive;
-  private long lastStatusUpdateMs;
+  private final boolean hostAlive;
+  private final long lastStatusUpdateMs;
 
   public HostStatus(
       final boolean hostAlive,
@@ -39,7 +40,7 @@ public class HostStatus {
     return new HostStatus(hostAlive, lastStatusUpdateMs);
   }
 
-  public HostStatus setLastStatusUpdateMs(final long lastStatusUpdateMs) {
+  public HostStatus withLastStatusUpdateMs(final long lastStatusUpdateMs) {
     return new HostStatus(hostAlive, lastStatusUpdateMs);
   }
 
@@ -49,6 +50,27 @@ public class HostStatus {
 
   public boolean isHostAlive() {
     return hostAlive;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final HostStatus that = (HostStatus) o;
+    return hostAlive == that.hostAlive
+        && lastStatusUpdateMs == that.lastStatusUpdateMs;
+  }
+
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(hostAlive, lastStatusUpdateMs);
   }
 
   @Override

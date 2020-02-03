@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 /**
  * Immutable representation of {@link org.apache.kafka.streams.state.HostInfo HostInfo}
@@ -47,9 +48,7 @@ public class KsqlHost {
 
   @Override
   public int hashCode() {
-    int result = host.hashCode();
-    result = 31 * result + port;
-    return result;
+    return Objects.hash(host, port);
   }
 
   public String host() {
@@ -62,11 +61,6 @@ public class KsqlHost {
 
   @Override
   public String toString() {
-    return new StringBuilder()
-        .append("KsqlHost{")
-        .append("host=\'").append(host).append("\'")
-        .append(", port=").append(port)
-        .append('}')
-        .toString();
+    return "KsqlHost{host='" + this.host + '\'' + ", port=" + this.port + '}';
   }
 }

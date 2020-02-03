@@ -26,6 +26,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.StoreQueryParams;
 import org.apache.kafka.streams.state.QueryableStoreType;
 
 /**
@@ -71,7 +72,9 @@ class KsStateStore {
     awaitRunning();
 
     try {
-      return kafkaStreams.store(stateStoreName, queryableStoreType);
+
+      return kafkaStreams
+          .store(StoreQueryParams.fromNameAndType(stateStoreName, queryableStoreType));
     } catch (final Exception e) {
       final State state = kafkaStreams.state();
       if (state != State.RUNNING) {

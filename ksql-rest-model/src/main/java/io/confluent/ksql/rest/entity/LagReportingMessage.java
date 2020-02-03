@@ -25,20 +25,20 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingMessage {
 
-  private final HostInfoEntity hostInfo;
+  private final KsqlHostEntity ksqlHost;
   private final HostStoreLags hostStoreLags;
 
   @JsonCreator
   public LagReportingMessage(
-      @JsonProperty("hostInfo") final HostInfoEntity hostInfoEntity,
+      @JsonProperty("ksqlHost") final KsqlHostEntity ksqlHost,
       @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
   ) {
-    this.hostInfo = Objects.requireNonNull(hostInfoEntity, "hostInfo");
+    this.ksqlHost = Objects.requireNonNull(ksqlHost, "hostInfo");
     this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
   }
 
-  public HostInfoEntity getHostInfo() {
-    return hostInfo;
+  public KsqlHostEntity getKsqlHost() {
+    return ksqlHost;
   }
 
   public HostStoreLags getHostStoreLags() {
@@ -56,17 +56,17 @@ public class LagReportingMessage {
     }
 
     final LagReportingMessage that = (LagReportingMessage) o;
-    return Objects.equals(hostInfo, that.hostInfo)
+    return Objects.equals(ksqlHost, that.ksqlHost)
         && Objects.equals(hostStoreLags, that.hostStoreLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfo, hostStoreLags);
+    return Objects.hash(ksqlHost, hostStoreLags);
   }
 
   @Override
   public String toString() {
-    return hostInfo + "," + hostStoreLags;
+    return ksqlHost + "," + hostStoreLags;
   }
 }

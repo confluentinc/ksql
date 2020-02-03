@@ -27,15 +27,15 @@ import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.streams.state.HostInfo;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
 
@@ -106,7 +106,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final HostInfo host,
+      final KsqlHost host,
       final long timestamp) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
@@ -114,7 +114,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     authHeader
         .map(target::authorizationHeader)
         .orElse(target)
-        .postAsyncHeartbeatRequest(new HostInfoEntity(host.host(), host.port()), timestamp);
+        .postAsyncHeartbeatRequest(new KsqlHostEntity(host.host(), host.port()), timestamp);
   }
 
   @Override

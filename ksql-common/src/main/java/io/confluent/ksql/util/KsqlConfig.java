@@ -566,14 +566,14 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_AUTH_CACHE_MAX_ENTRIES_DOC
         ).define(
             KSQL_HIDDEN_TOPICS_CONFIG,
-            Type.STRING,
+            Type.LIST,
             KSQL_HIDDEN_TOPICS_DEFAULT,
             ConfigValidators.validRegex(),
             Importance.LOW,
             KSQL_HIDDEN_TOPICS_DOC
         ).define(
             KSQL_READONLY_TOPICS_CONFIG,
-            Type.STRING,
+            Type.LIST,
             KSQL_READONLY_TOPICS_DEFAULT,
             ConfigValidators.validRegex(),
             Importance.LOW,

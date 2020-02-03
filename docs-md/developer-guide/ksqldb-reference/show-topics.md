@@ -25,8 +25,8 @@ configured to connect to (default setting for `bootstrap.servers`:
 and their active consumer counts.
 
 `SHOW TOPICS` does not display hidden topics by default, such as:
-* KSQL internal topics, like the KSQL command topic or changelog & repartition topics.
-* Topics that match any pattern in the `ksql.hidden.topics` configuration.
+* KSQL internal topics, like the KSQL command topic or changelog & repartition topics, or
+  topics that match any pattern in the `ksql.hidden.topics` configuration.
 
 `SHOW ALL TOPICS` lists all topics, including hidden topics.
 

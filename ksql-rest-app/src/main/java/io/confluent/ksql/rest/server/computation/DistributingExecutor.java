@@ -180,7 +180,7 @@ public class DistributingExecutor {
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
-    final DataSource<?> dataSource = metaStore.getSource(insertInto.getTarget());
+    final DataSource dataSource = metaStore.getSource(insertInto.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert into an unknown stream/table: "
           + insertInto.getTarget());

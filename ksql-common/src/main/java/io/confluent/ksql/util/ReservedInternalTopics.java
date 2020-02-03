@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -110,7 +109,7 @@ public final class ReservedInternalTopics {
     this.hiddenTopicsPattern = Pattern.compile(
         Streams.concat(
             Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
-            toStream(ksqlConfig.getString(KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG))
+            ksqlConfig.getList(KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG).stream()
         ).collect(Collectors.joining("|"))
     );
 
@@ -118,7 +117,7 @@ public final class ReservedInternalTopics {
         Streams.concat(
             Stream.of(processingLogTopic(processingLogConfig, ksqlConfig)),
             Stream.of(KSQL_INTERNAL_TOPIC_PREFIX + ".*"),
-            toStream(ksqlConfig.getString(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG))
+            ksqlConfig.getList(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG).stream()
         ).collect(Collectors.joining("|"))
     );
   }
@@ -135,9 +134,5 @@ public final class ReservedInternalTopics {
 
   public boolean isReadOnly(final String topicName) {
     return readOnlyTopicsPattern.matcher(topicName).matches();
-  }
-
-  private Stream<String> toStream(final String s) {
-    return Arrays.stream(s.split(","));
   }
 }

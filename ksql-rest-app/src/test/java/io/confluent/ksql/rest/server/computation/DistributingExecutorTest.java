@@ -313,7 +313,7 @@ public class DistributingExecutorTest {
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
-    final DataSource<?> dataSource = mock(DataSource.class);
+    final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
 
@@ -333,7 +333,7 @@ public class DistributingExecutorTest {
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
-    final DataSource<?> dataSource = mock(DataSource.class);
+    final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
 

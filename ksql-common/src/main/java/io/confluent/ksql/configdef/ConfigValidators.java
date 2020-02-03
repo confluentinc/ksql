@@ -95,15 +95,27 @@ public final class ConfigValidators {
 
   public static Validator validRegex() {
     return (name, val) -> {
-      if (!(val instanceof String)) {
-        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      if (!(val instanceof List)) {
+        throw new IllegalArgumentException("validator should only be used with "
+            + "LIST of STRING defs");
       }
 
-      final String regex = Arrays.stream(((String) val).split(","))
-          .collect(Collectors.joining("|"));
+      final StringBuilder regexBuilder = new StringBuilder();
+      for (Object item : (List)val) {
+        if (!(item instanceof String)) {
+          throw new IllegalArgumentException("validator should only be used with "
+              + "LIST of STRING defs");
+        }
+
+        if (regexBuilder.length() > 0) {
+          regexBuilder.append("|");
+        }
+
+        regexBuilder.append((String)item);
+      }
 
       try {
-        Pattern.compile(regex);
+        Pattern.compile(regexBuilder.toString());
       } catch (final Exception e) {
         throw new ConfigException(name, val, "Not valid regular expression: " + e.getMessage());
       }

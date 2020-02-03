@@ -49,7 +49,8 @@ public final class AvroUtil {
     );
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
-        format.getFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+        format.getProperties()
+            .getOrDefault(FormatInfo.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
         ksqlConfig
     );
 

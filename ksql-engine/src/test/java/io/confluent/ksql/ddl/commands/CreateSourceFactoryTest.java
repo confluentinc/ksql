@@ -594,7 +594,7 @@ public class CreateSourceFactoryTest {
         withProperties);
 
     when(keySerdeFactory.create(
-        FormatInfo.of(KAFKA, Optional.empty(), Optional.empty()),
+        FormatInfo.of(KAFKA),
         PersistenceSchema.from(EXPECTED_SCHEMA.keyConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -617,7 +617,7 @@ public class CreateSourceFactoryTest {
         withProperties);
 
     when(valueSerdeFactory.create(
-        FormatInfo.of(JSON, Optional.empty(), Optional.empty()),
+        FormatInfo.of(JSON),
         PersistenceSchema.from(EXPECTED_SCHEMA.valueConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -664,7 +664,7 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(
         cmd.getFormats().getValueFormat(),
-        is(FormatInfo.of(AVRO, Optional.of("full.schema.name"), Optional.empty())));
+        is(FormatInfo.of(AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "full.schema.name"))));
   }
 
   @Test

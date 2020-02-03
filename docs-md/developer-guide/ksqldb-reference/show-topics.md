@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-SHOW | LIST TOPICS [EXTENDED];
+SHOW | LIST [ALL] TOPICS [EXTENDED];
 ```
 
 Description
@@ -24,10 +24,37 @@ configured to connect to (default setting for `bootstrap.servers`:
 `localhost:9092`). SHOW TOPICS EXTENDED also displays consumer groups
 and their active consumer counts.
 
+`SHOW TOPICS` does not display hidden topics by default, such as:
+* KSQL internal topics, like the KSQL command topic or changelog & repartition topics, or
+  topics that match any pattern in the `ksql.hidden.topics` configuration.
+
+`SHOW ALL TOPICS` lists all topics, including hidden topics.
+
 Example
 -------
 
-TODO: example
+```sql
+ksql> SHOW TOPICS;
+
+ Kafka Topic                                                                           | Partitions | Partition Replicas
+--------------------------------------------------------------------------------------------------------
+ default_ksql_processing_log                                                           | 1          | 1
+ pageviews                                                                             | 1          | 1
+ users                                                                                 | 1          | 1
+--------------------------------------------------------------------------------------------------------
+```
 
 
-Page last revised on: {{ git_revision_date }}
+```sql
+ksql> SHOW ALL TOPICS;
+
+ Kafka Topic                                                                           | Partitions | Partition Replicas
+--------------------------------------------------------------------------------------------------------
+ _confluent-ksql-default__command_topic                                                | 1          | 1
+ _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-Aggregate-Materialize-changelog  | 1          | 1
+ _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-GroupBy-repartition              | 1          | 1
+ default_ksql_processing_log                                                           | 1          | 1
+ pageviews                                                                             | 1          | 1
+ users                                                                                 | 1          | 1
+--------------------------------------------------------------------------------------------------------
+```

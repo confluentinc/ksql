@@ -539,6 +539,66 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowWhenInsertValuesOnReservedInternalTopic() {
+    // Given
+    givenDataSourceWithSchema("_confluent-ksql-default__command-topic", SCHEMA,
+        SerdeOption.none(), Optional.of(COL0), false);
+
+    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+        PreparedStatement.of(
+            "",
+            new InsertValues(SourceName.of("TOPIC"),
+                allFieldNames(SCHEMA),
+                ImmutableList.of(
+                    new LongLiteral(1L),
+                    new StringLiteral("str"),
+                    new StringLiteral("str"),
+                    new LongLiteral(2L)
+                ))),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Cannot insert values into read-only topic: _confluent-ksql-default__command-topic");
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowWhenInsertValuesOnProcessingLogTopic() {
+    // Given
+    givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
+        SerdeOption.none(), Optional.of(COL0), false);
+
+    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+        PreparedStatement.of(
+            "",
+            new InsertValues(SourceName.of("TOPIC"),
+                allFieldNames(SCHEMA),
+                ImmutableList.of(
+                    new LongLiteral(1L),
+                    new StringLiteral("str"),
+                    new StringLiteral("str"),
+                    new LongLiteral(2L)
+                ))),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Cannot insert values into read-only topic: default_ksql_processing_log");
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+  }
+
+  @Test
   public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -850,24 +910,25 @@ public class InsertValuesExecutorTest {
       final Set<SerdeOption> serdeOptions,
       final Optional<ColumnName> keyField
   ) {
-    givenDataSourceWithSchema(schema, serdeOptions, keyField, false);
+    givenDataSourceWithSchema(TOPIC_NAME, schema, serdeOptions, keyField, false);
   }
 
   private void givenSourceTableWithSchema(
       final Set<SerdeOption> serdeOptions,
       final Optional<ColumnName> keyField
   ) {
-    givenDataSourceWithSchema(SCHEMA, serdeOptions, keyField, true);
+    givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, serdeOptions, keyField, true);
   }
 
   private void givenDataSourceWithSchema(
+      final String topicName,
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final Optional<ColumnName> keyField,
       final boolean table
   ) {
     final KsqlTopic topic = new KsqlTopic(
-        TOPIC_NAME,
+        topicName,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
         ValueFormat.of(FormatInfo.of(Format.JSON))
     );

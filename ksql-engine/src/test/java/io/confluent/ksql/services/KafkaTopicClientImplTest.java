@@ -33,7 +33,6 @@ import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +46,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
@@ -95,18 +96,17 @@ public class KafkaTopicClientImplTest {
   private static final String topicName2 = "topic2";
   private static final String topicName3 = "topic3";
   private static final String internalTopic1 = String.format("%s%s_%s",
-      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-repartition");
   private static final String internalTopic2 = String.format("%s%s_%s",
-      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
       "default",
       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
           + "-STATE-STORE-0000000006-changelog");
-  private static final String confluentInternalTopic =
-      String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
-          "confluent-control-center");
+  private static final String internalTopic = String.format("%s_internal",
+      ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX);
   private Node node;
   @Mock
   private AdminClient adminClient;
@@ -277,16 +277,6 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldFilterInternalTopics() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
-    final Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
-    assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
-    verify(adminClient);
-  }
-
-  @Test
   public void shouldListTopicNames() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     replay(adminClient);
@@ -326,7 +316,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final String applicationId = String.format("%s%s",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX,
         "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
     verify(adminClient);
@@ -656,7 +646,7 @@ public class KafkaTopicClientImplTest {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
         internalTopic1, internalTopic2,
-        confluentInternalTopic);
+        internalTopic);
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);

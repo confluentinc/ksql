@@ -141,13 +141,6 @@ public interface KafkaTopicClient {
   Set<String> listTopicNames();
 
   /**
-   * Call to retrieve list of internal topics
-   *
-   * @return set of all non-internal topics
-   */
-  Set<String> listNonInternalTopicNames();
-
-  /**
    * Call to get a one or more topic's description.
    *
    * @param topicNames topicNames to describe

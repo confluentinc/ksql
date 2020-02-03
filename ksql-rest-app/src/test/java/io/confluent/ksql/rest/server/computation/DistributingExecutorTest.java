@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -32,11 +33,15 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -148,6 +153,7 @@ public class DistributingExecutorTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     distributor = new DistributingExecutor(
+        KSQL_CONFIG,
         queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
@@ -281,5 +287,62 @@ public class DistributingExecutorTest {
 
     // When:
     distributor.execute(configured, executionContext, userSecurityContext);
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoUnknownStream() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into an unknown stream/table: `s1`");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoReadOnlyTopic() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into read-only topic: "
+        + "_confluent-ksql-default__command-topic");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoProcessingLogTopic() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into read-only topic: "
+        + "default_ksql_processing_log");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
   }
 }

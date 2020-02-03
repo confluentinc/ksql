@@ -162,6 +162,7 @@ public class KsqlResource implements KsqlConfigurable {
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
+            config,
             commandQueue,
             distributedCmdResponseTimeout,
             injectorFactory,

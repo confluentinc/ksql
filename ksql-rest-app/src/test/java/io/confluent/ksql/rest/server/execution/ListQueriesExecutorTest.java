@@ -84,6 +84,7 @@ public class ListQueriesExecutorTest {
         new RunningQuery(
             metadata.getStatementString(),
             ImmutableSet.of(metadata.getSinkName().name()),
+            ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
             Optional.of(metadata.getState())
         )));
@@ -124,6 +125,7 @@ public class ListQueriesExecutorTest {
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
+    when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;

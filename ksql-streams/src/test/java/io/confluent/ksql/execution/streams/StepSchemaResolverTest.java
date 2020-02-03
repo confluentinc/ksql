@@ -97,8 +97,6 @@ public class StepSchemaResolverTest {
       new QueryContext.Stacker().getQueryContext()
   );
 
-  private static final SourceName SOME_ALIAS = SourceName.of("alias");
-
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -299,8 +297,7 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -318,8 +315,7 @@ public class StepSchemaResolverTest {
         formats,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -422,8 +418,7 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -442,8 +437,7 @@ public class StepSchemaResolverTest {
         formats,
         mock(WindowInfo.class),
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:

@@ -33,7 +33,6 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   final Formats formats;
   final Optional<TimestampColumn> timestampColumn;
   final LogicalSchema sourceSchema;
-  final SourceName alias;
 
   @VisibleForTesting
   public SourceStep(
@@ -41,15 +40,13 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final LogicalSchema sourceSchema,
-      final SourceName alias
+      final LogicalSchema sourceSchema
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
-    this.alias = Objects.requireNonNull(alias, "alias");
   }
 
   @Override

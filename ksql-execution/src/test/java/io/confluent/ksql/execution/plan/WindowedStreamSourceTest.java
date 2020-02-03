@@ -16,7 +16,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
@@ -44,10 +43,6 @@ public class WindowedStreamSourceTest {
   @Mock
   private LogicalSchema schema2;
   @Mock
-  private SourceName alias1;
-  @Mock
-  private SourceName alias2;
-  @Mock
   private WindowInfo window1;
   @Mock
   private WindowInfo window2;
@@ -57,29 +52,24 @@ public class WindowedStreamSourceTest {
     new EqualsTester()
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, alias1),
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1),
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1, alias1))
+                properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic2", formats1, window1, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic2", formats1, window1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats2, window1, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic1", formats2, window1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp2), schema1, alias1))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp2), schema1))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, alias1))
-        .addEqualityGroup(
-            new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, alias2))
-        .addEqualityGroup(
-            new WindowedStreamSource(
-                properties1, "topic1", formats1, window2, Optional.of(timestamp1), schema1, alias2));
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2))
+        .testEquals();
   }
 }

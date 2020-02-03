@@ -33,17 +33,9 @@ public final class TableSource extends SourceStep<KTableHolder<Struct>> {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) final SourceName alias
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
   ) {
-    super(
-        properties,
-        topicName,
-        formats,
-        timestampColumn,
-        sourceSchema,
-        alias
-    );
+    super(properties, topicName, formats, timestampColumn, sourceSchema);
   }
 
   @Override
@@ -64,19 +56,11 @@ public final class TableSource extends SourceStep<KTableHolder<Struct>> {
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(alias, that.alias);
+        && Objects.equals(sourceSchema, that.sourceSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        properties,
-        topicName,
-        formats,
-        timestampColumn,
-        sourceSchema,
-        alias
-    );
+    return Objects.hash(properties, topicName, formats, timestampColumn, sourceSchema);
   }
 }

@@ -75,6 +75,9 @@ public class HostStatusEntity {
 
   @Override
   public String toString() {
-    return hostAlive + "," + lastStatusUpdateMs;
+    return "HostStatusEntity{"
+        + "hostAlive=" + hostAlive
+        + ", lastStatusUpdateMs=" + lastStatusUpdateMs
+        + '}';
   }
 }

@@ -75,6 +75,9 @@ public class HostStatus {
 
   @Override
   public String toString() {
-    return hostAlive + "," + lastStatusUpdateMs;
+    return "HostStatus{"
+        + "hostAlive=" + hostAlive
+        + ", lastStatusUpdateMs=" + lastStatusUpdateMs
+        + '}';
   }
 }

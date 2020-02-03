@@ -197,7 +197,7 @@ public final class LagReportingAgent implements HostStatusListener {
   }
 
   @Override
-  public void onHostStatusUpdated(final ImmutableMap<KsqlHost, HostStatus> hostsStatusMap) {
+  public void onHostStatusUpdated(final Map<KsqlHost, HostStatus> hostsStatusMap) {
     aliveHostsRef.set(hostsStatusMap.entrySet().stream()
         .filter(entry -> entry.getValue().isHostAlive())
         .map(Entry::getKey)

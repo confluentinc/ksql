@@ -64,7 +64,7 @@ public class HeartbeatMessage {
 
   @Override
   public String toString() {
-    return "HearbeatRequest{"
+    return "HearbeatMessage{"
         + "hostInfo='" + hostInfo + '\''
         + "timestamp='" + timestamp + '\''
         + '}';

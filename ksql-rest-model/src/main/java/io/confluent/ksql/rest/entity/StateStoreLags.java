@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents the lags associated with a particular state store on a particular host.
@@ -41,8 +42,8 @@ public class StateStoreLags {
     this.lagByPartition = ImmutableMap.copyOf(requireNonNull(lagByPartition, "lagByPartition"));
   }
 
-  public LagInfoEntity getLagByPartition(final int partition) {
-    return lagByPartition.get(partition);
+  public Optional<LagInfoEntity> getLagByPartition(final int partition) {
+    return Optional.ofNullable(lagByPartition.get(partition));
   }
 
   public Map<Integer, LagInfoEntity> getLagByPartition() {

@@ -237,23 +237,38 @@ public class LagReportingAgentTest {
 
     // Then:
     ImmutableMap<KsqlHostEntity, HostStoreLags> allLags = lagReportingAgent.getAllLags();
-    LagInfoEntity lag = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_A).getLagByPartition(1);
+    Optional<LagInfoEntity> optional = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_A)
+        .flatMap(s -> s.getLagByPartition(1));
+    assertTrue(optional.isPresent());
+    LagInfoEntity lag = optional.get();
     assertEquals(M1_A1_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_A1_END, lag.getEndOffsetPosition());
     assertEquals(M1_A1_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_A).getLagByPartition(3);
+    optional = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_A)
+        .flatMap(s -> s.getLagByPartition(3));
+    assertTrue(optional.isPresent());
+    lag = optional.get();
     assertEquals(M1_A3_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_A3_END, lag.getEndOffsetPosition());
     assertEquals(M1_A3_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_B).getLagByPartition(4);
+    optional = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_B)
+        .flatMap(s -> s.getLagByPartition(4));
+    assertTrue(optional.isPresent());
+    lag = optional.get();
     assertEquals(M1_B4_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M1_B4_END, lag.getEndOffsetPosition());
     assertEquals(M1_B4_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST_ENTITY2).getStateStoreLags(QUERY_STORE_A).getLagByPartition(1);
+    optional = allLags.get(HOST_ENTITY2).getStateStoreLags(QUERY_STORE_A)
+        .flatMap(s -> s.getLagByPartition(1));
+    assertTrue(optional.isPresent());
+    lag = optional.get();
     assertEquals(M2_A1_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M2_A1_END, lag.getEndOffsetPosition());
     assertEquals(M2_A1_LAG, lag.getOffsetLag());
-    lag = allLags.get(HOST_ENTITY2).getStateStoreLags(QUERY_STORE_B).getLagByPartition(4);
+    optional = allLags.get(HOST_ENTITY2).getStateStoreLags(QUERY_STORE_B)
+        .flatMap(s -> s.getLagByPartition(4));
+    assertTrue(optional.isPresent());
+    lag = optional.get();
     assertEquals(M2_B4_CUR, lag.getCurrentOffsetPosition());
     assertEquals(M2_B4_END, lag.getEndOffsetPosition());
     assertEquals(M2_B4_LAG, lag.getOffsetLag());

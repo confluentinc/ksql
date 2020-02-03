@@ -247,7 +247,7 @@ public final class HeartbeatAgent {
           // 2. count consecutive missed heartbeats and mark as alive or dead
           final  boolean isAlive = decideStatus(ksqlHost, windowStart, windowEnd, copy);
           if (!isAlive) {
-            LOG.info("Host: {} marked as down", ksqlHost);
+            LOG.info("Host: {} marked as dead.", ksqlHost);
           }
           hostsStatus.computeIfPresent(ksqlHost, (host, status) -> status
               .withHostAlive(isAlive).withLastStatusUpdateMs(windowEnd));

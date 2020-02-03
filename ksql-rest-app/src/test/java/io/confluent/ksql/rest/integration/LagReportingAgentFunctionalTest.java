@@ -139,10 +139,9 @@ public class LagReportingAgentFunctionalTest {
     // When:
     ClusterStatusResponse resp =
         waitForClusterCondition(LagReportingAgentFunctionalTest::allLagsReported);
-    Optional<StateStoreLags> stateStoreLagsOptional =
+    StateStoreLags stateStoreLags =
         resp.getClusterStatus().entrySet().iterator().next().getValue().getHostStoreLags()
-            .getStateStoreLags(STORE_0);
-    StateStoreLags stateStoreLags = stateStoreLagsOptional.get();
+            .getStateStoreLags(STORE_0).get();
 
     // Then:
     // Read the raw Kafka data from the topic to verify the reported lags

@@ -153,7 +153,7 @@ these services:
 - {{ site.sr }} -- enables Avro
 - ksqlDB Server -- one instance
 
-Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
+Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs-md/tutorials/docker-compose.yml)
 for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) to get started with
 a local installation of ksqlDB.
 
@@ -235,7 +235,7 @@ After the ksqlDB CLI starts, your terminal should resemble the following.
 
 Copyright 2017-2019 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://localhost:8088
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

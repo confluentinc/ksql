@@ -103,8 +103,8 @@ public class TopicCreateInjectorTest {
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     final KsqlStream source = new KsqlStream<>(
@@ -121,8 +121,8 @@ public class TopicCreateInjectorTest {
 
     final KsqlTopic joinTopic = new KsqlTopic(
         "jSource",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     final KsqlStream joinSource = new KsqlStream<>(

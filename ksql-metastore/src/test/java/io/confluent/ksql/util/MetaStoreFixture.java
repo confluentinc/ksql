@@ -41,7 +41,7 @@ public final class MetaStoreFixture {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(Format.JSON)));
+    return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(Format.JSON.name())));
   }
 
   public static MutableMetaStore getNewMetaStore(
@@ -50,7 +50,7 @@ public final class MetaStoreFixture {
   ) {
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name()));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)

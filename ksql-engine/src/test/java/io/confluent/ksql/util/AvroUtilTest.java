@@ -103,8 +103,8 @@ public class AvroUtilTest {
   private static final String RESULT_TOPIC_NAME = "actual-name";
 
   private static final Formats FORMATS = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+      ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
           .of(FormatInfo.FULL_SCHEMA_NAME, SCHEMA_NAME))),
       SerdeOption.none()
   );
@@ -198,8 +198,8 @@ public class AvroUtilTest {
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
     when(ddlCommand.getFormats())
         .thenReturn(Formats.of(
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.AVRO)),
+            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(Format.AVRO.name())),
             ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)
         ));
     final PhysicalSchema schema = PhysicalSchema

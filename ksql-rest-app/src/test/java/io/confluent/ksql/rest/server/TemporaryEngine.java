@@ -122,8 +122,8 @@ public class TemporaryEngine extends ExternalResource {
 
     final KsqlTopic topic = new KsqlTopic(
         name,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     final DataSource source;

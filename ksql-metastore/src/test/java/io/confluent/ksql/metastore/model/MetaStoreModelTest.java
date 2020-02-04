@@ -57,8 +57,8 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
-          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-          ValueFormat.of(FormatInfo.of(Format.JSON))
+          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(Format.JSON.name()))
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))
@@ -71,8 +71,8 @@ public class MetaStoreModelTest {
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
-      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)))
-      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON)))
+      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())))
+      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON.name())))
       .build();
 
   private final Class<?> modelClass;

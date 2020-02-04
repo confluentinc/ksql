@@ -39,7 +39,7 @@ public final class AvroUtil {
   ) {
     final Formats formats = ddl.getFormats();
     final FormatInfo format = formats.getValueFormat();
-    if (format.getFormat() != Format.AVRO) {
+    if (Format.valueOf(format.getFormat()) != Format.AVRO) {
       return;
     }
 

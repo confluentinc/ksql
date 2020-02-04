@@ -51,8 +51,8 @@ public class DdlCommandExecTest {
       .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name()));
   private static final Set<SerdeOption> SERDE_OPTIONS = SerdeOption.none();
 
   private CreateStreamCommand createStream;

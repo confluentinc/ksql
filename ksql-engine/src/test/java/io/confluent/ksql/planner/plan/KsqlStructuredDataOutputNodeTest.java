@@ -76,7 +76,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .of(ColumnRef.of(ColumnName.of("key")));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
-  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -180,7 +180,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
         .of(FormatInfo.FULL_SCHEMA_NAME, "name")));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);

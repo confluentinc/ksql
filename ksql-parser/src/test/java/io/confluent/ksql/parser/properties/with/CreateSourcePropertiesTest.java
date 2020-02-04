@@ -82,7 +82,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
-    assertThat(properties.getFormatProperties(), is(ImmutableMap.of()));
+    assertThat(properties.getFormatInfo(), is(FormatInfo.of("AvRo")));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
@@ -296,7 +296,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getFormatProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getFormatInfo().getProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

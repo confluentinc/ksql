@@ -356,9 +356,9 @@ public class TestExecutorTest {
   private void givenDataSourceTopic(final LogicalSchema schema) {
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKeyFormat())
-        .thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA), Optional.empty()));
+        .thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA.name()), Optional.empty()));
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
+        .thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON.name())));
 
     final DataSource dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);

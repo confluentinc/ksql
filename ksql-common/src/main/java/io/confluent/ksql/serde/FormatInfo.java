@@ -32,36 +32,34 @@ public final class FormatInfo {
   public static final String FULL_SCHEMA_NAME = "fullSchemaName";
   public static final String DELIMITER = "delimiter";
 
-  private final Format format;
+  private final String format;
   private final ImmutableMap<String, String> properties;
 
-  public static FormatInfo of(final Format format) {
+  public static FormatInfo of(final String format) {
     return FormatInfo.of(format, ImmutableMap.of());
   }
 
   @JsonCreator
   public static FormatInfo of(
-      @JsonProperty(value = "format", required = true) final Format format,
+      @JsonProperty(value = "format", required = true) final String format,
       @JsonProperty(value = "properties") final Optional<Map<String, String>> properties
   ) {
     return new FormatInfo(format, properties.orElse(ImmutableMap.of()));
   }
 
   public static FormatInfo of(
-      final Format format,
+      final String format,
       final Map<String, String> properties
   ) {
     return new FormatInfo(format, properties);
   }
 
-  private FormatInfo(final Format format, final Map<String, String> properties) {
-    this.format = Objects.requireNonNull(format, "format");
+  private FormatInfo(final String format, final Map<String, String> properties) {
+    this.format = Objects.requireNonNull(format, "format").toUpperCase();
     this.properties = ImmutableMap.copyOf(Objects.requireNonNull(properties, "properties"));
-
-    format.validateProperties(this.properties);
   }
 
-  public Format getFormat() {
+  public String getFormat() {
     return format;
   }
 
@@ -78,7 +76,7 @@ public final class FormatInfo {
       return false;
     }
     final FormatInfo that = (FormatInfo) o;
-    return format == that.format
+    return Objects.equals(format, that.format)
         && Objects.equals(properties, that.properties);
   }
 

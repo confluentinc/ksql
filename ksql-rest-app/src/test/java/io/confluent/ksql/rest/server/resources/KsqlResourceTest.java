@@ -2143,8 +2143,8 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     givenKafkaTopicExists(topicName);

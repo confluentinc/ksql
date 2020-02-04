@@ -198,19 +198,20 @@ class Analyzer {
       final Format format = getValueFormat(sink);
 
       final Map<String, String> sourceProperties = new HashMap<>();
-      if (format.equals(getSourceInfo().getFormat())) {
+      if (format.name().equals(getSourceInfo().getFormat())) {
         getSourceInfo().getProperties().forEach((k, v) -> {
           if (format.getInheritableProperties().contains(k)) {
             sourceProperties.put(k, v);
           }
         });
       }
+
       // overwrite any inheritable properties if they were explicitly
       // specified in the statement
       sourceProperties.putAll(sink.getProperties().getFormatProperties());
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-          format,
+          format.name(),
           sourceProperties
       ));
 
@@ -232,7 +233,7 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA), w.getWindowInfo()))
+          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)
@@ -264,7 +265,7 @@ class Analyzer {
 
     private Format getValueFormat(final Sink sink) {
       return sink.getProperties().getValueFormat()
-          .orElseGet(() -> getSourceInfo().getFormat());
+          .orElseGet(() -> Format.of(getSourceInfo()));
     }
 
     private FormatInfo getSourceInfo() {

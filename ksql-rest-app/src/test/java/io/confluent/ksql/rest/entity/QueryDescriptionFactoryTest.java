@@ -100,7 +100,7 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(queryStreams.state()).thenReturn(State.RUNNING);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,

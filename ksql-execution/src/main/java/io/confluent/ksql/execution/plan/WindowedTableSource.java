@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;

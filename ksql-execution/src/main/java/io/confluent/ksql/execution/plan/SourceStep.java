@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;

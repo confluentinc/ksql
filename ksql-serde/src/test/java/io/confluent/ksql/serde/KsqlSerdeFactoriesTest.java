@@ -158,7 +158,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleAvro() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(AVRO));
+        .create(FormatInfo.of(AVRO.name()));
 
     // Then:
     assertThat(result, instanceOf(KsqlAvroSerdeFactory.class));
@@ -168,7 +168,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleJson() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(JSON));
+        .create(FormatInfo.of(JSON.name()));
 
     // Then:
     assertThat(result, instanceOf(KsqlJsonSerdeFactory.class));
@@ -178,7 +178,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleDelimited() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(DELIMITED));
+        .create(FormatInfo.of(DELIMITED.name()));
 
     // Then:
     assertThat(result, instanceOf(KsqlDelimitedSerdeFactory.class));
@@ -188,7 +188,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleKafka() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(KAFKA));
+        .create(FormatInfo.of(KAFKA.name()));
 
     // Then:
     assertThat(result, instanceOf(KafkaSerdeFactory.class));

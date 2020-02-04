@@ -162,7 +162,7 @@ public class ExplainExecutorTest {
     when(metadata.getStatementString()).thenReturn("sql");
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;

@@ -594,7 +594,7 @@ public class CreateSourceFactoryTest {
         withProperties);
 
     when(keySerdeFactory.create(
-        FormatInfo.of(KAFKA),
+        FormatInfo.of(KAFKA.name()),
         PersistenceSchema.from(EXPECTED_SCHEMA.keyConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -617,7 +617,7 @@ public class CreateSourceFactoryTest {
         withProperties);
 
     when(valueSerdeFactory.create(
-        FormatInfo.of(JSON),
+        FormatInfo.of(JSON.name()),
         PersistenceSchema.from(EXPECTED_SCHEMA.valueConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -643,7 +643,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(cmd.getWindowInfo(), is(Optional.empty()));
   }
 
@@ -664,7 +664,7 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(
         cmd.getFormats().getValueFormat(),
-        is(FormatInfo.of(AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "full.schema.name"))));
+        is(FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "full.schema.name"))));
   }
 
   @Test
@@ -680,7 +680,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(cmd.getWindowInfo(), is(Optional.of(WindowInfo.of(SESSION, Optional.empty()))));
   }
 
@@ -700,7 +700,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(
         cmd.getWindowInfo(),
         is(Optional.of(WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1)))))
@@ -723,7 +723,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA)));
+    assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(
         cmd.getWindowInfo(),
         is(Optional.of(WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2)))))

@@ -64,9 +64,7 @@ public final class CreateSourceAsProperties {
   }
 
   public Optional<Format> getValueFormat() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
-        .map(String::toUpperCase)
-        .map(Format::valueOf);
+    return getFormatInfo().map(Format::of);
   }
 
   public Optional<String> getKafkaTopic() {
@@ -81,7 +79,6 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-
   public Optional<ColumnRef> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
@@ -93,6 +90,11 @@ public final class CreateSourceAsProperties {
 
   public Optional<Boolean> getWrapSingleValues() {
     return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+  }
+
+  public Optional<FormatInfo> getFormatInfo() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+        .map(format -> FormatInfo.of(format, getFormatProperties()));
   }
 
   public Map<String, String> getFormatProperties() {

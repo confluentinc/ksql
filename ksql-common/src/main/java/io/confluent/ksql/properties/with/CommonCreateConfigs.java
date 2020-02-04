@@ -17,7 +17,6 @@ package io.confluent.ksql.properties.with;
 
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.serde.Delimiter;
-import io.confluent.ksql.serde.Format;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.NonEmptyString;
@@ -81,7 +80,6 @@ public final class CommonCreateConfigs {
             VALUE_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,
             valueFormatRequired ? ConfigDef.NO_DEFAULT_VALUE : null,
-            ConfigValidators.enumValues(Format.class),
             Importance.HIGH,
             "The format of the serialized value"
         )

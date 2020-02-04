@@ -62,14 +62,14 @@ public class StreamStreamJoinBuilderTest {
       PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
 
   private static final Formats LEFT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.JSON),
+      FormatInfo.of(Format.KAFKA.name()),
+      FormatInfo.of(Format.JSON.name()),
       SerdeOption.none()
   );
 
   private static final Formats RIGHT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.AVRO),
+      FormatInfo.of(Format.KAFKA.name()),
+      FormatInfo.of(Format.AVRO.name()),
       SerdeOption.none()
   );
 
@@ -111,9 +111,9 @@ public class StreamStreamJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO)), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO.name())), any(), any()))
         .thenReturn(rightSerde);
     when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any())).thenReturn(
@@ -289,7 +289,7 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON), LEFT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 
   @Test
@@ -302,6 +302,6 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Right").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.AVRO), RIGHT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
   }
 }

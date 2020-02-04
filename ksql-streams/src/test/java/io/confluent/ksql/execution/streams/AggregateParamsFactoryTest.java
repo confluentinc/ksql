@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
@@ -224,13 +225,13 @@ public class AggregateParamsFactoryTest {
     );
 
     // When:
-    final KsqlTransformer<Windowed<Object>, GenericRow> windowSelectMapper =
+    final KsqlTransformer<Windowed<Struct>, GenericRow> windowSelectMapper =
         aggregateParams
             .getWindowSelectMapper()
             .getTransformer();
 
     // Then:
-    final Windowed<Object> window = new Windowed<>(null, new TimeWindow(10, 20));
+    final Windowed<Struct> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
         windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
         equalTo(genericRow("fiz", "baz", 10L))

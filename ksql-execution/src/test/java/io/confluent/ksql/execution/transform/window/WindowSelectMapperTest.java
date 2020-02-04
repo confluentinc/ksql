@@ -25,8 +25,11 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -38,6 +41,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WindowSelectMapperTest {
+
+  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING)
+      .build("key");
 
   @Mock
   private KsqlAggregateFunction<?, ?, ?> windowStartFunc;
@@ -76,7 +82,7 @@ public class WindowSelectMapperTest {
   @Test
   public void shouldUpdateRowWithWindowBounds() {
     // Given:
-    final KsqlTransformer<Windowed<Object>, GenericRow> mapper = new WindowSelectMapper(
+    final KsqlTransformer<Windowed<Struct>, GenericRow> mapper = new WindowSelectMapper(
         1,
         ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
     ).getTransformer();
@@ -85,7 +91,7 @@ public class WindowSelectMapperTest {
     final GenericRow row = genericRow(0, 1, 2, 3, 4, 5);
 
     // When:
-    final GenericRow result = mapper.transform(new Windowed<>("k", window), row, ctx);
+    final GenericRow result = mapper.transform(new Windowed<>(A_KEY, window), row, ctx);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
@@ -95,7 +101,7 @@ public class WindowSelectMapperTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void shouldThrowIfRowNotBigEnough() {
     // Given:
-    final KsqlTransformer<Windowed<Object>, GenericRow> mapper = new WindowSelectMapper(
+    final KsqlTransformer<Windowed<Struct>, GenericRow> mapper = new WindowSelectMapper(
         0,
         ImmutableList.of(windowStartFunc)
     ).getTransformer();
@@ -104,6 +110,6 @@ public class WindowSelectMapperTest {
     final GenericRow row = genericRow();
 
     // When:
-    mapper.transform(new Windowed<>("k", window), row, ctx);
+    mapper.transform(new Windowed<>(A_KEY, window), row, ctx);
   }
 }

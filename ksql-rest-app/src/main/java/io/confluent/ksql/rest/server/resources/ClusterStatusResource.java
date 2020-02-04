@@ -78,10 +78,8 @@ public class ClusterStatusResource {
   }
 
   private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
-    if (!lagReportingAgent.isPresent()) {
-      return EMPTY_HOST_STORE_LAGS;
-    }
-    final Optional<HostStoreLags> lags = lagReportingAgent.get().getLagPerHost(ksqlHost);
-    return lags.orElse(EMPTY_HOST_STORE_LAGS);
+    return lagReportingAgent
+      .flatMap(agent -> agent.getLagPerHost(ksqlHost))
+        .orElse(EMPTY_HOST_STORE_LAGS);
   }
 }

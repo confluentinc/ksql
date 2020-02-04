@@ -18,16 +18,52 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public enum Format {
 
-  JSON(true, ImmutableSet.of(), ImmutableSet.of()),
-  AVRO(true, ImmutableSet.of(FormatInfo.FULL_SCHEMA_NAME), ImmutableSet.of()),
-  DELIMITED(false, ImmutableSet.of(FormatInfo.DELIMITER), ImmutableSet.of(FormatInfo.DELIMITER)),
-  KAFKA(false, ImmutableSet.of(), ImmutableSet.of());
+  JSON(true, ImmutableSet.of(), ImmutableSet.of()) {
+    @Override
+    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+      return new KsqlJsonSerdeFactory();
+    }
+  },
+
+  AVRO(true, ImmutableSet.of(FormatInfo.FULL_SCHEMA_NAME), ImmutableSet.of()) {
+    @Override
+    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+      final String schemaFullName = info.getProperties()
+          .getOrDefault(FormatInfo.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+      return new KsqlAvroSerdeFactory(schemaFullName);
+    }
+  },
+
+  DELIMITED(false, ImmutableSet.of(FormatInfo.DELIMITER), ImmutableSet.of(FormatInfo.DELIMITER)) {
+    @Override
+    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+      return new KsqlDelimitedSerdeFactory(
+          Optional.ofNullable(
+              info.getProperties().get(FormatInfo.DELIMITER)
+          ).map(Delimiter::parse)
+      );
+    }
+  },
+
+  KAFKA(false, ImmutableSet.of(), ImmutableSet.of()) {
+    @Override
+    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+      return new KafkaSerdeFactory();
+    }
+  };
 
   private final boolean supportsUnwrapping;
   private final Set<String> validConfigs;
@@ -87,11 +123,19 @@ public enum Format {
     return inheritableProperties;
   }
 
-  public static Format of(final String value) {
+  /**
+   * @param info the info containing information required for generating the factory
+   * @return a {@code KsqlSerdeFactory} that generates serdes for the given format
+   */
+  public abstract KsqlSerdeFactory getSerdeFactory(FormatInfo info);
+
+  public static Format of(final FormatInfo value) {
     try {
-      return valueOf(value.toUpperCase());
+      final Format format = valueOf(value.getFormat().toUpperCase());
+      format.validateProperties(value.getProperties());
+      return format;
     } catch (final IllegalArgumentException e) {
-      throw new KsqlException("Unknown format: " + value);
+      throw new KsqlException("Unknown format: " + value.getFormat());
     }
   }
 }

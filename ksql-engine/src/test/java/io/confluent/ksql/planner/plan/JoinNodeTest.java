@@ -113,8 +113,8 @@ public class JoinNodeTest {
       RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED.name()));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;

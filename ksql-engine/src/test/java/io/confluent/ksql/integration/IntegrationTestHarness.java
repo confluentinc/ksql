@@ -596,7 +596,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format),
+        FormatInfo.of(format.name()),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -619,7 +619,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format),
+        FormatInfo.of(format.name()),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

@@ -169,7 +169,7 @@ public class SchemaKGroupedStreamTest {
 
     // Then:
     final KeyFormat expected = KeyFormat.windowed(
-        FormatInfo.of(Format.KAFKA),
+        FormatInfo.of(Format.KAFKA.name()),
         WindowInfo.of(WindowType.SESSION, Optional.empty())
     );
     assertThat(

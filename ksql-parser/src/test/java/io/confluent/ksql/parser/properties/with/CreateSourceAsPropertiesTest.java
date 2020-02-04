@@ -56,7 +56,7 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getFormatProperties(), is(ImmutableMap.of()));
+    assertThat(properties.getFormatInfo(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));

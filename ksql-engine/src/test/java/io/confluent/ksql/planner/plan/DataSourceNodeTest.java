@@ -118,8 +118,8 @@ public class DataSourceNodeTest {
         false,
       new KsqlTopic(
           "topic",
-          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-          ValueFormat.of(FormatInfo.of(Format.JSON))
+          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(Format.JSON.name()))
       )
   );
 
@@ -237,8 +237,8 @@ public class DataSourceNodeTest {
         false,
         new KsqlTopic(
             "topic2",
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON))
+            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(Format.JSON.name()))
         )
     );
 
@@ -385,7 +385,7 @@ public class DataSourceNodeTest {
   }
 
   private void givenWindowedSource(final boolean windowed) {
-    final FormatInfo format = FormatInfo.of(Format.KAFKA);
+    final FormatInfo format = FormatInfo.of(Format.KAFKA.name());
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat.windowed(format, WindowInfo.of(WindowType.SESSION, Optional.empty()))

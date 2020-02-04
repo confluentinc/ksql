@@ -157,12 +157,12 @@ public class StreamSelectKeyBuilderTest {
 
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
-        FormatInfo.of(Format.JSON),
+        FormatInfo.of(Format.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.JSON),
+        FormatInfo.of(Format.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext);
   }

@@ -109,8 +109,7 @@
       "additionalProperties" : false,
       "properties" : {
         "format" : {
-          "type" : "string",
-          "enum" : [ "JSON", "AVRO", "DELIMITED", "KAFKA" ]
+          "type" : "string"
         },
         "properties" : {
           "type" : "object",

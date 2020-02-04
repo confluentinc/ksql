@@ -75,8 +75,8 @@ public class SchemaKGroupedTableTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

@@ -179,7 +179,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Delimiter only supported with DELIMITED format"
+        "message": "JSON does not support the following configs: [delimiter]"
       },
       "inputs": [],
       "outputs": []

@@ -20,10 +20,10 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.util.List;
 import javax.annotation.concurrent.ThreadSafe;
-import org.apache.kafka.streams.state.HostInfo;
 
 @ThreadSafe
 public interface SimpleKsqlClient {
@@ -46,7 +46,7 @@ public interface SimpleKsqlClient {
    */
   void makeAsyncHeartbeatRequest(
       URI serverEndPoint,
-      HostInfo host,
+      KsqlHost host,
       long timestamp
   );
 

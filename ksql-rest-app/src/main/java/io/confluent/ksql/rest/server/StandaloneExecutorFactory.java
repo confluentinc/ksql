@@ -34,6 +34,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Map;
@@ -42,8 +43,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class StandaloneExecutorFactory {
-
-  static final String CONFIG_TOPIC_SUFFIX = "configs";
 
   private StandaloneExecutorFactory(){
   }
@@ -93,8 +92,7 @@ public final class StandaloneExecutorFactory {
 
     final ServiceContext serviceContext = serviceContextFactory.apply(baseConfig);
 
-    final String configTopicName
-        = KsqlInternalTopicUtils.getTopicName(baseConfig, CONFIG_TOPIC_SUFFIX);
+    final String configTopicName = ReservedInternalTopics.configsTopic(baseConfig);
     KsqlInternalTopicUtils.ensureTopic(
         configTopicName,
         baseConfig,

@@ -60,7 +60,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -70,8 +69,10 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -194,11 +195,23 @@ class Analyzer {
           .orElseGet(() -> topicPrefix + sink.getName().name());
 
       final KeyFormat keyFormat = buildKeyFormat();
+      final Format format = getValueFormat(sink);
+
+      final Map<String, String> sourceProperties = new HashMap<>();
+      if (format.equals(getSourceInfo().getFormat())) {
+        getSourceInfo().getProperties().forEach((k, v) -> {
+          if (format.getInheritableProperties().contains(k)) {
+            sourceProperties.put(k, v);
+          }
+        });
+      }
+      // overwrite any inheritable properties if they were explicitly
+      // specified in the statement
+      sourceProperties.putAll(sink.getProperties().getFormatProperties());
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-          getValueFormat(sink),
-          sink.getProperties().getValueAvroSchemaName(),
-          getValueDelimiter(sink)
+          format,
+          sourceProperties
       ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
@@ -251,38 +264,17 @@ class Analyzer {
 
     private Format getValueFormat(final Sink sink) {
       return sink.getProperties().getValueFormat()
-          .orElseGet(() -> analysis
-              .getFromDataSources()
-              .get(0)
-              .getDataSource()
-              .getKsqlTopic()
-              .getValueFormat()
-              .getFormat());
+          .orElseGet(() -> getSourceInfo().getFormat());
     }
 
-    private Optional<Delimiter> getValueDelimiter(final Sink sink) {
-      if (getValueFormat(sink) != Format.DELIMITED) {
-        // the delimiter is not inherited across non-delimited types
-        // (e.g. if source A is DELIMITED with |, and I create sink B
-        // with JSON from A and then sink C with DELIMITED from B, C
-        // will use the default delimiter, as opposed to |)
-        // see https://github.com/confluentinc/ksql/issues/4368 for
-        // more context
-        return Optional.empty();
-      }
-
-      if (sink.getProperties().getValueDelimiter().isPresent()) {
-        return sink.getProperties().getValueDelimiter();
-      }
-
+    private FormatInfo getSourceInfo() {
       return analysis
           .getFromDataSources()
           .get(0)
           .getDataSource()
           .getKsqlTopic()
           .getValueFormat()
-          .getFormatInfo()
-          .getDelimiter();
+          .getFormatInfo();
     }
 
 

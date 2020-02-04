@@ -59,7 +59,6 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -96,8 +95,6 @@ public class StepSchemaResolverTest {
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       new QueryContext.Stacker().getQueryContext()
   );
-
-  private static final SourceName SOME_ALIAS = SourceName.of("alias");
 
   @Mock
   private FunctionRegistry functionRegistry;
@@ -299,8 +296,7 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -318,8 +314,7 @@ public class StepSchemaResolverTest {
         formats,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -422,8 +417,7 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:
@@ -442,8 +436,7 @@ public class StepSchemaResolverTest {
         formats,
         mock(WindowInfo.class),
         Optional.empty(),
-        SCHEMA,
-        SOME_ALIAS
+        SCHEMA
     );
 
     // When:

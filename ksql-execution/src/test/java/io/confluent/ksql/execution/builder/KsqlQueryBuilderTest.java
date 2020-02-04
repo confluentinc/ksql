@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -71,7 +72,7 @@ public class KsqlQueryBuilderTest {
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(Format.AVRO, Optional.of("io.confluent.ksql"), Optional.empty());
+      .of(Format.AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "io.confluent.ksql"));
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));

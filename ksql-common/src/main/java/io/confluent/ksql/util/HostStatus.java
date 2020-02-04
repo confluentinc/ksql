@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -13,43 +13,43 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.entity;
+package io.confluent.ksql.util;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+/**
+ * Represent the status of a ksql host in the cluster as determined by the Heartbeat agent.
+ * A host can alive or dead annotated with the timestamp of the last update in status.
+ */
 @Immutable
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class HostStatusEntity {
+public class HostStatus {
 
-  private boolean hostAlive;
-  private long lastStatusUpdateMs;
-  private HostStoreLags hostStoreLags;
+  private final boolean hostAlive;
+  private final long lastStatusUpdateMs;
 
-  @JsonCreator
-  public HostStatusEntity(
-      @JsonProperty("hostAlive") final boolean hostAlive,
-      @JsonProperty("lastStatusUpdateMs") final long lastStatusUpdateMs,
-      @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
+  public HostStatus(
+      final boolean hostAlive,
+      final long lastStatusUpdateMs
   ) {
     this.hostAlive = hostAlive;
     this.lastStatusUpdateMs = lastStatusUpdateMs;
-    this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
   }
 
-  public boolean getHostAlive() {
-    return hostAlive;
+  public HostStatus withHostAlive(final boolean hostAlive) {
+    return new HostStatus(hostAlive, lastStatusUpdateMs);
+  }
+
+  public HostStatus withLastStatusUpdateMs(final long lastStatusUpdateMs) {
+    return new HostStatus(hostAlive, lastStatusUpdateMs);
   }
 
   public long getLastStatusUpdateMs() {
     return lastStatusUpdateMs;
   }
 
-  public HostStoreLags getHostStoreLags() {
-    return hostStoreLags;
+  public boolean isHostAlive() {
+    return hostAlive;
   }
 
   @Override
@@ -62,20 +62,20 @@ public class HostStatusEntity {
       return false;
     }
 
-    final HostStatusEntity that = (HostStatusEntity) o;
+    final HostStatus that = (HostStatus) o;
     return hostAlive == that.hostAlive
-        && lastStatusUpdateMs == that.lastStatusUpdateMs
-        && Objects.equals(hostStoreLags, that.hostStoreLags);
+        && lastStatusUpdateMs == that.lastStatusUpdateMs;
   }
+
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostAlive, lastStatusUpdateMs, hostStoreLags);
+    return Objects.hash(hostAlive, lastStatusUpdateMs);
   }
 
   @Override
   public String toString() {
-    return "HostStatusEntity{"
+    return "HostStatus{"
         + "hostAlive=" + hostAlive
         + ", lastStatusUpdateMs=" + lastStatusUpdateMs
         + '}';

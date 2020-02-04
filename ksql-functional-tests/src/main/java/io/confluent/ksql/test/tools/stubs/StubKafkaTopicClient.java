@@ -22,7 +22,6 @@ import com.google.common.collect.Sets;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.topic.TopicProperties;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -135,14 +134,6 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Set<String> listTopicNames() {
     return topicMap.keySet();
-  }
-
-  @Override
-  public Set<String> listNonInternalTopicNames() {
-    return topicMap.keySet().stream()
-        .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
-        .collect(Collectors.toSet());
   }
 
   @Override

@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
@@ -37,16 +36,9 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) final SourceName alias) {
-    super(
-        props,
-        topicName,
-        formats,
-        timestampColumn,
-        sourceSchema,
-        alias
-    );
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+  ) {
+    super(props, topicName, formats, timestampColumn, sourceSchema);
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }
 
@@ -72,8 +64,7 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(alias, that.alias);
+        && Objects.equals(sourceSchema, that.sourceSchema);
   }
 
   @Override
@@ -83,8 +74,7 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         topicName,
         formats,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 }

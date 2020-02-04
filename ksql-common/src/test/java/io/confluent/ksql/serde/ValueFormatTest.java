@@ -21,9 +21,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import java.util.Optional;
 import org.junit.Test;
 
 public class ValueFormatTest {
@@ -31,8 +31,7 @@ public class ValueFormatTest {
   private static final FormatInfo FORMAT_INFO =
       FormatInfo.of(
           AVRO,
-          Optional.of("something"),
-          Optional.empty()
+          ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something")
       );
 
   @Test
@@ -49,7 +48,7 @@ public class ValueFormatTest {
             ValueFormat.of(FORMAT_INFO)
         )
         .addEqualityGroup(
-            ValueFormat.of(FormatInfo.of(JSON, Optional.empty(), Optional.empty()))
+            ValueFormat.of(FormatInfo.of(JSON))
         )
         .testEquals();
   }

@@ -27,11 +27,11 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.streams.state.HostInfo;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
@@ -78,7 +78,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final HostInfo host,
+      final KsqlHost host,
       final long timestamp
   ) {
     throw new UnsupportedOperationException();

@@ -35,7 +35,7 @@ public class KsqlHostEntity {
       final int port
   ) {
     this.host = Objects.requireNonNull(host, "host");
-    this.port = Objects.requireNonNull(port, "port");
+    this.port = port;
   }
 
   @JsonCreator

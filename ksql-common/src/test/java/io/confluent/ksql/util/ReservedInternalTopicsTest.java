@@ -15,21 +15,19 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import java.util.List;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class ReservedInternalTopicsTest {
   private static final String KSQL_PROCESSING_LOG_TOPIC = "default_ksql_processing_log";

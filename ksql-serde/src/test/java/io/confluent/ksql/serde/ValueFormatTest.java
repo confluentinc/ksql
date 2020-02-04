@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import java.util.Optional;
 import org.junit.Test;
 
 public class ValueFormatTest {

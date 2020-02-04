@@ -78,7 +78,7 @@ public final class LagReportingAgent implements HostStatusListener {
   private final Map<KsqlHost, HostStoreLags> receivedLagInfo;
   private final AtomicReference<Set<KsqlHost>> aliveHostsRef;
 
-  private URL localURL;
+  private URL localUrl;
 
   /**
    * Builder for creating an instance of LagReportingAgent.
@@ -115,7 +115,7 @@ public final class LagReportingAgent implements HostStatusListener {
 
   void setLocalAddress(final String applicationServer) {
     try {
-      this.localURL = new URL(applicationServer);
+      this.localUrl = new URL(applicationServer);
     } catch (final Exception e) {
       throw new IllegalStateException("Failed to convert remote host info to URL."
           + " remoteInfo: " + applicationServer);
@@ -229,7 +229,7 @@ public final class LagReportingAgent implements HostStatusListener {
       final Set<KsqlHost> aliveHosts = aliveHostsRef.get();
       for (KsqlHost host: aliveHosts) {
         try {
-          final URI remoteUri = ServerUtil.buildRemoteUri(localURL, host.host(), host.port());
+          final URI remoteUri = ServerUtil.buildRemoteUri(localUrl, host.host(), host.port());
           LOG.debug("Sending lag to host {} at {}", host.host(), clock.millis());
           serviceContext.getKsqlClient().makeAsyncLagReportRequest(remoteUri, message);
         } catch (Throwable t) {
@@ -258,7 +258,7 @@ public final class LagReportingAgent implements HostStatusListener {
             }).collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));
         map.put(storeEntry.getKey(), new StateStoreLags(partitionMap));
       }
-      return new LagReportingMessage(new KsqlHostEntity(localURL.getHost(), localURL.getPort()),
+      return new LagReportingMessage(new KsqlHostEntity(localUrl.getHost(), localUrl.getPort()),
           new HostStoreLags(map.build(), clock.millis()));
     }
 

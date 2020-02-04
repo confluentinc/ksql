@@ -18,7 +18,6 @@ package io.confluent.ksql.logging.processing;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;

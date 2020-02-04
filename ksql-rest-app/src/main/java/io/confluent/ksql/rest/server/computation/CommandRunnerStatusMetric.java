@@ -18,11 +18,9 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.ReservedInternalTopics;
-
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.Objects;
-
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;

@@ -25,10 +25,11 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
@@ -39,7 +40,6 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -65,11 +65,6 @@ public class LogicalSchemaTest {
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
-
-  // Constants used to represent column counts:
-  private static final int ROWTIME = 1;
-  private static final int ROWKEY = 1;
-  private static final int WINDOW_BOUNDS = 2;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -392,31 +387,37 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldAddMetaAndKeyColumns() {
+  public void shouldAddMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .build();
 
     // When:
-    final LogicalSchema result = schema
-        .withMetaAndKeyColsInValue(false);
+    final LogicalSchema result = schema.withMetaAndKeyColsInValue(false);
 
     // Then:
-    assertThat(result.value(), hasSize(schema.value().size() + ROWTIME + ROWKEY));
-    assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.value().get(0).type(), is(BIGINT));
-    assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().get(1).type(), is(STRING));
-    assertThat(result.value().get(2).name(), is(F0));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .build()
+    ));
   }
 
   @Test
-  public void shouldAddWindowedMetaAndKeyColumns() {
+  public void shouldAddWindowedMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, DOUBLE)
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .build();
@@ -426,16 +427,18 @@ public class LogicalSchemaTest {
         .withMetaAndKeyColsInValue(true);
 
     // Then:
-    assertThat(result.value(), hasSize(schema.value().size() + ROWTIME + WINDOW_BOUNDS + ROWKEY));
-    assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.value().get(0).type(), is(BIGINT));
-    assertThat(result.value().get(1).name(), is(SchemaUtil.WINDOWSTART_NAME));
-    assertThat(result.value().get(1).type(), is(BIGINT));
-    assertThat(result.value().get(2).name(), is(SchemaUtil.WINDOWEND_NAME));
-    assertThat(result.value().get(2).type(), is(BIGINT));
-    assertThat(result.value().get(3).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().get(3).type(), is(DOUBLE));
-    assertThat(result.value().get(4).name(), is(F0));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .valueColumn(WINDOWSTART_NAME, BIGINT)
+        .valueColumn(WINDOWEND_NAME, BIGINT)
+        .build()
+    ));
   }
 
   @Test
@@ -459,9 +462,9 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
         .valueColumn(F0, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, DOUBLE)
+        .valueColumn(ROWKEY_NAME, DOUBLE)
         .valueColumn(F1, BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, DOUBLE)
+        .valueColumn(ROWTIME_NAME, DOUBLE)
         .build();
 
     // When:
@@ -469,10 +472,10 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .valueColumn(SchemaUtil.ROWTIME_NAME, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWKEY_NAME, STRING)
         .build()
     ));
   }
@@ -522,9 +525,9 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, STRING)
+        .valueColumn(ROWKEY_NAME, STRING)
         .valueColumn(F1, BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
         .build();
 
     // When

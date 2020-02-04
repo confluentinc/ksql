@@ -252,6 +252,25 @@ REST endpoint and interactive use.
     argument are present, the `--queries-file` argument takes
     precedence.
 
+### Schema resolution
+
+When you run a ksqlDB application that uses Avro, ksqlDB infers schemas from
+{{ site.sr }} automatically, but the behavior after restarting ksqlDB Server
+differs between interactive and non-interactive mode.
+
+- **Interactive mode:** after ksqlDB Server restarts, it doesn't contact
+  {{ site.sr }} again to resolve schemas, because it has previously persisted
+  the information to the command topic.
+- **Non-interactive mode**: after ksqlDB Server restarts, it *does* contact
+  {{ site.sr }} again to resolve schemas. If schemas have changed, unexpected
+  behavior in your ksqlDB applications may occur.
+
+!!! important
+    If your ksqlDB applications use Avro and you run them in non-interactive
+    mode, ensure that the schemas don't change between ksqlDB Server restarts,
+    or provide the schema explicitly. If the schema may evolve, it's safer to
+    provide the schema explicitly.
+
 ### Start headless ksqlDB Server from the command line
 
 To start the ksqlDB Server in headless, non-interactive configuration via the

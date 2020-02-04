@@ -71,8 +71,8 @@ public class KsqlMaterializationTest {
       Instant.now(),
       Instant.now().plusSeconds(10)
   );
-  private static final GenericRow A_VALUE = new GenericRow("a", "b");
-  private static final GenericRow TRANSFORMED = new GenericRow("x", "y");
+  private static final GenericRow A_VALUE = GenericRow.genericRow("a", "b");
+  private static final GenericRow TRANSFORMED = GenericRow.genericRow("x", "y");
   private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
   private static final TimeWindow STREAM_WINDOW = new TimeWindow(
       A_WINDOW.start().toEpochMilli(),

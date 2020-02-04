@@ -156,7 +156,7 @@ public class AggregateParamsFactoryTest {
     // Then:
     assertThat(
         initializer.apply(),
-        equalTo(new GenericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
+        equalTo(GenericRow.genericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
     );
   }
 
@@ -218,8 +218,8 @@ public class AggregateParamsFactoryTest {
     // Then:
     final Windowed<Struct> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
-        windowSelectMapper.transform(window, new GenericRow("fiz", "baz", null), ctx),
-        equalTo(new GenericRow("fiz", "baz", 10))
+        windowSelectMapper.transform(window, GenericRow.genericRow("fiz", "baz", null), ctx),
+        equalTo(GenericRow.genericRow("fiz", "baz", 10))
     );
   }
 

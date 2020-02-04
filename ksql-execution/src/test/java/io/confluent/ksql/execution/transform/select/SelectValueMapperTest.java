@@ -125,7 +125,7 @@ public class SelectValueMapperTest {
     // When:
     transformer.transform(
         KEY,
-        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"),
+        GenericRow.genericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"),
         ctx
     );
 

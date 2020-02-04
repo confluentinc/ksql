@@ -17,8 +17,9 @@ package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,58 +28,45 @@ import java.util.Optional;
  */
 @Immutable
 public final class FormatInfo {
+
+  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
+  public static final String DELIMITER = "delimiter";
+
   private final Format format;
-  private final Optional<String> fullSchemaName;
-  private final Optional<Delimiter> delimiter;
+  private final ImmutableMap<String, String> properties;
 
   public static FormatInfo of(final Format format) {
-    return FormatInfo.of(format, Optional.empty(), Optional.empty());
+    return FormatInfo.of(format, ImmutableMap.of());
   }
 
   @JsonCreator
   public static FormatInfo of(
-      @JsonProperty(value = "format", required = true)
-      final Format format,
-      @JsonProperty("fullSchemaName") final Optional<String> fullSchemaName,
-      @JsonProperty("delimiter") final Optional<Delimiter> valueDelimiter) {
-    return new FormatInfo(format, fullSchemaName, valueDelimiter);
+      @JsonProperty(value = "format", required = true) final Format format,
+      @JsonProperty(value = "properties") final Optional<Map<String, String>> properties
+  ) {
+    return new FormatInfo(format, properties.orElse(ImmutableMap.of()));
   }
 
-  private FormatInfo(
+  public static FormatInfo of(
       final Format format,
-      final Optional<String> fullSchemaName,
-      final Optional<Delimiter> delimiter
+      final Map<String, String> properties
   ) {
+    return new FormatInfo(format, properties);
+  }
+
+  private FormatInfo(final Format format, final Map<String, String> properties) {
     this.format = Objects.requireNonNull(format, "format");
-    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName");
+    this.properties = ImmutableMap.copyOf(Objects.requireNonNull(properties, "properties"));
 
-    if (format != Format.AVRO && fullSchemaName.isPresent()) {
-      throw new KsqlException("Full schema name only supported with AVRO format");
-    }
-
-    if (format == Format.AVRO
-        && fullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
-      throw new KsqlException("Schema name cannot be empty");
-    }
-
-    this.delimiter = Objects.requireNonNull(delimiter, "delimiter");
-
-    if (format != Format.DELIMITED && delimiter.isPresent()) {
-      throw new KsqlException("Delimiter only supported with DELIMITED format");
-    }
-
+    format.validateProperties(this.properties);
   }
 
   public Format getFormat() {
     return format;
   }
 
-  public Optional<String> getFullSchemaName() {
-    return fullSchemaName;
-  }
-
-  public Optional<Delimiter> getDelimiter() {
-    return delimiter;
+  public Map<String, String> getProperties() {
+    return properties;
   }
 
   @Override
@@ -91,21 +79,19 @@ public final class FormatInfo {
     }
     final FormatInfo that = (FormatInfo) o;
     return format == that.format
-        && Objects.equals(fullSchemaName, that.fullSchemaName)
-        && Objects.equals(delimiter, that.delimiter);
+        && Objects.equals(properties, that.properties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, fullSchemaName, delimiter);
+    return Objects.hash(format, properties);
   }
 
   @Override
   public String toString() {
     return "FormatInfo{"
         + "format=" + format
-        + ", fullSchemaName=" + fullSchemaName
-        + ", delimiter=" + delimiter
+        + ", properties=" + properties
         + '}';
   }
 }

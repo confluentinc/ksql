@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Rule;
@@ -55,7 +56,7 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
+    assertThat(properties.getFormatProperties(), is(ImmutableMap.of()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
@@ -114,7 +115,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
+    assertThat(properties.getFormatProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

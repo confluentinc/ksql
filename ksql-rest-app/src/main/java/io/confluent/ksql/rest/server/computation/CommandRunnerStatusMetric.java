@@ -17,12 +17,10 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConstants;
-
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.Objects;
-
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -63,7 +61,7 @@ public class CommandRunnerStatusMetric implements Closeable {
     this.metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
     this.metricName = metrics.metricName(
         "status",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
        "The status of the commandRunner thread as it processes the command topic.",
         Collections.emptyMap()
     );

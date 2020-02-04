@@ -23,8 +23,8 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -83,7 +83,7 @@ public final class KsqlTarget {
   }
 
   public Future<Response> postAsyncHeartbeatRequest(
-      final HostInfoEntity host,
+      final KsqlHostEntity host,
       final long timestamp
   ) {
     return postAsync(

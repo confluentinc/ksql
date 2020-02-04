@@ -63,7 +63,7 @@ public class KsMaterializedSessionTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("x");
-  private static final GenericRow A_VALUE = new GenericRow("c0l");
+  private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
 
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);

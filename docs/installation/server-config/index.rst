@@ -264,3 +264,26 @@ To start the KSQL Server in headless, non-interactive configuration via the ``ks
 
             <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
+.. _ksql-non-interactive-schema-resolution:
+
+Schema resolution
+-----------------
+
+When you run a KSQL application that uses Avro, KSQL infers schemas from
+|sr| automatically, but the behavior after restarting KSQL Server
+differs between interactive and non-interactive mode.
+
+- **Interactive mode:** after KSQL Server restarts, it doesn't contact
+  |sr| again to resolve schemas, because it has previously persisted
+  the information to the command topic.
+- **Non-interactive mode**: after KSQL Server restarts, it *does* contact
+  |sr| again to resolve schemas. If schemas have changed, unexpected
+  behavior in your ksqlDB applications may occur.
+
+.. important::
+
+   If your KSQL applications use Avro and you run them in non-interactive
+   mode, ensure that the schemas don't change between KSQL Server restarts,
+   or provide the schema explicitly. If the schema may evolve, it's safer to
+   provide the schema explicitly.
+   

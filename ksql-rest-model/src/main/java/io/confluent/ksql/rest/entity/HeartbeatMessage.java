@@ -25,17 +25,17 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class HeartbeatMessage {
 
-  private final HostInfoEntity hostInfo;
+  private final KsqlHostEntity hostInfo;
   private final long timestamp;
 
   @JsonCreator
-  public HeartbeatMessage(@JsonProperty("hostInfo") final HostInfoEntity hostInfo,
+  public HeartbeatMessage(@JsonProperty("hostInfo") final KsqlHostEntity hostInfo,
                           @JsonProperty("timestamp") final long timestamp) {
     this.hostInfo = hostInfo;
     this.timestamp = timestamp;
   }
 
-  public HostInfoEntity getHostInfo() {
+  public KsqlHostEntity getHostInfo() {
     return hostInfo;
   }
 
@@ -64,7 +64,7 @@ public class HeartbeatMessage {
 
   @Override
   public String toString() {
-    return "HearbeatRequest{"
+    return "HearbeatMessage{"
         + "hostInfo='" + hostInfo + '\''
         + "timestamp='" + timestamp + '\''
         + '}';

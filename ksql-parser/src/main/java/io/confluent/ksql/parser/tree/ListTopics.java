@@ -23,11 +23,21 @@ import java.util.Optional;
 
 public class ListTopics extends Statement {
 
+  private final boolean showAll;
   private final boolean showExtended;
 
-  public ListTopics(final Optional<NodeLocation> location, final boolean showExtended) {
+  public ListTopics(
+      final Optional<NodeLocation> location,
+      final boolean showAll,
+      final boolean showExtended
+  ) {
     super(location);
+    this.showAll = showAll;
     this.showExtended = showExtended;
+  }
+
+  public boolean getShowAll() {
+    return showAll;
   }
 
   public boolean getShowExtended() {
@@ -43,17 +53,18 @@ public class ListTopics extends Statement {
       return false;
     }
     final ListTopics that = (ListTopics) o;
-    return showExtended == that.showExtended;
+    return showAll == that.showAll && showExtended == that.showExtended;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(showExtended);
+    return Objects.hash(showAll, showExtended);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
+        .add("showAll", showAll)
         .add("showExtended", showExtended)
         .toString();
   }

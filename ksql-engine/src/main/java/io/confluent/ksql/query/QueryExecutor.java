@@ -46,10 +46,10 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -274,7 +274,7 @@ public final class QueryExecutor {
   }
 
   private String getServiceId() {
-    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 

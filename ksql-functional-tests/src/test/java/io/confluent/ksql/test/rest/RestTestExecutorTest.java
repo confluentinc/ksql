@@ -68,7 +68,7 @@ public class RestTestExecutorTest {
   public void shouldFailToVerifyOnDifferentRowValues() {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
-        StreamedRow.row(new GenericRow("key", 55, new BigDecimal("66.675")))
+        StreamedRow.row(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
     // Expect:
@@ -95,7 +95,7 @@ public class RestTestExecutorTest {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
         StreamedRow.header(new QueryId("not checked"), SCHEMA),
-        StreamedRow.row(new GenericRow("key", 55, new BigDecimal("66.675")))
+        StreamedRow.row(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
     // When:

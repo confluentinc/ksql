@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -167,7 +166,7 @@ public class DataSourceNodeTest {
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any(), any()))
         .thenAnswer(inv -> inv.<DataSource>getArgument(1)
             .getDataSourceType() == DataSourceType.KSTREAM
             ? stream : table
@@ -286,7 +285,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -300,7 +299,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any());
   }
 
   @Test
@@ -318,8 +317,7 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         stackerCaptor.capture(),
-        same(node.getKeyField()),
-        eq(SOURCE_NAME)
+        same(node.getKeyField())
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -340,8 +338,7 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         stackerCaptor.capture(),
-        same(node.getKeyField()),
-        eq(SOURCE_NAME)
+        same(node.getKeyField())
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),

@@ -74,11 +74,11 @@ public class KsMaterializedWindowTableTest {
   );
 
   private static final ValueAndTimestamp<GenericRow> VALUE_1 = ValueAndTimestamp
-      .make(new GenericRow("col0"), 12345L);
+      .make(GenericRow.genericRow("col0"), 12345L);
   private static final ValueAndTimestamp<GenericRow> VALUE_2 = ValueAndTimestamp
-      .make(new GenericRow("col1"), 45678L);
+      .make(GenericRow.genericRow("col1"), 45678L);
   private static final ValueAndTimestamp<GenericRow> VALUE_3 = ValueAndTimestamp
-      .make(new GenericRow("col2"), 987865L);
+      .make(GenericRow.genericRow("col2"), 987865L);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

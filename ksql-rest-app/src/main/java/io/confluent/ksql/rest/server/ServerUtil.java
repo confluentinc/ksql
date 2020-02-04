@@ -15,11 +15,17 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.apache.kafka.common.utils.Utils.getHost;
+import static org.apache.kafka.common.utils.Utils.getPort;
+
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.streams.processor.internals.StreamsMetadataState;
+import org.apache.kafka.streams.state.HostInfo;
 
 public final class ServerUtil {
   
@@ -38,6 +44,37 @@ public final class ServerUtil {
       return new URL(address).toURI();
     } catch (final Exception e) {
       throw new ConfigException(RestConfig.LISTENERS_CONFIG, listeners, e.getMessage());
+    }
+  }
+
+  public static HostInfo parseHostInfo(final String applicationServerId) {
+    if (applicationServerId == null || applicationServerId.trim().isEmpty()) {
+      return StreamsMetadataState.UNKNOWN_HOST;
+    }
+    final String host = getHost(applicationServerId);
+    final Integer port = getPort(applicationServerId);
+
+    if (host == null || port == null) {
+      throw new KsqlException(String.format(
+          "Error parsing host address %s. Expected format host:port.", applicationServerId));
+    }
+
+    return new HostInfo(host, port);
+  }
+
+  /**
+   * Constructs a URI for the remote node in the cluster, using the same protocol as localhost.
+   * @param localHost Local URL from which to take protocol
+   * @param remoteHost The remote host
+   * @param remotePort The remote port
+   * @return uri
+   */
+  static URI buildRemoteUri(final URL localHost, final String remoteHost, final int remotePort) {
+    try {
+      return new URL(localHost.getProtocol(), remoteHost, remotePort, "/").toURI();
+    } catch (final Exception e) {
+      throw new IllegalStateException("Failed to convert remote host info to URL."
+                                          + " remoteInfo: " + remoteHost + ":" + remotePort);
     }
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
@@ -82,7 +83,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = new GenericRow("foo", "bar");
+    final GenericRow value = genericRow("foo", "bar");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, config).toString();
@@ -96,7 +97,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = new GenericRow("foo", "bar is a long string");
+    final GenericRow value = genericRow("foo", "bar is a long string");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, config).toString();
@@ -113,7 +114,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = new GenericRow("foo", "bar is a long string");
+    final GenericRow value = genericRow("foo", "bar is a long string");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, config).toString();
@@ -128,7 +129,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = new GenericRow(
+    final GenericRow value = genericRow(
         "foo",
         "bar                                                                               foo"
     );
@@ -146,7 +147,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = new GenericRow(
+    final GenericRow value = genericRow(
         "foo",
         "bar                                                                                  "
     );

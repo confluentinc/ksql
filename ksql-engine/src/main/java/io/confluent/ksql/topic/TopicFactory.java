@@ -45,8 +45,7 @@ public final class TopicFactory {
 
     final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
         properties.getValueFormat(),
-        properties.getValueAvroSchemaName(),
-        properties.getValueDelimiter()
+        properties.getFormatProperties()
     ));
 
     return new KsqlTopic(

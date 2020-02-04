@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -54,6 +55,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.HashMap;
@@ -145,11 +147,14 @@ public class InsertValuesExecutor {
       final ServiceContext serviceContext
   ) {
     final InsertValues insertValues = statement.getStatement();
+    final MetaStore metaStore = executionContext.getMetaStore();
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
+    final DataSource dataSource = getDataSource(config, metaStore, insertValues);
+
     final ProducerRecord<byte[], byte[]> record =
-        buildRecord(statement, executionContext, serviceContext);
+        buildRecord(statement, metaStore, dataSource, serviceContext);
 
     try {
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
@@ -168,21 +173,12 @@ public class InsertValuesExecutor {
     }
   }
 
-  private ProducerRecord<byte[], byte[]> buildRecord(
-      final ConfiguredStatement<InsertValues> statement,
-      final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+  private DataSource getDataSource(
+      final KsqlConfig ksqlConfig,
+      final MetaStore metaStore,
+      final InsertValues insertValues
   ) {
-    throwIfDisabled(statement.getConfig());
-
-    final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-
-    final DataSource dataSource = executionContext
-        .getMetaStore()
-        .getSource(insertValues.getTarget());
-
+    final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
           + insertValues.getTarget());
@@ -192,11 +188,32 @@ public class InsertValuesExecutor {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
+    if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert values into read-only topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    return dataSource;
+  }
+
+  private ProducerRecord<byte[], byte[]> buildRecord(
+      final ConfiguredStatement<InsertValues> statement,
+      final MetaStore metaStore,
+      final DataSource dataSource,
+      final ServiceContext serviceContext
+  ) {
+    throwIfDisabled(statement.getConfig());
+
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
     try {
       final RowData row = extractRow(
           insertValues,
           dataSource,
-          executionContext.getMetaStore(),
+          metaStore,
           config);
 
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);

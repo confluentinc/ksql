@@ -71,7 +71,7 @@ public class TableRowsEntityFactoryTest {
         Row.of(
             SIMPLE_SCHEMA,
             STRING_KEY_BUILDER.build("x"),
-            new GenericRow(false),
+            GenericRow.genericRow(false),
             ROWTIME
         )
     );
@@ -95,13 +95,13 @@ public class TableRowsEntityFactoryTest {
         WindowedRow.of(
             SIMPLE_SCHEMA,
             new Windowed<>(STRING_KEY_BUILDER.build("x"), window0),
-            new GenericRow(true),
+            GenericRow.genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
             new Windowed<>(STRING_KEY_BUILDER.build("y"), window1),
-            new GenericRow(false),
+            GenericRow.genericRow(false),
             ROWTIME
         )
     );

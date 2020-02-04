@@ -63,7 +63,7 @@ public class WindowedRowTest {
 
   private static final Windowed<Struct> A_WINDOWED_KEY = new Windowed<>(A_KEY, A_WINDOW);
 
-  private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 12335L;
 
   @Rule
@@ -107,7 +107,7 @@ public class WindowedRowTest {
             WindowedRow.of(SCHEMA, new Windowed<>(A_KEY, mock(TimeWindow.class, "diff")), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, new GenericRow(null, null), A_ROWTIME)
+            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, GenericRow.genericRow(null, null), A_ROWTIME)
         )
         .addEqualityGroup(
             WindowedRow.of(SCHEMA, A_WINDOWED_KEY, A_VALUE, -1L)

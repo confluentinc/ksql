@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -314,8 +315,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema"),
-            Optional.empty()))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "com.custom.schema")))));
   }
 
   @Test
@@ -346,7 +346,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))));
+          is(ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+              .of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))));
   }
 
   @Test
@@ -358,7 +359,7 @@ public class AnalyzerFunctionalTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))
+        ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -416,7 +417,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Full schema name only supported with AVRO format");
+    expectedException.expectMessage("JSON does not support the following configs: [fullSchemaName]");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -433,7 +434,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name cannot be empty");
+    expectedException.expectMessage("fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }

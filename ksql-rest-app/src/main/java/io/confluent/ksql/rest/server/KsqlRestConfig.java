@@ -77,8 +77,6 @@ public class KsqlRestConfig extends RestConfig {
   private static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
-  static final String COMMAND_TOPIC_SUFFIX = "command_topic";
-
   static final String KSQL_WEBSOCKETS_NUM_THREADS =
       KSQL_CONFIG_PREFIX + "server.websockets.num.threads";
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =

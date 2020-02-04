@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
@@ -47,7 +48,6 @@ import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 import org.apache.avro.Schema;
 import org.junit.Before;
 import org.junit.Rule;
@@ -104,7 +104,8 @@ public class AvroUtilTest {
 
   private static final Formats FORMATS = Formats.of(
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
+      ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+          .of(FormatInfo.FULL_SCHEMA_NAME, SCHEMA_NAME))),
       SerdeOption.none()
   );
 

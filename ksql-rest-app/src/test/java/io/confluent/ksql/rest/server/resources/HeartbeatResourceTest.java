@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import javax.ws.rs.core.Response;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public class HeartbeatResourceTest {
   @Test
   public void shouldSendHeartbeat() {
     // When:
-    final HeartbeatMessage request = new HeartbeatMessage(new HostInfoEntity("localhost", 8080), 1);
+    final HeartbeatMessage request = new HeartbeatMessage(new KsqlHostEntity("localhost", 8080), 1);
     final Response response = heartbeatResource.registerHeartbeat(request);
 
     // Then:

@@ -16,22 +16,23 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.HeartbeatAgent.CheckHeartbeatService;
 import io.confluent.ksql.rest.server.HeartbeatAgent.DiscoverClusterService;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.HostStatus;
+import io.confluent.ksql.util.KsqlHost;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
@@ -58,14 +59,18 @@ public class HeartbeatAgentTest {
   private HeartbeatAgent heartbeatAgent;
   private HostInfo localHostInfo;
   private HostInfo remoteHostInfo;
+  private KsqlHost localHost;
+  private KsqlHost remoteHost;
   private List<StreamsMetadata> allMetadata0;
   private List<StreamsMetadata> allMetadata1;
   private static final String LOCALHOST_URL = "http://localhost:8088";
 
   @Before
   public void setUp() {
-    localHostInfo = new HostInfo ("localhost", 8088);
+    localHostInfo = new HostInfo("localhost", 8088);
     remoteHostInfo = new HostInfo("localhost", 8089);
+    localHost = new KsqlHost ("localhost", 8088);
+    remoteHost = new KsqlHost("localhost", 8089);
 
     Builder builder = HeartbeatAgent.builder();
     heartbeatAgent = builder
@@ -73,11 +78,9 @@ public class HeartbeatAgentTest {
         .heartbeatMissedThreshold(2)
         .build(ksqlEngine, serviceContext);
     heartbeatAgent.setLocalAddress(LOCALHOST_URL);
-    Map<String, HostStatusEntity> hostsStatus = new ConcurrentHashMap<>();
-    hostsStatus.put(localHostInfo.toString(), new HostStatusEntity(
-        new HostInfoEntity(localHostInfo.host(), localHostInfo.port()), true, 0L));
-    hostsStatus.put(remoteHostInfo.toString(), new HostStatusEntity(
-        new HostInfoEntity(remoteHostInfo.host(), remoteHostInfo.port()), true, 0L));
+    Map<KsqlHost, HostStatus> hostsStatus = ImmutableMap
+        .of(localHost, new HostStatus(true, 0L),
+            remoteHost, new HostStatus(true, 0L));
     heartbeatAgent.setHostsStatus(hostsStatus);
     allMetadata0 = ImmutableList.of(streamsMetadata0);
     allMetadata1 = ImmutableList.of(streamsMetadata1);
@@ -100,7 +103,7 @@ public class HeartbeatAgentTest {
     discoverService.runOneIteration();
 
     // Then:
-    assertThat(heartbeatAgent.getHostsStatus().keySet().contains(remoteHostInfo.toString()), is(true));
+    assertThat(heartbeatAgent.getHostsStatus(), hasKey(remoteHost));
   }
 
   @Test
@@ -108,12 +111,12 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 0;
     long windowEnd = 5;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 1L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 3L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 4L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 5L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 1L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 3L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 4L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 5L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -121,7 +124,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(true));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(true));
   }
 
   @Test
@@ -129,12 +132,12 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 1;
     long windowEnd = 10;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 4L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 6L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 8L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 10L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 4L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 6L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 8L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 10L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -142,7 +145,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(true));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(true));
   }
 
   @Test
@@ -150,7 +153,7 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 0;
     long windowEnd = 10;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 8L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 8L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -158,7 +161,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(true));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(true));
   }
 
   @Test
@@ -166,10 +169,10 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 0;
     long windowEnd = 10;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 5L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 8L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 5L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 8L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -177,7 +180,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(true));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(true));
   }
 
   @Test
@@ -185,10 +188,10 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 0;
     long windowEnd = 10;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 8L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 5L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 8L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 5L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -196,7 +199,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(true));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(true));
   }
 
   @Test
@@ -204,11 +207,11 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 0;
     long windowEnd = 10;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 4L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 6L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 7L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 4L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 6L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 7L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -216,7 +219,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(false));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(false));
   }
 
   @Test
@@ -224,13 +227,13 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 5;
     long windowEnd = 8;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 1L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 3L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 4L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 9L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 10L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 1L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 3L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 4L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 9L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 10L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -238,7 +241,7 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(false));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(false));
   }
 
   @Test
@@ -246,13 +249,13 @@ public class HeartbeatAgentTest {
     // Given:
     long windowStart = 5;
     long windowEnd = 8;
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 10L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 9L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 0L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 4L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 2L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 3L);
-    heartbeatAgent.receiveHeartbeat(remoteHostInfo, 1L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 10L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 9L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 0L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 4L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 2L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 3L);
+    heartbeatAgent.receiveHeartbeat(remoteHost, 1L);
     CheckHeartbeatService processService = heartbeatAgent.new CheckHeartbeatService();
 
     // When:
@@ -260,7 +263,6 @@ public class HeartbeatAgentTest {
 
     // Then:
     assertThat(heartbeatAgent.getHostsStatus().entrySet(), hasSize(2));
-    assertThat(heartbeatAgent.getHostsStatus().get(remoteHostInfo.toString()).getHostAlive(), is(false));
+    assertThat(heartbeatAgent.getHostsStatus().get(remoteHost).isHostAlive(), is(false));
   }
-
 }

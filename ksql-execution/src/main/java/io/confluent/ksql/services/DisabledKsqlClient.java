@@ -20,9 +20,9 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.util.List;
-import org.apache.kafka.streams.state.HostInfo;
 
 /**
  * A KSQL client implementation for use when communication with other nodes is not supported.
@@ -52,7 +52,7 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final HostInfo host,
+      final KsqlHost host,
       final long timestamp
   ) {
     throw new UnsupportedOperationException("KSQL client is disabled");

@@ -85,9 +85,9 @@ public class SchemaKStreamTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KeyField validJoinKeyField = KeyField
       .of(Optional.of(ColumnRef.of(ColumnName.of("COL0"))));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
+  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name()));
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED.name()));
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");

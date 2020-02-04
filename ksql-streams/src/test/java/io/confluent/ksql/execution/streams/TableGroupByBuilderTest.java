@@ -86,8 +86,8 @@ public class TableGroupByBuilderTest {
       STEP_CONTEXT
   );
   private static final Formats FORMATS = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.JSON),
+      FormatInfo.of(Format.KAFKA.name()),
+      FormatInfo.of(Format.JSON.name()),
       SerdeOption.none()
   );
 

@@ -124,7 +124,7 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
-        ValueFormat.of(FormatInfo.of(Format.AVRO))
+        ValueFormat.of(FormatInfo.of(Format.AVRO.name()))
     );
 
     analyzer = new Analyzer(
@@ -315,7 +315,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "com.custom.schema")))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "com.custom.schema")))));
   }
 
   @Test
@@ -330,7 +330,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
   }
 
     @Test
@@ -346,7 +346,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap
+          is(ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
               .of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))));
   }
 
@@ -358,8 +358,8 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -388,7 +388,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
   }
 
   @Test
@@ -404,7 +404,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
   }
 
   @Test
@@ -661,8 +661,8 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.KAFKA))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.KAFKA.name()))
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(

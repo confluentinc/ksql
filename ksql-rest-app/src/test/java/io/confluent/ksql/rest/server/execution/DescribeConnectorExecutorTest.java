@@ -127,8 +127,8 @@ public class DescribeConnectorExecutorTest {
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
             TOPIC,
-            KeyFormat.nonWindowed(FormatInfo.of(Format.AVRO)),
-            ValueFormat.of(FormatInfo.of(Format.AVRO))
+            KeyFormat.nonWindowed(FormatInfo.of(Format.AVRO.name())),
+            ValueFormat.of(FormatInfo.of(Format.AVRO.name()))
         )
     );
     when(source.getSchema()).thenReturn(

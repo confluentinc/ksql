@@ -61,7 +61,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GenericKeySerDeTest {
 
-  private static final FormatInfo FORMAT = FormatInfo.of(Format.JSON);
+  private static final FormatInfo FORMAT = FormatInfo.of(Format.JSON.name());
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
   private static final String LOGGER_NAME_PREFIX = "bob";
 

@@ -109,8 +109,8 @@ public class TableAggregateBuilderTest {
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
   private static final QueryContext MATERIALIZE_CTX = QueryContext.Stacker.of(CTX)
       .push("Materialize").getQueryContext();
-  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
-  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA.name());
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON.name());
 
   @Mock
   private KGroupedTable<Struct, GenericRow> groupedTable;

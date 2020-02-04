@@ -149,8 +149,8 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
-  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
-  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
+  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
 
   private PlanBuilder planBuilder;
 

@@ -73,7 +73,7 @@ final class ProducerFactory {
       @Override
       public Serializer<Struct> create(final PersistenceSchema schema) {
         return KEY_SERDE_FACTORY.create(
-            FormatInfo.of(keyFormat),
+            FormatInfo.of(keyFormat.name()),
             schema,
             ksqlConfig,
             srClient::get,
@@ -98,7 +98,7 @@ final class ProducerFactory {
       @Override
       public Serializer<GenericRow> create(final PersistenceSchema schema) {
         return VALUE_SERDE_FACTORY.create(
-            FormatInfo.of(valueFormat),
+            FormatInfo.of(valueFormat.name()),
             schema,
             ksqlConfig,
             srClient::get,

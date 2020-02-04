@@ -443,7 +443,7 @@ public class ClusterTerminatorTest {
 
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format)));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format.name())));
 
     final DataSource source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);

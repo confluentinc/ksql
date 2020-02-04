@@ -93,8 +93,7 @@
                     "options" : [ ]
                   },
                   "timestampColumn" : null,
-                  "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-                  "alias" : "TEST"
+                  "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
                 },
                 "selectExpressions" : [ "ID AS KSQL_INTERNAL_COL_0", "VALUE AS KSQL_INTERNAL_COL_1" ]
               },

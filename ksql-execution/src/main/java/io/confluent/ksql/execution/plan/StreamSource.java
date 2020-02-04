@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,15 +30,14 @@ public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) final SourceName alias) {
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+  ) {
     super(
         props,
         topicName,
         formats,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 
@@ -61,8 +59,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(alias, that.alias);
+        && Objects.equals(sourceSchema, that.sourceSchema);
   }
 
   @Override
@@ -72,8 +69,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 }

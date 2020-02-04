@@ -50,7 +50,6 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
@@ -73,8 +72,7 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn,
-      final SourceName alias
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedStreamSource(
@@ -83,8 +81,7 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 
@@ -93,8 +90,7 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
-      final SourceName alias
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource(
@@ -102,8 +98,7 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 
@@ -112,8 +107,7 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
-      final SourceName alias
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSource(
@@ -121,8 +115,7 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 
@@ -132,8 +125,7 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn,
-      final SourceName alias
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedTableSource(
@@ -142,8 +134,7 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema,
-        alias
+        sourceSchema
     );
   }
 

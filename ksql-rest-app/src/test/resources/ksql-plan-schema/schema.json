@@ -476,13 +476,10 @@
         },
         "sourceSchema" : {
           "type" : "string"
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "streamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
     },
     "WindowedStreamSource" : {
       "type" : "object",
@@ -510,13 +507,10 @@
         },
         "sourceSchema" : {
           "type" : "string"
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",
@@ -645,13 +639,10 @@
         },
         "sourceSchema" : {
           "type" : "string"
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "tableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
     },
     "WindowedTableSource" : {
       "type" : "object",
@@ -679,13 +670,10 @@
         },
         "sourceSchema" : {
           "type" : "string"
-        },
-        "alias" : {
-          "type" : "string"
         }
       },
       "title" : "windowedTableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "alias" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
     },
     "TableAggregate" : {
       "type" : "object",

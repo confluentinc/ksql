@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -48,8 +47,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource dataSource,
       final QueryContext.Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final boolean windowed = dataSource.getKsqlTopic().getKeyFormat().isWindowed();
     switch (dataSource.getDataSourceType()) {
@@ -59,14 +57,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         ) : buildStream(
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         );
 
       case KTABLE:
@@ -75,14 +71,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         ) : buildTable(
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         );
 
       default:
@@ -94,8 +88,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
@@ -106,8 +99,7 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKStream(
@@ -123,8 +115,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
       throw new IllegalArgumentException("windowed");
@@ -135,8 +126,7 @@ public final class SchemaKSourceFactory {
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKStream(
@@ -152,8 +142,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
@@ -164,8 +153,7 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKTable(
@@ -181,8 +169,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
       throw new IllegalArgumentException("windowed");
@@ -193,8 +180,7 @@ public final class SchemaKSourceFactory {
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKTable(

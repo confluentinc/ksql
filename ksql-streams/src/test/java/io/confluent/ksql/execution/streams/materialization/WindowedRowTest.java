@@ -28,10 +28,11 @@ import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Va
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.time.Instant;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -58,7 +59,9 @@ public class WindowedRowTest {
       .put("k0", "key")
       .put("k1", 11);
 
-  private static final Window A_WINDOW = Window.of(Instant.MIN, Instant.MIN.plusMillis(1));
+  private static final TimeWindow A_WINDOW = new TimeWindow(10, 1000);
+
+  private static final Windowed<Struct> A_WINDOWED_KEY = new Windowed<>(A_KEY, A_WINDOW);
 
   private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 12335L;
@@ -74,8 +77,7 @@ public class WindowedRowTest {
   public void shouldThrowNPE() {
     new NullPointerTester()
         .setDefault(LogicalSchema.class, SCHEMA)
-        .setDefault(Struct.class, A_KEY)
-        .setDefault(Window.class, A_WINDOW)
+        .setDefault(Windowed.class, A_WINDOWED_KEY)
         .setDefault(GenericRow.class, A_VALUE)
         .testStaticMethods(WindowedRow.class, Visibility.PROTECTED);
   }
@@ -92,23 +94,23 @@ public class WindowedRowTest {
 
     new EqualsTester()
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME),
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME)
+            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, A_VALUE, A_ROWTIME),
+            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(differentSchema, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME)
+            WindowedRow.of(differentSchema, A_WINDOWED_KEY, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_WINDOW, A_VALUE, A_ROWTIME)
+            WindowedRow.of(SCHEMA, new Windowed<>(new Struct(KEY_STRUCT_SCHEMA), A_WINDOW), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, mock(Window.class, "diff"), A_VALUE, A_ROWTIME)
+            WindowedRow.of(SCHEMA, new Windowed<>(A_KEY, mock(TimeWindow.class, "diff")), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, new GenericRow(null, null), A_ROWTIME)
+            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, new GenericRow(null, null), A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, -1L)
+            WindowedRow.of(SCHEMA, A_WINDOWED_KEY, A_VALUE, -1L)
         )
         .testEquals();
   }
@@ -116,7 +118,7 @@ public class WindowedRowTest {
   @Test
   public void shouldValidateOnConstruction() {
     // When:
-    new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME, validator);
+    new WindowedRow(SCHEMA, A_WINDOWED_KEY, A_VALUE, A_ROWTIME, validator);
 
     // Then:
     verify(validator).validate(SCHEMA, A_KEY, A_VALUE);
@@ -126,7 +128,7 @@ public class WindowedRowTest {
   @Test
   public void shouldValidateOnCopy() {
     // Given:
-    final WindowedRow row = new WindowedRow(SCHEMA, A_KEY, A_WINDOW, A_VALUE, A_ROWTIME, validator);
+    final WindowedRow row = new WindowedRow(SCHEMA, A_WINDOWED_KEY, A_VALUE, A_ROWTIME, validator);
     clearInvocations(validator);
 
     // When:

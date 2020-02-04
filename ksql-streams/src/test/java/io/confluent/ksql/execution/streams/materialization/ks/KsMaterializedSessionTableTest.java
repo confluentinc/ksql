@@ -31,7 +31,6 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
@@ -216,8 +215,7 @@ public class KsMaterializedSessionTableTest {
     // Then:
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
-        A_KEY,
-        Window.of(LOWER_INSTANT, wend),
+        sessionKey(LOWER_INSTANT, wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -257,8 +255,7 @@ public class KsMaterializedSessionTableTest {
     // Then:
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
-        A_KEY,
-        Window.of(UPPER_INSTANT, wend),
+        sessionKey(UPPER_INSTANT, wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -293,8 +290,7 @@ public class KsMaterializedSessionTableTest {
     // Then:
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
-        A_KEY,
-        Window.of(LOWER_INSTANT.plusMillis(1), wend),
+        sessionKey(LOWER_INSTANT.plusMillis(1), wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -317,15 +313,13 @@ public class KsMaterializedSessionTableTest {
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(LOWER_INSTANT, wend0),
+            sessionKey(LOWER_INSTANT, wend0),
             A_VALUE,
             wend0.toEpochMilli()
         ),
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(UPPER_INSTANT, wend1),
+            sessionKey(UPPER_INSTANT, wend1),
             A_VALUE,
             wend1.toEpochMilli()
         )
@@ -349,14 +343,16 @@ public class KsMaterializedSessionTableTest {
       final Instant start,
       final Instant end
   ) {
-    final KeyValue<Windowed<Struct>, GenericRow> kv = new KeyValue<>(
-        new Windowed<>(
-            A_KEY,
-            new SessionWindow(start.toEpochMilli(), end.toEpochMilli())
-        ),
-        A_VALUE
-    );
+    sessions.add(new KeyValue<>(sessionKey(start, end), A_VALUE));
+  }
 
-    sessions.add(kv);
+  private static Windowed<Struct> sessionKey(
+      final Instant sessionStart,
+      final Instant sessionEnd
+  ) {
+    return new Windowed<>(
+        A_KEY,
+        new SessionWindow(sessionStart.toEpochMilli(), sessionEnd.toEpochMilli())
+    );
   }
 }

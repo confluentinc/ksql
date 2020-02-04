@@ -24,6 +24,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -60,15 +61,15 @@ public final class WindowSelectMapper {
     return !windowSelects.isEmpty();
   }
 
-  public <K> KsqlTransformer<Windowed<K>, GenericRow> getTransformer() {
-    return new Transformer<>();
+  public KsqlTransformer<Windowed<Struct>, GenericRow> getTransformer() {
+    return new Transformer();
   }
 
-  private final class Transformer<K> implements KsqlTransformer<Windowed<K>, GenericRow> {
+  private final class Transformer implements KsqlTransformer<Windowed<Struct>, GenericRow> {
 
     @Override
     public GenericRow transform(
-        final Windowed<K> readOnlyKey,
+        final Windowed<Struct> readOnlyKey,
         final GenericRow value,
         final KsqlProcessingContext ctx
     ) {

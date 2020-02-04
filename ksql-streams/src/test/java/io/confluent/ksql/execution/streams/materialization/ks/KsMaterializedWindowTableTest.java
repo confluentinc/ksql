@@ -30,7 +30,6 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
@@ -41,6 +40,8 @@ import java.time.Instant;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -207,15 +208,13 @@ public class KsMaterializedWindowTableTest {
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(bounds.lowerEndpoint(), windowEnd(bounds.lowerEndpoint())),
+            windowedKey(bounds.lowerEndpoint()),
             VALUE_1.value(),
             VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(bounds.upperEndpoint(), windowEnd(bounds.upperEndpoint())),
+            windowedKey(bounds.upperEndpoint()),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -251,11 +250,7 @@ public class KsMaterializedWindowTableTest {
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(
-                bounds.lowerEndpoint().plusMillis(1),
-                windowEnd(bounds.lowerEndpoint().plusMillis(1))
-            ),
+            windowedKey(bounds.lowerEndpoint().plusMillis(1)),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -288,22 +283,19 @@ public class KsMaterializedWindowTableTest {
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(start, windowEnd(start)),
+            windowedKey(start),
             VALUE_1.value(),
             VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(start.plusMillis(1), windowEnd(start.plusMillis(1))),
+            windowedKey(start.plusMillis(1)),
             VALUE_2.value(),
             VALUE_2.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
-            A_KEY,
-            Window.of(start.plusMillis(2), windowEnd(start.plusMillis(2))),
+            windowedKey(start.plusMillis(2)),
             VALUE_3.value(),
             VALUE_3.timestamp()
         )
@@ -323,7 +315,10 @@ public class KsMaterializedWindowTableTest {
     );
   }
 
-  private static Instant windowEnd(final Instant windowStart) {
-    return windowStart.plus(WINDOW_SIZE);
+  private static Windowed<Struct> windowedKey(final Instant windowStart) {
+    return new Windowed<>(
+        A_KEY,
+        new TimeWindow(windowStart.toEpochMilli(), windowStart.plus(WINDOW_SIZE).toEpochMilli())
+    );
   }
 }

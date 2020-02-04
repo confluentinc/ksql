@@ -974,6 +974,28 @@
           {"row":{"columns":["10", "2020-01-29 17:19:45 +0000", "2020-01-29 17:19:46 +0000", 1]}}
         ]}
       ]
+    },
+    {
+      "name": "windowStart and windowEnd UDAFs",
+      "statements": [
+        "CREATE STREAM ALL_TWEETS (LANG STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE TWEET_LANG AS SELECT TIMESTAMPTOSTRING(WINDOWSTART(),'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND(),'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, LANG, COUNT(*) AS TWEET_COUNT FROM ALL_TWEETS WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY LANG;",
+        "SELECT WSTART, WEND, LANG, TWEET_COUNT FROM TWEET_LANG WHERE ROWKEY='en';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580223282123, "value": {"lang": "en"}},
+        {"topic": "test_topic", "timestamp": 1580223282323, "value": {"lang": "en"}},
+        {"topic": "test_topic", "timestamp": 1580223283123, "value": {"lang": "en"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`WSTART` STRING, `WEND` STRING, `LANG` STRING, `TWEET_COUNT` BIGINT"}},
+          {"row":{"columns":["2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", "en", 2]}},
+          {"row":{"columns":["2020-01-28 14:54:43 +0000", "2020-01-28 14:54:44 +0000", "en", 1]}}
+        ]}
+      ]
     }
   ]
 }

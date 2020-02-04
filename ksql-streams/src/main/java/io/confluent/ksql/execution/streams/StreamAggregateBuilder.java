@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -140,6 +141,7 @@ public final class StreamAggregateBuilder {
     );
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   static KTableHolder<Windowed<Struct>> build(
       final KGroupedStreamHolder groupedStream,
       final StreamWindowedAggregate aggregate,
@@ -190,6 +192,12 @@ public final class StreamAggregateBuilder {
       reduced = reduced.transformValues(
           () -> new KsTransformer<>(windowSelectMapper.getTransformer()),
           Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.windowSelectContext(aggregate)))
+      );
+
+      materializationBuilder.map(
+          pl -> (KsqlTransformer) windowSelectMapper.getTransformer(),
+          aggregateSchema,
+          AggregateBuilderUtils.windowSelectContext(aggregate)
       );
     }
 

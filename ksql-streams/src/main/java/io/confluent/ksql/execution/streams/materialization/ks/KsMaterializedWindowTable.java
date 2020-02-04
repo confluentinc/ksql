@@ -21,7 +21,6 @@ import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,6 +28,8 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -76,12 +77,12 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
             final Instant windowEnd = windowStart.plus(windowSize);
 
-            final Window window = Window.of(windowStart, windowEnd);
+            final TimeWindow window =
+                new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
 
             final WindowedRow row = WindowedRow.of(
                 stateStore.schema(),
-                key,
-                window,
+                new Windowed<>(key, window),
                 next.value.value(),
                 next.value.timestamp()
             );

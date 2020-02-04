@@ -32,7 +32,7 @@ public class ReactiveSubscriberWhiteboxVerificationTest extends
   private final Vertx vertx;
 
   public ReactiveSubscriberWhiteboxVerificationTest() {
-    super(new TestEnvironment(500));
+    super(new TestEnvironment(1000));
     this.vertx = Vertx.vertx();
   }
 

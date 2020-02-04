@@ -233,7 +233,7 @@ public class AggregateParamsFactoryTest {
     final Windowed<Object> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
         windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
-        equalTo(genericRow("fiz", "baz", 10L))
+        equalTo(genericRow("fiz", "baz", 10))
     );
   }
 

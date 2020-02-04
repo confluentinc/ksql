@@ -14,13 +14,11 @@
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA",
-          "fullSchemaName" : null,
-          "delimiter" : null
+          "properties": null
         },
         "valueFormat" : {
           "format" : "DELIMITED",
-          "fullSchemaName" : null,
-          "delimiter" : null
+          "properties": null
         },
         "options" : [ ]
       },
@@ -39,14 +37,11 @@
       "topicName" : "AVG",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA",
-          "fullSchemaName" : null,
-          "delimiter" : null
+          "format" : "KAFKA"
         },
         "valueFormat" : {
           "format" : "DELIMITED",
-          "fullSchemaName" : null,
-          "delimiter" : null
+          "properties": null
         },
         "options" : [ ]
       },
@@ -89,32 +84,27 @@
                   "formats" : {
                     "keyFormat" : {
                       "format" : "KAFKA",
-                      "fullSchemaName" : null,
-                      "delimiter" : null
+                      "properties": null
                     },
                     "valueFormat" : {
                       "format" : "DELIMITED",
-                      "fullSchemaName" : null,
-                      "delimiter" : null
+                      "properties": null
                     },
                     "options" : [ ]
                   },
                   "timestampColumn" : null,
-                  "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-                  "alias" : "TEST"
+                  "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
                 },
                 "selectExpressions" : [ "ID AS KSQL_INTERNAL_COL_0", "VALUE AS KSQL_INTERNAL_COL_1" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
                   "format" : "KAFKA",
-                  "fullSchemaName" : null,
-                  "delimiter" : null
+                  "properties": null
                 },
                 "valueFormat" : {
                   "format" : "DELIMITED",
-                  "fullSchemaName" : null,
-                  "delimiter" : null
+                  "properties": null
                 },
                 "options" : [ ]
               }
@@ -122,13 +112,11 @@
             "internalFormats" : {
               "keyFormat" : {
                 "format" : "KAFKA",
-                "fullSchemaName" : null,
-                "delimiter" : null
+                "properties": null
               },
               "valueFormat" : {
                 "format" : "DELIMITED",
-                "fullSchemaName" : null,
-                "delimiter" : null
+                "properties": null
               },
               "options" : [ ]
             },
@@ -140,13 +128,11 @@
         "formats" : {
           "keyFormat" : {
             "format" : "KAFKA",
-            "fullSchemaName" : null,
-            "delimiter" : null
+            "properties": null
           },
           "valueFormat" : {
             "format" : "DELIMITED",
-            "fullSchemaName" : null,
-            "delimiter" : null
+            "properties": null
           },
           "options" : [ ]
         },

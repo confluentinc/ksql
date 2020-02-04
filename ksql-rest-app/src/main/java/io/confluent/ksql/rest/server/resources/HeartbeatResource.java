@@ -17,15 +17,15 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
+import io.confluent.ksql.util.KsqlHost;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.streams.state.HostInfo;
 
 /**
  * Endpoint for registering heartbeats received from remote servers. The heartbeats are used
@@ -49,9 +49,9 @@ public class HeartbeatResource {
   }
 
   private void handleHeartbeat(final HeartbeatMessage request) {
-    final HostInfoEntity hostInfoEntity = request.getHostInfo();
-    final HostInfo hostInfo = new HostInfo(hostInfoEntity.getHost(), hostInfoEntity.getPort());
+    final KsqlHostEntity ksqlHostEntity = request.getHostInfo();
+    final KsqlHost ksqlHost = new KsqlHost(ksqlHostEntity.getHost(), ksqlHostEntity.getPort());
     final long timestamp = request.getTimestamp();
-    heartbeatAgent.receiveHeartbeat(hostInfo, timestamp);
+    heartbeatAgent.receiveHeartbeat(ksqlHost, timestamp);
   }
 }

@@ -47,7 +47,6 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -110,8 +109,6 @@ public class SourceBuilderTest {
 
   private static final Struct KEY = new Struct(KEY_SCHEMA)
       .put(SchemaUtil.ROWKEY_NAME.name(), A_KEY);
-
-  private static final SourceName ALIAS = SourceName.of("alias");
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
       .withMetaAndKeyColsInValue(false);
@@ -441,8 +438,7 @@ public class SourceBuilderTest {
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
             .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
             .valueColumns(SCHEMA.value())
-            .build(),
-        ALIAS
+            .build()
     );
 
     // Then:
@@ -680,8 +676,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -693,8 +688,7 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -708,8 +702,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -721,8 +714,7 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 

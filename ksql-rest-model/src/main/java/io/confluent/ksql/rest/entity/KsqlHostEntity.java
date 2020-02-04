@@ -18,17 +18,19 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHost;
 import java.util.Objects;
-import org.apache.kafka.streams.state.HostInfo;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class HostInfoEntity {
+public class KsqlHostEntity {
 
   private final String host;
   private final int port;
 
-  public HostInfoEntity(
+  public KsqlHostEntity(
       final String host,
       final int port
   ) {
@@ -37,11 +39,21 @@ public class HostInfoEntity {
   }
 
   @JsonCreator
-  public HostInfoEntity(final String serializedPair) {
+  public KsqlHostEntity(final String serializedPair) {
     final String [] parts = serializedPair.split(":");
-    Preconditions.checkArgument(parts.length == 2);
+    if (parts.length != 2) {
+      throw new KsqlException("Invalid host info. Expected format: <hostname>:<port>, but was "
+                                  + serializedPair);
+    }
+
     this.host = Objects.requireNonNull(parts[0], "host");
-    this.port = Integer.parseInt(parts[1]);
+
+    try {
+      this.port = Integer.parseInt(parts[1]);
+    } catch (final Exception e) {
+      throw new KsqlException("Invalid port. Expected format: <hostname>:<port>, but was "
+                                  + serializedPair, e);
+    }
   }
 
   public String getHost() {
@@ -52,8 +64,8 @@ public class HostInfoEntity {
     return port;
   }
 
-  public HostInfo toHostInfo() {
-    return new HostInfo(host, port);
+  public KsqlHost toKsqlHost() {
+    return new KsqlHost(host, port);
   }
 
   @Override
@@ -66,7 +78,7 @@ public class HostInfoEntity {
       return false;
     }
 
-    final HostInfoEntity that = (HostInfoEntity) o;
+    final KsqlHostEntity that = (KsqlHostEntity) o;
     return Objects.equals(host, that.host)
         && port == that.port;
   }

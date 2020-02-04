@@ -34,7 +34,6 @@ import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -159,7 +158,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleAvro() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(AVRO, Optional.empty(), Optional.empty()));
+        .create(FormatInfo.of(AVRO));
 
     // Then:
     assertThat(result, instanceOf(KsqlAvroSerdeFactory.class));
@@ -169,7 +168,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleJson() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(JSON, Optional.empty(), Optional.empty()));
+        .create(FormatInfo.of(JSON));
 
     // Then:
     assertThat(result, instanceOf(KsqlJsonSerdeFactory.class));
@@ -179,7 +178,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleDelimited() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(DELIMITED, Optional.empty(), Optional.empty()));
+        .create(FormatInfo.of(DELIMITED));
 
     // Then:
     assertThat(result, instanceOf(KsqlDelimitedSerdeFactory.class));
@@ -189,7 +188,7 @@ public class KsqlSerdeFactoriesTest {
   public void shouldHandleKafka() {
     // When:
     final KsqlSerdeFactory result = KsqlSerdeFactories
-        .create(FormatInfo.of(KAFKA, Optional.empty(), Optional.empty()));
+        .create(FormatInfo.of(KAFKA));
 
     // Then:
     assertThat(result, instanceOf(KafkaSerdeFactory.class));

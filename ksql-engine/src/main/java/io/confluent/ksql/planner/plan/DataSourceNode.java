@@ -132,8 +132,7 @@ public class DataSourceNode extends PlanNode {
         builder,
         dataSource,
         contextStacker.push(SOURCE_OP_NAME),
-        keyField,
-        alias
+        keyField
     );
   }
 
@@ -143,8 +142,7 @@ public class DataSourceNode extends PlanNode {
         KsqlQueryBuilder builder,
         DataSource dataSource,
         QueryContext.Stacker contextStacker,
-        KeyField keyField,
-        SourceName alias
+        KeyField keyField
     );
   }
 }

@@ -86,6 +86,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -565,8 +566,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
-        ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
+    final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,

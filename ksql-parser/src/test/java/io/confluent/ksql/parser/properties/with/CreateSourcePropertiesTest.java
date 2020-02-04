@@ -33,6 +33,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -81,7 +82,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
+    assertThat(properties.getFormatProperties(), is(ImmutableMap.of()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
@@ -295,7 +296,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
+    assertThat(properties.getFormatProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -25,8 +26,8 @@ import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -129,17 +130,24 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.AVRO_SCHEMA_ID));
   }
 
-  public Optional<String> getValueAvroSchemaName() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
+  public Map<String, String> getFormatProperties() {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+
+    final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    if (schemaName != null) {
+      builder.put(FormatInfo.FULL_SCHEMA_NAME, schemaName);
+    }
+
+    final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
+    if (delimiter != null) {
+      builder.put(FormatInfo.DELIMITER, delimiter);
+    }
+
+    return builder.build();
   }
 
   public Optional<Boolean> getWrapSingleValues() {
     return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
-  }
-
-  public Optional<Delimiter> getValueDelimiter() {
-    final String val = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    return val == null ? Optional.empty() : Optional.of(Delimiter.parse(val));
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

@@ -21,22 +21,16 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.streams.state.HostInfo;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -52,25 +46,29 @@ public class HeartbeatAgentFunctionalTest {
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
 
-  private static final HostInfo host0 = new HostInfo("localhost",8088);
-  private static final HostInfo host1 = new HostInfo("localhost",8089);
+  private static final KsqlHostEntity host0 = new KsqlHostEntity("localhost",8088);
+  private static final KsqlHostEntity host1 = new KsqlHostEntity("localhost",8089);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 600000)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 200)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
+      .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 600000)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 200)
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
+      .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
 
@@ -107,156 +105,63 @@ public class HeartbeatAgentFunctionalTest {
   @Test(timeout = 60000)
   public void shouldMarkServersAsUp() {
     // Given:
-    waitForClusterToBeDiscovered();
-    waitForRemoteServerToChangeStatus(this::remoteServerIsDown);
+    HighAvailabilityTestUtil.waitForClusterToBeDiscovered(REST_APP_0, 2);
+    HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    sendHeartbeartsEveryIntervalForWindowLength(100, 3000);
-    final ClusterStatusResponse clusterStatusResponseUp = waitForRemoteServerToChangeStatus(
-        this::remoteServerIsUp);
+    HighAvailabilityTestUtil.sendHeartbeartsForWindowLength(REST_APP_0, host1, 3000);
+    final ClusterStatusResponse clusterStatusResponseUp = HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
 
     // Then:
-    assertThat(clusterStatusResponseUp.getClusterStatus().get(host0.toString()).getHostAlive(), is(true));
-    assertThat(clusterStatusResponseUp.getClusterStatus().get(host1.toString()).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseUp.getClusterStatus().get(host0).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseUp.getClusterStatus().get(host1).getHostAlive(), is(true));
   }
 
   @Test(timeout = 60000)
   public void shouldMarkRemoteServerAsDown() {
     // Given:
-    waitForClusterToBeDiscovered();
+    HighAvailabilityTestUtil.waitForClusterToBeDiscovered(REST_APP_0, 2);
 
     // When:
-    ClusterStatusResponse clusterStatusResponse = waitForRemoteServerToChangeStatus(
-        this::remoteServerIsDown);
+    ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsDown);
 
     // Then:
-    assertThat(clusterStatusResponse.getClusterStatus().get(host0.toString()).getHostAlive(), is(true));
-    assertThat(clusterStatusResponse.getClusterStatus().get(host1.toString()).getHostAlive(), is(false));
+    assertThat(clusterStatusResponse.getClusterStatus().get(host0).getHostAlive(), is(true));
+    assertThat(clusterStatusResponse.getClusterStatus().get(host1).getHostAlive(), is(false));
   }
 
   @Test(timeout = 60000)
   public void shouldMarkRemoteServerAsUpThenDownThenUp() {
     // Given:
-    waitForClusterToBeDiscovered();
-    sendHeartbeartsEveryIntervalForWindowLength(100, 2000);
+    HighAvailabilityTestUtil.waitForClusterToBeDiscovered(REST_APP_0, 2);
+    HighAvailabilityTestUtil.sendHeartbeartsForWindowLength(REST_APP_0, host1, 3000);
 
     // When:
-    final ClusterStatusResponse clusterStatusResponseUp1 = waitForRemoteServerToChangeStatus(
-        this::remoteServerIsUp);
+    final ClusterStatusResponse clusterStatusResponseUp1 =  HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
 
     // Then:
-    assertThat(clusterStatusResponseUp1.getClusterStatus().get(host0.toString()).getHostAlive(), is(true));
-    assertThat(clusterStatusResponseUp1.getClusterStatus().get(host1.toString()).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseUp1.getClusterStatus().get(host0).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseUp1.getClusterStatus().get(host1).getHostAlive(), is(true));
 
     // When:
-    ClusterStatusResponse clusterStatusResponseDown = waitForRemoteServerToChangeStatus(
-        this::remoteServerIsDown);
+    ClusterStatusResponse clusterStatusResponseDown =  HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsDown);
 
     // Then:
-    assertThat(clusterStatusResponseDown.getClusterStatus().get(host0.toString()).getHostAlive(), is(true));
-    assertThat(clusterStatusResponseDown.getClusterStatus().get(host1.toString()).getHostAlive(), is(false));
+    assertThat(clusterStatusResponseDown.getClusterStatus().get(host0).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseDown.getClusterStatus().get(host1).getHostAlive(), is(false));
 
     // When :
-    sendHeartbeartsEveryIntervalForWindowLength(100, 2000);
-    ClusterStatusResponse clusterStatusResponseUp2 = waitForRemoteServerToChangeStatus(
-        this::remoteServerIsUp);
+    HighAvailabilityTestUtil.sendHeartbeartsForWindowLength(REST_APP_0, host1, 3000);
+    ClusterStatusResponse clusterStatusResponseUp2 = HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus(
+        REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
 
     // Then:
-    assertThat(clusterStatusResponseUp2.getClusterStatus().get(host0.toString()).getHostAlive(), is(true));
-    assertThat(clusterStatusResponseUp2.getClusterStatus().get(host1.toString()).getHostAlive(), is(true));
-  }
-
-  private void waitForClusterToBeDiscovered() {
-    while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(REST_APP_0);
-      if(allServersDiscovered(clusterStatusResponse.getClusterStatus())) {
-        break;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (final Exception e) {
-        // Meh
-      }
-    }
-  }
-
-  private boolean allServersDiscovered(Map<String, HostStatusEntity> clusterStatus) {
-    if(clusterStatus.size() < 2) {
-      return false;
-    }
-    return true;
-  }
-
-  private void sendHeartbeartsEveryIntervalForWindowLength(long interval, long window) {
-    long start = System.currentTimeMillis();
-    while (System.currentTimeMillis() - start < window) {
-      sendHeartbeatRequest(REST_APP_0, host1, System.currentTimeMillis());
-      try {
-        Thread.sleep(interval);
-      } catch (final Exception e) {
-        // Meh
-      }
-    }
-  }
-
-  private ClusterStatusResponse waitForRemoteServerToChangeStatus(
-      Function<Map<String, HostStatusEntity>, Boolean> function)
-  {
-    while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(REST_APP_0);
-      if(function.apply(clusterStatusResponse.getClusterStatus())) {
-        return clusterStatusResponse;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (final Exception e) {
-        // Meh
-      }
-    }
-  }
-
-  private boolean remoteServerIsDown(Map<String, HostStatusEntity> clusterStatus) {
-    if (!clusterStatus.containsKey(host1.toString())) {
-      return true;
-    }
-    for( Entry<String, HostStatusEntity> entry: clusterStatus.entrySet()) {
-      if (entry.getKey().contains("8089") && !entry.getValue().getHostAlive()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean remoteServerIsUp(Map<String, HostStatusEntity> clusterStatus) {
-    for( Entry<String, HostStatusEntity> entry: clusterStatus.entrySet()) {
-      if (entry.getKey().contains("8089") && entry.getValue().getHostAlive()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static void sendHeartbeatRequest(
-      final TestKsqlRestApp restApp,
-      final HostInfo host,
-      final long timestamp) {
-
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-      restClient.makeAsyncHeartbeatRequest(new HostInfoEntity(host.host(), host.port()), timestamp);
-    }
-  }
-
-  private static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
-
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-
-      final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-
-      return res.getResponse();
-    }
+    assertThat(clusterStatusResponseUp2.getClusterStatus().get(host0).getHostAlive(), is(true));
+    assertThat(clusterStatusResponseUp2.getClusterStatus().get(host1).getHostAlive(), is(true));
   }
 }

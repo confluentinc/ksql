@@ -16,7 +16,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import org.junit.Test;
@@ -42,36 +41,30 @@ public class TableSourceTest {
   private LogicalSchema schema1;
   @Mock
   private LogicalSchema schema2;
-  @Mock
-  private SourceName alias1;
-  @Mock
-  private SourceName alias2;
 
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, alias1),
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1),
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new TableSource(
-                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, alias1))
+                properties2, "topic1", formats1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic2", formats1, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, alias1))
+                properties1, "topic1", formats2, Optional.of(timestamp1), schema1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, alias1))
+                properties1, "topic1", formats1, Optional.of(timestamp2), schema1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, alias1))
-        .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, alias2));
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2))
+        .testEquals();
   }
 }

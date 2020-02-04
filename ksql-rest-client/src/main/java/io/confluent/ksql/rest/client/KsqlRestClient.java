@@ -24,8 +24,8 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.Closeable;
 import java.io.InputStream;
@@ -91,7 +91,7 @@ public class KsqlRestClient implements Closeable {
   }
 
   public Future<Response> makeAsyncHeartbeatRequest(
-      final HostInfoEntity host,
+      final KsqlHostEntity host,
       final long timestamp
   ) {
     return target().postAsyncHeartbeatRequest(host, timestamp);

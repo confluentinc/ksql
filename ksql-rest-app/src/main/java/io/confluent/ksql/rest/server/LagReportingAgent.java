@@ -22,13 +22,16 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.entity.HostInfoEntity;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
+import io.confluent.ksql.rest.entity.HostStoreLags;
+import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
+import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.HeartbeatAgent.HostStatusListener;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.HostStatus;
+import io.confluent.ksql.util.KsqlHost;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
@@ -36,7 +39,6 @@ import java.net.URL;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -50,7 +52,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
-import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,10 @@ public final class LagReportingAgent implements HostStatusListener {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;
-  private static final HostLagInfo EMPTY_HOST_LAG_INFO = new HostLagInfo(Collections.emptyMap(), 0);
+  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
+      new HostStoreLags(ImmutableMap.of(), 0);
+  private static final StateStoreLags EMPTY_STATE_STORE_LAGS =
+      new StateStoreLags(ImmutableMap.of());
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
 
   private final KsqlEngine engine;
@@ -75,8 +79,8 @@ public final class LagReportingAgent implements HostStatusListener {
   private final ServiceManager serviceManager;
   private final Clock clock;
 
-  private final Map<HostInfo, HostLagInfo> receivedLagInfo;
-  private final AtomicReference<Set<HostInfo>> aliveHostsRef;
+  private final Map<KsqlHost, HostStoreLags> receivedLagInfo;
+  private final AtomicReference<Set<KsqlHost>> aliveHostsRef;
 
   private URL localURL;
 
@@ -145,23 +149,17 @@ public final class LagReportingAgent implements HostStatusListener {
    * @param lagReportingMessage The host lag information sent directly from the other node.
    */
   public void receiveHostLag(final LagReportingMessage lagReportingMessage) {
-    final long updateTimeMs = lagReportingMessage.getLastLagUpdateMs();
-    final HostInfoEntity hostInfoEntity = lagReportingMessage.getHostInfo();
-    final HostInfo hostInfo = hostInfoEntity.toHostInfo();
+    final HostStoreLags hostStoreLags = lagReportingMessage.getHostStoreLags();
+    final long updateTimeMs = hostStoreLags.getUpdateTimeMs();
+    final KsqlHostEntity KsqlHostEntity = lagReportingMessage.getKsqlHost();
+    final KsqlHost KsqlHost = KsqlHostEntity.toKsqlHost();
 
-    final ImmutableMap.Builder<QueryStateStoreId, Map<Integer, LagInfoEntity>> hostMapBuilder
-        = ImmutableMap.builder();
-    lagReportingMessage
-        .getStoreToPartitionToLagMap()
-        .forEach((id, partitions) -> hostMapBuilder.put(id, ImmutableMap.copyOf(partitions)));
-    final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> hostMap = hostMapBuilder.build();
+    LOG.debug("Receive lag at: {} from host: {} lag: {} ", updateTimeMs, KsqlHostEntity,
+        hostStoreLags.getStateStoreLags());
 
-    LOG.debug("Receive lag at: {} from host: {} lag: {} ", updateTimeMs, hostInfoEntity, hostMap);
-
-    final HostLagInfo hostLagInfo = new HostLagInfo(hostMap, updateTimeMs);
-    receivedLagInfo.compute(hostInfo, (hi, previousHostLagInfo) ->
+    receivedLagInfo.compute(KsqlHost, (hi, previousHostLagInfo) ->
         previousHostLagInfo != null && previousHostLagInfo.getUpdateTimeMs() > updateTimeMs
-            ? previousHostLagInfo : hostLagInfo);
+            ? previousHostLagInfo : hostStoreLags);
   }
 
   /**
@@ -171,12 +169,12 @@ public final class LagReportingAgent implements HostStatusListener {
    * @return A map which is keyed by host and contains lag information
    */
   public Optional<LagInfoEntity> getHostsPartitionLagInfo(
-      final HostInfo host, final QueryStateStoreId queryStateStoreId, final int partition) {
-    final Set<HostInfo> aliveHosts = aliveHostsRef.get();
+      final KsqlHost host, final QueryStateStoreId queryStateStoreId, final int partition) {
+    final Set<KsqlHost> aliveHosts = aliveHostsRef.get();
     final LagInfoEntity lagInfo = receivedLagInfo
-        .getOrDefault(host, EMPTY_HOST_LAG_INFO).getLagInfo()
-        .getOrDefault(queryStateStoreId, Collections.emptyMap())
-        .getOrDefault(partition, null);
+        .getOrDefault(host, EMPTY_HOST_STORE_LAGS)
+        .getStateStoreLagsOrDefault(queryStateStoreId, EMPTY_STATE_STORE_LAGS)
+        .getLagByPartition(partition);
     if (aliveHosts.contains(host) && lagInfo != null) {
       return Optional.of(lagInfo);
     }
@@ -187,23 +185,22 @@ public final class LagReportingAgent implements HostStatusListener {
    * Returns a map of host -> store -> partition -> LagInfo.  Meant for being exposed in testing
    * and debug resources.
    */
-  public Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> listAllLags() {
-    final ImmutableMap.Builder<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>>
-        builder = ImmutableMap.builder();
-    for (Entry<HostInfo, HostLagInfo> e : receivedLagInfo.entrySet()) {
-      final HostInfo hostInfo = e.getKey();
-      builder.put(new HostInfoEntity(hostInfo.host(), hostInfo.port()),
-          e.getValue().getLagInfo());
-    }
-    return builder.build();
+  public ImmutableMap<KsqlHostEntity, HostStoreLags> getAllLags() {
+    return receivedLagInfo.entrySet().stream()
+        .collect(ImmutableMap.toImmutableMap(
+            e -> new KsqlHostEntity(e.getKey().host(), e.getKey().port()),
+            Entry::getValue));
+  }
+
+  public HostStoreLags getLagPerHost(final KsqlHost host) {
+    return receivedLagInfo.getOrDefault(host, EMPTY_HOST_STORE_LAGS);
   }
 
   @Override
-  public void onHostStatusUpdated(final Map<String, HostStatusEntity> hostsStatusMap) {
-    aliveHostsRef.set(hostsStatusMap.values().stream()
-        .filter(HostStatusEntity::getHostAlive)
-        .map(HostStatusEntity::getHostInfoEntity)
-        .map(HostInfoEntity::toHostInfo)
+  public void onHostStatusUpdated(final Map<KsqlHost, HostStatus> hostsStatusMap) {
+    aliveHostsRef.set(hostsStatusMap.entrySet().stream()
+        .filter(entry -> entry.getValue().isHostAlive())
+        .map(Entry::getKey)
         .collect(ImmutableSet.toImmutableSet()));
   }
 
@@ -235,14 +232,14 @@ public final class LagReportingAgent implements HostStatusListener {
 
       final LagReportingMessage message = createLagReportingMessage(localLagMap);
 
-      final Set<HostInfo> aliveHosts = aliveHostsRef.get();
-      for (HostInfo hostInfo: aliveHosts) {
+      final Set<KsqlHost> aliveHosts = aliveHostsRef.get();
+      for (KsqlHost host: aliveHosts) {
         try {
-          final URI remoteUri = buildRemoteUri(localURL, hostInfo.host(), hostInfo.port());
-          LOG.debug("Sending lag to host {} at {}", hostInfo.host(), clock.millis());
+          final URI remoteUri = ServerUtil.buildRemoteUri(localURL, host.host(), host.port());
+          LOG.debug("Sending lag to host {} at {}", host.host(), clock.millis());
           serviceContext.getKsqlClient().makeAsyncLagReportRequest(remoteUri, message);
         } catch (Throwable t) {
-          LOG.error("Request to server: " + hostInfo.host() + ":" + hostInfo.port()
+          LOG.error("Request to server: " + host.host() + ":" + host.port()
               + " failed with exception: " + t.getMessage(), t);
         }
       }
@@ -254,19 +251,21 @@ public final class LagReportingAgent implements HostStatusListener {
      */
     private LagReportingMessage createLagReportingMessage(
         final Map<QueryStateStoreId, Map<Integer, LagInfo>> lagMap) {
-      final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> map = new HashMap<>();
+      final ImmutableMap.Builder<QueryStateStoreId, StateStoreLags> map
+          = ImmutableMap.builder();
       for (Entry<QueryStateStoreId, Map<Integer, LagInfo>> storeEntry : lagMap.entrySet()) {
-        final Map<Integer, LagInfoEntity> partitionMap = storeEntry.getValue().entrySet().stream()
+        final ImmutableMap<Integer, LagInfoEntity> partitionMap
+            = storeEntry.getValue().entrySet().stream()
             .map(partitionEntry -> {
               final LagInfo lagInfo = partitionEntry.getValue();
               return Pair.of(partitionEntry.getKey(),
                   new LagInfoEntity(lagInfo.currentOffsetPosition(), lagInfo.endOffsetPosition(),
                   lagInfo.offsetLag()));
-            }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-        map.put(storeEntry.getKey(), partitionMap);
+            }).collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));
+        map.put(storeEntry.getKey(), new StateStoreLags(partitionMap));
       }
-      return new LagReportingMessage(new HostInfoEntity(localURL.getHost(), localURL.getPort()),
-          map, clock.millis());
+      return new LagReportingMessage(new KsqlHostEntity(localURL.getHost(), localURL.getPort()),
+          new HostStoreLags(map.build(), clock.millis()));
     }
 
     @Override
@@ -279,22 +278,6 @@ public final class LagReportingAgent implements HostStatusListener {
     @Override
     protected ScheduledExecutorService executor() {
       return scheduledExecutorService;
-    }
-
-    /**
-     * Constructs a URI for the remote node in the cluster, using the same protocol as localhost.
-     * @param localHost Local URL from which to take protocol
-     * @param remoteHost The remote host
-     * @param remotePort The remote port
-     * @return
-     */
-    private URI buildRemoteUri(final URL localHost, final String remoteHost, final int remotePort) {
-      try {
-        return new URL(localHost.getProtocol(), remoteHost, remotePort, "/").toURI();
-      } catch (final Exception e) {
-        throw new IllegalStateException("Failed to convert remote host info to URL."
-            + " remoteInfo: " + remoteHost + ":" + remotePort);
-      }
     }
   }
 
@@ -334,34 +317,6 @@ public final class LagReportingAgent implements HostStatusListener {
 
     LagReportingConfig(final long lagSendIntervalMs) {
       this.lagSendIntervalMs = lagSendIntervalMs;
-    }
-  }
-
-  /**
-   * Represents a host's lag information, and when the lag information was collected.
-   */
-  public static class HostLagInfo {
-
-    private Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> lagInfo;
-    private final long updateTimeMs;
-
-    public HostLagInfo(final Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> lagInfo,
-                       final long updateTimeMs) {
-      this.lagInfo = lagInfo;
-      this.updateTimeMs = updateTimeMs;
-    }
-
-    public Map<QueryStateStoreId, Map<Integer, LagInfoEntity>> getLagInfo() {
-      return lagInfo;
-    }
-
-    public long getUpdateTimeMs() {
-      return updateTimeMs;
-    }
-
-    @Override
-    public String toString() {
-      return lagInfo.toString();
     }
   }
 }

@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -59,7 +58,7 @@ public class GenericRowSerDeTest {
   private static final String LOGGER_PREFIX = "bob";
 
   private static final FormatInfo FORMAT =
-      FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty());
+      FormatInfo.of(Format.JSON);
 
   private static final PersistenceSchema MUTLI_FIELD_SCHEMA =
       PersistenceSchema.from(

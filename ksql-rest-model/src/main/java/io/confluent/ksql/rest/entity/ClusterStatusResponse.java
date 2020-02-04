@@ -29,24 +29,16 @@ import java.util.Objects;
 @Immutable
 public final class ClusterStatusResponse {
 
-  private final ImmutableMap<String, HostStatusEntity> clusterStatus;
-  private final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags;
+  private final ImmutableMap<KsqlHostEntity, HostStatusEntity> clusterStatus;
 
   @JsonCreator
   public ClusterStatusResponse(
-      @JsonProperty("clusterStatus") final Map<String, HostStatusEntity> clusterStatus,
-      @JsonProperty("lags")
-      final Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> lags) {
+      @JsonProperty("clusterStatus") final Map<KsqlHostEntity, HostStatusEntity> clusterStatus) {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
-    this.lags = requireNonNull(lags, "lags");
   }
 
-  public Map<String, HostStatusEntity> getClusterStatus() {
+  public Map<KsqlHostEntity, HostStatusEntity> getClusterStatus() {
     return clusterStatus;
-  }
-
-  public Map<HostInfoEntity, Map<QueryStateStoreId, Map<Integer, LagInfoEntity>>> getLags() {
-    return lags;
   }
 
   @Override
@@ -60,12 +52,11 @@ public final class ClusterStatusResponse {
     }
 
     final ClusterStatusResponse that = (ClusterStatusResponse) o;
-    return Objects.equals(clusterStatus, that.clusterStatus)
-        && Objects.equals(lags, that.lags);
+    return Objects.equals(clusterStatus, that.clusterStatus);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterStatus, lags);
+    return Objects.hash(clusterStatus);
   }
 }

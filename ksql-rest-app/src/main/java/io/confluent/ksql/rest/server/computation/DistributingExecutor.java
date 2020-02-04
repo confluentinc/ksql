@@ -40,6 +40,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.TimeoutException;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -109,8 +110,24 @@ public class DistributingExecutor {
 
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
+
     try {
       transactionalProducer.initTransactions();
+    } catch (final Exception e) {
+      throw new KsqlServerException(String.format(
+          "Failed to initialize transactional producer to the KSQL command topic. "
+              + "This may be a result of having misconfigured Kafka."
+              + System.lineSeparator()
+              + "If you're running a single Kafka broker, ensure that the following Kafka configs are set to 1:" 
+              + System.lineSeparator() 
+              + "- transaction.state.log.replication.factor"
+              + System.lineSeparator()
+              + "- transaction.state.log.min.isr"
+              + System.lineSeparator()
+              + "- offsets.topic.replication.factor", e));
+    }
+    
+    try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 

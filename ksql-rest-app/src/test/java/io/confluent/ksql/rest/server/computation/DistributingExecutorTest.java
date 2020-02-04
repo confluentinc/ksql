@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -183,6 +184,19 @@ public class DistributingExecutorTest {
     );
     inOrder.verify(transactionalProducer).commitTransaction();
     inOrder.verify(transactionalProducer).close();
+  }
+
+  @Test
+  public void shouldNotAbortTransactionIfInitTransactionFails() {
+    // Given:
+    doThrow(TimeoutException.class).when(transactionalProducer).initTransactions();
+
+    // Expect:
+    expectedException.expect(KsqlServerException.class);
+    
+    // Then:
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    verify(transactionalProducer, times(0)).abortTransaction();
   }
 
   @Test

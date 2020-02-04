@@ -47,7 +47,7 @@ public class FormatTest {
   public void shouldThrowOnUnknownFormat() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown format: bob");
+    expectedException.expectMessage("Unknown format: BOB");
 
     // When:
     Format.of(FormatInfo.of("bob"));

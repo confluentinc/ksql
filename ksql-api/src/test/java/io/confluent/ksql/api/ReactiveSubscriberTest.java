@@ -88,7 +88,7 @@ public class ReactiveSubscriberTest {
   }
 
   @Test
-  public void shouldCancel() {
+  public void shouldCancel() throws Exception {
     // Given
     TestReactiveSubscriber subscriber = new TestReactiveSubscriber(context);
     final TestSubscription sub = new TestSubscription();
@@ -96,13 +96,15 @@ public class ReactiveSubscriberTest {
 
     // When
     context.runOnContext(v -> subscriber.cancel());
+    final CountDownLatch latch = new CountDownLatch(1); // Wait for async processing to complete
+    context.runOnContext(v -> latch.countDown());
+    awaitLatch(latch);
     subscriber.onError(new IllegalStateException("foo"));
     subscriber.onNext("record0");
     subscriber.onComplete();
 
     // Then
-    final CountDownLatch latch = new CountDownLatch(1); // Wait for async processing to complete
-    vertx.runOnContext(v -> latch.countDown());
+
     assertThat(sub.isCancelled(), is(true));
     assertThat(subscriber.isHandleValueCalled(), is(false));
     assertThat(subscriber.isHandleCompleteCalled(), is(false));

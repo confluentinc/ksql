@@ -44,7 +44,7 @@ public class TableRowValidationTest {
       .put("k0", "key")
       .put("k1", 11);
 
-  private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -66,7 +66,7 @@ public class TableRowValidationTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnValueFieldCountMismatch() {
     // Given:
-    final GenericRow valueWithLessFields = new GenericRow("v0-v");
+    final GenericRow valueWithLessFields = GenericRow.genericRow("v0-v");
 
     // When:
     TableRowValidation.validate(SCHEMA, A_KEY, valueWithLessFields);

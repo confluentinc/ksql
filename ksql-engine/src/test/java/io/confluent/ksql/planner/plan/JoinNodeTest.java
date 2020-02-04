@@ -113,8 +113,8 @@ public class JoinNodeTest {
       RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED.name()));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
@@ -648,14 +648,14 @@ public class JoinNodeTest {
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "L1"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .build()
     ));
   }

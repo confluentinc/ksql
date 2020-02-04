@@ -145,7 +145,7 @@ public class GenericRowTest {
                       new GenericRow()
               ).
               addEqualityGroup(
-                      new GenericRow(new Object())
+                      GenericRow.genericRow(new Object())
               ).
               addEqualityGroup(
                       new GenericRow(columnListWithString),

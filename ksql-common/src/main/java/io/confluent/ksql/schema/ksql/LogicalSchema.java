@@ -238,23 +238,6 @@ public final class LogicalSchema {
     builder.addAll(key);
 
     int valueIndex = 0;
-    if (withMetaAndKeyColsInValue) {
-      for (final Column c : metadata) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
-      }
-
-      if (windowedKey) {
-        builder.add(
-            Column.of(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
-        builder.add(
-            Column.of(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
-      }
-
-      for (final Column c : key) {
-        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
-      }
-    }
-
     for (final Column c : value) {
       if (c.name().equals(SchemaUtil.WINDOWSTART_NAME)
           || c.name().equals(SchemaUtil.WINDOWEND_NAME)
@@ -269,6 +252,23 @@ public final class LogicalSchema {
       }
 
       builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+    }
+
+    if (withMetaAndKeyColsInValue) {
+      for (final Column c : metadata) {
+        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+      }
+
+      for (final Column c : key) {
+        builder.add(Column.of(c.name(), c.type(), Namespace.VALUE, valueIndex++));
+      }
+
+      if (windowedKey) {
+        builder.add(
+            Column.of(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
+        builder.add(
+            Column.of(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex));
+      }
     }
 
     return new LogicalSchema(builder.build());

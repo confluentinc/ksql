@@ -77,8 +77,8 @@ public class SourceDescriptionFactoryTest {
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     return new KsqlStream<>(

@@ -364,7 +364,7 @@ public final class SourceBuilder {
 
       final Window window = windowedKey.window();
       final Object key = windowedKey.key().get(keyField);
-      return Arrays.asList(window.start(), window.end(), key);
+      return Arrays.asList(key, window.start(), window.end());
     };
   }
 
@@ -406,8 +406,12 @@ public final class SourceBuilder {
             return row;
           }
 
-          row.getColumns().add(0, processorContext.timestamp());
-          row.getColumns().addAll(1, rowKeyGenerator.apply(key));
+          final long timestamp = processorContext.timestamp();
+          final Collection<?> keyColumns = rowKeyGenerator.apply(key);
+
+          row.ensureAdditionalCapacity(1 + keyColumns.size());
+          row.getColumns().add(timestamp);
+          row.getColumns().addAll(keyColumns);
           return row;
         }
 

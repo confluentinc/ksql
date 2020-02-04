@@ -867,7 +867,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerdeFactory).create(
-        FormatInfo.of(Format.KAFKA),
+        FormatInfo.of(Format.KAFKA.name()),
         PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -876,7 +876,7 @@ public class InsertValuesExecutorTest {
     );
 
     verify(valueSerdeFactory).create(
-        FormatInfo.of(Format.JSON),
+        FormatInfo.of(Format.JSON.name()),
         PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -929,8 +929,8 @@ public class InsertValuesExecutorTest {
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     final KeyField valueKeyField = keyField

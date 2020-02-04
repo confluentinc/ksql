@@ -73,7 +73,7 @@ public final class CreateSourceProperties {
   }
 
   public Format getValueFormat() {
-    return Format.valueOf(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY).toUpperCase());
+    return Format.of(getFormatInfo());
   }
 
   public String getKafkaTopic() {
@@ -130,7 +130,13 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.AVRO_SCHEMA_ID));
   }
 
-  public Map<String, String> getFormatProperties() {
+  public FormatInfo getFormatInfo() {
+    return FormatInfo.of(
+        props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY),
+        getFormatProperties());
+  }
+
+  private Map<String, String> getFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);

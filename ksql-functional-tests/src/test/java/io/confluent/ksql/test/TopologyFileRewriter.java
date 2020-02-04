@@ -51,7 +51,7 @@ public final class TopologyFileRewriter {
   /**
    * Set {@code REWRITER} to an appropriate rewriter impl.
    */
-  private static final Rewriter REWRITER = new RewriteTopologyOnly();
+  private static final Rewriter REWRITER = new RewriteSchemasOnly();
 
   /**
    * Exclude some versions. Anything version starting with one of these strings is excluded:

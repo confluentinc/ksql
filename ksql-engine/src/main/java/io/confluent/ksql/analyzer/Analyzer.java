@@ -198,19 +198,20 @@ class Analyzer {
       final Format format = getValueFormat(sink);
 
       final Map<String, String> sourceProperties = new HashMap<>();
-      if (format.equals(getSourceInfo().getFormat())) {
+      if (format.name().equals(getSourceInfo().getFormat())) {
         getSourceInfo().getProperties().forEach((k, v) -> {
           if (format.getInheritableProperties().contains(k)) {
             sourceProperties.put(k, v);
           }
         });
       }
+
       // overwrite any inheritable properties if they were explicitly
       // specified in the statement
       sourceProperties.putAll(sink.getProperties().getFormatProperties());
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-          format,
+          format.name(),
           sourceProperties
       ));
 
@@ -232,7 +233,7 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA), w.getWindowInfo()))
+          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)
@@ -264,7 +265,7 @@ class Analyzer {
 
     private Format getValueFormat(final Sink sink) {
       return sink.getProperties().getValueFormat()
-          .orElseGet(() -> getSourceInfo().getFormat());
+          .orElseGet(() -> Format.of(getSourceInfo()));
     }
 
     private FormatInfo getSourceInfo() {
@@ -577,7 +578,7 @@ class Analyzer {
         // See https://github.com/confluentinc/ksql/issues/3731 for more info
         final List<Column> valueColumns = persistent && !analysis.isJoin()
             ? schema.value()
-            : schema.withMetaAndKeyColsInValue(windowed).value();
+            : systemColumnsToTheFront(schema.withMetaAndKeyColsInValue(windowed).value());
 
         for (final Column column : valueColumns) {
 
@@ -595,6 +596,18 @@ class Analyzer {
           addSelectItem(selectItem, ColumnName.of(alias));
         }
       }
+    }
+
+    private List<Column> systemColumnsToTheFront(final List<Column> columns) {
+      // When doing a `select *` the system columns should be at the front of the column list
+      // but are added at the back during processing for performance reasons.
+      // Switch them around here:
+      final Map<Boolean, List<Column>> partitioned = columns.stream()
+          .collect(Collectors.groupingBy(c -> SchemaUtil.systemColumnNames().contains(c.name())));
+
+      final List<Column> all = partitioned.get(true);
+      all.addAll(partitioned.get(false));
+      return all;
     }
 
     public void validate() {

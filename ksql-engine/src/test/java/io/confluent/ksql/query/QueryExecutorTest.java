@@ -93,7 +93,7 @@ public class QueryExecutorTest {
       .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
       SerdeOption.none()

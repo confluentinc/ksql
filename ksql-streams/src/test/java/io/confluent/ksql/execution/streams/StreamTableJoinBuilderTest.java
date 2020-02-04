@@ -59,8 +59,8 @@ public class StreamTableJoinBuilderTest {
       PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
 
   private static final Formats LEFT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.JSON),
+      FormatInfo.of(Format.KAFKA.name()),
+      FormatInfo.of(Format.JSON.name()),
       SerdeOption.none()
   );
 
@@ -100,7 +100,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any())).thenReturn(
@@ -253,6 +253,6 @@ public class StreamTableJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON), LEFT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 }

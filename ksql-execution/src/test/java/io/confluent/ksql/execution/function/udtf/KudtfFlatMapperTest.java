@@ -36,7 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KudtfFlatMapperTest {
 
   private static final String KEY = "";
-  private static final GenericRow VALUE = new GenericRow(1, 2, 3);
+  private static final GenericRow VALUE = GenericRow.genericRow(1, 2, 3);
 
   @Mock
   private KsqlProcessingContext ctx;

@@ -63,8 +63,8 @@ public class StreamSinkBuilderTest {
 
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
-  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA);
-  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON);
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA.name());
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON.name());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;

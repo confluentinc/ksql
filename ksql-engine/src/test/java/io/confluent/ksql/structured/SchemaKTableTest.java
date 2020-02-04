@@ -148,8 +148,8 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
-  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
-  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
+  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
 
   private PlanBuilder planBuilder;
 
@@ -388,13 +388,14 @@ public class SchemaKTableTest {
     // Then:
     final SourceName test2 = SourceName.of("TEST2");
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
-        valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.BIGINT),
         valueColumn(test2, ColumnName.of("COL0"), SqlTypes.BIGINT),
         valueColumn(test2, ColumnName.of("COL1"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL2"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL3"), SqlTypes.DOUBLE),
-        valueColumn(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN)
+        valueColumn(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN),
+        valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
+
+        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.BIGINT)
     ));
   }
 
@@ -586,7 +587,7 @@ public class SchemaKTableTest {
     result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
-    final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
+    final GenericRow value = new GenericRow(Arrays.asList(100, "foo", "bar", 0, "key"));
     final KeyValue<String, GenericRow> keyValue =
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 

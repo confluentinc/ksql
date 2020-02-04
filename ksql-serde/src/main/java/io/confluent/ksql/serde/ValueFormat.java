@@ -42,7 +42,7 @@ public final class ValueFormat {
 
   @JsonIgnore
   public Format getFormat() {
-    return format.getFormat();
+    return Format.of(format);
   }
 
   @JsonValue

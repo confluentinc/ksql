@@ -30,7 +30,7 @@ public class ValueFormatTest {
 
   private static final FormatInfo FORMAT_INFO =
       FormatInfo.of(
-          AVRO,
+          AVRO.name(),
           ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something")
       );
 
@@ -48,7 +48,7 @@ public class ValueFormatTest {
             ValueFormat.of(FORMAT_INFO)
         )
         .addEqualityGroup(
-            ValueFormat.of(FormatInfo.of(JSON))
+            ValueFormat.of(FormatInfo.of(JSON.name()))
         )
         .testEquals();
   }
@@ -74,7 +74,7 @@ public class ValueFormatTest {
     final Format result = valueFormat.getFormat();
 
     // Then:
-    assertThat(result, is(FORMAT_INFO.getFormat()));
+    assertThat(result, is(Format.of(FORMAT_INFO)));
   }
 
   @Test

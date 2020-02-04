@@ -361,8 +361,8 @@ public class KsqlAuthorizationValidatorImplTest {
   ) {
     final KsqlTopic sourceTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
     );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(

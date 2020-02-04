@@ -115,7 +115,7 @@ public class SchemaKGroupedStream {
 
   private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
-        FormatInfo.of(Format.KAFKA),
+        FormatInfo.of(Format.KAFKA.name()),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

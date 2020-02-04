@@ -66,10 +66,6 @@ public final class LagReportingAgent implements HostStatusListener {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;
-  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
-      new HostStoreLags(ImmutableMap.of(), 0);
-  private static final StateStoreLags EMPTY_STATE_STORE_LAGS =
-      new StateStoreLags(ImmutableMap.of());
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
 
   private final KsqlEngine engine;
@@ -171,14 +167,12 @@ public final class LagReportingAgent implements HostStatusListener {
   public Optional<LagInfoEntity> getHostsPartitionLagInfo(
       final KsqlHost host, final QueryStateStoreId queryStateStoreId, final int partition) {
     final Set<KsqlHost> aliveHosts = aliveHostsRef.get();
-    final LagInfoEntity lagInfo = receivedLagInfo
-        .getOrDefault(host, EMPTY_HOST_STORE_LAGS)
-        .getStateStoreLagsOrDefault(queryStateStoreId, EMPTY_STATE_STORE_LAGS)
-        .getLagByPartition(partition);
-    if (aliveHosts.contains(host) && lagInfo != null) {
-      return Optional.of(lagInfo);
+    if (!aliveHosts.contains(host)) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    return getLagPerHost(host)
+        .flatMap(hostStoreLags -> hostStoreLags.getStateStoreLags(queryStateStoreId))
+        .flatMap(stateStoreLags -> stateStoreLags.getLagByPartition(partition));
   }
 
   /**
@@ -192,8 +186,8 @@ public final class LagReportingAgent implements HostStatusListener {
             Entry::getValue));
   }
 
-  public HostStoreLags getLagPerHost(final KsqlHost host) {
-    return receivedLagInfo.getOrDefault(host, EMPTY_HOST_STORE_LAGS);
+  public Optional<HostStoreLags> getLagPerHost(final KsqlHost host) {
+    return Optional.ofNullable(receivedLagInfo.get(host));
   }
 
   @Override

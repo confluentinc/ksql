@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents a host's lag information, and when the lag information was collected.
@@ -44,17 +45,12 @@ public class HostStoreLags {
     this.updateTimeMs = updateTimeMs;
   }
 
-  public StateStoreLags getStateStoreLags(final QueryStateStoreId queryStateStoreId) {
-    return stateStoreLags.get(queryStateStoreId);
+  public Optional<StateStoreLags> getStateStoreLags(final QueryStateStoreId queryStateStoreId) {
+    return Optional.ofNullable(stateStoreLags.get(queryStateStoreId));
   }
 
   public Map<QueryStateStoreId, StateStoreLags> getStateStoreLags() {
     return stateStoreLags;
-  }
-
-  public StateStoreLags getStateStoreLagsOrDefault(final QueryStateStoreId queryStateStoreId,
-                                                   final StateStoreLags defaultStateStoreLags) {
-    return stateStoreLags.getOrDefault(queryStateStoreId, defaultStateStoreLags);
   }
 
   public long getUpdateTimeMs() {

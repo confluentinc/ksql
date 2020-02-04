@@ -410,8 +410,8 @@ public final class SourceBuilder {
           final Collection<?> keyColumns = rowKeyGenerator.apply(key);
 
           row.ensureAdditionalCapacity(1 + keyColumns.size());
-          row.getColumns().add(timestamp);
-          row.getColumns().addAll(keyColumns);
+          row.append(timestamp);
+          row.appendAll(keyColumns);
           return row;
         }
 

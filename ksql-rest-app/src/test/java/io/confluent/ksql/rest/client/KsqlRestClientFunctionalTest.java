@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -29,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -142,8 +142,8 @@ public class KsqlRestClientFunctionalTest {
 
     // Then:
     assertThat(receiver.getRows(), contains(
-        StreamedRow.row(new GenericRow(ImmutableList.of("hello"))),
-        StreamedRow.row(new GenericRow(ImmutableList.of("world"))),
+        StreamedRow.row(genericRow("hello")),
+        StreamedRow.row(genericRow("world")),
         StreamedRow.finalMessage("Limit Reached")));
   }
 
@@ -167,8 +167,8 @@ public class KsqlRestClientFunctionalTest {
 
     // Then:
     assertThat(receiver.getRows(), contains(
-        StreamedRow.row(new GenericRow(ImmutableList.of("hello"))),
-        StreamedRow.row(new GenericRow(ImmutableList.of("world"))),
+        StreamedRow.row(genericRow("hello")),
+        StreamedRow.row(genericRow("world")),
         StreamedRow.finalMessage("Limit Reached")));
   }
 

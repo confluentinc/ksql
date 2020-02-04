@@ -71,7 +71,7 @@ public final class EngineProcessingLogMessageFactory {
       return null;
     }
     try {
-      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
+      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.values());
     } catch (final Throwable t) {
       LOGGER.error("error serializing record for processing log", t);
       return null;

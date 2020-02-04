@@ -15,15 +15,18 @@
 
 package io.confluent.ksql;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import java.util.LinkedList;
-import java.util.List;
+import io.confluent.ksql.json.JsonMapper;
+import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -31,15 +34,53 @@ import org.junit.Test;
 
 public class GenericRowTest {
 
+  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
+
   private final Schema addressSchema = SchemaBuilder.struct()
-      .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
       .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
       .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
       .optional().build();
 
-  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldReturnSize() {
+    assertThat(genericRow().size(), is(0));
+    assertThat(genericRow(34).size(), is(1));
+    assertThat(genericRow(34, ImmutableList.of(1, 2)).size(), is(2));
+  }
+
+  @Test
+  public void shouldGetValue() {
+    assertThat(genericRow(10, 20, 30).get(1), is(20));
+  }
+
+  @Test
+  public void shouldSetValue() {
+    // Given:
+    final GenericRow row = genericRow(10, 20, 30);
+
+    // When:
+    row.set(1, 1.2);
+
+    // Then:
+    assertThat(row.values(), contains(10, 1.2, 30));
+  }
+
+  @Test
+  public void shouldAppend() {
+    // Given:
+    final GenericRow row = genericRow(1.3, 492);
+
+    // When:
+    row.append(1.2);
+    row.appendAll(ImmutableList.of("this", BigDecimal.ONE));
+
+    // Then:
+    assertThat(row.values(), contains(1.3, 492, 1.2, "this", BigDecimal.ONE));
+  }
+
   @Test
   public void shouldPrintRowCorrectly() {
     final Struct address = new Struct(addressSchema);
@@ -49,41 +90,35 @@ public class GenericRowTest {
     address.put("STATE", "CA");
     address.put("ZIPCODE", 94301L);
 
-    final GenericRow genericRow = new GenericRow(ImmutableList.of(
+    final GenericRow genericRow = genericRow(
         "StringColumn", 1, 100000L, true, 1.23,
         ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0),
         ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0),
-        address));
+        address);
 
     final String rowString = genericRow.toString();
 
     assertThat(rowString, equalTo(
-        "[ 'StringColumn' | 1 | 100000 | true | 1.23 |"
+        "[ 'StringColumn' | 1 | 100000L | true | 1.23 |"
             + " [10.0, 20.0, 30.0, 40.0, 50.0] |"
             + " {key1=100.0, key2=200.0, key3=300.0} |"
             + " Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPrintPrimitiveRowCorrectly() {
-    final GenericRow genericRow = new GenericRow(ImmutableList.of(
-        "StringColumn", 1, 100000L, true, 1.23));
+    final GenericRow genericRow = genericRow("StringColumn", 1, 100000L, true, 1.23, null);
 
     final String rowString = genericRow.toString();
 
-    assertThat(rowString, equalTo(
-        "[ 'StringColumn' | 1 | 100000 | true | 1.23 ]"));
-
+    assertThat(rowString, is("[ 'StringColumn' | 1 | 100000L | true | 1.23 | null ]"));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPrintArrayRowCorrectly() {
 
-    final GenericRow genericRow = new GenericRow(ImmutableList.of(
-        ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0)));
+    final GenericRow genericRow = genericRow(ImmutableList.of(10.0, 20.0, 30.0, 40.0, 50.0));
 
     final String rowString = genericRow.toString();
 
@@ -92,12 +127,12 @@ public class GenericRowTest {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPrintMapRowCorrectly() {
 
-    final GenericRow genericRow = new GenericRow(ImmutableList.of(
-        ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0)));
+    final GenericRow genericRow = genericRow(
+        ImmutableMap.of("key1", 100.0, "key2", 200.0, "key3", 300.0)
+    );
 
     final String rowString = genericRow.toString();
 
@@ -106,7 +141,6 @@ public class GenericRowTest {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPrintStructRowCorrectly() {
     final Struct address = new Struct(addressSchema);
@@ -116,8 +150,7 @@ public class GenericRowTest {
     address.put("STATE", "CA");
     address.put("ZIPCODE", 94301L);
 
-    final GenericRow genericRow = new GenericRow(ImmutableList.of(
-        address));
+    final GenericRow genericRow = genericRow(address);
 
     final String rowString = genericRow.toString();
 
@@ -128,30 +161,54 @@ public class GenericRowTest {
 
   @Test
   public void shouldHandleRowWithNoElements() {
-      final List<Object> linkedList = new LinkedList<>();
-      final GenericRow genericRow = new GenericRow(linkedList);
+    final GenericRow genericRow = new GenericRow();
 
-      assertThat(genericRow.getColumns().size(), is(0) );
+    assertThat(genericRow.size(), is(0));
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  @Test
+  public void testEquals() {
+
+    new EqualsTester().
+        addEqualityGroup(
+            new GenericRow(),
+            new GenericRow(10)
+        )
+        .addEqualityGroup(
+            GenericRow.genericRow(new Object())
+        )
+        .addEqualityGroup(
+            genericRow("nr"),
+            genericRow("nr")
+        )
+        .addEqualityGroup(
+            genericRow(1.0, 94.9238, 1.2550, 0.13242, -1.0285235),
+            genericRow(1.0, 94.9238, 1.2550, 0.13242, -1.0285235)
+        )
+        .testEquals();
   }
 
   @Test
-  public void testEquals(){
+  public void shouldSerialize() throws Exception {
+    // Given:
+    final GenericRow original = genericRow(1, 2L, 3.0, Long.MAX_VALUE);
 
-    final List<Object> columnListWithString = ImmutableList.of("nr");
+    // When:
+    final String json = MAPPER.writeValueAsString(original);
 
-      new EqualsTester().
-              addEqualityGroup(
-                      new GenericRow(),
-                      new GenericRow()
-              ).
-              addEqualityGroup(
-                      GenericRow.genericRow(new Object())
-              ).
-              addEqualityGroup(
-                      new GenericRow(columnListWithString),
-                      new GenericRow(columnListWithString)
-              ).
-              testEquals();
+    // Then:
+    assertThat(json, is("{\"columns\":[1,2,3.0,9223372036854775807]}"));
+
+    // When:
+    final GenericRow result = MAPPER.readValue(json, GenericRow.class);
+
+    // Then:
+    assertThat(result, is(genericRow(
+        1,
+        2,                      // Note: int, not long, as JSON doesn't distinguish
+        BigDecimal.valueOf(3.0),// Note: decimal, not double, as Jackson is configured this way
+        Long.MAX_VALUE
+    )));
   }
-
 }

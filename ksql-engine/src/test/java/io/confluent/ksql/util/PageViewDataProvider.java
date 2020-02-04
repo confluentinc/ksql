@@ -14,7 +14,8 @@
  */
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableList;
+import static io.confluent.ksql.GenericRow.genericRow;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
@@ -37,14 +38,14 @@ public class PageViewDataProvider extends TestDataProvider<Long> {
       .from(LOGICAL_SCHEMA, SerdeOption.none());
 
   private static final Map<Long, GenericRow> ROWS = ImmutableMap.<Long, GenericRow>builder()
-      .put(1L, new GenericRow(ImmutableList.of(1L, "USER_1", "PAGE_1")))
-      .put(2L, new GenericRow(ImmutableList.of(2L, "USER_2", "PAGE_2")))
-      .put(3L, new GenericRow(ImmutableList.of(3L, "USER_4", "PAGE_3")))
-      .put(4L, new GenericRow(ImmutableList.of(4L, "USER_3", "PAGE_4")))
-      .put(5L, new GenericRow(ImmutableList.of(5L, "USER_0", "PAGE_5")))
+      .put(1L, genericRow(1L, "USER_1", "PAGE_1"))
+      .put(2L, genericRow(2L, "USER_2", "PAGE_2"))
+      .put(3L, genericRow(3L, "USER_4", "PAGE_3"))
+      .put(4L, genericRow(4L, "USER_3", "PAGE_4"))
+      .put(5L, genericRow(5L, "USER_0", "PAGE_5"))
       // Duplicate page views from different users.
-      .put(6L, new GenericRow(ImmutableList.of(6L, "USER_2", "PAGE_5")))
-      .put(7L, new GenericRow(ImmutableList.of(7L, "USER_3", "PAGE_5")))
+      .put(6L, genericRow(6L, "USER_2", "PAGE_5"))
+      .put(7L, genericRow(7L, "USER_3", "PAGE_5"))
       .build();
 
   public PageViewDataProvider() {

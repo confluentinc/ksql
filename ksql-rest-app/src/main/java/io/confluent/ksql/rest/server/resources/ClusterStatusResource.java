@@ -71,12 +71,15 @@ public class ClusterStatusResource {
             entry -> new KsqlHostEntity(entry.getKey().host(), entry.getKey().port()) ,
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
-                                          lagReportingAgent.isPresent()
-                                              ? lagReportingAgent.get().getLagPerHost(
-                                                  entry.getKey())
-                                              : EMPTY_HOST_STORE_LAGS)
+                                          getHostStoreLags(entry.getKey()))
         ));
 
     return new ClusterStatusResponse(response);
+  }
+
+  private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
+    return lagReportingAgent
+      .flatMap(agent -> agent.getLagPerHost(ksqlHost))
+        .orElse(EMPTY_HOST_STORE_LAGS);
   }
 }

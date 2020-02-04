@@ -15,16 +15,16 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import static io.confluent.ksql.GenericRow.genericRow;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -74,10 +74,7 @@ public class MockStreamedQueryResource {
     }
 
     private String formatData(final String data) throws JsonProcessingException {
-      final List<Object> rowColumns = new ArrayList<>();
-      rowColumns.add(data);
-      final GenericRow row = new GenericRow(rowColumns);
-      return objectMapper.writeValueAsString(StreamedRow.row(row));
+      return objectMapper.writeValueAsString(StreamedRow.row(genericRow(data)));
     }
 
     @Override

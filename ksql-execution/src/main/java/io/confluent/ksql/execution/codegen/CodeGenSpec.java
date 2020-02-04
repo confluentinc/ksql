@@ -224,7 +224,7 @@ public final class CodeGenSpec {
 
     @Override
     public Object resolve(final GenericRow value) {
-      return value.getColumns().get(columnIndex);
+      return value.get(columnIndex);
     }
 
     @Override

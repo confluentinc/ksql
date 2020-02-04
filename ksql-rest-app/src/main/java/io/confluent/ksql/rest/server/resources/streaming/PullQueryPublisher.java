@@ -117,9 +117,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     public void cancel() {
     }
 
-    @SuppressWarnings("unchecked")
     private static GenericRow toGenericRow(final List<?> values) {
-      return new GenericRow((List)values);
+      return new GenericRow().appendAll(values);
     }
   }
 

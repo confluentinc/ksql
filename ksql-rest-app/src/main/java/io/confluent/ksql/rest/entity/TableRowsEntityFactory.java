@@ -73,7 +73,7 @@ public final class TableRowsEntityFactory {
 
     rowList.add(row.rowTime());
 
-    rowList.addAll(row.value().getColumns());
+    rowList.addAll(row.value().values());
 
     return rowList;
   }

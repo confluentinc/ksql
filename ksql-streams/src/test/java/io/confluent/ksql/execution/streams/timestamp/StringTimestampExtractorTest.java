@@ -15,22 +15,19 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericRow;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Test;
 
-@SuppressWarnings("unchecked")
 public class StringTimestampExtractorTest {
 
   private static final String format = "yyyy-MMM-dd";
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldExtractTimestampFromStringWithFormat() throws ParseException {
     final StringTimestampExtractor timestampExtractor = new StringTimestampExtractor(format, 0);
@@ -41,7 +38,9 @@ public class StringTimestampExtractorTest {
         1,
         1,
         null,
-        new GenericRow(Collections.singletonList(stringTime))), 1);
+        genericRow(stringTime)),
+        1
+    );
     assertThat(actualTime, equalTo(expectedTime));
   }
 

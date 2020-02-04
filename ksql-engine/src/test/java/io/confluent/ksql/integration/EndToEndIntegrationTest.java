@@ -173,8 +173,8 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.getColumns(), hasSize(6)))
-        .map(row -> row.getColumns().get(1))
+        .peek(row -> assertThat(row.values(), hasSize(6)))
+        .map(row -> row.get(1))
         .collect(Collectors.toSet());
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
@@ -193,8 +193,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> actualPages = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.getColumns(), hasSize(1)))
-        .map(row -> row.getColumns().get(0))
+        .peek(row -> assertThat(row.values(), hasSize(1)))
+        .map(row -> row.get(0))
         .collect(Collectors.toList());
 
     assertThat(actualPages.subList(0, expectedPages.size()), is(expectedPages));
@@ -246,7 +246,7 @@ public class EndToEndIntegrationTest {
     final List<String> actualUsers = new ArrayList<>();
 
     for (final KeyValue<String, GenericRow> result : results) {
-      final List<Object> columns = result.value.getColumns();
+      final List<Object> columns = result.value.values();
       log.debug("pageview join: {}", columns);
 
       assertThat(columns, hasSize(6));
@@ -368,7 +368,7 @@ public class EndToEndIntegrationTest {
         "expected-value"
     )));
 
-    rows.forEach(row -> assertThat(row.getColumns().get(0), is(-1L)));
+    rows.forEach(row -> assertThat(row.get(0), is(-1L)));
   }
 
   @SuppressWarnings("unchecked")
@@ -395,7 +395,7 @@ public class EndToEndIntegrationTest {
   private static List<Object> waitForFirstRow(
       final TransientQueryMetadata queryMetadata
   ) throws Exception {
-    return verifyAvailableRows(queryMetadata, 1).get(0).getColumns();
+    return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(

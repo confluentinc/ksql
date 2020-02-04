@@ -60,7 +60,7 @@ public final class TabularRow {
   ) {
     return new TabularRow(
         width,
-        value.getColumns().stream().map(Objects::toString).collect(Collectors.toList()),
+        value.values().stream().map(Objects::toString).collect(Collectors.toList()),
         false,
         config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString())
     );

@@ -27,12 +27,10 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -88,7 +86,7 @@ public class RowGenerator {
     }
     final GenericRecord randomAvroMessage = (GenericRecord) generatedObject;
 
-    final List<Object> genericRowValues = new ArrayList<>();
+    final GenericRow row = new GenericRow(generator.schema().getFields().size());
 
     SimpleDateFormat timeformatter = null;
 
@@ -108,14 +106,14 @@ public class RowGenerator {
         final String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
         sessionisationValue = newCurrentValue;
 
-        genericRowValues.add(newCurrentValue);
+        row.append(newCurrentValue);
       } else if (isSessionSiblingIntHash && sessionisationValue != null) {
 
         // super cheeky hack to link int-ids to session-values - if anything fails then we use
         // the 'avro-gen' randomised version
         handleSessionSiblingField(
             randomAvroMessage,
-            genericRowValues,
+            row,
             sessionisationValue,
             field
         );
@@ -123,12 +121,12 @@ public class RowGenerator {
       } else if (timeFormatFromLong != null) {
         final Date date = new Date(System.currentTimeMillis());
         if (timeFormatFromLong.equals("unix_long")) {
-          genericRowValues.add(date.getTime());
+          row.append(date.getTime());
         } else {
           if (timeformatter == null) {
             timeformatter = new SimpleDateFormat(timeFormatFromLong);
           }
-          genericRowValues.add(timeformatter.format(date));
+          row.append(timeformatter.format(date));
         }
       } else {
         final Object value = randomAvroMessage.get(field.name());
@@ -136,9 +134,9 @@ public class RowGenerator {
           final Field ksqlField = ksqlSchema.valueConnectSchema().field(field.name());
           final Record record = (Record) value;
           final Object ksqlValue = avroData.toConnectData(record.getSchema(), record).value();
-          genericRowValues.add(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
+          row.append(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
         } else {
-          genericRowValues.add(value);
+          row.append(value);
         }
       }
     }
@@ -150,7 +148,7 @@ public class RowGenerator {
     final Struct key = new Struct(KEY_SCHEMA);
     key.put(SchemaUtil.ROWKEY_NAME.name(), keyString);
 
-    return Pair.of(key, new GenericRow(genericRowValues));
+    return Pair.of(key, row);
   }
 
   /**
@@ -219,19 +217,19 @@ public class RowGenerator {
 
   private void handleSessionSiblingField(
       final GenericRecord randomAvroMessage,
-      final List<Object> genericRowValues,
+      final GenericRow row,
       final String sessionisationValue,
       final Schema.Field field
   ) {
     try {
       final Schema.Type type = field.schema().getType();
       if (type == Schema.Type.INT) {
-        genericRowValues.add(mapSessionValueToSibling(sessionisationValue, field));
+        row.append(mapSessionValueToSibling(sessionisationValue, field));
       } else {
-        genericRowValues.add(randomAvroMessage.get(field.name()));
+        row.append(randomAvroMessage.get(field.name()));
       }
     } catch (final Exception err) {
-      genericRowValues.add(randomAvroMessage.get(field.name()));
+      row.append(randomAvroMessage.get(field.name()));
     }
   }
 

@@ -336,7 +336,7 @@ public class Console implements Closeable {
     if (row.getRow().isPresent()) {
       switch (outputFormat) {
         case JSON:
-          printAsJson(row.getRow().get().getColumns());
+          printAsJson(row.getRow().get().values());
           break;
         case TABULAR:
           printAsTable(row.getRow().get());

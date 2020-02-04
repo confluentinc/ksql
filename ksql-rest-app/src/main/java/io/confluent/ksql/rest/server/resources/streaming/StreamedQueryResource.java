@@ -333,9 +333,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .collect(Collectors.toSet());
   }
 
-  @SuppressWarnings("unchecked")
   private static GenericRow toGenericRow(final List<?> values) {
-    return new GenericRow((List)values);
+    return new GenericRow().appendAll(values);
   }
 }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.transform.select;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -53,7 +54,7 @@ public class SelectValueMapperTest {
   private static final ColumnName NAME1 = ColumnName.of("cherry");
   private static final ColumnName NAME2 = ColumnName.of("banana");
   private static final Object KEY = null; // Not used yet.
-  private static final GenericRow VALUE = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
+  private static final GenericRow VALUE = genericRow(1234, 0, "hotdog");
 
   @Mock
   private ExpressionMetadata col0;
@@ -101,7 +102,7 @@ public class SelectValueMapperTest {
     final GenericRow result = transformer.transform(KEY, VALUE, ctx);
 
     // Then:
-    assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
+    assertThat(result, equalTo(genericRow(100, 200, 300)));
   }
 
   @Test

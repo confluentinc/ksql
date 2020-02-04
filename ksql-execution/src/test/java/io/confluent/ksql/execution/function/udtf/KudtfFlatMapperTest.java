@@ -52,9 +52,9 @@ public class KudtfFlatMapperTest {
 
     // Then:
     final Iterator<GenericRow> iter = iterable.iterator();
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
     assertThat(iter.hasNext(), is(false));
   }
 
@@ -70,9 +70,9 @@ public class KudtfFlatMapperTest {
 
     // Then:
     final Iterator<GenericRow> iter = iterable.iterator();
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, 20)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, 20)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, null)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, 20)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, 20)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, null)));
     assertThat(iter.hasNext(), is(false));
   }
 

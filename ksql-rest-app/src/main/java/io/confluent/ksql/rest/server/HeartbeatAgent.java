@@ -86,7 +86,7 @@ public final class HeartbeatAgent {
   private final ServiceManager serviceManager;
   private final Clock clock;
   private KsqlHost localHost;
-  private URL localURL;
+  private URL localUrl;
 
   public static HeartbeatAgent.Builder builder() {
     return new HeartbeatAgent.Builder();
@@ -158,7 +158,7 @@ public final class HeartbeatAgent {
     final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
     this.localHost = new KsqlHost(hostInfo.host(), hostInfo.port());
     try {
-      this.localURL = new URL(applicationServer);
+      this.localUrl = new URL(applicationServer);
     } catch (final Exception e) {
       throw new IllegalStateException("Failed to convert remote host info to URL."
                                           + " remoteInfo: " + localHost.host() + ":"
@@ -311,7 +311,7 @@ public final class HeartbeatAgent {
         try {
           if (!remoteHost.equals(localHost)) {
             final URI remoteUri = ServerUtil.buildRemoteUri(
-                localURL, remoteHost.host(), remoteHost.port());
+                localUrl, remoteHost.host(), remoteHost.port());
             LOG.debug("Send heartbeat to host {} at {}", remoteHost, clock.millis());
             serviceContext.getKsqlClient().makeAsyncHeartbeatRequest(
                 remoteUri, localHost, clock.millis());

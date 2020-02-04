@@ -1,9 +1,11 @@
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,6 +19,7 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
@@ -86,7 +89,11 @@ public class AggregateParamsFactoryTest {
   @Mock
   private KudafAggregatorFactory udafFactory;
   @Mock
+  private KudafUndoAggregatorFactory undoUdafFactory;
+  @Mock
   private KudafAggregator aggregator;
+  @Mock
+  private KudafUndoAggregator undoAggregator;
   @Mock
   private KsqlProcessingContext ctx;
 
@@ -120,9 +127,10 @@ public class AggregateParamsFactoryTest {
     when(windowStart.returnType()).thenReturn(SqlTypes.BIGINT);
     when(windowStart.getAggregateType()).thenReturn(SqlTypes.BIGINT);
 
-    when(udafFactory.create(any(), any())).thenReturn(aggregator);
+    when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
+    when(undoUdafFactory.create(anyInt(), any())).thenReturn(undoAggregator);
 
-    aggregateParams = new AggregateParamsFactory(udafFactory).create(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
@@ -133,10 +141,21 @@ public class AggregateParamsFactoryTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateAggregatorWithCorrectParams() {
-    verify(udafFactory).create(
-        ImmutableList.of(0, 2),
-         ImmutableList.of(agg0, agg1)
+    verify(udafFactory).create(2, ImmutableList.of(agg0, agg1));
+  }
+
+  @Test
+  public void shouldCreateUndoAggregatorWithCorrectParams() {
+    // When:
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).createUndoable(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        ImmutableList.of(TABLE_AGG)
     );
+
+    // Then:
+    verify(undoUdafFactory).create(2, ImmutableList.of(tableAgg));
   }
 
   @Test
@@ -156,7 +175,7 @@ public class AggregateParamsFactoryTest {
     // Then:
     assertThat(
         initializer.apply(),
-        equalTo(GenericRow.genericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
+        equalTo(genericRow(null, null, INITIAL_VALUE0, INITIAL_VALUE1))
     );
   }
 
@@ -172,7 +191,7 @@ public class AggregateParamsFactoryTest {
   @Test
   public void shouldReturnUndoAggregator() {
     // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory).createUndoable(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).createUndoable(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
@@ -183,11 +202,7 @@ public class AggregateParamsFactoryTest {
     final KudafUndoAggregator undoAggregator = aggregateParams.getUndoAggregator().get();
 
     // Then:
-    assertThat(undoAggregator.getNonAggColumnIndexes(), equalTo(ImmutableList.of(0, 2)));
-    assertThat(
-        undoAggregator.getAggregateFunctions(),
-        equalTo(ImmutableList.of(tableAgg))
-    );
+    assertThat(undoAggregator, is(undoAggregator));
   }
 
   @Test
@@ -202,7 +217,7 @@ public class AggregateParamsFactoryTest {
   @Test
   public void shouldReturnCorrectWindowSelectMapperForWindowSelections() {
     // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory).create(
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
@@ -218,8 +233,8 @@ public class AggregateParamsFactoryTest {
     // Then:
     final Windowed<Struct> window = new Windowed<>(null, new TimeWindow(10, 20));
     assertThat(
-        windowSelectMapper.transform(window, GenericRow.genericRow("fiz", "baz", null), ctx),
-        equalTo(GenericRow.genericRow("fiz", "baz", 10))
+        windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
+        equalTo(genericRow("fiz", "baz", 10L))
     );
   }
 

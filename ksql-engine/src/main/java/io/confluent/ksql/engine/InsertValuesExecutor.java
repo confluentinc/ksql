@@ -298,7 +298,7 @@ public class InsertValuesExecutor {
       final LogicalSchema schema,
       final Map<ColumnName, Object> values
   ) {
-    return new GenericRow(
+    return new GenericRow().appendAll(
         schema
             .value()
             .stream()

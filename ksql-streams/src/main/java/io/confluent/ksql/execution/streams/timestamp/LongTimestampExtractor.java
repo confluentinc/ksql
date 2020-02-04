@@ -39,8 +39,8 @@ public class LongTimestampExtractor implements TimestampExtractor {
       try {
         if (consumerRecord.value() instanceof GenericRow) {
           final GenericRow genericRow = (GenericRow) consumerRecord.value();
-          if (genericRow.getColumns().get(timestampColumnindex) instanceof Long) {
-            return (long) genericRow.getColumns().get(timestampColumnindex);
+          if (genericRow.get(timestampColumnindex) instanceof Long) {
+            return (long) genericRow.get(timestampColumnindex);
           }
         }
       } catch (final Exception e) {

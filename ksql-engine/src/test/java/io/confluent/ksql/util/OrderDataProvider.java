@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericRow.genericRow;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
@@ -50,7 +52,7 @@ public class OrderDataProvider extends TestDataProvider<Long> {
   private static final Map<Long, GenericRow> ROWS = ImmutableMap.<Long, GenericRow>builder()
       .put(
           1L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               1L,
               "ORDER_1",
               "ITEM_1",
@@ -58,10 +60,10 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-01",
               ImmutableList.of(100.0, 110.99, 90.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           2L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               2L,
               "ORDER_2",
               "ITEM_2",
@@ -69,10 +71,10 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-02",
               ImmutableList.of(10.0, 10.99, 9.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           3L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               3L,
               "ORDER_3",
               "ITEM_3",
@@ -80,20 +82,21 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-03",
               ImmutableList.of(10.0, 10.99, 91.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           4L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               4L,
               "ORDER_4",
               "ITEM_4",
               40.0,
               "2018-01-04",
               ImmutableList.of(10.0, 140.99, 94.0),
-              MAP_FIELD)))
+              MAP_FIELD
+          ))
       .put(
           5L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               5L,
               "ORDER_5",
               "ITEM_5",
@@ -101,10 +104,10 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-05",
               ImmutableList.of(160.0, 160.99, 98.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           6L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               6L,
               "ORDER_6",
               "ITEM_6",
@@ -112,10 +115,10 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-06",
               ImmutableList.of(1000.0, 1100.99, 900.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           7L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               7L,
               "ORDER_6",
               "ITEM_7",
@@ -123,10 +126,10 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-07",
               ImmutableList.of(1100.0, 1110.99, 190.0),
               MAP_FIELD
-          )))
+          ))
       .put(
           8L,
-          new GenericRow(ImmutableList.of(
+          genericRow(
               8L,
               "ORDER_6",
               "ITEM_8",
@@ -134,7 +137,7 @@ public class OrderDataProvider extends TestDataProvider<Long> {
               "2018-01-08",
               ImmutableList.of(1100.0, 1110.99, 970.0),
               MAP_FIELD
-          )))
+          ))
       .build();
 
   public OrderDataProvider() {

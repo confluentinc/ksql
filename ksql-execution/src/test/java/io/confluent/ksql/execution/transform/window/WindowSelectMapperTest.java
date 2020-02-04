@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.transform.window;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
@@ -28,8 +29,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.ArrayList;
-import java.util.Arrays;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -89,14 +88,14 @@ public class WindowSelectMapperTest {
     ).getTransformer();
 
     final Window window = new SessionWindow(12345L, 54321L);
-    final GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
+    final GenericRow row = genericRow(0, 1, 2, 3, 4, 5);
 
     // When:
     final GenericRow result = mapper.transform(new Windowed<>(A_KEY, window), row, ctx);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
-    assertThat(row.getColumns(), is(ImmutableList.of(0, 1, 12345L, 54321L, 12345L, 5)));
+    assertThat(row.values(), is(ImmutableList.of(0, 1, 12345L, 54321L, 12345L, 5)));
   }
 
   @Test(expected = IndexOutOfBoundsException.class)
@@ -108,7 +107,7 @@ public class WindowSelectMapperTest {
     ).getTransformer();
 
     final Window window = new SessionWindow(12345L, 54321L);
-    final GenericRow row = new GenericRow(new ArrayList<>());
+    final GenericRow row = genericRow();
 
     // When:
     mapper.transform(new Windowed<>(A_KEY, window), row, ctx);

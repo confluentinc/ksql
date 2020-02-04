@@ -46,10 +46,10 @@ public class RowGeneratorTest {
     assertThat(key, is(notNullValue()));
     assertThat(key.get("ROWKEY"), is(instanceOf(String.class)));
 
-    assertThat(rowPair.getRight().getColumns(), hasSize(5));
-    assertThat(rowPair.getRight().getColumns().get(4), instanceOf(Struct.class));
+    assertThat(rowPair.getRight().values(), hasSize(5));
+    assertThat(rowPair.getRight().get(4), instanceOf(Struct.class));
 
-    final Struct struct = (Struct) rowPair.getRight().getColumns().get(4);
+    final Struct struct = (Struct) rowPair.getRight().get(4);
     assertThat(struct.schema().fields(), hasSize(3));
     assertThat(struct.schema().field("city").schema().type(), equalTo(Type.STRING));
     assertThat(struct.schema().field("state").schema().type(), equalTo(Type.STRING));

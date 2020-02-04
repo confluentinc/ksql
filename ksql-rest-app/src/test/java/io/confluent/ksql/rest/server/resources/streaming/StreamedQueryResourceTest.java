@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
@@ -343,7 +344,7 @@ public class StreamedQueryResourceTest {
       try {
         for (int i = 0; i != NUM_ROWS; i++) {
           final String key = Integer.toString(i);
-          final GenericRow value = new GenericRow(Collections.singletonList(i));
+          final GenericRow value = genericRow(i);
           synchronized (writtenRows) {
             writtenRows.add(value);
           }

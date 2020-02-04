@@ -29,6 +29,7 @@ public class RunningQuery {
 
   private final String queryString;
   private final Set<String> sinks;
+  private final Set<String> sinkKafkaTopics;
   private final QueryId id;
   private final Optional<String> state;
 
@@ -36,10 +37,12 @@ public class RunningQuery {
   public RunningQuery(
       @JsonProperty("queryString") final String queryString,
       @JsonProperty("sinks") final Set<String> sinks,
+      @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
       @JsonProperty("state") final Optional<String> state
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
+    this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.state = Objects.requireNonNull(state, "state");
@@ -56,6 +59,10 @@ public class RunningQuery {
 
   public Set<String> getSinks() {
     return sinks;
+  }
+
+  public Set<String> getSinkKafkaTopics() {
+    return sinkKafkaTopics;
   }
 
   public QueryId getId() {
@@ -78,11 +85,12 @@ public class RunningQuery {
     return Objects.equals(id, that.id)
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks)
+        && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
         && Objects.equals(state, that.state);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, id, state);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state);
   }
 }

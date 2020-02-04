@@ -43,7 +43,7 @@ public class GenericRow {
   }
 
   /**
-   * Ensure the row has enough capacity to hold {@code additionalCapacity} more elements that its
+   * Ensure the row has enough capacity to hold {@code additionalCapacity} more elements than its
    * current size.
    *
    * <p>Useful to avoid unnecessary array copies when adding multiple elements.

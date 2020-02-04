@@ -78,8 +78,7 @@ public final class WindowSelectMapper {
 
       final Window window = readOnlyKey.window();
 
-      windowSelects.forEach((index, type) ->
-          value.getColumns().set(index, type.mapper.apply(window)));
+      windowSelects.forEach((index, type) -> value.set(index, type.mapper.apply(window)));
 
       return value;
     }

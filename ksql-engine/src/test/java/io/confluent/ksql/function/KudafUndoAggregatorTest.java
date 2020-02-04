@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -24,38 +25,39 @@ import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
 public class KudafUndoAggregatorTest {
+
   private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
-  private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregateFunction(
-      FunctionName.of("SUM"),
-      SqlTypes.INTEGER,
-      new AggregateFunctionInitArguments(2)
-  );
+  private static final TableAggregationFunction<?, ?, ?> SUM_INFO =
+      (TableAggregationFunction<?, ?, ?>) FUNCTION_REGISTRY
+          .getAggregateFunction(
+              FunctionName.of("SUM"),
+              SqlTypes.INTEGER,
+              new AggregateFunctionInitArguments(2)
+          );
 
   private KudafUndoAggregator aggregator;
 
   @Before
   public void init() {
-    final List<TableAggregationFunction<?, ?, ?>> functions =
-        ImmutableList.of((TableAggregationFunction)SUM_INFO);
-    aggregator = new KudafUndoAggregator(ImmutableList.of(0, 1), functions);
+    final List<TableAggregationFunction<?, ?, ?>> functions = ImmutableList.of(SUM_INFO);
+    aggregator = new KudafUndoAggregator(2, functions);
   }
 
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
     // Given:
-    final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
-    final GenericRow aggRow = new GenericRow(Arrays.asList("snow", "jon", 5));
+    final GenericRow row = genericRow("snow", "jon", 3);
+    final GenericRow aggRow = genericRow("snow", "jon", 5);
 
     // When:
     final GenericRow resultRow = aggregator.apply(null, row, aggRow);
 
     // Then:
-    assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("snow", "jon", 2))));
+    assertThat(resultRow, equalTo(genericRow("snow", "jon", 2)));
   }
 }

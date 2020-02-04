@@ -70,7 +70,6 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -1041,11 +1040,11 @@ public class CodeGenRunnerTest {
     }
 
     private static GenericRow genericRow(final Object... columns) {
-        return genericRow(Arrays.asList(columns));
+        return GenericRow.genericRow(columns);
     }
 
     private static GenericRow genericRow(final List<Object> columns) {
-        return new GenericRow(columns);
+        return new GenericRow().appendAll(columns);
     }
 
     public static final class WhenCondition implements Kudf {

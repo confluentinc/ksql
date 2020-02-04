@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -45,7 +46,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -122,9 +122,10 @@ public class JsonFormatTest {
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
-    final GenericRow messageRow = new GenericRow(Collections.singletonList(
+    final GenericRow messageRow = genericRow(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"
+    );
 
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -191,9 +192,9 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
+    expectedResults.put("8", genericRow(1500962514814L,
         "2017-07-24 23:01:54.814",
-        1500962514814L)));
+        1500962514814L));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -210,7 +211,7 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
+    expectedResults.put("1", genericRow("aws"));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -227,7 +228,7 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
+    expectedResults.put("1", genericRow("first"));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 

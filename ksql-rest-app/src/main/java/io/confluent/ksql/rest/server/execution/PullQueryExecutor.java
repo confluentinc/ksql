@@ -596,12 +596,12 @@ public final class PullQueryExecutor {
             + row.window().map(w -> 2).orElse(0)
         );
 
-        value.getColumns().add(row.rowTime());
-        value.getColumns().addAll(keyFields);
+        value.append(row.rowTime());
+        value.appendAll(keyFields);
 
         row.window().ifPresent(window -> {
-          value.getColumns().add(window.start().toEpochMilli());
-          value.getColumns().add(window.end().toEpochMilli());
+          value.append(window.start().toEpochMilli());
+          value.append(window.end().toEpochMilli());
         });
 
         return value;
@@ -639,7 +639,7 @@ public final class PullQueryExecutor {
           new PullProcessingContext(r.rowTime())
       );
       validateProjection(mapped, outputSchema);
-      output.add(mapped.getColumns());
+      output.add(mapped.values());
     });
 
     return output.build();
@@ -649,7 +649,7 @@ public final class PullQueryExecutor {
       final GenericRow fullRow,
       final LogicalSchema schema
   ) {
-    final int actual = fullRow.getColumns().size();
+    final int actual = fullRow.size();
     final int expected = schema.columns().size();
     if (actual != expected) {
       throw new IllegalStateException("Row column count mismatch."
@@ -780,7 +780,7 @@ public final class PullQueryExecutor {
         throw new KsqlServerException("Unexpected proxy response");
       }
 
-      rows.add(row.getRow().get().getColumns());
+      rows.add(row.getRow().get().values());
     }
 
     return new TableRowsEntity(

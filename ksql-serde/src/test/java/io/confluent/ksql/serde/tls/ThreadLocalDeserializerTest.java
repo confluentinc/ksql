@@ -24,7 +24,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -41,7 +40,7 @@ public class ThreadLocalDeserializerTest {
           final Deserializer<GenericRow> local = mock(Deserializer.class);
           serializers.add(local);
           expect(local.deserialize(anyString(), anyObject(byte[].class)))
-              .andReturn(new GenericRow(Collections.emptyList()))
+              .andReturn(new GenericRow())
               .times(1);
           replay(local);
           return serializers.get(serializers.size() - 1);

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -486,52 +487,45 @@ public class CliTest {
   @Test
   public void testSelectProject() {
     final Map<Long, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put(1L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_1",
-            10.0,
-            new Double[]{100.0, 110.99, 90.0})));
-    expectedResults.put(2L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_2",
-            20.0,
-            new Double[]{10.0, 10.99, 9.0})));
+    expectedResults.put(1L, genericRow(
+        "ITEM_1",
+        10.0,
+        ImmutableList.of(100.0, 110.99, 90.0)));
 
-    expectedResults.put(3L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_3",
-            30.0,
-            new Double[]{10.0, 10.99, 91.0})));
+    expectedResults.put(2L, genericRow(
+        "ITEM_2",
+        20.0,
+        ImmutableList.of(10.0, 10.99, 9.0)));
 
-    expectedResults.put(4L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_4",
-            40.0,
-            new Double[]{10.0, 140.99, 94.0})));
+    expectedResults.put(3L, genericRow(
+        "ITEM_3",
+        30.0,
+        ImmutableList.of(10.0, 10.99, 91.0)));
 
-    expectedResults.put(5L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_5",
-            50.0,
-            new Double[]{160.0, 160.99, 98.0})));
+    expectedResults.put(4L, genericRow(
+        "ITEM_4",
+        40.0,
+        ImmutableList.of(10.0, 140.99, 94.0)));
 
-    expectedResults.put(6L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_6",
-            60.0,
-            new Double[]{1000.0, 1100.99, 900.0})));
+    expectedResults.put(5L, genericRow(
+        "ITEM_5",
+        50.0,
+        ImmutableList.of(160.0, 160.99, 98.0)));
 
-    expectedResults.put(7L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_7",
-            70.0,
-            new Double[]{1100.0, 1110.99, 190.0})));
+    expectedResults.put(6L, genericRow(
+        "ITEM_6",
+        60.0,
+        ImmutableList.of(1000.0, 1100.99, 900.0)));
 
-    expectedResults.put(8L, new GenericRow(
-        ImmutableList.of(
-            "ITEM_8",
-            80.0,
-            new Double[]{1100.0, 1110.99, 970.0})));
+    expectedResults.put(7L, genericRow(
+        "ITEM_7",
+        70.0,
+        ImmutableList.of(1100.0, 1110.99, 190.0)));
+
+    expectedResults.put(8L, genericRow(
+        "ITEM_8",
+        80.0,
+        ImmutableList.of(1100.0, 1110.99, 970.0)));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
@@ -557,15 +551,14 @@ public class CliTest {
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
-    expectedResults.put(8L, new GenericRow(
-        ImmutableList.of(
-            8L,
-            "ORDER_6",
-            "ITEM_8",
-            80.0,
-            "2018-01-08",
-            new Double[]{1100.0, 1110.99, 970.0},
-            mapField)));
+    expectedResults.put(8L, genericRow(
+        8L,
+        "ORDER_6",
+        "ITEM_8",
+        80.0,
+        "2018-01-08",
+        ImmutableList.of(1100.0, 1110.99, 970.0),
+        mapField));
 
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
@@ -577,9 +570,9 @@ public class CliTest {
   @Test
   public void testTransientSelect() {
     final Map<Long, GenericRow> streamData = orderDataProvider.data();
-    final List<Object> row1 = streamData.get(1L).getColumns();
-    final List<Object> row2 = streamData.get(2L).getColumns();
-    final List<Object> row3 = streamData.get(3L).getColumns();
+    final List<Object> row1 = streamData.get(1L).values();
+    final List<Object> row2 = streamData.get(2L).values();
+    final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
         "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
@@ -640,9 +633,9 @@ public class CliTest {
   @Test
   public void testTransientContinuousSelectStar() {
     final Map<Long, GenericRow> streamData = orderDataProvider.data();
-    final List<Object> row1 = streamData.get(1L).getColumns();
-    final List<Object> row2 = streamData.get(2L).getColumns();
-    final List<Object> row3 = streamData.get(3L).getColumns();
+    final List<Object> row1 = streamData.get(1L).values();
+    final List<Object> row2 = streamData.get(2L).values();
+    final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
         "SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
@@ -696,7 +689,7 @@ public class CliTest {
     );
 
     final Map<Long, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put(8L, new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
+    expectedResults.put(8L, genericRow("ITEM_8", 800.0, 1110.0, 12.0, true));
 
     testCreateStreamAsSelect(queryString, resultSchema, expectedResults);
   }
@@ -1240,7 +1233,7 @@ public class CliTest {
 
     @Override
     public void addRow(final GenericRow row) {
-      addRow(row.getColumns());
+      addRow(row.values());
     }
 
     private void addRow(final List<?> row) {

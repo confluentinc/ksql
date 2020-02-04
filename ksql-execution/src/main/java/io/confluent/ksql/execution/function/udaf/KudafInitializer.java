@@ -20,13 +20,12 @@ import io.confluent.ksql.GenericRow;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.streams.kstream.Initializer;
 
 public class KudafInitializer implements Initializer<GenericRow> {
 
-  private final List<Supplier> initialValueSuppliers;
+  private final List<Supplier<?>> initialValueSuppliers;
   private final int nonAggValSize;
 
   public KudafInitializer(final int nonAggValSize, final List<Supplier<?>> initialValueSuppliers) {
@@ -38,11 +37,12 @@ public class KudafInitializer implements Initializer<GenericRow> {
 
   @Override
   public GenericRow apply() {
-    final List<Object> values = IntStream.range(0, nonAggValSize)
-        .mapToObj(value -> null)
-        .collect(Collectors.toList());
+    final GenericRow row = new GenericRow(nonAggValSize + initialValueSuppliers.size());
 
-    initialValueSuppliers.forEach(supplier -> values.add(supplier.get()));
-    return new GenericRow(values);
+    IntStream.range(0, nonAggValSize)
+        .forEach(i -> row.append(null));
+
+    initialValueSuppliers.forEach(supplier -> row.append(supplier.get()));
+    return row;
   }
 }

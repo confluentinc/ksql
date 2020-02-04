@@ -63,15 +63,17 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
 
     final List<GenericRow> rows = new ArrayList<>(maxLength);
     for (int i = 0; i < maxLength; i++) {
-      final List<Object> newRow = new ArrayList<>(value.getColumns());
+      final GenericRow newRow = new GenericRow(value.values().size() + iters.size());
+      newRow.appendAll(value.values());
+
       for (final Iterator<?> iter : iters) {
         if (iter.hasNext()) {
-          newRow.add(iter.next());
+          newRow.append(iter.next());
         } else {
-          newRow.add(null);
+          newRow.append(null);
         }
       }
-      rows.add(new GenericRow(newRow));
+      rows.add(newRow);
     }
     return rows;
   }

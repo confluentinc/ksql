@@ -75,12 +75,11 @@ public class StreamSelectKeyBuilderTest {
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-      .valueColumn(
-          ColumnName.of(SchemaUtil.ROWTIME_NAME.name()), SqlTypes.BIGINT)
-      .valueColumn(
-          ColumnName.of(SchemaUtil.ROWKEY_NAME.name()), SqlTypes.STRING)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.name()), SqlTypes.BIGINT)
+      // Note: Type of ROWKEY is old key's type:
+      .valueColumn(ColumnName.of(SchemaUtil.ROWKEY_NAME.name()), SqlTypes.STRING)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);
@@ -187,7 +186,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, null)),
+        predicate.test(SOURCE_KEY, value(A_BIG, null, 0, "dre")),
         is(false)
     );
   }
@@ -201,7 +200,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
+        predicate.test(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
         is(true)
     );
   }
@@ -214,7 +213,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
-    assertThat(predicate.test(SOURCE_KEY, value(0, "dre", null, A_BOI)), is(true));
+    assertThat(predicate.test(SOURCE_KEY, value(null, A_BOI, 0, "dre")), is(true));
   }
 
   @Test
@@ -225,7 +224,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     final KeyValueMapper<Struct, GenericRow, Struct> keyValueMapper = getKeyMapper();
     assertThat(
-        keyValueMapper.apply(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
+        keyValueMapper.apply(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
         is(RESULT_KEY_BUILDER.build(A_BOI))
     );
   }
@@ -250,11 +249,11 @@ public class StreamSelectKeyBuilderTest {
   }
 
   private static GenericRow value(
-      final int rowTime,
-      final String rowKey,
       final Long big,
-      final Long boi
+      final Long boi,
+      final int rowTime,
+      final String rowKey
   ) {
-    return new GenericRow(rowTime, rowKey, big, boi);
+    return GenericRow.genericRow(big, boi, rowTime, rowKey);
   }
 }

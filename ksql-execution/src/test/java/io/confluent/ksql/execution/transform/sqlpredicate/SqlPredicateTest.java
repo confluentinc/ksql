@@ -86,7 +86,7 @@ public class SqlPredicateTest {
       LenDummy.class
   );
 
-  private static final GenericRow VALUE = new GenericRow(22L, 33.3, "a string");
+  private static final GenericRow VALUE = GenericRow.genericRow(22L, 33.3, "a string");
 
   @Mock
   private ProcessingLogger processingLogger;
@@ -147,7 +147,7 @@ public class SqlPredicateTest {
     // When:
     predicate.transform(
         "key",
-        new GenericRow("wrong", "types", "in", "here", "to", "force", "error"),
+        GenericRow.genericRow("wrong", "types", "in", "here", "to", "force", "error"),
         ctx
     );
 

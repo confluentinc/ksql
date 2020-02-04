@@ -144,7 +144,7 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnValueIfKeyPresent() {
     // Given:
-    final GenericRow value = new GenericRow("col0");
+    final GenericRow value = GenericRow.genericRow("col0");
     final long rowTime = 2343553L;
     when(tableStore.get(any())).thenReturn(ValueAndTimestamp.make(value, rowTime));
 

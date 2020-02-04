@@ -648,14 +648,14 @@ public class JoinNodeTest {
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "L1"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .build()
     ));
   }

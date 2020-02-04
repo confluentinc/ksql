@@ -584,22 +584,27 @@ public final class PullQueryExecutor {
 
       preSelectTransform = row -> {
         final Struct key = row.key();
-        final List<Object> columns = row.value().getColumns();
-
-        columns.add(0, row.rowTime());
+        final GenericRow value = row.value();
 
         final List<Object> keyFields = key.schema().fields().stream()
             .map(key::get)
             .collect(Collectors.toList());
 
-        columns.addAll(1, keyFields);
+        value.ensureAdditionalCapacity(
+            1 // ROWTIME
+            + keyFields.size()
+            + row.window().map(w -> 2).orElse(0)
+        );
+
+        value.getColumns().add(row.rowTime());
+        value.getColumns().addAll(keyFields);
 
         row.window().ifPresent(window -> {
-          columns.add(1, window.start().toEpochMilli());
-          columns.add(2, window.end().toEpochMilli());
+          value.getColumns().add(window.start().toEpochMilli());
+          value.getColumns().add(window.end().toEpochMilli());
         });
 
-        return row.value();
+        return value;
       };
     }
 

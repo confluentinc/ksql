@@ -60,7 +60,7 @@ public class WindowedRowTest {
 
   private static final Window A_WINDOW = Window.of(Instant.MIN, Instant.MIN.plusMillis(1));
 
-  private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 12335L;
 
   @Rule
@@ -105,7 +105,7 @@ public class WindowedRowTest {
             WindowedRow.of(SCHEMA, A_KEY, mock(Window.class, "diff"), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, new GenericRow(null, null), A_ROWTIME)
+            WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, GenericRow.genericRow(null, null), A_ROWTIME)
         )
         .addEqualityGroup(
             WindowedRow.of(SCHEMA, A_KEY, A_WINDOW, A_VALUE, -1L)

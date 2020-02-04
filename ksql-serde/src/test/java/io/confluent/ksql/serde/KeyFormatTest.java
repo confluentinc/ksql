@@ -17,9 +17,9 @@ package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.DELIMITED;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Test;
@@ -75,7 +76,7 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
 
     final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, windowInfo);
@@ -98,13 +99,13 @@ public class KeyFormatTest {
     final Format result = keyFormat.getFormat();
 
     // Then:
-    assertThat(result, is(Format.of(format)));
+    assertThat(result, is(FormatFactory.of(format)));
   }
 
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
     final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
 
     // When:
@@ -143,12 +144,12 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something")),
+        FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
     // Then:
-    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something"))));
+    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"))));
   }
 
   @Test

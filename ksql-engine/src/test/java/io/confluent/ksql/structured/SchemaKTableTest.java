@@ -44,7 +44,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -81,7 +80,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
@@ -148,8 +147,8 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
-  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
-  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   private PlanBuilder planBuilder;
 
@@ -497,7 +496,8 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats
+                    .of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
                 groupByExpressions
             )
         )

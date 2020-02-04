@@ -39,7 +39,6 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -52,7 +51,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
@@ -108,8 +107,8 @@ public class TableAggregateBuilderTest {
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
   private static final QueryContext MATERIALIZE_CTX = QueryContext.Stacker.of(CTX)
       .push("Materialize").getQueryContext();
-  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA.name());
-  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON.name());
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
 
   @Mock
   private KGroupedTable<Struct, GenericRow> groupedTable;
@@ -172,7 +171,7 @@ public class TableAggregateBuilderTest {
     aggregate = new TableAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );

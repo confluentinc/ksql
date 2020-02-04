@@ -1,8 +1,8 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -18,86 +18,70 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
-import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
-public enum Format {
-
-  JSON(true, ImmutableSet.of(), ImmutableSet.of()) {
-    @Override
-    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-      return new KsqlJsonSerdeFactory();
-    }
-  },
-
-  AVRO(true, ImmutableSet.of(FormatInfo.FULL_SCHEMA_NAME), ImmutableSet.of()) {
-    @Override
-    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-      final String schemaFullName = info.getProperties()
-          .getOrDefault(FormatInfo.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
-      return new KsqlAvroSerdeFactory(schemaFullName);
-    }
-  },
-
-  DELIMITED(false, ImmutableSet.of(FormatInfo.DELIMITER), ImmutableSet.of(FormatInfo.DELIMITER)) {
-    @Override
-    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-      return new KsqlDelimitedSerdeFactory(
-          Optional.ofNullable(
-              info.getProperties().get(FormatInfo.DELIMITER)
-          ).map(Delimiter::parse)
-      );
-    }
-  },
-
-  KAFKA(false, ImmutableSet.of(), ImmutableSet.of()) {
-    @Override
-    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-      return new KafkaSerdeFactory();
-    }
-  };
-
-  private final boolean supportsUnwrapping;
-  private final Set<String> validConfigs;
-  private final Set<String> inheritableProperties;
-
-  Format(
-      final boolean supportsUnwrapping,
-      final Set<String> validConfigs,
-      final Set<String> inheritableProperties
-  ) {
-    this.supportsUnwrapping = supportsUnwrapping;
-    this.validConfigs = validConfigs;
-    this.inheritableProperties = inheritableProperties;
-  }
+/**
+ * A {@code Format} is a serialization specification of a Kafka topic
+ * in ksqlDB. The builtin formats are specified in the {@link FormatFactory}
+ * class.
+ */
+public interface Format {
 
   /**
-   * If this format supports unwrapping, primitive values can optionally
-   * be serialized anonymously (i.e. without a wrapping STRUCT and
-   * corresponding field name)
+   * The name of the {@code Format} specification. If this format supports
+   * Confluent Schema Registry integration (either builtin or custom via the
+   * {@code ParsedSchema} plugin support), this should match the value returned
+   * by {@link io.confluent.kafka.schemaregistry.ParsedSchema#name()}. Note that
+   * this value is <i>case-sensitive</i>.
    *
-   * @return whether or not this format supports unwrapping
+   * @return the name of this Format
+   * @see #supportsSchemaInference()
    */
-  public boolean supportsUnwrapping() {
-    return supportsUnwrapping;
+  String name();
+
+  /**
+   * If this format supports wrapping, primitive values can optionally
+   * be serialized anonymously (i.e. without a wrapping STRUCT and
+   * corresponding field name) - otherwise primitive values are only
+   * represented anonymously.
+   *
+   * @return whether or not this format supports wrapping
+   */
+  default boolean supportsWrapping() {
+    return true;
   }
 
   /**
+   * Indicates whether or not this format can support CREATE statements that
+   * omit the table elements and instead determine the schema from a Confluent
+   * Schema Registry query. If this method returns {@code true}, it is expected
+   * that the {@link #name()} corresponds with the schema format name returned
+   * by {@link io.confluent.kafka.schemaregistry.ParsedSchema#name()} for this
+   * format.
+   *
+   * @return {@code true} if this {@code Format} supports schema inference
+   *         through Confluent Schema Registry
+   */
+  default boolean supportsSchemaInference() {
+    return false;
+  }
+
+  /**
+   * If the format accepts custom properties in the WITH clause of the statement,
+   * then this will take the properties and validate the key-value pairs.
+   *
    * @param properties the properties to validate
    * @throws KsqlException if the properties are invalid for the given format
    */
-  public void validateProperties(final Map<String, String> properties) {
-    final SetView<String> difference = Sets.difference(properties.keySet(), validConfigs);
-    if (!difference.isEmpty()) {
-      throw new KsqlException(name() + " does not support the following configs: " + difference);
+  default void validateProperties(Map<String, String> properties) {
+    // by default, this method ensures that there are no property names
+    // (case-insensitive) that are not in the getSupportedProperties()
+    // and that none of the values are empty
+    final SetView<String> diff = Sets.difference(properties.keySet(), getSupportedProperties());
+    if (!diff.isEmpty()) {
+      throw new KsqlException(name() + " does not support the following configs: " + diff);
     }
 
     properties.forEach((k, v) -> {
@@ -108,34 +92,39 @@ public enum Format {
   }
 
   /**
+   * If the format accepts custom properties in the WITH clause of the statement,
+   * this method dictates which property keys are valid keys. This is used in
+   * conjunction with {@link #validateProperties(Map)} to ensure that the format
+   * configuration is valid.
+   *
+   * @return a set of valid property names
+   */
+  default Set<String> getSupportedProperties() {
+    return ImmutableSet.of();
+  }
+
+  /**
    * Specifies the set of "inheritable" properties - these properties will
    * persist across streams and tables if a sink is created from a source
-   * of the same type and does not explicitly overwrite the property.
+   * of the same format and does not explicitly overwrite the property.
    *
    * <p>For example, if a stream with format {@code DELIMITED} was created
    * with {@code VALUE_DELIMITER='x'}, any {@code DELIMITED} sinks that are
    * created with that stream as its source will also have the same delimiter
    * value of {@code x}</p>
    *
+   * <p>The default implementation of this method assumes that all of the
+   * supported properties are inheritable.</p>
+   *
    * @return the set of properties that are considered "inheritable"
    */
-  public Set<String> getInheritableProperties() {
-    return inheritableProperties;
+  default Set<String> getInheritableProperties() {
+    return getSupportedProperties();
   }
 
   /**
    * @param info the info containing information required for generating the factory
    * @return a {@code KsqlSerdeFactory} that generates serdes for the given format
    */
-  public abstract KsqlSerdeFactory getSerdeFactory(FormatInfo info);
-
-  public static Format of(final FormatInfo value) {
-    try {
-      final Format format = valueOf(value.getFormat().toUpperCase());
-      format.validateProperties(value.getProperties());
-      return format;
-    } catch (final IllegalArgumentException e) {
-      throw new KsqlException("Unknown format: " + value.getFormat());
-    }
-  }
+  KsqlSerdeFactory getSerdeFactory(FormatInfo info);
 }

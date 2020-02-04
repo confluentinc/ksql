@@ -32,7 +32,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -100,7 +100,7 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(queryStreams.state()).thenReturn(State.RUNNING);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,

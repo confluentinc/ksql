@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -36,7 +35,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import org.apache.kafka.common.serialization.Serde;
@@ -63,8 +62,8 @@ public class StreamSinkBuilderTest {
 
   private static final PhysicalSchema PHYSICAL_SCHEMA =
       PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
-  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA.name());
-  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON.name());
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -95,7 +94,7 @@ public class StreamSinkBuilderTest {
     sink = new StreamSink<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC
     );
     planBuilder = new KSPlanBuilder(

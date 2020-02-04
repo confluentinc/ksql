@@ -33,7 +33,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -160,8 +160,8 @@ public class SourceTopicsExtractorTest {
   ) {
     final KsqlTopic sourceTopic = new KsqlTopic(
         topicDescription.name(),
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(

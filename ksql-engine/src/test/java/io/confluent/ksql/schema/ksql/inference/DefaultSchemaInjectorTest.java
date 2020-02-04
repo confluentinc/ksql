@@ -446,7 +446,6 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expect(not(instanceOf(KsqlStatementException.class)));
     expectedException.expectMessage("Oh no");
 
     // When:

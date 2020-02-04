@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -52,7 +51,7 @@ import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -84,9 +83,9 @@ public class SchemaKStreamTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KeyField validJoinKeyField = KeyField
       .of(Optional.of(ColumnName.of("COL0")));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name()));
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
-  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED.name()));
+  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name()));
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
@@ -594,7 +593,8 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamGroupByKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                Formats.of(expectedKeyFormat, valueFormat, SerdeOption.none())
+                io.confluent.ksql.execution.plan.Formats
+                    .of(expectedKeyFormat, valueFormat, SerdeOption.none())
             )
         )
     );
@@ -646,7 +646,8 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamGroupBy(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                Formats.of(expectedKeyFormat, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats
+                    .of(expectedKeyFormat, valueFormat, SerdeOption.none()),
                 groupBy
             )
         )
@@ -760,7 +761,7 @@ public class SchemaKStreamTest {
               ExecutionStepFactory.streamTableJoin(
                   childContextStacker,
                   testcase.left,
-                  Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                  io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                   initialSchemaKStream.getSourceStep(),
                   schemaKTable.getSourceTableStep()
               )

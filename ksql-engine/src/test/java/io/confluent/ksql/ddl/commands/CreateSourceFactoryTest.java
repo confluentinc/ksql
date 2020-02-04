@@ -22,9 +22,9 @@ import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
-import static io.confluent.ksql.serde.Format.KAFKA;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
@@ -69,6 +69,7 @@ import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -663,7 +664,7 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(
         cmd.getFormats().getValueFormat(),
-        is(FormatInfo.of(AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "full.schema.name"))));
+        is(FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "full.schema.name"))));
   }
 
   @Test

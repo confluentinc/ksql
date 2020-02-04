@@ -58,7 +58,7 @@ public class GenericRowSerDeTest {
   private static final String LOGGER_PREFIX = "bob";
 
   private static final FormatInfo FORMAT =
-      FormatInfo.of(Format.JSON.name());
+      FormatInfo.of(FormatFactory.JSON.name());
 
   private static final PersistenceSchema MUTLI_FIELD_SCHEMA =
       PersistenceSchema.from(

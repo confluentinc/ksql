@@ -30,7 +30,6 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -39,11 +38,12 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
@@ -102,10 +102,11 @@ public class AvroUtilTest {
 
   private static final String RESULT_TOPIC_NAME = "actual-name";
 
-  private static final Formats FORMATS = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-      ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
-          .of(FormatInfo.FULL_SCHEMA_NAME, SCHEMA_NAME))),
+  private static final io.confluent.ksql.execution.plan.Formats FORMATS = io.confluent.ksql.execution.plan.Formats
+      .of(
+      KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+      ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+          .of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME))),
       SerdeOption.none()
   );
 
@@ -197,9 +198,9 @@ public class AvroUtilTest {
     // Given:
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
     when(ddlCommand.getFormats())
-        .thenReturn(Formats.of(
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-            ValueFormat.of(FormatInfo.of(Format.AVRO.name())),
+        .thenReturn(io.confluent.ksql.execution.plan.Formats.of(
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())),
             ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)
         ));
     final PhysicalSchema schema = PhysicalSchema

@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Rule;
@@ -114,7 +114,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getFormatProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

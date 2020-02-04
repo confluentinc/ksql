@@ -31,7 +31,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -56,8 +56,8 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
-          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-          ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))
@@ -69,8 +69,8 @@ public class MetaStoreModelTest {
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
-      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())))
-      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON.name())))
+      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))
+      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())))
       .build();
 
   private final Class<?> modelClass;

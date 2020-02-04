@@ -17,7 +17,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -27,7 +26,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.time.Duration;
@@ -61,15 +60,17 @@ public class StreamStreamJoinBuilderTest {
   private static final PhysicalSchema RIGHT_PHYSICAL =
       PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
 
-  private static final Formats LEFT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA.name()),
-      FormatInfo.of(Format.JSON.name()),
+  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
 
-  private static final Formats RIGHT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA.name()),
-      FormatInfo.of(Format.AVRO.name()),
+  private static final io.confluent.ksql.execution.plan.Formats RIGHT_FMT = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.AVRO.name()),
       SerdeOption.none()
   );
 
@@ -111,9 +112,9 @@ public class StreamStreamJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON.name())), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO.name())), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.AVRO.name())), any(), any()))
         .thenReturn(rightSerde);
     when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any())).thenReturn(
@@ -289,7 +290,7 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON.name()), LEFT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 
   @Test
@@ -302,6 +303,6 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Right").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
   }
 }

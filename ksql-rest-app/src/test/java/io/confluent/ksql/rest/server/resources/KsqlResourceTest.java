@@ -127,7 +127,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -2144,8 +2144,8 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     givenKafkaTopicExists(topicName);

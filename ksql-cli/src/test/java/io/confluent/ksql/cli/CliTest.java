@@ -63,7 +63,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -179,7 +179,7 @@ public class CliTest {
     orderDataProvider = new OrderDataProvider();
     TEST_HARNESS.getKafkaCluster().createTopic(orderDataProvider.topicName());
 
-    TEST_HARNESS.produceRows(orderDataProvider.topicName(), orderDataProvider, Format.JSON);
+    TEST_HARNESS.produceRows(orderDataProvider.topicName(), orderDataProvider, FormatFactory.JSON);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
       createKStream(orderDataProvider, cli);
@@ -270,7 +270,7 @@ public class CliTest {
     final Map<Long, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
         streamName,
         expectedResults.size(),
-        Format.JSON,
+        FormatFactory.JSON,
         resultSchema
     );
 

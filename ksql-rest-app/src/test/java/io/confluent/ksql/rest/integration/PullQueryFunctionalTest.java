@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
@@ -86,7 +87,7 @@ public class PullQueryFunctionalTest {
   private static final String USER_WITH_ACCESS_PWD = "changeme";
 
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
-  private static final Format VALUE_FORMAT = Format.JSON;
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
 
   private static final TestBasicJaasConfig JASS_CONFIG = TestBasicJaasConfig
@@ -157,7 +158,7 @@ public class PullQueryFunctionalTest {
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
             + "   key='" + USER_PROVIDER.key() + "', "
-            + "   value_format='" + VALUE_FORMAT + "'"
+            + "   value_format='" + VALUE_FORMAT.name() + "'"
             + ");"
     );
   }

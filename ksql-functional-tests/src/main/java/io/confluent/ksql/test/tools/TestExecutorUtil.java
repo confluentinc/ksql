@@ -42,7 +42,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -173,7 +173,7 @@ public final class TestExecutorUtil {
   private static Optional<Schema> getAvroSchema(
       final DataSource dataSource,
       final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
+    if (dataSource.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO) {
       try {
         final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
             dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

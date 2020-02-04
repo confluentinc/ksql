@@ -37,6 +37,8 @@ import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -205,11 +207,18 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement
   ) {
-    final TransientQueryMetadata query = EngineExecutor
-        .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
-        .executeQuery(statement);
-    registerQuery(query);
-    return query;
+    try {
+      final TransientQueryMetadata query = EngineExecutor
+          .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+          .executeQuery(statement);
+      registerQuery(query);
+      return query;
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      // add the statement text to the KsqlException
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+    }
   }
 
   @Override

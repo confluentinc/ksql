@@ -34,7 +34,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -300,6 +299,6 @@ public class AstSanitizerTest {
   }
 
   private static QualifiedColumnReferenceExp column(final SourceName source, final String fieldName) {
-    return new QualifiedColumnReferenceExp(source, ColumnRef.of(ColumnName.of(fieldName)));
+    return new QualifiedColumnReferenceExp(source, ColumnName.of(fieldName));
   }
 }

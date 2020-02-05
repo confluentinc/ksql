@@ -44,7 +44,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -169,7 +168,7 @@ public class SchemaKStream<K> {
       return KeyField.none();
     }
 
-    final ColumnRef keyColumnRef = getKeyField().ref().get();
+    final ColumnName keyColumnName = getKeyField().ref().get();
 
     Optional<Column> found = Optional.empty();
 
@@ -180,14 +179,14 @@ public class SchemaKStream<K> {
       if (toExpression instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) toExpression;
 
-        if (keyColumnRef.equals(nameRef.getReference())) {
+        if (keyColumnName.equals(nameRef.getReference())) {
           found = Optional.of(Column.legacyKeyFieldColumn(toName, SqlTypes.STRING));
           break;
         }
       }
     }
 
-    final Optional<ColumnRef> filtered = found
+    final Optional<ColumnName> filtered = found
         // System columns can not be key fields:
         .filter(f -> !SchemaUtil.systemColumnNames().contains(f.name()))
         .map(Column::ref);
@@ -356,9 +355,9 @@ public class SchemaKStream<K> {
       return KeyField.none();
     }
 
-    final ColumnRef columnRef = ((UnqualifiedColumnReferenceExp) expression).getReference();
-    final KeyField newKeyField = isRowKey(columnRef) ? keyField : KeyField.of(columnRef);
-    return getSchema().isMetaColumn(columnRef.name()) ? KeyField.none() : newKeyField;
+    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getReference();
+    final KeyField newKeyField = isRowKey(columnName) ? keyField : KeyField.of(columnName);
+    return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
   protected boolean needsRepartition(final Expression expression) {
@@ -366,13 +365,13 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final ColumnRef columnRef = ((UnqualifiedColumnReferenceExp) expression).getReference();
+    final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getReference();
     final Optional<Column> existingKey = keyField.resolve(getSchema());
 
     final Column proposedKey = getSchema()
-        .findValueColumn(columnRef)
+        .findValueColumn(columnName)
         .orElseThrow(() -> new KsqlException("Invalid identifier for PARTITION BY clause: '"
-            + columnRef.name().toString(FormatOptions.noEscape()) + "' Only columns from the "
+            + columnName.toString(FormatOptions.noEscape()) + "' Only columns from the "
             + "source schema can be referenced in the PARTITION BY clause."));
 
 
@@ -380,10 +379,10 @@ public class SchemaKStream<K> {
         .map(kf -> kf.ref().equals(proposedKey.ref()))
         .orElse(false);
 
-    return !namesMatch && !isRowKey(columnRef);
+    return !namesMatch && !isRowKey(columnName);
   }
 
-  private boolean isRowKey(final ColumnRef fieldName) {
+  private boolean isRowKey(final ColumnName fieldName) {
     // until we support structured keys, there will never be any key column other
     // than "ROWKEY" - furthermore, that key column is always prefixed at this point
     // unless it is a join, in which case every other source field is prefixed
@@ -393,7 +392,7 @@ public class SchemaKStream<K> {
   private static ColumnName fieldNameFromExpression(final Expression expression) {
     if (expression instanceof UnqualifiedColumnReferenceExp) {
       final UnqualifiedColumnReferenceExp nameRef = (UnqualifiedColumnReferenceExp) expression;
-      return nameRef.getReference().name();
+      return nameRef.getReference();
     }
     return null;
   }
@@ -432,9 +431,9 @@ public class SchemaKStream<K> {
       return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
     }
 
-    final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
 
-    final Optional<ColumnRef> newKeyCol = getSchema()
+    final Optional<ColumnName> newKeyCol = getSchema()
         .findValueColumn(aggregateKeyName)
         .map(Column::ref);
 
@@ -517,7 +516,7 @@ public class SchemaKStream<K> {
     return functionRegistry;
   }
 
-  static ColumnRef groupedKeyNameFor(final List<Expression> groupByExpressions) {
+  static ColumnName groupedKeyNameFor(final List<Expression> groupByExpressions) {
     if (groupByExpressions.size() == 1
         && groupByExpressions.get(0) instanceof UnqualifiedColumnReferenceExp) {
       return ((UnqualifiedColumnReferenceExp) groupByExpressions.get(0)).getReference();
@@ -526,10 +525,9 @@ public class SchemaKStream<K> {
     // this is safe because if we group by multiple fields the original field
     // will never be in the original schema, so we're necessarily creating a
     // new field
-    return ColumnRef.of(
-        ColumnName.of(groupByExpressions.stream()
-            .map(Expression::toString)
-            .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR))));
+    return ColumnName.of(groupByExpressions.stream()
+        .map(Expression::toString)
+        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR)));
   }
 
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {

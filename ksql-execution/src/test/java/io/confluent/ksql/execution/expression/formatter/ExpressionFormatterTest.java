@@ -61,7 +61,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -99,7 +98,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateArrayExpression(ImmutableList.of(
             new StringLiteral("foo"),
-            new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1)))
         )),
         equalTo("ARRAY['foo', abc[1]]")
     );
@@ -109,7 +108,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatCreateMapExpression() {
     assertThat(ExpressionFormatter.formatExpression(
         new CreateMapExpression(ImmutableMap.<Expression, Expression>builder()
-            .put(new StringLiteral("foo"), new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1)))
+            .put(new StringLiteral("foo"), new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1)))
             .put(new StringLiteral("bar"), new StringLiteral("val"))
             .build()
         )),
@@ -122,7 +121,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
         ImmutableList.of(
             new Field("foo", new StringLiteral("abc")),
-            new Field("bar", new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("abc"))), new IntegerLiteral(1))))
+            new Field("bar", new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1))))
         ), FormatOptions.of(exp -> exp.equals("foo"))),
         equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
   }
@@ -180,8 +179,8 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatColumnReference() {
-    assertThat(ExpressionFormatter.formatExpression(new UnqualifiedColumnReferenceExp(ColumnRef.of(
-        ColumnName.of("name")))), equalTo("name"));
+    assertThat(ExpressionFormatter.formatExpression(new UnqualifiedColumnReferenceExp(
+        ColumnName.of("name"))), equalTo("name"));
   }
 
   @Test
@@ -397,7 +396,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatQualifiedColumnReference() {
     final QualifiedColumnReferenceExp ref = new QualifiedColumnReferenceExp(
         SourceName.of("foo"),
-        ColumnRef.of(ColumnName.of("bar"))
+        ColumnName.of("bar")
     );
     assertThat(ExpressionFormatter.formatExpression(ref), equalTo("foo.bar"));
   }

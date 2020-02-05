@@ -69,7 +69,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -228,7 +227,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new QualifiedColumnReferenceExp(
         SourceName.of("foo"),
-        ColumnRef.of(ColumnName.of("bar"))
+        ColumnName.of("bar")
     );
 
     // Then:
@@ -310,7 +309,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL6"))),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL6")),
         "STREET"
     );
 
@@ -325,7 +324,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL6"))),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL6")),
         "ZIP"
     );
 
@@ -341,7 +340,7 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForCreateArrayExpression() {
     // Given:
     Expression expression = new CreateArrayExpression(
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(COL0))
     );
 
     // When:
@@ -357,7 +356,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
+            new UnqualifiedColumnReferenceExp(COL0),
             new NullLiteral()
         )
     );
@@ -391,7 +390,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateArrayExpression(
         ImmutableList.of(
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
+            new UnqualifiedColumnReferenceExp(COL0),
             new StringLiteral("foo")
         )
     );
@@ -409,7 +408,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
-            COL1, new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))
+            COL1, new UnqualifiedColumnReferenceExp(COL0)
         )
     );
 
@@ -426,7 +425,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new IntegerLiteral(1),
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))
+            new UnqualifiedColumnReferenceExp(COL0)
         )
     );
 
@@ -444,7 +443,7 @@ public class ExpressionTypeManagerTest {
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
             new StringLiteral("foo"),
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
+            new UnqualifiedColumnReferenceExp(COL0),
             new StringLiteral("bar"),
             new StringLiteral("bar")
         )
@@ -487,7 +486,7 @@ public class ExpressionTypeManagerTest {
 
     final Expression exp = new CreateStructExpression(ImmutableList.of(
         new Field("field1", new StringLiteral("foo")),
-        new Field("field2", new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0))),
+        new Field("field2", new UnqualifiedColumnReferenceExp(COL0)),
         new Field("field3", new CreateStructExpression(ImmutableList.of()))
     ));
 
@@ -543,7 +542,7 @@ public class ExpressionTypeManagerTest {
 
     final Expression structRef = new DereferenceExpression(
         Optional.empty(),
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(COL0)),
+        new UnqualifiedColumnReferenceExp(COL0),
         "IN0"
     );
 

@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -101,7 +100,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     }
 
     if (keyField.isPresent()) {
-      final SqlType keyFieldType = schema.findColumn(ColumnRef.of(keyField.get()))
+      final SqlType keyFieldType = schema.findColumn(keyField.get())
           .map(Column::type)
           .orElseThrow(IllegalArgumentException::new);
 

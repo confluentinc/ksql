@@ -16,8 +16,8 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -32,22 +32,22 @@ public final class KeyField {
 
   private static final KeyField NONE = KeyField.of(Optional.empty());
 
-  private final Optional<ColumnRef> keyField;
+  private final Optional<ColumnName> keyField;
 
   public static KeyField none() {
     return NONE;
   }
 
-  public static KeyField of(final ColumnRef keyField) {
+  public static KeyField of(final ColumnName keyField) {
     return new KeyField(Optional.of(keyField));
   }
 
-  public static KeyField of(final Optional<ColumnRef> keyField) {
+  public static KeyField of(final Optional<ColumnName> keyField) {
     return new KeyField(keyField);
   }
 
   private KeyField(
-      final Optional<ColumnRef> keyField
+      final Optional<ColumnName> keyField
   ) {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
   }
@@ -64,7 +64,7 @@ public final class KeyField {
     return this;
   }
 
-  public Optional<ColumnRef> ref() {
+  public Optional<ColumnName> ref() {
     return keyField;
   }
 

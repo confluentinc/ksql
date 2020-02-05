@@ -25,8 +25,8 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -73,7 +73,7 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,

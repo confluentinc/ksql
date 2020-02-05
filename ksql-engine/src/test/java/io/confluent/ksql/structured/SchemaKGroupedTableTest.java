@@ -32,7 +32,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -63,8 +62,8 @@ public class SchemaKGroupedTableTest {
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
-  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
-      ColumnRef.of(ColumnName.of("IN0"))
+  private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
+      ColumnName.of("IN0")
   );
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
@@ -182,7 +181,7 @@ public class SchemaKGroupedTableTest {
   private static FunctionCall udaf(final String name) {
     return new FunctionCall(
         FunctionName.of(name),
-        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("IN1")))
     );
   }
 }

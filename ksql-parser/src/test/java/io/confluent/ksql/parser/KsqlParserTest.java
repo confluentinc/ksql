@@ -81,7 +81,6 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -183,7 +182,7 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -559,7 +558,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.of(ColumnName.of("USERID")))));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnName.of("USERID"))));
   }
 
   @Test

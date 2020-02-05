@@ -61,7 +61,6 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -484,7 +483,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.of(ELEMENT2.getName()), Optional.empty()))
+            new TimestampColumn(ELEMENT2.getName(), Optional.empty()))
         )
     );
   }
@@ -509,7 +508,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.of(ELEMENT2.getName()), Optional.empty()))
+            new TimestampColumn(ELEMENT2.getName(), Optional.empty()))
         )
     );
   }
@@ -536,7 +535,7 @@ public class CreateSourceFactoryTest {
     assertThat(
         cmd.getTimestampColumn(),
         is(Optional.of(
-            new TimestampColumn(ColumnRef.of(ELEMENT1.getName()), Optional.of("%s")))
+            new TimestampColumn(ELEMENT1.getName(), Optional.of("%s")))
         )
     );
   }

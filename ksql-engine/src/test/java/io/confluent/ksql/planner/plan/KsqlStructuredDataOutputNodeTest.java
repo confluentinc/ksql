@@ -35,7 +35,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -73,7 +72,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .build();
 
   private static final KeyField KEY_FIELD = KeyField
-      .of(ColumnRef.of(ColumnName.of("key")));
+      .of(ColumnName.of("key"));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));

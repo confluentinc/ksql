@@ -33,7 +33,6 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -81,7 +80,7 @@ public class AggregateNode extends PlanNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<ColumnRef> keyFieldName,
+      final Optional<ColumnName> keyFieldName,
       final List<Expression> groupByExpressions,
       final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
@@ -225,12 +224,12 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
-    final List<ColumnRef> requiredColumnRefs = requiredColumns.stream()
+    final List<ColumnName> requiredColumnNames = requiredColumns.stream()
         .map(e -> (UnqualifiedColumnReferenceExp) internalSchema.resolveToInternal(e))
         .map(UnqualifiedColumnReferenceExp::getReference)
         .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
-        requiredColumnRefs,
+        requiredColumnNames,
         functionsWithInternalIdentifiers,
         windowExpression,
         valueFormat,
@@ -301,7 +300,7 @@ public class AggregateNode extends PlanNode {
 
       final Function<Expression, Expression> mapper = e -> {
         final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
-            && ((UnqualifiedColumnReferenceExp) e).getReference().name().equals(
+            && ((UnqualifiedColumnReferenceExp) e).getReference().equals(
                 SchemaUtil.ROWKEY_NAME);
 
         if (!rowKey || !specialRowTimeHandling) {
@@ -367,7 +366,7 @@ public class AggregateNode extends PlanNode {
       if (name != null) {
         return new UnqualifiedColumnReferenceExp(
             exp.getLocation(),
-            ColumnRef.of(name));
+            name);
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
@@ -390,10 +389,10 @@ public class AggregateNode extends PlanNode {
           return Optional.of(
               new UnqualifiedColumnReferenceExp(
                   node.getLocation(),
-                  ColumnRef.of(name)));
+                  name));
         }
 
-        final boolean isAggregate = node.getReference().name().isAggregate();
+        final boolean isAggregate = node.getReference().isAggregate();
 
         if (!isAggregate) {
           throw new KsqlException("Unknown source column: " + node.toString());

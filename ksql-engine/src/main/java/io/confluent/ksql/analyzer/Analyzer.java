@@ -57,7 +57,6 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
@@ -589,7 +588,7 @@ class Analyzer {
           final QualifiedColumnReferenceExp selectItem = new QualifiedColumnReferenceExp(
               location,
               source.getAlias(),
-              ColumnRef.of(column.name()));
+              column.name());
 
           final String alias = aliasPrefix + column.name().name();
 
@@ -643,14 +642,14 @@ class Analyzer {
         }
       }
 
-      final Set<ColumnRef> columnRefs = new HashSet<>();
+      final Set<ColumnName> columnNames = new HashSet<>();
       final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitColumnReference(
             final UnqualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnRefs.add(node.getReference());
+          columnNames.add(node.getReference());
           return null;
         }
 
@@ -659,7 +658,7 @@ class Analyzer {
             final QualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnRefs.add(node.getReference());
+          columnNames.add(node.getReference());
           return null;
         }
       };
@@ -667,7 +666,7 @@ class Analyzer {
       visitor.process(exp, null);
 
       analysis.addSelectItem(exp, columnName);
-      analysis.addSelectColumnRefs(columnRefs);
+      analysis.addSelectColumnRefs(columnNames);
     }
 
     private void visitTableFunctions(final Expression expression) {

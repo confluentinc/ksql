@@ -28,7 +28,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.LinkedList;
@@ -58,7 +57,7 @@ public class AggregateParamsFactory {
 
   public AggregateParams createUndoable(
       final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList
   ) {
@@ -67,7 +66,7 @@ public class AggregateParamsFactory {
 
   public AggregateParams create(
       final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList
   ) {
@@ -76,7 +75,7 @@ public class AggregateParamsFactory {
 
   private AggregateParams create(
       final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList,
       final boolean table
@@ -137,7 +136,7 @@ public class AggregateParamsFactory {
 
   private static LogicalSchema buildSchema(
       final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions,
       final boolean useAggregate
   ) {
@@ -145,8 +144,8 @@ public class AggregateParamsFactory {
 
     schemaBuilder.keyColumns(schema.key());
 
-    for (final ColumnRef columnRef : nonAggregateColumns) {
-      final Column col = schema.findValueColumn(columnRef)
+    for (final ColumnName columnName : nonAggregateColumns) {
+      final Column col = schema.findValueColumn(columnName)
           .orElseThrow(IllegalArgumentException::new);
 
       schemaBuilder.valueColumn(col);

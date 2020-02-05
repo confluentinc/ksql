@@ -27,7 +27,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
@@ -51,27 +50,27 @@ public class AggregateParamsFactoryTest {
       .valueColumn(ColumnName.of("ARGUMENT1"), SqlTypes.DOUBLE)
       .build();
 
-  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
+  private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
       INPUT_SCHEMA.value().get(0).ref(),
       INPUT_SCHEMA.value().get(2).ref()
   );
 
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final long INITIAL_VALUE0 = 123;
   private static final FunctionCall AGG1 = new FunctionCall(
       FunctionName.of("AGG1"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT1"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT1")))
   );
   private static final FunctionCall TABLE_AGG = new FunctionCall(
       FunctionName.of("TABLE_AGG"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final FunctionCall WINDOW_START = new FunctionCall(
       FunctionName.of("WindowStart"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final String INITIAL_VALUE1 = "initial";
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);

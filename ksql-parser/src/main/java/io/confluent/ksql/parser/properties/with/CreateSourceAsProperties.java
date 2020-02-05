@@ -20,10 +20,10 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -79,7 +79,7 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-  public Optional<ColumnRef> getTimestampColumnName() {
+  public Optional<ColumnName> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }

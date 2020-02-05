@@ -24,7 +24,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -73,7 +72,7 @@ public final class MetaStoreFixture {
         SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("COL0"))),
+        KeyField.of(ColumnName.of("COL0")),
         Optional.empty(),
         false, 
         ksqlTopic0
@@ -93,7 +92,7 @@ public final class MetaStoreFixture {
         test1Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.of(ColumnName.of("COL0"))),
+            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic1
@@ -121,7 +120,7 @@ public final class MetaStoreFixture {
         test2Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.of(ColumnName.of("COL0"))),
+            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic2
@@ -171,7 +170,7 @@ public final class MetaStoreFixture {
         SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -199,7 +198,7 @@ public final class MetaStoreFixture {
         testTable3,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.of(ColumnName.of("COL0"))),
+            ColumnName.of("COL0")),
         Optional.empty(),
         false,
         ksqlTopic3
@@ -284,7 +283,7 @@ public final class MetaStoreFixture {
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ID"))),
+        KeyField.of(ColumnName.of("ID")),
         Optional.empty(),
         false,
         ksqlTopicSensorReadings

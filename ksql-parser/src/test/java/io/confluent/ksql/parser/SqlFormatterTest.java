@@ -57,7 +57,6 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -174,7 +173,7 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -192,7 +191,7 @@ public class SqlFormatterTest {
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -205,7 +204,7 @@ public class SqlFormatterTest {
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("TABLE"))),
+        KeyField.of(ColumnName.of("TABLE")),
         Optional.empty(),
         false,
         ksqlTopicItems

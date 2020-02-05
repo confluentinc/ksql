@@ -22,7 +22,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import java.util.Optional;
@@ -98,13 +97,13 @@ public final class MetaStoreMatchers {
 
     public static Matcher<KeyField> hasName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<ColumnName>>(
-          is(name.map(ColumnReferenceParser::parse).map(ColumnRef::name)),
+          is(name.map(ColumnReferenceParser::parse)),
           "field with name",
           "name"
       ) {
         @Override
         protected Optional<ColumnName> featureValueOf(final KeyField actual) {
-          return actual.ref().map(ColumnRef::name);
+          return actual.ref();
         }
       };
     }

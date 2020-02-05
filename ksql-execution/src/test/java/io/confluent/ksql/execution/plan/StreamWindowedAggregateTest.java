@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,15 +46,15 @@ public class StreamWindowedAggregateTest {
   @Mock
   private KsqlWindowExpression window2;
 
-  private ImmutableList<ColumnRef> columnRefs1;
-  private ImmutableList<ColumnRef> columnRefs2;
+  private ImmutableList<ColumnName> columnRefs1;
+  private ImmutableList<ColumnName> columnRefs2;
   private ImmutableList<FunctionCall> functionCalls1;
   private ImmutableList<FunctionCall> functionCalls2;
 
   @Before
   public void setup() {
-    columnRefs1 = ImmutableList.of(mock(ColumnRef.class), mock(ColumnRef.class));
-    columnRefs2 = ImmutableList.of(mock(ColumnRef.class), mock(ColumnRef.class));
+    columnRefs1 = ImmutableList.of(mock(ColumnName.class), mock(ColumnName.class));
+    columnRefs2 = ImmutableList.of(mock(ColumnName.class), mock(ColumnName.class));
     functionCalls1 = ImmutableList.of(mock(FunctionCall.class), mock(FunctionCall.class));
     functionCalls2 = ImmutableList.of(mock(FunctionCall.class), mock(FunctionCall.class));
   }

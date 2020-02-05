@@ -29,7 +29,6 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -156,7 +155,7 @@ public class SourceDescriptionFactoryTest {
     final DataSource dataSource = buildDataSource(
         kafkaTopicName,
         Optional.of(
-            new TimestampColumn(ColumnRef.of(ColumnName.of("foo")), Optional.empty()))
+            new TimestampColumn(ColumnName.of("foo"), Optional.empty()))
     );
 
     // When

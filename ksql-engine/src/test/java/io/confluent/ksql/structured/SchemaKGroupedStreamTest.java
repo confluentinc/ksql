@@ -36,7 +36,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -68,13 +67,13 @@ public class SchemaKGroupedStreamTest {
       .build();
   private static final FunctionCall AGG = new FunctionCall(
       FunctionName.of("SUM"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("IN1")))
   );
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS
   );
-  private static final List<ColumnRef> NON_AGGREGATE_COLUMNS = ImmutableList.of(
-      ColumnRef.of(ColumnName.of("IN0"))
+  private static final List<ColumnName> NON_AGGREGATE_COLUMNS = ImmutableList.of(
+      ColumnName.of("IN0")
   );
 
   @Mock

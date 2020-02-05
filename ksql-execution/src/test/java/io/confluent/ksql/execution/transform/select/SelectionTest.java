@@ -32,7 +32,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -52,12 +51,12 @@ public class SelectionTest {
       .build().withMetaAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("GIRAFFE")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("GIRAFFE"));
 
   private static final Expression EXPRESSION2 = new ArithmeticBinaryExpression(
       Operator.ADD,
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("MANATEE"))),
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("RACCOON")))
+      new UnqualifiedColumnReferenceExp(ColumnName.of("MANATEE")),
+      new UnqualifiedColumnReferenceExp(ColumnName.of("RACCOON"))
   );
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
       SelectExpression.of(ColumnName.of("FOO"), EXPRESSION1),

@@ -48,7 +48,6 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -119,7 +118,7 @@ public class JoinNodeTest {
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(ColumnName.of("C0"));
+  private static final ColumnName LEFT_JOIN_FIELD_REF = ColumnName.of("C0");
 
   private static final KeyField leftJoinField = KeyField.of(LEFT_JOIN_FIELD_REF);
 
@@ -780,15 +779,15 @@ public class JoinNodeTest {
         .findFirst();
   }
 
-  private static ColumnRef getNonKeyColumn(
+  private static ColumnName getNonKeyColumn(
       final LogicalSchema schema,
       final SourceName alias,
-      final ColumnRef keyName
+      final ColumnName keyName
   ) {
     final ImmutableList<ColumnName> blackList = ImmutableList.of(
         SchemaUtil.ROWKEY_NAME,
         SchemaUtil.ROWTIME_NAME,
-        keyName.name()
+        keyName
     );
 
     final Column column =
@@ -796,7 +795,7 @@ public class JoinNodeTest {
             .orElseThrow(AssertionError::new);
 
     final Column field = schema.findValueColumn(column.ref()).get();
-    return ColumnRef.of(field.name());
+    return field.name();
   }
 
   private static void setUpSource(

@@ -352,7 +352,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
-        + "sure that the criteria uses the TABLE key ID instead of COL0");
+        + "sure that the criteria uses the TABLE key `ID` instead of COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "
@@ -369,7 +369,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
-        + "sure that the criteria uses the TABLE key ID instead of COL0");
+        + "sure that the criteria uses the TABLE key `ID` instead of COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "

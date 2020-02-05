@@ -52,7 +52,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -923,7 +922,7 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(ColumnRef.of(kf)))
+        .map(kf -> KeyField.of(kf))
         .orElse(KeyField.none());
 
     final DataSource dataSource;

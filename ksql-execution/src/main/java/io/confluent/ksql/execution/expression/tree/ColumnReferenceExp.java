@@ -15,22 +15,22 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import java.util.Optional;
 
 public abstract class ColumnReferenceExp extends Expression {
-  final ColumnRef name;
+  final ColumnName name;
 
   ColumnReferenceExp(
       final Optional<NodeLocation> location,
-      final ColumnRef name) {
+      final ColumnName name) {
     super(location);
     this.name = Objects.requireNonNull(name, "name");
   }
 
-  public ColumnRef getReference() {
+  public ColumnName getReference() {
     return name;
   }
 }

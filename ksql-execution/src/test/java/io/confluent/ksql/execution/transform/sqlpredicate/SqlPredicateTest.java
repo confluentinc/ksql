@@ -43,7 +43,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageTy
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -74,10 +73,10 @@ public class SqlPredicateTest {
       .build();
 
   private static final UnqualifiedColumnReferenceExp COL0 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
 
   private static final UnqualifiedColumnReferenceExp COL2 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
   private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
       SqlTypes.INTEGER,

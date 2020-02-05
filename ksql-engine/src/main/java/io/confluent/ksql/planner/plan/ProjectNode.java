@@ -22,8 +22,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -45,7 +45,7 @@ public class ProjectNode extends PlanNode {
       final PlanNode source,
       final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
-      final Optional<ColumnRef> keyFieldName
+      final Optional<ColumnName> keyFieldName
   ) {
     super(id, source.getNodeOutputType());
 

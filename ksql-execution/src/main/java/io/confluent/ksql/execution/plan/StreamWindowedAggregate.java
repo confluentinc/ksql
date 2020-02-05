@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -36,7 +36,7 @@ public class StreamWindowedAggregate
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
-  private final ImmutableList<ColumnRef> nonAggregateColumns;
+  private final ImmutableList<ColumnName> nonAggregateColumns;
   private final ImmutableList<FunctionCall> aggregationFunctions;
   private final KsqlWindowExpression windowExpression;
 
@@ -46,7 +46,7 @@ public class StreamWindowedAggregate
       ExecutionStep<KGroupedStreamHolder> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
       @JsonProperty(value = "nonAggregateColumns", required = true) final
-      List<ColumnRef> nonAggregateColumns,
+      List<ColumnName> nonAggregateColumns,
       @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions,
       @JsonProperty(value = "windowExpression", required = true) final
@@ -80,7 +80,7 @@ public class StreamWindowedAggregate
     return internalFormats;
   }
 
-  public List<ColumnRef> getNonAggregateColumns() {
+  public List<ColumnName> getNonAggregateColumns() {
     return nonAggregateColumns;
   }
 

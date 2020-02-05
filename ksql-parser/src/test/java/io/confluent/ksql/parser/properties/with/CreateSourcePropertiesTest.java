@@ -31,7 +31,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -98,7 +97,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.of(ColumnName.of("KEY")))));
+    assertThat(properties.getKeyField(), is(Optional.of(ColumnName.of("KEY"))));
   }
 
   @Test
@@ -111,7 +110,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnName.of("TS"))));
   }
 
   @Test

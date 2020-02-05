@@ -31,7 +31,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -135,7 +134,7 @@ public class DdlCommandExec {
 
   private static KeyField getKeyField(final Optional<ColumnName> keyFieldName) {
     return keyFieldName
-        .map(columnName -> KeyField.of(ColumnRef.of(columnName)))
+        .map(columnName -> KeyField.of(columnName))
         .orElseGet(KeyField::none);
   }
 

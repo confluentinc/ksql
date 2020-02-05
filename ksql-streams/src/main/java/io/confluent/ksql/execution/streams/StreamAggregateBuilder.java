@@ -34,7 +34,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowVisitor;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.time.Duration;
@@ -77,7 +77,7 @@ public final class StreamAggregateBuilder {
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
-    final List<ColumnRef> nonFuncColumns = aggregate.getNonAggregateColumns();
+    final List<ColumnName> nonFuncColumns = aggregate.getNonAggregateColumns();
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,
@@ -150,7 +150,7 @@ public final class StreamAggregateBuilder {
       final AggregateParamsFactory aggregateParamsFactory
   ) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
-    final List<ColumnRef> nonFuncColumns = aggregate.getNonAggregateColumns();
+    final List<ColumnName> nonFuncColumns = aggregate.getNonAggregateColumns();
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,

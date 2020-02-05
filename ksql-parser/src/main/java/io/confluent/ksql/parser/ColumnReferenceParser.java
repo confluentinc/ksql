@@ -25,7 +25,6 @@ import io.confluent.ksql.parser.SqlBaseParser.ColumnReferenceContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrimaryExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.QualifiedColumnReferenceContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.ParserUtil;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -47,7 +46,7 @@ public final class ColumnReferenceParser {
    * @throws ParseFailedException if the parse fails (this does not match the pattern
    *                              for a column reference
    */
-  public static ColumnRef parse(final String text) {
+  public static ColumnName parse(final String text) {
     final SqlBaseLexer lexer = new SqlBaseLexer(
         new CaseInsensitiveStream(CharStreams.fromString(text))
     );
@@ -68,9 +67,7 @@ public final class ColumnReferenceParser {
   static UnqualifiedColumnReferenceExp resolve(final ColumnReferenceContext context) {
     return new UnqualifiedColumnReferenceExp(
         getLocation(context),
-        ColumnRef.of(
-            ColumnName.of(ParserUtil.getIdentifierText(context.identifier()))
-        )
+        ColumnName.of(ParserUtil.getIdentifierText(context.identifier()))
     );
   }
 
@@ -78,9 +75,7 @@ public final class ColumnReferenceParser {
     return new QualifiedColumnReferenceExp(
         getLocation(context),
         SourceName.of(ParserUtil.getIdentifierText(context.identifier(0))),
-        ColumnRef.of(
-            ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)))
-        )
+        ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)))
     );
   }
 }

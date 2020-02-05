@@ -54,7 +54,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -132,7 +131,7 @@ public class CodeGenRunnerTest {
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
         .toConnectSchema(
-            META_STORE_SCHEMA.findValueColumn(ColumnRef.of(ColumnName.of("COL15")))
+            META_STORE_SCHEMA.findValueColumn(ColumnName.of("COL15"))
                 .get()
                 .type());
 
@@ -190,7 +189,7 @@ public class CodeGenRunnerTest {
             SourceName.of("CODEGEN_TEST"),
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of(ColumnRef.of(ColumnName.of("COL0"))),
+            KeyField.of(ColumnName.of("COL0")),
             Optional.empty(),
             false,
             ksqlTopic

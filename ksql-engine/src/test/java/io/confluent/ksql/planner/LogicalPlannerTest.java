@@ -38,7 +38,6 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -141,7 +140,7 @@ public class LogicalPlannerTest {
   private static SelectExpression selectCol(final String column, final String alias) {
     return SelectExpression.of(
         ColumnName.of(alias),
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column)))
+        new UnqualifiedColumnReferenceExp(ColumnName.of(column))
     );
   }
 
@@ -207,8 +206,8 @@ public class LogicalPlannerTest {
     assertThat(filter.getPredicate(), equalTo(
         new ComparisonExpression(
             Type.EQUAL,
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))),
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T2_COL1"))))
+            new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("T2_COL1")))
     ));
   }
 
@@ -224,7 +223,7 @@ public class LogicalPlannerTest {
     final RepartitionNode repart = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
     assertThat(
         repart.getPartitionBy(),
-        equalTo(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("T1_COL1"))))
+        equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))
     );
   }
 
@@ -346,10 +345,10 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     // Then:
-    assertThat(logicalPlan.getKeyField().ref(), is(Optional.of(ColumnRef.of(ColumnName.of("NEW_KEY")))));
+    assertThat(logicalPlan.getKeyField().ref(), is(Optional.of(ColumnName.of("NEW_KEY"))));
 
     final PlanNode source = logicalPlan.getSources().get(0);
-    assertThat(source.getKeyField().ref(), is(Optional.of(ColumnRef.of(ColumnName.of("NEW_KEY")))));
+    assertThat(source.getKeyField().ref(), is(Optional.of(ColumnName.of("NEW_KEY"))));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

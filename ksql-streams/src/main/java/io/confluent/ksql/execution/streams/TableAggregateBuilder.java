@@ -23,7 +23,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import org.apache.kafka.common.utils.Bytes;
@@ -59,7 +59,7 @@ public final class TableAggregateBuilder {
       final AggregateParamsFactory aggregateParamsFactory
   ) {
     final LogicalSchema sourceSchema = groupedTable.getSchema();
-    final List<ColumnRef> nonFuncColumns = aggregate.getNonAggregateColumns();
+    final List<ColumnName> nonFuncColumns = aggregate.getNonAggregateColumns();
     final AggregateParams aggregateParams = aggregateParamsFactory.createUndoable(
         sourceSchema,
         nonFuncColumns,

@@ -230,7 +230,8 @@ public final class PullQueryExecutor {
       try {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
-        LOG.info("Error routing query {} to host {} ", statement.getStatementText(), node, t);
+        LOG.info("Error routing query {} to host {} at timestamp {}",
+                 statement.getStatementText(), node, System.currentTimeMillis());
       }
     }
     throw new MaterializationException(String.format(
@@ -246,14 +247,15 @@ public final class PullQueryExecutor {
   ) {
 
     if (node.isLocal()) {
-      LOG.debug("Query {} executed locally at host {}.",
-               statement.getStatementText(), node.location());
+      LOG.debug("Query {} executed locally at host {} at timestamp {}.",
+               statement.getStatementText(), node.location(), System.currentTimeMillis());
       return queryRowsLocally(
           statement,
           executionContext,
           pullQueryContext);
     } else {
-      LOG.debug("Query {} routed to host {}.", statement.getStatementText(), node.location());
+      LOG.debug("Query {} routed to host {} at timestamp {}.",
+                statement.getStatementText(), node.location(), System.currentTimeMillis());
       return forwardTo(node, statement, serviceContext);
     }
   }

@@ -98,7 +98,6 @@ final class KsLocator implements Locator {
         .collect(Collectors.toList());
 
     LOG.info("Filtered and ordered hosts: {}", filteredHosts);
-    System.out.println("Filtered hosts= " + filteredHosts);
     return filteredHosts;
   }
 

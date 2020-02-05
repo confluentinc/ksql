@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.server.RoutingFilters;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -106,7 +107,12 @@ public class PullQueryExecutorTest {
           "SELECT * FROM test_table;"))));
 
       // When:
-      pullQueryExecutor.validate(query, ImmutableMap.of(), engine.getServiceContext());
+      CustomValidators.QUERY_ENDPOINT.validate(
+          query,
+          ImmutableMap.of(),
+          engine.getEngine(),
+          engine.getServiceContext()
+      );
     }
   }
 }

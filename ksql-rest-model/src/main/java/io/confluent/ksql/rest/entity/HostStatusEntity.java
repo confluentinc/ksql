@@ -27,10 +27,10 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HostStatusEntity {
 
-  private boolean hostAlive;
-  private long lastStatusUpdateMs;
-  private ImmutableMap<String, ActiveStandbyEntity> activeStandbyPerQuery;
-  private HostStoreLags hostStoreLags;
+  private final boolean hostAlive;
+  private final long lastStatusUpdateMs;
+  private final ImmutableMap<String, ActiveStandbyEntity> activeStandbyPerQuery;
+  private final HostStoreLags hostStoreLags;
 
   @JsonCreator
   public HostStatusEntity(

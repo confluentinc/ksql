@@ -202,7 +202,7 @@ public class PullQueryRoutingFunctionalTest {
     REST_APP_2.stop();
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 6000000)
   public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() {
     // Given:
     final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
@@ -228,7 +228,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
 
@@ -260,7 +260,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
   @Test(timeout = 60000)
@@ -291,7 +291,7 @@ public class PullQueryRoutingFunctionalTest {
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

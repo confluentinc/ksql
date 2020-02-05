@@ -25,8 +25,8 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TopicPartitionEntity {
 
-  private String topic;
-  private int partition;
+  private final String topic;
+  private final int partition;
 
   @JsonCreator
   public TopicPartitionEntity(

@@ -85,6 +85,7 @@ public class ClusterStatusResource {
             entry -> new KsqlHostEntity(entry.getKey().host(), entry.getKey().port()) ,
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
+                                          getActiveStandbyInformation(entry.getKey()),
                                           getHostStoreLags(entry.getKey()))
         ));
 
@@ -94,8 +95,9 @@ public class ClusterStatusResource {
 
   private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
     return lagReportingAgent
-      .flatMap(agent -> agent.getLagPerHost(ksqlHost))
+        .flatMap(agent -> agent.getLagPerHost(ksqlHost))
         .orElse(EMPTY_HOST_STORE_LAGS);
+  }
 
   private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHost ksqlHost) {
     final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
@@ -107,7 +109,7 @@ public class ClusterStatusResource {
     final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
     for (PersistentQueryMetadata persistentMetadata: currentQueries) {
       for (StreamsMetadata streamsMetadata : persistentMetadata.getAllMetadata()) {
-        if (streamsMetadata == null || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost))) {
+        if (!streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost))) {
           continue;
         }
         if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE) {

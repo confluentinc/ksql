@@ -477,12 +477,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           ErrorMessages.class
       ));
 
-      final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
-      if (ksqlConfigNoPort.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STALE_READS)) {
-        filterBuilder.add(new ActiveHostFilter());
-      }
-      filterBuilder.add(new LivenessFilter());
-      final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
+      final RoutingFilters routingFilters = initializeRoutingFilters(ksqlConfigNoPort);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -616,12 +611,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
         initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
-    final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STALE_READS)) {
-      filterBuilder.add(new ActiveHostFilter());
-    }
-    filterBuilder.add(new LivenessFilter());
-    final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
+    final RoutingFilters routingFilters = initializeRoutingFilters(ksqlConfig);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -747,6 +737,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
               .build(ksqlEngine, serviceContext));
     }
     return Optional.empty();
+  }
+
+  private static RoutingFilters initializeRoutingFilters(final KsqlConfig ksqlConfig) {
+    final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STALE_READS)) {
+      filterBuilder.add(new ActiveHostFilter());
+    }
+    filterBuilder.add(new LivenessFilter());
+    final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
+    return routingFilters;
   }
 
   private void registerCommandTopic() {

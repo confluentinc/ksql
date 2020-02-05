@@ -137,9 +137,10 @@ public final class PullQueryExecutor {
     this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
   }
 
-  public void validate(
+  public static void validate(
       final ConfiguredStatement<Query> statement,
       final Map<String, ?> sessionProperties,
+      final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));

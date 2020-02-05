@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -28,10 +29,12 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
@@ -141,5 +144,16 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement.getConfig(),
         statement.getOverrides()
     ).executeQuery(statement);
+  }
+
+  @Override
+  public QueryMetadata executeQuery(final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement, final Consumer<GenericRow> rowConsumer) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getConfig(),
+        statement.getOverrides()
+    ).executeQuery(statement, rowConsumer);
   }
 }

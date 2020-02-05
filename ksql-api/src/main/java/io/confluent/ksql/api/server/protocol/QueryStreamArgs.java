@@ -28,15 +28,12 @@ import java.util.Objects;
 public class QueryStreamArgs {
 
   public final String sql;
-  public final boolean push;
   public final JsonObject properties;
 
   public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
-      final @JsonProperty(value = "push", required = true) boolean push,
       final @JsonProperty(value = "properties")
           Map<String, Object> properties) {
     this.sql = Objects.requireNonNull(sql);
-    this.push = push;
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
   }
 
@@ -44,7 +41,6 @@ public class QueryStreamArgs {
   public String toString() {
     return "QueryStreamArgs{"
         + "sql='" + sql + '\''
-        + ", push=" + push
         + ", properties=" + properties
         + '}';
   }

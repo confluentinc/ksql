@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.api.spi;
 
-import io.vertx.core.json.JsonArray;
+import io.confluent.ksql.GenericRow;
+import java.util.List;
 import org.reactivestreams.Publisher;
 
 /**
@@ -23,21 +24,21 @@ import org.reactivestreams.Publisher;
  * query that is executed. A subscriber from the API implementation then subscribes to it, then a
  * stream of query results flows from back-end to front-end where they are written to the wire.
  */
-public interface QueryPublisher extends Publisher<JsonArray> {
+public interface QueryPublisher extends Publisher<GenericRow> {
 
   /**
-   * @return Array representing the names of the columns of the query results
+   * @return List of the names of the columns of the query results
    */
-  JsonArray getColumnNames();
+  List<String> getColumnNames();
 
   /**
-   * @return Array representing the types of the columns in the query results
+   * @return List the types of the columns in the query results
    */
-  JsonArray getColumnTypes();
+  List<String> getColumnTypes();
 
   /**
-   * @return For a pull query must return the number of rows in the results otherwise -1
+   * Close the publisher
    */
-  int getRowCount();
+  void close();
 
 }

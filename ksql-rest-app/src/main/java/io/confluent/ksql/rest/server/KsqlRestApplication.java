@@ -29,6 +29,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.api.plugin.KsqlServerEndpoints;
+import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -98,6 +102,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import io.vertx.core.Vertx;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -167,12 +172,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
 
+  // We embed this in here for now
+  private Vertx vertx = null;
+  private Server apiServer = null;
+
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
-  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final ServiceContext serviceContext,
@@ -254,6 +263,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (versionCheckerAgent != null) {
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+    if (ksqlConfigWithPort.getBoolean(KsqlConfig.KSQL_NEW_API_ENABLED)) {
+      startApiServer(ksqlConfigWithPort);
+    }
     displayWelcomeMessage();
   }
 
@@ -261,6 +273,20 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
     initialize(ksqlConfigWithPort);
+  }
+
+  void startApiServer(final KsqlConfig ksqlConfigWithPort) {
+    vertx = Vertx.vertx();
+    final Endpoints endpoints = new KsqlServerEndpoints(
+        ksqlEngine,
+        ksqlConfigWithPort,
+        securityExtension,
+        RestServiceContextFactory::create
+    );
+    final ApiServerConfig config = new ApiServerConfig(ksqlConfigWithPort.originals());
+    apiServer = new Server(vertx, config, endpoints);
+    apiServer.start();
+    log.info("KSQL New API Server started");
   }
 
   @VisibleForTesting
@@ -361,6 +387,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    if (apiServer != null) {
+      apiServer.stop();
+      apiServer = null;
+    }
+    if (vertx != null) {
+      vertx.close();
+      vertx = null;
     }
 
     shutdownAdditionalAgents();

@@ -42,6 +42,10 @@ public class GenericRow {
     return new GenericRow().appendAll(Arrays.asList(columns));
   }
 
+  public static GenericRow fromList(final List<Object> columns) {
+    return new GenericRow().appendAll(columns);
+  }
+
   /**
    * Ensure the row has enough capacity to hold {@code additionalCapacity} more elements than its
    * current size.

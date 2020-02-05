@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.util.SchemaUtil.WINDOWBOUND_TYPE;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
+
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
@@ -239,8 +243,8 @@ public final class LogicalSchema {
 
     int valueIndex = 0;
     for (final Column c : value) {
-      if (c.name().equals(SchemaUtil.WINDOWSTART_NAME)
-          || c.name().equals(SchemaUtil.WINDOWEND_NAME)
+      if (c.name().equals(WINDOWSTART_NAME)
+          || c.name().equals(WINDOWEND_NAME)
       ) {
         continue;
       }
@@ -265,9 +269,9 @@ public final class LogicalSchema {
 
       if (windowedKey) {
         builder.add(
-            Column.of(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex++));
+            Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, Namespace.VALUE, valueIndex++));
         builder.add(
-            Column.of(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT, Namespace.VALUE, valueIndex));
+            Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, Namespace.VALUE, valueIndex));
       }
     }
 

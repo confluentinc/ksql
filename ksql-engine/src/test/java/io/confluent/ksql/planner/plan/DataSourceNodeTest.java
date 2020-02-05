@@ -244,7 +244,8 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         table,
         table.getName(),
-        Collections.emptyList());
+        Collections.emptyList()
+    );
 
     // When:
     final SchemaKStream<?> result = buildStream(node);

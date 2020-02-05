@@ -83,7 +83,7 @@ public class LogicalPlanner {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     Objects.requireNonNull(analysis, "analysis");
     final ColumnReferenceRewriter refRewriter =
-        new ColumnReferenceRewriter(analysis.getFromSourceSchemas());
+        new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false));
     this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
     this.aggregateAnalysis = new RewrittenAggregateAnalysis(
         Objects.requireNonNull(aggregateAnalysis, "aggregateAnalysis"),
@@ -174,7 +174,7 @@ public class LogicalPlanner {
         : null;
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
-            expression.equals(groupBy) && !SchemaUtil.systemColumnNames().contains(alias),
+            expression.equals(groupBy) && !SchemaUtil.isSystemColumn(alias),
         sourcePlanNode.getSelectExpressions());
 
     return new AggregateNode(
@@ -418,7 +418,8 @@ public class LogicalPlanner {
     }
 
     final LogicalSchema sourceSchema = buildProjectionSchema(
-        sourcePlanNode.getSchema(),
+        sourcePlanNode.getSchema()
+            .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         sourcePlanNode.getSelectExpressions()
     );
 

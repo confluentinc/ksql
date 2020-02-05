@@ -160,6 +160,8 @@ public class StepSchemaResolverTest {
         LogicalSchema.builder()
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
+            .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+            .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
             .build())
     );
   }

@@ -188,7 +188,7 @@ public class SchemaKStream<K> {
 
     final Optional<ColumnName> filtered = found
         // System columns can not be key fields:
-        .filter(f -> !SchemaUtil.systemColumnNames().contains(f.name()))
+        .filter(f -> !SchemaUtil.isSystemColumn(f.name()))
         .map(Column::ref);
 
     return KeyField.of(filtered);

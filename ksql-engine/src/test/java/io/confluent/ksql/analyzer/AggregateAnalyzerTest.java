@@ -72,7 +72,7 @@ public class AggregateAnalyzerTest {
   @Before
   public void init() {
     analysis = new MutableAggregateAnalysis();
-    analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, functionRegistry);
+    analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, false, functionRegistry);
   }
 
   @Test
@@ -292,5 +292,29 @@ public class AggregateAnalyzerTest {
     assertThat(analysis.getAggregateFunctions(), hasSize(1));
     assertThat(analysis.getAggregateFunctions().get(0).getName(), is(emptyFunc.getName()));
     assertThat(analysis.getAggregateFunctions().get(0).getArguments(), contains(DEFAULT_ARGUMENT));
+  }
+
+  @Test
+  public void shouldNotCaptureWindowStartAsRequiredColumn() {
+    // When:
+    analyzer.processSelect(new QualifiedColumnReferenceExp(
+        ORDERS,
+        SchemaUtil.WINDOWSTART_NAME
+    ));
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), is(empty()));
+  }
+
+  @Test
+  public void shouldNotCaptureWindowEndAsRequiredColumn() {
+    // When:
+    analyzer.processSelect(new QualifiedColumnReferenceExp(
+        ORDERS,
+        SchemaUtil.WINDOWEND_NAME
+    ));
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), is(empty()));
   }
 }

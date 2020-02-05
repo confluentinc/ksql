@@ -184,8 +184,8 @@ public class ExpressionTypeManager {
     ) {
       final Optional<Column> possibleColumn = schema.findValueColumn(node.getReference());
 
-      final Column schemaColumn = possibleColumn.orElseThrow(() ->
-          new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+      final Column schemaColumn = possibleColumn
+          .orElseThrow(() -> new KsqlException("Unknown column " + node + "."));
 
       expressionTypeContext.setSqlType(schemaColumn.type());
       return null;

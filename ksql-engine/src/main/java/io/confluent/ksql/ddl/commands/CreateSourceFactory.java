@@ -172,7 +172,7 @@ public final class CreateSourceFactory {
     tableElements.forEach(e -> {
       final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
 
-      if (!isRowKey && SchemaUtil.systemColumnNames().contains(e.getName())) {
+      if (!isRowKey && SchemaUtil.isSystemColumn(e.getName())) {
         throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
       }
 

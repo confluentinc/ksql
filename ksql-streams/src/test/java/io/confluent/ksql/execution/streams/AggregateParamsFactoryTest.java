@@ -29,6 +29,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
@@ -133,7 +134,8 @@ public class AggregateParamsFactoryTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        false
     );
   }
 
@@ -220,7 +222,8 @@ public class AggregateParamsFactoryTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        ImmutableList.of(WINDOW_START)
+        ImmutableList.of(WINDOW_START),
+        false
     );
 
     // When:
@@ -272,6 +275,37 @@ public class AggregateParamsFactoryTest {
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
                 .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
                 .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .build()
+        )
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectWindowedSchema() {
+    // Given:
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        FUNCTIONS,
+        true
+    );
+
+    // When:
+    final LogicalSchema schema = aggregateParams.getSchema();
+
+    // Then:
+    assertThat(
+        schema,
+        equalTo(
+            LogicalSchema.builder()
+                .keyColumns(INPUT_SCHEMA.key())
+                .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
+                .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
+                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
+                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+                .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
                 .build()
         )
     );

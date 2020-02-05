@@ -107,7 +107,6 @@ class HighAvailabilityTestUtil {
             .collect(Collectors.toList());
       if(initialized.size() == hosts.size())
         break;
-      System.out.println(" ----------> Stream initialize " + clusterStatusResponse);
     }
     try {
       Thread.sleep(200);

@@ -283,12 +283,6 @@ public class KsqlRestConfig extends RestConfig {
         5000L,
         Importance.MEDIUM,
         KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
-    ).define(
-        KSQL_QUERY_STANDBY_ENABLE_CONFIG,
-        Type.BOOLEAN,
-        false,
-        Importance.MEDIUM,
-        KSQL_QUERY_STANDBY_ENABLE_DOC
     );
   }
 

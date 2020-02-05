@@ -13,10 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server;
+package io.confluent.ksql.execution.streams;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.util.KsqlHost;
 import java.util.Objects;
 import org.apache.kafka.streams.state.HostInfo;

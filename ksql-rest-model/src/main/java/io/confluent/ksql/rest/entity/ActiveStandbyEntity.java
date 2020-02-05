@@ -87,11 +87,11 @@ public class ActiveStandbyEntity {
 
   @Override
   public String toString() {
-    return new StringBuilder()
-        .append("Active stores = ").append(activeStores)
-        .append(", Active partitions = ").append(activePartitions)
-        .append(", Standby stores = ").append(standByStores)
-        .append(", Standby partitions = ").append(standByPartitions)
-        .toString();
+    return "ActiveStandbyEntity{"
+        + " Active stores = " + activeStores
+        + ", Active partitions = " + activePartitions
+        + ", Standby stores = " + standByStores
+        + ", Standby partitions = " + standByPartitions
+        + "}";
   }
 }

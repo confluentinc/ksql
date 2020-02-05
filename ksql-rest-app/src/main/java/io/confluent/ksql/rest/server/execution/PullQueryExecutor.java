@@ -543,7 +543,7 @@ public final class PullQueryExecutor {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getReference().name().toString(FormatOptions.noEscape());
+    final String fieldName = column.getReference().toString(FormatOptions.noEscape());
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());
@@ -568,7 +568,7 @@ public final class PullQueryExecutor {
       final Stacker contextStacker
   ) {
     final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
-        .noneMatch(ref -> SchemaUtil.systemColumnNames().contains(ref.name()));
+        .noneMatch(ref -> SchemaUtil.systemColumnNames().contains(ref));
 
     final LogicalSchema intermediateSchema;
     final Function<TableRow, GenericRow> preSelectTransform;

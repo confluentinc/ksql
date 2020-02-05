@@ -28,7 +28,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -233,6 +232,6 @@ public class TableGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
+    return new UnqualifiedColumnReferenceExp(ColumnName.of(column));
   }
 }

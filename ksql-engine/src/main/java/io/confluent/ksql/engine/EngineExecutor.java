@@ -43,7 +43,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -246,7 +245,7 @@ final class EngineExecutor {
       ddl = new CreateStreamCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref().map(ColumnRef::name),
+          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
@@ -256,7 +255,7 @@ final class EngineExecutor {
       ddl = new CreateTableCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref().map(ColumnRef::name),
+          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,

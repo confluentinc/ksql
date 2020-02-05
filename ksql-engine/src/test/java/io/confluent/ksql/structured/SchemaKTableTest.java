@@ -78,7 +78,6 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -146,9 +145,9 @@ public class SchemaKTableTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private static final Expression TEST_2_COL_1 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
   private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
   private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
 
@@ -182,7 +181,7 @@ public class SchemaKTableTest {
 
     mockKTable = EasyMock.niceMock(KTable.class);
     validKeyField = KeyField
-        .of(Optional.of(ColumnRef.of(ColumnName.of("TEST2_COL0"))));
+        .of(Optional.of(ColumnName.of("TEST2_COL0")));
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
 
@@ -237,7 +236,7 @@ public class SchemaKTableTest {
   private SchemaKTable buildSchemaKTable(final KsqlTable ksqlTable, final KTable kTable) {
     final LogicalSchema schema = ksqlTable.getSchema();
 
-    final Optional<ColumnRef> newKeyName = ksqlTable.getKeyField().ref();
+    final Optional<ColumnName> newKeyName = ksqlTable.getKeyField().ref();
 
     final KeyField keyFieldWithAlias = KeyField.of(newKeyName);
 
@@ -422,7 +421,7 @@ public class SchemaKTableTest {
         Matchers.equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ROWTIME"))),
+                new UnqualifiedColumnReferenceExp(ColumnName.of("ROWTIME")),
                 new LongLiteral(441763200000L)
             )
         )
@@ -733,7 +732,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -748,7 +747,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -763,7 +762,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -792,7 +791,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(ColumnName.of("COL0")))));
+        is(KeyField.of(ColumnName.of("COL0"))));
   }
 
   @Test
@@ -833,7 +832,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     final List<Expression> groupByExprs =  ImmutableList.of(
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")))
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
     );
 
     // When:
@@ -842,7 +841,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(ColumnName.of("COL0")))));
+        is(KeyField.of(ColumnName.of("COL0"))));
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

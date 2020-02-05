@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlParserSerializationModule extends SimpleModule {
@@ -30,8 +29,6 @@ public class KsqlParserSerializationModule extends SimpleModule {
     addSerializer(Expression.class, new ExpressionSerializer());
     addDeserializer(Expression.class, new ExpressionDeserializer<>());
     addDeserializer(FunctionCall.class, new ExpressionDeserializer<>());
-    addSerializer(ColumnRef.class, new ColumnRefSerializer());
-    addDeserializer(ColumnRef.class, new ColumnRefDeserializer());
     addSerializer(SelectExpression.class, new SelectExpressionSerializer());
     addDeserializer(SelectExpression.class, new SelectExpressionDeserializer());
     addSerializer(KsqlWindowExpression.class, new KsqlWindowExpressionSerializer());

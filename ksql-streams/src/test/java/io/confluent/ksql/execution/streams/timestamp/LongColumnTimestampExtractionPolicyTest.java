@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.junit.Test;
 
 public class LongColumnTimestampExtractionPolicyTest {
@@ -25,9 +24,9 @@ public class LongColumnTimestampExtractionPolicyTest {
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()
         .addEqualityGroup(
-            new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field1"))),
-            new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field1"))))
-        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnRef.of(ColumnName.of("field2"))))
+            new LongColumnTimestampExtractionPolicy(ColumnName.of("field1")),
+            new LongColumnTimestampExtractionPolicy(ColumnName.of("field1")))
+        .addEqualityGroup(new LongColumnTimestampExtractionPolicy(ColumnName.of("field2")))
         .testEquals();
   }
 }

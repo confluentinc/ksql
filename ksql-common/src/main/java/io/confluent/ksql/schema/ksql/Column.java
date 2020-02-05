@@ -33,7 +33,7 @@ public final class Column implements SimpleColumn {
     META
   }
 
-  private final ColumnRef ref;
+  private final ColumnName ref;
   private final SqlType type;
   private final Namespace namespace;
   private final int index;
@@ -74,11 +74,11 @@ public final class Column implements SimpleColumn {
       final Namespace namespace,
       final int indexWithinNamespace
   ) {
-    return new Column(ColumnRef.of(name), type, namespace, indexWithinNamespace);
+    return new Column(name, type, namespace, indexWithinNamespace);
   }
 
   private Column(
-      final ColumnRef ref,
+      final ColumnName ref,
       final SqlType type,
       final Namespace namespace,
       final int index
@@ -97,7 +97,7 @@ public final class Column implements SimpleColumn {
    * @return the name of the field, without any source / alias.
    */
   public ColumnName name() {
-    return ref.name();
+    return ref;
   }
 
   /**
@@ -112,7 +112,7 @@ public final class Column implements SimpleColumn {
    * @return the column reference
    */
   @Override
-  public ColumnRef ref() {
+  public ColumnName ref() {
     return ref;
   }
 

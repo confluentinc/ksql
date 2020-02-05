@@ -21,11 +21,11 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -88,7 +88,7 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-  public Optional<ColumnRef> getKeyField() {
+  public Optional<ColumnName> getKeyField() {
     return Optional.ofNullable(props.getString(CreateConfigs.KEY_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }
@@ -117,7 +117,7 @@ public final class CreateSourceProperties {
     }
   }
 
-  public Optional<ColumnRef> getTimestampColumnName() {
+  public Optional<ColumnName> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }

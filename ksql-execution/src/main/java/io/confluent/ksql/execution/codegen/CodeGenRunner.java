@@ -31,9 +31,9 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
@@ -219,11 +219,11 @@ public class CodeGenRunner {
       return null;
     }
 
-    private void addRequiredColumn(final ColumnRef columnRef) {
-      final Column column = schema.findValueColumn(columnRef)
+    private void addRequiredColumn(final ColumnName columnName) {
+      final Column column = schema.findValueColumn(columnName)
           .orElseThrow(() -> new KsqlException(
               "Cannot find the select field in the available fields."
-                  + " field: " + columnRef
+                  + " field: " + columnName
                   + ", schema: " + schema.value()));
 
       spec.addParameter(

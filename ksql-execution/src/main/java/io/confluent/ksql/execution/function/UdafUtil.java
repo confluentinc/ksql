@@ -25,7 +25,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
@@ -56,7 +55,7 @@ public final class UdafUtil {
       final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
           ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getReference())
           // assume that it is a column reference with no alias
-          : schema.findValueColumn(ColumnRef.of(ColumnName.of(arg.toString())));
+          : schema.findValueColumn(ColumnName.of(arg.toString()));
 
       final Column valueColumn = possibleValueColumn
           .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));

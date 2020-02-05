@@ -36,7 +36,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -60,7 +59,7 @@ public class Analysis implements ImmutableAnalysis {
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectExpression> selectExpressions = new ArrayList<>();
-  private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
+  private final Set<ColumnName> selectColumnNames = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<Expression> partitionBy = Optional.empty();
@@ -82,8 +81,8 @@ public class Analysis implements ImmutableAnalysis {
     selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
-  void addSelectColumnRefs(final Collection<ColumnRef> columnRefs) {
-    selectColumnRefs.addAll(columnRefs);
+  void addSelectColumnRefs(final Collection<ColumnName> columnNames) {
+    selectColumnNames.addAll(columnNames);
   }
 
   @Override
@@ -110,8 +109,8 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Set<ColumnRef> getSelectColumnRefs() {
-    return Collections.unmodifiableSet(selectColumnRefs);
+  public Set<ColumnName> getSelectColumnRefs() {
+    return Collections.unmodifiableSet(selectColumnNames);
   }
 
   @Override
@@ -200,7 +199,7 @@ public class Analysis implements ImmutableAnalysis {
 
   QualifiedColumnReferenceExp getDefaultArgument() {
     final SourceName alias = fromDataSources.get(0).getAlias();
-    return new QualifiedColumnReferenceExp(alias, ColumnRef.of(SchemaUtil.ROWTIME_NAME));
+    return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
   }
 
   void setSerdeOptions(final Set<SerdeOption> serdeOptions) {

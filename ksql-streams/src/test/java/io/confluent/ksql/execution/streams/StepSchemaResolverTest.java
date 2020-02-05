@@ -60,7 +60,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -90,7 +89,7 @@ public class StepSchemaResolverTest {
       .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
       .build();
 
-  private static final ColumnRef ORANGE_COL_REF = ColumnRef.of(ColumnName.of("ORANGE"));
+  private static final ColumnName ORANGE_COL_REF = ColumnName.of("ORANGE");
 
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       new QueryContext.Stacker().getQueryContext()
@@ -124,7 +123,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnName.of("ORANGE")),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 
@@ -148,7 +147,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedStreamSource,
         formats,
-        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnName.of("ORANGE")),
         ImmutableList.of(functionCall("SUM", "APPLE")),
         new TumblingWindowExpression(10, TimeUnit.SECONDS)
     );
@@ -270,7 +269,7 @@ public class StepSchemaResolverTest {
   public void shouldResolveSchemaForStreamSelectKey() {
     // Given:
     final Expression keyExpression =
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ORANGE")));
+        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
 
     final StreamSelectKey step = new StreamSelectKey(
         PROPERTIES,
@@ -332,7 +331,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         groupedTableSource,
         formats,
-        ImmutableList.of(ColumnRef.of(ColumnName.of("ORANGE"))),
+        ImmutableList.of(ColumnName.of("ORANGE")),
         ImmutableList.of(functionCall("SUM", "APPLE"))
     );
 
@@ -469,7 +468,7 @@ public class StepSchemaResolverTest {
     return new FunctionCall(
         FunctionName.of(name),
         ImmutableList.of(
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column))))
+            new UnqualifiedColumnReferenceExp(ColumnName.of(column)))
     );
   }
 
@@ -478,8 +477,8 @@ public class StepSchemaResolverTest {
         ColumnName.of(alias),
         new ArithmeticBinaryExpression(
             Operator.ADD,
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col1))),
-            new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col2)))
+            new UnqualifiedColumnReferenceExp(ColumnName.of(col1)),
+            new UnqualifiedColumnReferenceExp(ColumnName.of(col2))
         )
     );
   }
@@ -487,7 +486,7 @@ public class StepSchemaResolverTest {
   private static SelectExpression ref(final String alias, final String col) {
     return SelectExpression.of(
         ColumnName.of(alias),
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(col)))
+        new UnqualifiedColumnReferenceExp(ColumnName.of(col))
     );
   }
 }

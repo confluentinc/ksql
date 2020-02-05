@@ -17,13 +17,12 @@ package io.confluent.ksql.name;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 
 /**
  * The name of a column within a source.
  */
 @Immutable
-public final class ColumnName extends Name<ColumnName> {
+public class ColumnName extends Name<ColumnName> {
 
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
   private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL_";
@@ -55,9 +54,9 @@ public final class ColumnName extends Name<ColumnName> {
    */
   public static ColumnName generatedJoinColumnAlias(
       final SourceName sourceName,
-      final ColumnRef ref
+      final ColumnName ref
   ) {
-    return ColumnName.of(sourceName.name() + "_" + ref.name().name());
+    return ColumnName.of(sourceName.name() + "_" + ref.name());
   }
 
   @JsonCreator
@@ -65,7 +64,7 @@ public final class ColumnName extends Name<ColumnName> {
     return new ColumnName(name);
   }
 
-  private ColumnName(final String name) {
+  protected ColumnName(final String name) {
     super(name);
   }
 

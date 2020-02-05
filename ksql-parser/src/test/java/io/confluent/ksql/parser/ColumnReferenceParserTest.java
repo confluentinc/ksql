@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.junit.Test;
 
 public class ColumnReferenceParserTest {
@@ -27,18 +26,18 @@ public class ColumnReferenceParserTest {
   @Test
   public void shouldParseUnquotedIdentifier() {
     // When:
-    final ColumnRef result = ColumnReferenceParser.parse("foo");
+    final ColumnName result = ColumnReferenceParser.parse("foo");
 
     // Then:
-    assertThat(result.name(), is(ColumnName.of("FOO")));
+    assertThat(result, is(ColumnName.of("FOO")));
   }
 
   @Test
   public void shouldParseQuotedIdentifier() {
     // When:
-    final ColumnRef result = ColumnReferenceParser.parse("`foo`");
+    final ColumnName result = ColumnReferenceParser.parse("`foo`");
 
     // Then:
-    assertThat(result.name(), is(ColumnName.of("foo")));
+    assertThat(result, is(ColumnName.of("foo")));
   }
 }

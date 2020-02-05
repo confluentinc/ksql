@@ -37,7 +37,6 @@ import org.junit.rules.ExpectedException;
 
 public class ColumnTest {
 
-  private static final SourceName SOME_SOURCE = SourceName.of("SomeSource");
   private static final ColumnName SOME_NAME = ColumnName.of("SomeName");
   private static final ColumnName SOME_OHTER_NAME = ColumnName.of("SOMENAME");
 
@@ -50,7 +49,6 @@ public class ColumnTest {
     new NullPointerTester()
         .setDefault(SqlType.class, BIGINT)
         .setDefault(ColumnName.class, SOME_NAME)
-        .setDefault(ColumnRef.class, ColumnRef.of(SOME_NAME))
         .testAllPublicStaticMethods(Column.class);
   }
 

@@ -35,7 +35,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -357,15 +356,15 @@ public class InsertValuesExecutor {
       final Map<ColumnName, Object> values,
       final KeyField keyField
   ) {
-    final Optional<ColumnRef> keyFieldName = keyField.ref();
+    final Optional<ColumnName> keyFieldName = keyField.ref();
     if (keyFieldName.isPresent()) {
-      final ColumnRef key = keyFieldName.get();
-      final Object keyValue = values.get(key.name());
+      final ColumnName key = keyFieldName.get();
+      final Object keyValue = values.get(key);
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
         if (keyValue == null) {
-          values.put(key.name(), rowKeyValue);
+          values.put(key, rowKeyValue);
         } else {
           values.put(SchemaUtil.ROWKEY_NAME, keyValue);
         }
@@ -379,7 +378,7 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
-        .findColumn(ColumnRef.of(column))
+        .findColumn(column)
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }

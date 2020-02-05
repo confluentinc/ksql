@@ -4,7 +4,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -45,7 +44,7 @@ public final class TestExpressions {
   public static final UnqualifiedColumnReferenceExp COL7 = columnRef("COL7");
 
   private static UnqualifiedColumnReferenceExp columnRef(final String name) {
-    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(name)));
+    return new UnqualifiedColumnReferenceExp(ColumnName.of(name));
   }
 
   public static Expression literal(final int value) {

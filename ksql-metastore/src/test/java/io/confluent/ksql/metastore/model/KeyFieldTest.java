@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -39,7 +38,7 @@ public class KeyFieldTest {
       .valueColumn(ColumnName.of("field1"), SqlTypes.BIGINT)
       .build();
 
-  private static final ColumnRef VALID_COL_REF = SCHEMA.value().get(0).ref();
+  private static final ColumnName VALID_COL_REF = SCHEMA.value().get(0).ref();
   private static final SqlType VALID_COL_TYPE = SCHEMA.value().get(0).type();
 
   @Rule
@@ -48,25 +47,25 @@ public class KeyFieldTest {
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
-    final ColumnRef keyField = ColumnRef.of(ColumnName.of("key"));
+    final ColumnName keyField = ColumnName.of("key");
 
     new EqualsTester()
         .addEqualityGroup(KeyField.of(keyField), KeyField.of(keyField))
         .addEqualityGroup(KeyField.of(Optional.empty()))
-        .addEqualityGroup(KeyField.of(ColumnRef.of(ColumnName.of("different"))))
+        .addEqualityGroup(KeyField.of(ColumnName.of("different")))
         .testEquals();
   }
 
   @Test
   public void shouldHandleNonEmpty() {
     // Given:
-    final ColumnRef columnRef = ColumnRef.of(ColumnName.of("something"));
+    final ColumnName columnName = ColumnName.of("something");
 
     // When:
-    final KeyField keyField = KeyField.of(columnRef);
+    final KeyField keyField = KeyField.of(columnName);
 
     // Then:
-    assertThat(keyField.ref(), is(Optional.of(columnRef)));
+    assertThat(keyField.ref(), is(Optional.of(columnName)));
   }
 
   @Test
@@ -93,7 +92,7 @@ public class KeyFieldTest {
   @Test
   public void shouldThrowOnValidateIfKeyNotInSchema() {
     // Given:
-    final KeyField keyField = KeyField.of(ColumnRef.of(ColumnName.of("????")));
+    final KeyField keyField = KeyField.of(ColumnName.of("????"));
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
@@ -117,7 +116,7 @@ public class KeyFieldTest {
   @Test
   public void shouldThrowOnResolveIfSchemaDoesNotContainKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(ColumnRef.of(ColumnName.of("not found")));
+    final KeyField keyField = KeyField.of(ColumnName.of("not found"));
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
@@ -149,7 +148,7 @@ public class KeyFieldTest {
 
     // Then:
     assertThat(resolved, is(not(Optional.empty())));
-    assertThat(resolved.get(), is(valueColumn(VALID_COL_REF.name(), VALID_COL_TYPE)));
+    assertThat(resolved.get(), is(valueColumn(VALID_COL_REF, VALID_COL_TYPE)));
   }
 
   @Test

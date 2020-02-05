@@ -217,7 +217,6 @@ public final class PullQueryExecutor {
     final Locator locator = pullQueryContext.mat.locator();
     final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
         pullQueryContext.rowKey,
-        heartbeatAgent.map(HeartbeatAgent::getHostsStatus).orElse(ImmutableMap.of()),
         routingFilters
     );
 

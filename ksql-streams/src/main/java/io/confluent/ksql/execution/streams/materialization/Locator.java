@@ -16,11 +16,8 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.execution.streams.RoutingFilter;
-import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -43,7 +40,6 @@ public interface Locator {
    */
   List<KsqlNode> locate(
       Struct key,
-      Map<KsqlHost, HostStatus> allHostsStatus,
       RoutingFilter routingFilters
   );
 

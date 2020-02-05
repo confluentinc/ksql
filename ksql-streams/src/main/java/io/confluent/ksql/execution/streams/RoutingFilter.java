@@ -1,4 +1,4 @@
-/*
+/*o
  * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
-import java.util.Map;
 import org.apache.kafka.streams.state.HostInfo;
 
 /**
@@ -28,7 +26,6 @@ import org.apache.kafka.streams.state.HostInfo;
 public interface RoutingFilter {
 
   boolean filter(
-      Map<KsqlHost, HostStatus> allHostsStatus,
       HostInfo activeHost,
       KsqlHost hostInfo,
       String storeName,

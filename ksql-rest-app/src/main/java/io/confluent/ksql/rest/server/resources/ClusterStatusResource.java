@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
@@ -28,13 +30,9 @@ import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -64,9 +62,9 @@ public class ClusterStatusResource {
       final KsqlEngine engine,
       final HeartbeatAgent heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent) {
-    this.engine = Objects.requireNonNull(engine, "engine");
-    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
-    this.lagReportingAgent = Objects.requireNonNull(lagReportingAgent, "lagReportingAgent");
+    this.engine = requireNonNull(engine, "engine");
+    this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
   @GET
@@ -100,38 +98,52 @@ public class ClusterStatusResource {
   }
 
   private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHost ksqlHost) {
-    final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
-    if (currentQueries.isEmpty()) {
-      // empty response
-      return Collections.emptyMap();
+    return engine.getPersistentQueries().stream()
+    .flatMap(persistentQueryMetadata -> persistentQueryMetadata.getAllMetadata()
+        .stream()
+        .map(streamsMetadata -> new QueryIdAndSteamMetadata(
+            persistentQueryMetadata.getQueryId().toString(), streamsMetadata)))
+        .filter(queryIdAndSteamMetadata ->
+                    queryIdAndSteamMetadata.streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(queryIdAndSteamMetadata ->
+                    queryIdAndSteamMetadata.streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost)))
+        .collect(Collectors.toMap(queryIdAndSteamMetadata ->
+                                      queryIdAndSteamMetadata.queryId ,
+                                      QueryIdAndSteamMetadata::toActiveStandbyEntity));
+  }
+
+  private static final class QueryIdAndSteamMetadata {
+
+    final String queryId;
+    final StreamsMetadata streamsMetadata;
+
+    QueryIdAndSteamMetadata(
+        final String queryId,
+        final StreamsMetadata streamsMetadata
+    ) {
+      this.queryId = requireNonNull(queryId, "queryId");
+      this.streamsMetadata = requireNonNull(streamsMetadata, "md");
     }
 
-    final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
-    for (PersistentQueryMetadata persistentMetadata: currentQueries) {
-      for (StreamsMetadata streamsMetadata : persistentMetadata.getAllMetadata()) {
-        if (!streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost))) {
-          continue;
-        }
-        if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE) {
-          continue;
-        }
-        final ActiveStandbyEntity entity = new ActiveStandbyEntity(
-            streamsMetadata.stateStoreNames(),
-            streamsMetadata.topicPartitions()
-                .stream()
-                .map(topicPartition -> new TopicPartitionEntity(
-                    topicPartition.topic(), topicPartition.partition()))
-                .collect(Collectors.toSet()),
-            streamsMetadata.standbyStateStoreNames(),
-            streamsMetadata.standbyTopicPartitions()
-                .stream()
-                .map(topicPartition -> new TopicPartitionEntity(
-                    topicPartition.topic(), topicPartition.partition()))
-                .collect(Collectors.toSet()));
-        perQueryMap.put((persistentMetadata).getQueryApplicationId(), entity);
-      }
+    public ActiveStandbyEntity toActiveStandbyEntity() {
+      final Set<TopicPartitionEntity> activePartitions = streamsMetadata.topicPartitions()
+          .stream()
+          .map(topicPartition -> new TopicPartitionEntity(
+              topicPartition.topic(), topicPartition.partition()))
+          .collect(Collectors.toSet());
+
+      final Set<TopicPartitionEntity> standByPartitions = streamsMetadata.standbyTopicPartitions()
+          .stream()
+          .map(topicPartition -> new TopicPartitionEntity(
+              topicPartition.topic(), topicPartition.partition()))
+          .collect(Collectors.toSet());
+
+      return new ActiveStandbyEntity(
+          streamsMetadata.stateStoreNames(),
+          activePartitions,
+          streamsMetadata.standbyStateStoreNames(),
+          standByPartitions);
     }
-    return perQueryMap;
   }
 
   private HostInfo asHostInfo(final KsqlHost ksqlHost) {

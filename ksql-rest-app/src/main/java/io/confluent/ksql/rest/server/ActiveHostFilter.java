@@ -16,9 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.execution.streams.RoutingFilter;
-import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
-import java.util.Map;
 import org.apache.kafka.streams.state.HostInfo;
 
 /**
@@ -32,7 +30,6 @@ public class ActiveHostFilter implements RoutingFilter {
   /**
    * Returns true if the host is alive. If the heartbeat agent is not enabled, all hosts are
    * assumed to be alive.
-   * @param allHostsStatus status of all hosts as provided by heartbeat agent
    * @param activeHost the active host for a particular state store
    * @param host The host for which the status is checked
    * @param storeName Ignored
@@ -41,7 +38,6 @@ public class ActiveHostFilter implements RoutingFilter {
    */
   @Override
   public boolean filter(
-      final Map<KsqlHost, HostStatus> allHostsStatus,
       final HostInfo activeHost,
       final KsqlHost host,
       final String storeName,

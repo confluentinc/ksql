@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -30,7 +29,6 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -83,8 +81,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
-  private final Optional<HeartbeatAgent> heartbeatAgent;
-  private final RoutingFilter routingFilters;
+  private final PullQueryExecutor pullQueryExecutor;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -94,8 +91,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this(
         ksqlEngine,
@@ -106,8 +102,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         activenessRegistrar,
         authorizationValidator,
         errorHandler,
-        heartbeatAgent,
-        routingFilters
+        pullQueryExecutor
     );
   }
 
@@ -123,8 +118,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -138,8 +132,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
-    this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
+    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
   }
 
   @Override
@@ -246,8 +239,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement,streamsProperties, ksqlConfig);
 
-    final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, heartbeatAgent, routingFilters);
     final TableRowsEntity entity = pullQueryExecutor
         .execute(configured, serviceContext);
 

@@ -94,8 +94,6 @@ public class PullQueryExecutorTest {
           ImmutableMap.of(),
           engine.getKsqlConfig()
       );
-      PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), Optional.empty(), new RoutingFilters(ImmutableList.of()));
 
       // Then:
       expectedException.expect(KsqlRestException.class);

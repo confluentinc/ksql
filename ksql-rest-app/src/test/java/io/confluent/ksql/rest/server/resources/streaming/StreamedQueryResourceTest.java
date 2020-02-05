@@ -57,6 +57,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.RoutingFilters;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -151,11 +152,13 @@ public class StreamedQueryResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Errors errorsHandler;
+
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
   private PreparedStatement<Query> query;
   private PreparedStatement<PrintTopic> print;
   private KsqlSecurityContext securityContext;
+  private PullQueryExecutor pullQueryExecutor;
 
   @Before
   public void setup() {
@@ -172,6 +175,8 @@ public class StreamedQueryResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
+    pullQueryExecutor = new PullQueryExecutor(
+        mockKsqlEngine, Optional.empty(), new RoutingFilters(ImmutableList.of()));
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -181,8 +186,7 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        Optional.empty(),
-        new RoutingFilters(ImmutableList.of())
+        pullQueryExecutor
     );
 
     testResource.configure(VALID_CONFIG);
@@ -209,8 +213,7 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        Optional.empty(),
-        new RoutingFilters(ImmutableList.of())
+        pullQueryExecutor
     );
 
     // Then:

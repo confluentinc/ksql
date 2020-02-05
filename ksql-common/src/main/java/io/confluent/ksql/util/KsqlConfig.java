@@ -167,15 +167,18 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable or disable transient pull queries on a specific KSQL server.";
   public static final boolean KSQL_QUERY_PULL_ENABLE_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PULL_ENABLE_STALE_READS =
+  public static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS =
         "ksql.query.pull.enable.stale.reads";
-  private static final String KSQL_QUERY_PULL_ENABLE_STALE_READS_DOC =
+  private static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
       "Config to enable/disable forwarding pull queries to standby hosts when the active is dead. "
-          + "Effectively, the accuracy of pull queries is sacrificed for higher availability. "
+          + "This means that stale values may be returned for these queries since standby hosts"
+          + "receive updates from the changelog topic (to which the active writes to) "
+          + "asynchronously. Turning on this configuration, effectively sacrifices "
+          + "consistency for higher availability.  "
           + "Possible values are \"true\", \"false\". Setting to \"true\" guarantees high "
           + "availability for pull queries. If set to \"false\", pull queries will fail when"
           + "the active is dead and until a new active is elected. Default value is \"false\". ";
-  public static final boolean KSQL_QUERY_PULL_ENABLE_STALE_READS_DEFAULT = false;
+  public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
 
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
@@ -522,11 +525,11 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_QUERY_PULL_ENABLE_DOC
         ).define(
-            KSQL_QUERY_PULL_ENABLE_STALE_READS,
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS,
             Type.BOOLEAN,
-            KSQL_QUERY_PULL_ENABLE_STALE_READS_DEFAULT,
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT,
             Importance.MEDIUM,
-            KSQL_QUERY_PULL_ENABLE_STALE_READS_DOC
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
         ).define(
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
             ConfigDef.Type.LONG,

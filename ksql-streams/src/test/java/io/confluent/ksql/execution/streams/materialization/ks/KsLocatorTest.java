@@ -130,19 +130,18 @@ public class KsLocatorTest {
         "KeyQueryMetadata not available for state store someStoreName and key Struct{}");
 
     // When:
-    locator.locate(SOME_KEY, allHostsStatus, livenessFilter);
+    locator.locate(SOME_KEY, livenessFilter);
   }
 
   @Test
   public void shouldReturnOwnerIfKnown() {
     // Given:
     getActiveAndStandbyMetadata();
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, allHostsStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     final Optional<URI> url = result.stream().findFirst().map(KsqlNode::location);
@@ -159,12 +158,11 @@ public class KsLocatorTest {
     final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
     final Map<KsqlHost, HostStatus> hostStatus = ImmutableMap.of(localHost, HOST_ALIVE);
     getActiveAndStandbyMetadata(localHostInfo);
-    when(livenessFilter.filter(
-        eq(hostStatus), eq(localHostInfo), eq(localHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, hostStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
@@ -177,12 +175,11 @@ public class KsLocatorTest {
     final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
     final Map<KsqlHost, HostStatus> hostStatus = ImmutableMap.of(localHost, HOST_ALIVE);
     getActiveAndStandbyMetadata(localHostInfo);
-    when(livenessFilter.filter(
-        eq(hostStatus), eq(localHostInfo), eq(localHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, hostStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
@@ -195,12 +192,11 @@ public class KsLocatorTest {
     final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
     final Map<KsqlHost, HostStatus> hostStatus = ImmutableMap.of(localHost, HOST_ALIVE);
     getActiveAndStandbyMetadata(localHostInfo);
-    when(livenessFilter.filter(
-        eq(hostStatus), eq(localHostInfo), eq(localHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, hostStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
@@ -213,12 +209,11 @@ public class KsLocatorTest {
     final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
     final Map<KsqlHost, HostStatus> hostStatus = ImmutableMap.of(localHost, HOST_ALIVE);
     getActiveAndStandbyMetadata(localHostInfo);
-    when(livenessFilter.filter(
-        eq(hostStatus), eq(localHostInfo), eq(localHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, hostStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
@@ -231,12 +226,11 @@ public class KsLocatorTest {
     final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
     final Map<KsqlHost, HostStatus> hostStatus = ImmutableMap.of(localHost, HOST_ALIVE);
     getActiveAndStandbyMetadata(localHostInfo);
-    when(livenessFilter.filter(
-        eq(hostStatus), eq(localHostInfo), eq(localHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, hostStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
@@ -246,18 +240,15 @@ public class KsLocatorTest {
   public void shouldReturnActiveAndStandBysWhenHeartBeatNotEnabled() {
     // Given:
     getActiveAndStandbyMetadata();
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
         .thenReturn(true);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
         .thenReturn(true);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, allHostsStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.size(), is(3));
@@ -269,18 +260,15 @@ public class KsLocatorTest {
   public void shouldReturnStandBysWhenActiveDown() {
     // Given:
     getActiveAndStandbyMetadata();
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
         .thenReturn(false);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
         .thenReturn(true);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, allHostsStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.size(), is(2));
@@ -291,18 +279,15 @@ public class KsLocatorTest {
   public void shouldReturnOneStandByWhenActiveAndOtherStandByDown() {
     // Given:
     getActiveAndStandbyMetadata();
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(activeHost), anyString(), anyInt()))
         .thenReturn(false);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost1), anyString(), anyInt()))
         .thenReturn(false);
-    when(livenessFilter.filter(
-        eq(allHostsStatus), eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
+    when(livenessFilter.filter(eq(activeHostInfo), eq(standByHost2), anyString(), anyInt()))
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, allHostsStatus, livenessFilter);
+    final List<KsqlNode> result = locator.locate(SOME_KEY, livenessFilter);
 
     // Then:
     assertThat(result.size(), is(1));

@@ -103,10 +103,11 @@ class HighAvailabilityTestUtil {
                   .get(hostInfo))
               .map(hostStatusEntity -> hostStatusEntity
                   .getActiveStandbyPerQuery()
-                  .get(queryId)).isPresent())
+                  .isEmpty()).isPresent())
             .collect(Collectors.toList());
       if(initialized.size() == hosts.size())
         break;
+      System.out.println(" ----------> Stream initialize " + clusterStatusResponse);
     }
     try {
       Thread.sleep(200);

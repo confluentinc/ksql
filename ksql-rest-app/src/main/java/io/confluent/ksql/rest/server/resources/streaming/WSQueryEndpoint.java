@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -30,7 +29,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -103,8 +101,7 @@ public class WSQueryEndpoint {
   private final ServerState serverState;
   private final Errors errorHandler;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
-  private final Optional<HeartbeatAgent> heartbeatAgent;
-  private final RoutingFilter routingFilters;
+  private final PullQueryExecutor pullQueryExecutor;
 
   private WebSocketSubscriber<?> subscriber;
   private KsqlSecurityContext securityContext;
@@ -125,8 +122,7 @@ public class WSQueryEndpoint {
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this(ksqlConfig,
         mapper,
@@ -146,8 +142,7 @@ public class WSQueryEndpoint {
         RestServiceContextFactory::create,
         serverState,
         schemaRegistryClientFactory,
-        heartbeatAgent,
-        routingFilters
+        pullQueryExecutor
     );
   }
 
@@ -172,8 +167,7 @@ public class WSQueryEndpoint {
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final ServerState serverState,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -200,8 +194,7 @@ public class WSQueryEndpoint {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
-    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
-    this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
+    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
   }
 
   @SuppressWarnings("unused")
@@ -413,8 +406,7 @@ public class WSQueryEndpoint {
           exec,
           configured,
           streamSubscriber,
-          heartbeatAgent,
-          routingFilters
+          pullQueryExecutor
       );
     } else {
       pushQueryPublisher.start(
@@ -476,14 +468,13 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final PullQueryExecutor pullQueryExecutor
 
   ) {
     new PullQueryPublisher(
         serviceContext,
         query,
-        new PullQueryExecutor(ksqlEngine, heartbeatAgent, routingFilters)
+        pullQueryExecutor
     ).subscribe(streamSubscriber);
   }
 
@@ -517,8 +508,7 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
-        Optional<HeartbeatAgent> heartbeatAgent,
-        RoutingFilter routingFilters);
+        PullQueryExecutor pullQueryExecutor);
 
   }
 

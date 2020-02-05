@@ -22,12 +22,10 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHost;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,7 +64,6 @@ final class KsLocator implements Locator {
   @Override
   public List<KsqlNode> locate(
       final Struct key,
-      final Map<KsqlHost, HostStatus> allHostsStatus,
       final RoutingFilter routingFilters
   ) {
     final KeyQueryMetadata metadata = kafkaStreams
@@ -84,7 +81,7 @@ final class KsLocator implements Locator {
     final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
     LOG.info("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
 
-    final Stream<KsqlHost> active = Stream.of(asKsqlHost((activeHost)));
+    final Stream<KsqlHost> active = Stream.of(asKsqlHost(activeHost));
     final Stream<KsqlHost> standby = standByHosts
         .stream()
         .map(this::asKsqlHost);
@@ -96,7 +93,7 @@ final class KsLocator implements Locator {
     // If heartbeat is not enabled, all hosts are considered alive.
     final List<KsqlNode> filteredHosts = hostStream
         .filter(hostInfo -> routingFilters.filter(
-              allHostsStatus, activeHost, hostInfo, stateStoreName, metadata.getPartition()))
+              activeHost, hostInfo, stateStoreName, metadata.getPartition()))
         .map(this::asNode)
         .collect(Collectors.toList());
 

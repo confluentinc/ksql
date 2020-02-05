@@ -40,7 +40,6 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -59,7 +58,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.time.Duration;
@@ -136,8 +135,8 @@ public class StreamAggregateBuilderTest {
       new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
   private static final QueryContext MATERIALIZE_CTX = QueryContext.Stacker.of(CTX)
       .push("Materialize").getQueryContext();
-  private static final FormatInfo KEY_FORMAT = FormatInfo.of(Format.KAFKA.name());
-  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(Format.JSON.name());
+  private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
+  private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
   private static final Duration WINDOW = Duration.ofMillis(30000);
   private static final Duration HOP = Duration.ofMillis(10000);
 
@@ -243,7 +242,7 @@ public class StreamAggregateBuilderTest {
     aggregate = new StreamAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );
@@ -265,7 +264,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new TumblingWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
@@ -277,7 +276,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new HoppingWindowExpression(
@@ -301,7 +300,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new SessionWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)

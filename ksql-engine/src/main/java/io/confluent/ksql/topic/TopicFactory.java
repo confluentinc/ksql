@@ -18,7 +18,7 @@ package io.confluent.ksql.topic;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -39,9 +39,9 @@ public final class TopicFactory {
 
     final KeyFormat keyFormat = windowType
         .map(type -> KeyFormat
-            .windowed(FormatInfo.of(Format.KAFKA.name()), WindowInfo.of(type, windowSize)))
+            .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), WindowInfo.of(type, windowSize)))
         .orElseGet(() -> KeyFormat
-            .nonWindowed(FormatInfo.of(Format.KAFKA.name())));
+            .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
 
     final ValueFormat valueFormat = ValueFormat.of(properties.getFormatInfo());
 

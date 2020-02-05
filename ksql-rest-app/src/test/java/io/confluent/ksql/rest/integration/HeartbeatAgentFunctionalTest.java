@@ -25,7 +25,7 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlHostEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -82,7 +82,7 @@ public class HeartbeatAgentFunctionalTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, Format.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,

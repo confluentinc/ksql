@@ -127,7 +127,7 @@ public class DataGenProducer {
 
   private Serializer<Struct> getKeySerializer() {
     final PersistenceSchema schema = PersistenceSchema
-        .from(RowGenerator.KEY_SCHEMA, keySerializerFactory.format().supportsUnwrapping());
+        .from(RowGenerator.KEY_SCHEMA, keySerializerFactory.format().supportsWrapping());
 
     return keySerializerFactory.create(schema);
   }

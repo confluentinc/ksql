@@ -19,28 +19,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class FormatTest {
+public class FormatFactoryTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldCreateFromString() {
-    assertThat(Format.of(FormatInfo.of("JsoN")), is(Format.JSON));
-    assertThat(Format.of(FormatInfo.of("AvRo")), is(Format.AVRO));
-    assertThat(Format.of(FormatInfo.of("Delimited")), is(Format.DELIMITED));
-  }
-
-  @Test
-  public void shouldHaveCorrectToString() {
-    assertThat(Format.JSON.toString(), is("JSON"));
-    assertThat(Format.AVRO.toString(), is("AVRO"));
-    assertThat(Format.DELIMITED.toString(), is("DELIMITED"));
+    assertThat(FormatFactory.of(FormatInfo.of("JsoN")), is(FormatFactory.JSON));
+    assertThat(FormatFactory.of(FormatInfo.of("AvRo")), is(FormatFactory.AVRO));
+    assertThat(FormatFactory.of(FormatInfo.of("Delimited")), is(FormatFactory.DELIMITED));
   }
 
   @Test
@@ -50,33 +44,33 @@ public class FormatTest {
     expectedException.expectMessage("Unknown format: BOB");
 
     // When:
-    Format.of(FormatInfo.of("bob"));
+    FormatFactory.of(FormatInfo.of("bob"));
   }
 
   @Test
   public void shouldThrowOnNonAvroWithAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "foo"));
+    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"));
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("JSON does not support the following configs: [fullSchemaName]");
 
     // When:
-    Format.of(format);
+    FormatFactory.of(format);
   }
 
   @Test
   public void shouldThrowOnEmptyAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, " "));
+    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, " "));
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("fullSchemaName cannot be empty. Format configuration: {fullSchemaName= }");
 
     // When:
-    Format.of(format);
+    FormatFactory.of(format);
   }
 
   @Test
@@ -89,7 +83,7 @@ public class FormatTest {
     expectedException.expectMessage("JSON does not support the following configs: [delimiter]");
 
     // When:
-    Format.of(format);
+    FormatFactory.of(format);
 
   }
 

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.materialization.ks;
 
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -582,7 +582,7 @@ public class KsMaterializationFunctionalTest {
         + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
         + "    key = '" + USER_DATA_PROVIDER.key() + "'"
         + ");"
     );
@@ -591,7 +591,7 @@ public class KsMaterializationFunctionalTest {
         + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
         + "    key = '" + USER_DATA_PROVIDER.key() + "'"
         + ");"
     );

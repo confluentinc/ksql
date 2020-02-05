@@ -38,9 +38,10 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -93,7 +94,7 @@ public class TopicDeleteInjectorTest {
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(source.getKsqlTopic()).thenReturn(topic);
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON.name())));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
   }
 
   @Test
@@ -141,7 +142,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO.name())));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
@@ -245,7 +246,8 @@ public class TopicDeleteInjectorTest {
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "foo"))));
+        .thenReturn(ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"))));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

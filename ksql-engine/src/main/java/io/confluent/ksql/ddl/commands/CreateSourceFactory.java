@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -110,7 +109,8 @@ public final class CreateSourceFactory {
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }
@@ -143,7 +143,8 @@ public final class CreateSourceFactory {
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }

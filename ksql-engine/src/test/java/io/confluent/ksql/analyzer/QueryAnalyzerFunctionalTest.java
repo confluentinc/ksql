@@ -48,7 +48,7 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
@@ -524,7 +524,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
-        is(Format.DELIMITED));
+        is(FormatFactory.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

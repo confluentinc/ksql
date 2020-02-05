@@ -34,7 +34,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -124,7 +124,7 @@ public class ListQueriesExecutorTest {
     when(metadata.getExecutionPlan()).thenReturn("plan");
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
 

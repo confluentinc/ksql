@@ -50,7 +50,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -112,8 +112,8 @@ public class JoinNodeTest {
       RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withMetaAndKeyColsInValue(false)
   );
 
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
-  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED.name()));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name()));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;

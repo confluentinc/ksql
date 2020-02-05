@@ -40,7 +40,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
@@ -155,12 +155,12 @@ public class StreamSelectKeyBuilderTest {
 
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
-        FormatInfo.of(Format.JSON.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.JSON.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext);
   }

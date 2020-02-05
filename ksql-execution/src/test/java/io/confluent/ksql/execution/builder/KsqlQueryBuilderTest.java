@@ -37,12 +37,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
@@ -72,7 +73,7 @@ public class KsqlQueryBuilderTest {
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "io.confluent.ksql"));
+      .of(FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql"));
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));

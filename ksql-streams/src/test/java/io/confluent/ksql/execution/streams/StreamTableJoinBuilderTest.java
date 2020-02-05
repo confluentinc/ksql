@@ -15,7 +15,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -26,7 +25,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import org.apache.kafka.common.serialization.Serde;
@@ -58,9 +57,10 @@ public class StreamTableJoinBuilderTest {
   private static final PhysicalSchema LEFT_PHYSICAL =
       PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
 
-  private static final Formats LEFT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA.name()),
-      FormatInfo.of(Format.JSON.name()),
+  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
 
@@ -100,7 +100,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON.name())), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any())).thenReturn(
@@ -253,6 +253,6 @@ public class StreamTableJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON.name()), LEFT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 }

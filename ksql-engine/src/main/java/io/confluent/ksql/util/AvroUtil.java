@@ -18,10 +18,10 @@ package io.confluent.ksql.util;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
@@ -37,9 +37,9 @@ public final class AvroUtil {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig
   ) {
-    final Formats formats = ddl.getFormats();
+    final io.confluent.ksql.execution.plan.Formats formats = ddl.getFormats();
     final FormatInfo format = formats.getValueFormat();
-    if (Format.valueOf(format.getFormat()) != Format.AVRO) {
+    if (FormatFactory.of(format) != FormatFactory.AVRO) {
       return;
     }
 
@@ -50,7 +50,7 @@ public final class AvroUtil {
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
         format.getProperties()
-            .getOrDefault(FormatInfo.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+            .getOrDefault(AvroFormat.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
         ksqlConfig
     );
 

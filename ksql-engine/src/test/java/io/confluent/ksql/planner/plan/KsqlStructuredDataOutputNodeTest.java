@@ -37,10 +37,11 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -75,7 +76,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .of(ColumnName.of("key"));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
-  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
+  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -179,8 +180,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
-        .of(FormatInfo.FULL_SCHEMA_NAME, "name")));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+        .of(AvroFormat.FULL_SCHEMA_NAME, "name")));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 

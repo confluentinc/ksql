@@ -30,7 +30,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -147,7 +147,7 @@ public final class TestCaseBuilderUtil {
 
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<org.apache.avro.Schema> avroSchema;
-      if (valueFormat.getFormat() == Format.AVRO) {
+      if (valueFormat.getFormat() == FormatFactory.AVRO) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(

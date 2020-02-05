@@ -60,6 +60,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -232,7 +233,8 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA.name()), w.getWindowInfo()))
+          .map(w -> KeyFormat.windowed(
+              FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)
@@ -264,7 +266,7 @@ class Analyzer {
 
     private Format getValueFormat(final Sink sink) {
       return sink.getProperties().getValueFormat()
-          .orElseGet(() -> Format.of(getSourceInfo()));
+          .orElseGet(() -> FormatFactory.of(getSourceInfo()));
     }
 
     private FormatInfo getSourceInfo() {
@@ -612,7 +614,7 @@ class Analyzer {
     public void validate() {
       final String kafkaSources = analysis.getFromDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
-              == Format.KAFKA)
+              == FormatFactory.KAFKA)
           .map(AliasedDataSource::getAlias)
           .map(SourceName::name)
           .collect(Collectors.joining(", "));

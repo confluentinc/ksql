@@ -29,9 +29,6 @@ import java.util.Optional;
 @Immutable
 public final class FormatInfo {
 
-  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
-  public static final String DELIMITER = "delimiter";
-
   private final String format;
   private final ImmutableMap<String, String> properties;
 

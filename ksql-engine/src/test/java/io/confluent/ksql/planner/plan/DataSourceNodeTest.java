@@ -45,7 +45,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -116,8 +116,8 @@ public class DataSourceNodeTest {
         false,
       new KsqlTopic(
           "topic",
-          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-          ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
       )
   );
 
@@ -235,8 +235,8 @@ public class DataSourceNodeTest {
         false,
         new KsqlTopic(
             "topic2",
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-            ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
         )
     );
 
@@ -381,7 +381,7 @@ public class DataSourceNodeTest {
   }
 
   private void givenWindowedSource(final boolean windowed) {
-    final FormatInfo format = FormatInfo.of(Format.KAFKA.name());
+    final FormatInfo format = FormatInfo.of(FormatFactory.KAFKA.name());
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat.windowed(format, WindowInfo.of(WindowType.SESSION, Optional.empty()))

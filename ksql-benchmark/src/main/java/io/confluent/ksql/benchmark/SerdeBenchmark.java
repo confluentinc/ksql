@@ -23,9 +23,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.InputStream;
@@ -158,7 +159,7 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema
     ) {
       return getGenericRowSerde(
-          FormatInfo.of(Format.JSON.name()),
+          FormatInfo.of(FormatFactory.JSON.name()),
           schema,
           () -> null
       );
@@ -171,7 +172,8 @@ public class SerdeBenchmark {
 
       return getGenericRowSerde(
           FormatInfo.of(
-              Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "benchmarkSchema")),
+              FormatFactory.AVRO.name(),
+              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "benchmarkSchema")),
           schema,
           () -> schemaRegistryClient
       );

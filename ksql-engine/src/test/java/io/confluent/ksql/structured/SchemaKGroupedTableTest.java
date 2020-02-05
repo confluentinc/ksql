@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -34,7 +33,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -74,8 +73,8 @@ public class SchemaKGroupedTableTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON.name()));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -152,7 +151,7 @@ public class SchemaKGroupedTableTest {
             ExecutionStepFactory.tableAggregate(
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
-                Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                 NON_AGG_COLUMNS,
                 ImmutableList.of(SUM, COUNT)
             )

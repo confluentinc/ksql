@@ -22,6 +22,10 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
@@ -47,14 +51,14 @@ public final class SerdeUtil {
       final Format format,
       final LogicalSchema schema
   ) {
-    switch (format) {
-      case AVRO:
+    switch (format.name()) {
+      case AvroFormat.NAME:
         return new ValueSpecAvroSerdeSupplier();
-      case JSON:
+      case JsonFormat.NAME:
         return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
+      case DelimitedFormat.NAME:
         return new StringSerdeSupplier();
-      case KAFKA:
+      case KafkaFormat.NAME:
         return new KafkaSerdeSupplier(schema);
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);

@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -36,8 +35,8 @@ public class FormatInfoTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            FormatInfo.of("DELIMITED", ImmutableMap.of(FormatInfo.DELIMITER, "x")),
-            FormatInfo.of("DELIMITED", ImmutableMap.of(FormatInfo.DELIMITER, "x"))
+            FormatInfo.of("DELIMITED", ImmutableMap.of("prop", "x")),
+            FormatInfo.of("DELIMITED", ImmutableMap.of("prop", "x"))
         )
         .addEqualityGroup(
             FormatInfo.of("DELIMITED"),
@@ -47,7 +46,7 @@ public class FormatInfoTest {
             FormatInfo.of("AVRO")
         )
         .addEqualityGroup(
-            FormatInfo.of("DELIMITED", ImmutableMap.of(FormatInfo.DELIMITER, "|"))
+            FormatInfo.of("DELIMITED", ImmutableMap.of("prop", "|"))
         )
         .testEquals();
   }
@@ -55,7 +54,7 @@ public class FormatInfoTest {
   @Test
   public void shouldImplementToStringAvro() {
     // Given:
-    final FormatInfo info = FormatInfo.of("AVRO", ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo info = FormatInfo.of("AVRO", ImmutableMap.of("property", "something"));
 
     // When:
     final String result = info.toString();

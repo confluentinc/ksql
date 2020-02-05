@@ -36,7 +36,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.util.KsqlConfig;
@@ -188,7 +188,7 @@ public class KsqlResourceFunctionalTest {
             0,
             0L,
             123L)),
-        Format.AVRO,
+        FormatFactory.AVRO,
         schema
     );
   }

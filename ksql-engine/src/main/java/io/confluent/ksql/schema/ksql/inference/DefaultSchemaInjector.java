@@ -29,10 +29,10 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.IdentifierUtil;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -74,14 +74,20 @@ public class DefaultSchemaInjector implements Injector {
     final ConfiguredStatement<CreateSource> createStatement =
         (ConfiguredStatement<CreateSource>) statement;
 
-    return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
+    try {
+      return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+    }
   }
 
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
     if (hasElements(statement)
-        || statement.getStatement().getProperties().getValueFormat() != Format.AVRO) {
+        || !statement.getStatement().getProperties().getValueFormat().supportsSchemaInference()) {
       return Optional.empty();
     }
 

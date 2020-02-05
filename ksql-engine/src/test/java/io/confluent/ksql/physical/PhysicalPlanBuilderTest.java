@@ -37,7 +37,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -256,7 +256,7 @@ public class PhysicalPlanBuilderTest {
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
     assertThat(persistentQuery.getResultTopic().getValueFormat().getFormat(),
-        equalTo(Format.DELIMITED));
+        equalTo(FormatFactory.DELIMITED));
   }
 
   @Test

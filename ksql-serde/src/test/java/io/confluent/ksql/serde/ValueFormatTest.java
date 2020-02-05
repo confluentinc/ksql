@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.serde;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import org.junit.Test;
 
 public class ValueFormatTest {
@@ -31,7 +32,7 @@ public class ValueFormatTest {
   private static final FormatInfo FORMAT_INFO =
       FormatInfo.of(
           AVRO.name(),
-          ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "something")
+          ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")
       );
 
   @Test
@@ -74,7 +75,7 @@ public class ValueFormatTest {
     final Format result = valueFormat.getFormat();
 
     // Then:
-    assertThat(result, is(Format.of(FORMAT_INFO)));
+    assertThat(result, is(FormatFactory.of(FORMAT_INFO)));
   }
 
   @Test

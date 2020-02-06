@@ -31,13 +31,13 @@ import java.util.function.Function;
 /**
  * A RoutingFilter that filters hosts based upon changelog processing lag.
  */
-public final class MaxAllowedLagFilter implements RoutingFilter {
+public final class MaximumLagFilter implements RoutingFilter {
 
   private final ImmutableMap<KsqlHostInfo, Optional<LagInfoEntity>> lagByHost;
   private final RoutingOptions routingOptions;
   private final OptionalLong maxEndOffset;
 
-  private MaxAllowedLagFilter(
+  private MaximumLagFilter(
       final RoutingOptions routingOptions,
       final ImmutableMap<KsqlHostInfo, Optional<LagInfoEntity>> lagByHost,
       final OptionalLong maxEndOffset
@@ -74,7 +74,7 @@ public final class MaxAllowedLagFilter implements RoutingFilter {
    * @param partition The partition of the topic
    * @return a new FreshnessFilter, unless lag reporting is disabled.
    */
-  public static Optional<MaxAllowedLagFilter> create(
+  public static Optional<MaximumLagFilter> create(
       final Optional<LagReportingAgent> lagReportingAgent,
       final RoutingOptions routingOptions,
       final List<KsqlHostInfo> hosts,
@@ -98,6 +98,6 @@ public final class MaxAllowedLagFilter implements RoutingFilter {
         .map(Optional::get)
         .mapToLong(LagInfoEntity::getEndOffsetPosition)
         .max();
-    return Optional.of(new MaxAllowedLagFilter(routingOptions, lagByHost, maxEndOffset));
+    return Optional.of(new MaximumLagFilter(routingOptions, lagByHost, maxEndOffset));
   }
 }

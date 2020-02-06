@@ -19,7 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MaxAllowedLagFilterTest {
+public class MaximumLagFilterTest {
 
   private static KsqlHostInfo HOST = new KsqlHostInfo("host", 8088);
   private static KsqlHostInfo HOST2 = new KsqlHostInfo("host2", 8088);
@@ -35,7 +35,7 @@ public class MaxAllowedLagFilterTest {
   @Mock
   private RoutingOptions routingOptions;
 
-  private MaxAllowedLagFilter filter;
+  private MaximumLagFilter filter;
 
   @Before
   public void setUp() {
@@ -56,7 +56,7 @@ public class MaxAllowedLagFilterTest {
     when(routingOptions.getOffsetLagAllowed()).thenReturn(13L);
 
     // When:
-    filter = MaxAllowedLagFilter.create(
+    filter = MaximumLagFilter.create(
         Optional.of(lagReportingAgent), routingOptions, HOSTS, APPLICATION_ID, STATE_STORE,
         PARTITION).get();
 
@@ -72,7 +72,7 @@ public class MaxAllowedLagFilterTest {
     when(routingOptions.getOffsetLagAllowed()).thenReturn(11L);
 
     // When:
-    filter = MaxAllowedLagFilter.create(
+    filter = MaximumLagFilter.create(
         Optional.of(lagReportingAgent), routingOptions, HOSTS, APPLICATION_ID, STATE_STORE,
         PARTITION).get();
 
@@ -89,7 +89,7 @@ public class MaxAllowedLagFilterTest {
     when(routingOptions.getOffsetLagAllowed()).thenReturn(13L);
 
     // When:
-    filter = MaxAllowedLagFilter.create(
+    filter = MaximumLagFilter.create(
         Optional.of(lagReportingAgent), routingOptions, HOSTS, APPLICATION_ID, STATE_STORE,
         PARTITION).get();
 
@@ -100,7 +100,7 @@ public class MaxAllowedLagFilterTest {
   @Test
   public void filter_lagReportingDisabled() {
     // When:
-    Optional<MaxAllowedLagFilter> filterOptional = MaxAllowedLagFilter.create(
+    Optional<MaximumLagFilter> filterOptional = MaximumLagFilter.create(
         Optional.empty(), routingOptions, HOSTS, APPLICATION_ID, STATE_STORE, PARTITION);
 
     // Then:

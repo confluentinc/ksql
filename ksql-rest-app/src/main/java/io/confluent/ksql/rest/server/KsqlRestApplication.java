@@ -752,7 +752,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         filterBuilder.add(new ActiveHostFilter(active));
       }
       filterBuilder.add(new LivenessFilter(heartbeatAgent));
-      MaxAllowedLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+      MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
           storeName, partition)
           .map(filterBuilder::add);
       return new RoutingFilters(filterBuilder.build());

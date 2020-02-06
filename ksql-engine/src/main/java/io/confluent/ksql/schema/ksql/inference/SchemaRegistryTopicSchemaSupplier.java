@@ -16,21 +16,18 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.links.DocumentationLinks;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.avro.Schema.Parser;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Schema;
 
@@ -40,29 +37,26 @@ import org.apache.kafka.connect.data.Schema;
 public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   private final SchemaRegistryClient srClient;
-  private final Function<String, org.apache.avro.Schema> toAvroTranslator;
-  private final Function<org.apache.avro.Schema, Schema> toConnectTranslator;
   private final Function<Schema, Schema> toKsqlTranslator;
+  private final Function<String, Format> formatFactory;
 
   public SchemaRegistryTopicSchemaSupplier(final SchemaRegistryClient srClient) {
     this(
         srClient,
-        schema -> new Parser().parse(schema),
-        new AvroData(new AvroDataConfig(Collections.emptyMap()))::toConnectSchema,
-        new ConnectSchemaTranslator()::toKsqlSchema);
+        new ConnectSchemaTranslator()::toKsqlSchema,
+        FormatFactory::fromName
+    );
   }
 
   @VisibleForTesting
   SchemaRegistryTopicSchemaSupplier(
       final SchemaRegistryClient srClient,
-      final Function<String, org.apache.avro.Schema> toAvroTranslator,
-      final Function<org.apache.avro.Schema, Schema> toConnectTranslator,
-      final Function<Schema, Schema> toKsqlTranslator
+      final Function<Schema, Schema> toKsqlTranslator,
+      final Function<String, Format> formatFactory
   ) {
     this.srClient = Objects.requireNonNull(srClient, "srClient");
-    this.toAvroTranslator = Objects.requireNonNull(toAvroTranslator, "toAvroTranslator");
-    this.toConnectTranslator = Objects.requireNonNull(toConnectTranslator, "toConnectTranslator");
     this.toKsqlTranslator = Objects.requireNonNull(toKsqlTranslator, "toKsqlTranslator");
+    this.formatFactory = Objects.requireNonNull(formatFactory, "formatFactory");
   }
 
   @Override
@@ -100,30 +94,13 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final int id,
       final ParsedSchema parsedSchema
   ) {
-
     try {
-      final Schema connectSchema;
-
-      switch (parsedSchema.schemaType()) {
-        case AvroSchema.TYPE:
-          connectSchema = toConnectSchema(parsedSchema.canonicalString());
-          break;
-        case "JSON":
-        case "PROTOBUF":
-        default:
-          throw new KsqlException("Unsupported schema type: " + parsedSchema.schemaType());
-      }
-
+      final Format format = formatFactory.apply(parsedSchema.schemaType());
+      final Schema connectSchema = toKsqlTranslator.apply(format.toConnectSchema(parsedSchema));
       return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, id));
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e);
     }
-  }
-
-  private Schema toConnectSchema(final String avroSchemaString) {
-    final org.apache.avro.Schema avroSchema = toAvroTranslator.apply(avroSchemaString);
-    final Schema connectSchema = toConnectTranslator.apply(avroSchema);
-    return toKsqlTranslator.apply(connectSchema);
   }
 
   private static SchemaResult notFound(final String topicName) {

@@ -51,7 +51,7 @@
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY DATA;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}, "timestamp": 1},
         {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}, "timestamp": 2},
@@ -167,7 +167,7 @@
         "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
         {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
@@ -260,7 +260,7 @@
         "CREATE TABLE TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
         {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
@@ -368,7 +368,7 @@
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY DATA;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "value": {"DATA": "d1"}},
         {"topic": "test_topic", "value": {"DATA": "d2"}},

@@ -2,6 +2,7 @@
   "tests": [
     {
       "name": "connect example schema (twitter)",
+      "format": "AVRO",
       "schema": {
         "type": "record",
         "name": "Status",

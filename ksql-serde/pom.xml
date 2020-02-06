@@ -50,10 +50,19 @@
             <version>${confluent.version}</version>
         </dependency>
 
-	<dependency>
-		<groupId>io.confluent</groupId>
-		<artifactId>kafka-connect-avro-converter</artifactId>
-		<version>${confluent.version}</version>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-converter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-protobuf-provider</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-protobuf-converter</artifactId>
         </dependency>
 
         <dependency>

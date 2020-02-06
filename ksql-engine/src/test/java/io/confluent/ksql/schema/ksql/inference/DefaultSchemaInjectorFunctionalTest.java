@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
@@ -69,7 +69,7 @@ public class DefaultSchemaInjectorFunctionalTest {
   @Mock
   private SchemaRegistryClient srClient;
   @Mock
-  private ParsedSchema schema;
+  private AvroSchema avroSchema;
   @Mock
   private MetaStore metaStore;
   private DefaultSchemaInjector schemaInjector;
@@ -499,9 +499,9 @@ public class DefaultSchemaInjectorFunctionalTest {
     try {
       when(srClient.getLatestSchemaMetadata(any()))
           .thenReturn(new SchemaMetadata(1, 1, avroSchema.toString()));
-      when(srClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(schema);
-      when(schema.schemaType()).thenReturn("AVRO");
-      when(schema.canonicalString()).thenReturn(avroSchema.toString());
+      when(srClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(this.avroSchema);
+      when(this.avroSchema.schemaType()).thenReturn("AVRO");
+      when(this.avroSchema.rawSchema()).thenReturn(avroSchema);
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

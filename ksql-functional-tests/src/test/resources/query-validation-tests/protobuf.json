@@ -1,0 +1,52 @@
+{
+  "tests": [
+    {
+      "name": "protobuf primitives",
+      "statements": [
+        "CREATE STREAM INPUT (i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [{"topic": "input", "value": {"i": 1, "l": 1, "d": 1.2, "b": true, "s": "foo"}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.2, "B": true, "S": "foo"}}]
+    },
+    {
+      "name": "protobuf containers",
+      "statements": [
+        "CREATE STREAM INPUT (astr ARRAY<STRING>, mstr MAP<STRING, STRING>) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [{"topic": "input", "value": {"astr": ["1", "2"], "mstr": {"1": "a"}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"ASTR": ["1", "2"], "MSTR": {"1": "a"}}}]
+    },
+    {
+      "name": "protobuf defaults - top level nulls are defaulted to 0",
+      "statements": [
+        "CREATE STREAM INPUT (i INTEGER) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": 0}},
+        {"topic": "input", "value": {"i": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": 0}},
+        {"topic": "OUTPUT", "value": {"I": 0}}
+      ]
+    },
+    {
+      "name": "protobuf defaults - nested nulls are defaulted to 0",
+      "statements": [
+        "CREATE STREAM INPUT (i ARRAY<INTEGER>) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": [0]}},
+        {"topic": "input", "value": {"i": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": [0]}},
+        {"topic": "OUTPUT", "value": {"I": []}}
+      ]
+    }
+  ]
+}

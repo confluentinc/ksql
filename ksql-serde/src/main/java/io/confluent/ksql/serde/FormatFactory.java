@@ -19,6 +19,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.util.KsqlException;
 
 /**
@@ -28,6 +29,7 @@ public final class FormatFactory {
 
   public static final Format AVRO       = new AvroFormat();
   public static final Format JSON       = new JsonFormat();
+  public static final Format PROTOBUF   = new ProtobufFormat();
   public static final Format KAFKA      = new KafkaFormat();
   public static final Format DELIMITED  = new DelimitedFormat();
 
@@ -46,10 +48,11 @@ public final class FormatFactory {
     return format;
   }
 
-  private static Format fromName(final String name) {
+  public static Format fromName(final String name) {
     switch (name) {
       case AvroFormat.NAME:       return AVRO;
       case JsonFormat.NAME:       return JSON;
+      case ProtobufFormat.NAME:   return PROTOBUF;
       case KafkaFormat.NAME:      return KAFKA;
       case DelimitedFormat.NAME:  return DELIMITED;
       default:

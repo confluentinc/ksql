@@ -104,6 +104,7 @@
         <csv.version>1.4</csv.version>
         <lang3.version>3.3.1</lang3.version>
         <guava.version>24.1.1-jre</guava.version>
+        <protobuf.version>3.11.1</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -284,6 +285,19 @@
                 <artifactId>common-utils</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-protobuf-provider</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-protobuf-converter</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
             <!-- End Confluent dependencies -->
 
             <dependency>
@@ -302,6 +316,18 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
             </dependency>
 
             <dependency>

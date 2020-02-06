@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -195,7 +194,7 @@ public final class StreamAggregateBuilder {
         () -> new KsTransformer<>(new WindowBoundsPopulator()),
         Named.as(StreamsUtil.buildOpName(
             AggregateBuilderUtils.windowSelectContext(aggregate)
-        ) + "2")
+        ))
     );
 
     materializationBuilder.map(
@@ -203,20 +202,6 @@ public final class StreamAggregateBuilder {
         resultSchema,
         AggregateBuilderUtils.windowSelectContext(aggregate)
     );
-
-    final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
-    if (windowSelectMapper.hasSelects()) {
-      reduced = reduced.transformValues(
-          () -> new KsTransformer<>(windowSelectMapper.getTransformer()),
-          Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.windowSelectContext(aggregate)))
-      );
-
-      materializationBuilder.map(
-          pl -> (KsqlTransformer) windowSelectMapper.getTransformer(),
-          resultSchema,
-          AggregateBuilderUtils.windowSelectContext(aggregate)
-      );
-    }
 
     return KTableHolder.materialized(
         reduced,

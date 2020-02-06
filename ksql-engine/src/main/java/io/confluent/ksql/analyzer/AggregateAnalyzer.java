@@ -110,7 +110,7 @@ class AggregateAnalyzer {
     if (SchemaUtil.isWindowBound(node.getReference())) {
       throw new KsqlException(
           "Window bounds column " + node + " can only be used in the SELECT clause of "
-              + "windowed aggregations."
+              + "windowed aggregations and can not be passed to aggregate functions."
               + System.lineSeparator()
               + "See https://github.com/confluentinc/ksql/issues/4397"
       );

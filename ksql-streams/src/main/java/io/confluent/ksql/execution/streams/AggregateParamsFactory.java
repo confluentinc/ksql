@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -110,7 +109,6 @@ public class AggregateParamsFactory {
         new KudafInitializer(nonAggregateColumns.size(), initialValueSuppliers),
         aggregatorFactory.create(nonAggregateColumns.size(), functions),
         undoAggregator,
-        new WindowSelectMapper(nonAggregateColumns.size(), functions),
         aggregateSchema,
         outputSchema
     );

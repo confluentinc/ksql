@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +26,6 @@ public final class AggregateParams {
   private final KudafInitializer initializer;
   private final KudafAggregator aggregator;
   private final Optional<KudafUndoAggregator> undoAggregator;
-  private final WindowSelectMapper windowSelectMapper;
   private final LogicalSchema aggregateSchema;
   private final LogicalSchema schema;
 
@@ -35,14 +33,11 @@ public final class AggregateParams {
       final KudafInitializer initializer,
       final KudafAggregator aggregator,
       final Optional<KudafUndoAggregator> undoAggregator,
-      final WindowSelectMapper windowSelectMapper,
       final LogicalSchema aggregateSchema,
       final LogicalSchema schema) {
     this.initializer = Objects.requireNonNull(initializer, "initializer");
     this.aggregator = Objects.requireNonNull(aggregator, "aggregator");
     this.undoAggregator = Objects.requireNonNull(undoAggregator, "undoAggregator");
-    this.windowSelectMapper
-        = Objects.requireNonNull(windowSelectMapper, "windowSelectMapper");
     this.aggregateSchema = Objects.requireNonNull(aggregateSchema, "aggregateSchema");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
@@ -58,10 +53,6 @@ public final class AggregateParams {
 
   Optional<KudafUndoAggregator> getUndoAggregator() {
     return undoAggregator;
-  }
-
-  WindowSelectMapper getWindowSelectMapper() {
-    return windowSelectMapper;
   }
 
   public LogicalSchema getSchema() {

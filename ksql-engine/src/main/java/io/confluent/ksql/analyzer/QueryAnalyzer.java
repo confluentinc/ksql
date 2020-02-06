@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -213,16 +214,13 @@ public class QueryAnalyzer {
           "GROUP BY requires columns using aggregate functions in SELECT clause.");
     }
 
-    final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
+    final Set<Expression> groupByExprs = getGroupByExpressions(analysis);
 
     final List<String> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
         .entrySet()
         .stream()
         // Remove any that exactly match a group by expression:
         .filter(e -> !groupByExprs.contains(e.getKey()))
-        // Remove any window bounds expressions, which are implicit:
-        .filter(e -> !(e.getKey() instanceof ColumnReferenceExp
-            && SchemaUtil.isWindowBound(((ColumnReferenceExp) e.getKey()).getReference())))
         // Remove any that are constants,
         // or expressions where all params exactly match a group by expression:
         .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
@@ -252,5 +250,24 @@ public class QueryAnalyzer {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);
     }
+  }
+
+  private static Set<Expression> getGroupByExpressions(final Analysis analysis) {
+    if (!analysis.getWindowExpression().isPresent()) {
+      return ImmutableSet.copyOf(analysis.getGroupByExpressions());
+    }
+
+    // Add in window bounds columns as implicit group by columns:
+    final AliasedDataSource source = Iterables.getOnlyElement(analysis.getFromDataSources());
+
+    final Set<QualifiedColumnReferenceExp> windowBoundColumnRefs =
+        SchemaUtil.windowBoundsColumnNames().stream()
+            .map(cn -> new QualifiedColumnReferenceExp(source.getAlias(), cn))
+            .collect(Collectors.toSet());
+
+    return ImmutableSet.<Expression>builder()
+        .addAll(analysis.getGroupByExpressions())
+        .addAll(windowBoundColumnRefs)
+        .build();
   }
 }

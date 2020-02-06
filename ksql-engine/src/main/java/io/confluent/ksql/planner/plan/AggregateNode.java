@@ -360,10 +360,6 @@ public class AggregateNode extends PlanNode {
     }
 
     private Expression resolveToInternal(final Expression exp) {
-      if (isWindowBound(exp)) {
-        return exp;
-      }
-
       final ColumnName name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
         return new UnqualifiedColumnReferenceExp(
@@ -372,15 +368,6 @@ public class AggregateNode extends PlanNode {
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
-    }
-
-    private static boolean isWindowBound(final Expression exp) {
-      if (!(exp instanceof ColumnReferenceExp)) {
-        return false;
-      }
-
-      final ColumnReferenceExp column = (ColumnReferenceExp)exp;
-      return SchemaUtil.isWindowBound(column.getReference());
     }
 
     private final class ResolveToInternalRewriter
@@ -404,9 +391,15 @@ public class AggregateNode extends PlanNode {
         }
 
         final boolean isAggregate = node.getReference().isAggregate();
+        final boolean windowBounds = SchemaUtil.isWindowBound(node.getReference());
 
-        if (!isAggregate) {
-          throw new KsqlException("Unknown source column: " + node.toString());
+        if (isAggregate && windowBounds) {
+          throw new KsqlException("Window bound " + node + " is not available as a parameter "
+              + "to aggregate functions");
+        }
+
+        if (!isAggregate && !windowBounds) {
+          throw new KsqlException("Unknown source column: " + node);
         }
 
         return Optional.of(node);

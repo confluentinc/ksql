@@ -97,7 +97,9 @@ public class ClusterStatusResource {
         .orElse(EMPTY_HOST_STORE_LAGS);
   }
 
-  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHostInfo ksqlHostInfo) {
+  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(
+      final KsqlHostInfo ksqlHostInfo
+  ) {
     return engine.getPersistentQueries().stream()
     .flatMap(persistentQueryMetadata -> persistentQueryMetadata.getAllMetadata()
         .stream()

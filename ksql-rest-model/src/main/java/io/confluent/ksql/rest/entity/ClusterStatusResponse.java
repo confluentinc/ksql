@@ -33,7 +33,8 @@ public final class ClusterStatusResponse {
 
   @JsonCreator
   public ClusterStatusResponse(
-      @JsonProperty("clusterStatus") final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus) {
+      @JsonProperty("clusterStatus")
+      final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus) {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
   }
 

@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -40,7 +39,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -84,7 +82,6 @@ public class KsLocatorTest {
   private KsqlNode activeNode;
   private KsqlNode standByNode1;
   private KsqlNode standByNode2;
-  private Map<KsqlHostInfo, HostStatus> allHostsStatus;
   private RoutingFilters routingStandbyFilters;
   private RoutingFilters routingActiveFilters;
   private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
@@ -107,12 +104,6 @@ public class KsLocatorTest {
     activeNode = locator.asNode(activeHost);
     standByNode1 = locator.asNode(standByHost1);
     standByNode2 = locator.asNode(standByHost2);
-
-    allHostsStatus = ImmutableMap.of(
-        activeHost, HOST_ALIVE,
-        standByHost1, HOST_ALIVE,
-        standByHost2, HOST_ALIVE
-    );
 
     routingStandbyFilters = new RoutingFilters(ImmutableList.of(livenessFilter));
     routingActiveFilters = new RoutingFilters(ImmutableList.of(activeFilter, livenessFilter));

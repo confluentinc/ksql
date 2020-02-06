@@ -50,8 +50,8 @@ public class HeartbeatResource {
 
   private void handleHeartbeat(final HeartbeatMessage request) {
     final KsqlHostInfoEntity ksqlHostInfoEntity = request.getHostInfo();
-    final KsqlHostInfo ksqlHostInfo = new KsqlHostInfo(ksqlHostInfoEntity.getHost(), ksqlHostInfoEntity
-        .getPort());
+    final KsqlHostInfo ksqlHostInfo = new KsqlHostInfo(
+        ksqlHostInfoEntity.getHost(), ksqlHostInfoEntity.getPort());
     final long timestamp = request.getTimestamp();
     heartbeatAgent.receiveHeartbeat(ksqlHostInfo, timestamp);
   }

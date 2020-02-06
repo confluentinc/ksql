@@ -22,7 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
@@ -79,17 +79,16 @@ final class KsLocator implements Locator {
 
     final HostInfo activeHost = metadata.getActiveHost();
     final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
-    LOG.info("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
+    LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
 
-    final Stream<KsqlHost> active = Stream.of(asKsqlHost(activeHost));
-    final Stream<KsqlHost> standby = standByHosts
+    final Stream<KsqlHostInfo> active = Stream.of(asKsqlHost(activeHost));
+    final Stream<KsqlHostInfo> standby = standByHosts
         .stream()
         .map(this::asKsqlHost);
-    final Stream<KsqlHost> hostStream = Stream.concat(active, standby);
+    final Stream<KsqlHostInfo> hostStream = Stream.concat(active, standby);
 
-    // Filter out hosts based on liveness and lag filters.
-    // The list is ordered by routing preference: active node is first, then standby nodes
-    // in order of increasing lag.
+    // Filter out hosts based on active and liveness filters.
+    // The list is ordered by routing preference: active node is first, then standby nodes.
     // If heartbeat is not enabled, all hosts are considered alive.
     final List<KsqlNode> filteredHosts = hostStream
         .filter(hostInfo -> routingFilters.filter(
@@ -97,24 +96,24 @@ final class KsLocator implements Locator {
         .map(this::asNode)
         .collect(Collectors.toList());
 
-    LOG.info("Filtered and ordered hosts: {}", filteredHosts);
+    LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
     return filteredHosts;
   }
 
   @VisibleForTesting
-  KsqlHost asKsqlHost(final HostInfo hostInfo) {
-    return new KsqlHost(hostInfo.host(), hostInfo.port());
+  KsqlHostInfo asKsqlHost(final HostInfo hostInfo) {
+    return new KsqlHostInfo(hostInfo.host(), hostInfo.port());
   }
 
   @VisibleForTesting
-  KsqlNode asNode(final KsqlHost host) {
+  KsqlNode asNode(final KsqlHostInfo host) {
     return new Node(
         isLocalHost(host),
         buildLocation(host)
     );
   }
 
-  private boolean isLocalHost(final KsqlHost hostInfo) {
+  private boolean isLocalHost(final KsqlHostInfo hostInfo) {
     if (hostInfo.port() != localHost.getPort()) {
       return false;
     }
@@ -123,7 +122,7 @@ final class KsLocator implements Locator {
         || hostInfo.host().equalsIgnoreCase("localhost");
   }
 
-  private URI buildLocation(final KsqlHost remoteInfo) {
+  private URI buildLocation(final KsqlHostInfo remoteInfo) {
     try {
       return new URL(
           localHost.getProtocol(),

@@ -35,7 +35,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -91,9 +91,9 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
-  private static final KsqlHostEntity host0 = new KsqlHostEntity("localhost", 8088);
-  private static final KsqlHostEntity host1 = new KsqlHostEntity("localhost",8089);
-  private static final KsqlHostEntity host2 = new KsqlHostEntity("localhost",8087);
+  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8088);
+  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8089);
+  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8087);
   private static final String USER_TOPIC = "user_topic";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
@@ -344,22 +344,22 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   static class ClusterFormation {
-    Pair<KsqlHostEntity, TestKsqlRestApp> active;
-    Pair<KsqlHostEntity, TestKsqlRestApp> standBy;
-    Pair<KsqlHostEntity, TestKsqlRestApp> router;
+    Pair<KsqlHostInfoEntity, TestKsqlRestApp> active;
+    Pair<KsqlHostInfoEntity, TestKsqlRestApp> standBy;
+    Pair<KsqlHostInfoEntity, TestKsqlRestApp> router;
 
     ClusterFormation() {
     }
 
-    public void setActive(final Pair<KsqlHostEntity, TestKsqlRestApp> active) {
+    public void setActive(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> active) {
       this.active = active;
     }
 
-    public void setStandBy(final Pair<KsqlHostEntity, TestKsqlRestApp> standBy) {
+    public void setStandBy(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> standBy) {
       this.standBy = standBy;
     }
 
-    public void setRouter(final Pair<KsqlHostEntity, TestKsqlRestApp> router) {
+    public void setRouter(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> router) {
       this.router = router;
     }
 

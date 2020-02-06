@@ -13,7 +13,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
@@ -23,7 +23,7 @@ import io.confluent.ksql.rest.server.LagReportingAgent.SendLagService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.time.Clock;
@@ -40,13 +40,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class LagReportingAgentTest {
   private static long TIME_NOW_MS = 100;
   private static final String LOCALHOST_URL = "http://localhost:8088";
-  private static KsqlHostEntity LOCALHOST_INFO = new KsqlHostEntity("localhost", 8088);
-  private static KsqlHost HOST1 = new KsqlHost("host1", 1234);
-  private static KsqlHost HOST2 = new KsqlHost("host2", 1234);
-  private static KsqlHostEntity HOST_ENTITY1 = new KsqlHostEntity("host1", 1234);
-  private static KsqlHostEntity HOST_ENTITY2 = new KsqlHostEntity("host2", 1234);
-  private static KsqlHost HI1 = new KsqlHost("host1", 1234);
-  private static KsqlHost HI2 = new KsqlHost("host2", 1234);
+  private static KsqlHostInfoEntity LOCALHOST_INFO = new KsqlHostInfoEntity("localhost", 8088);
+  private static KsqlHostInfo HOST1 = new KsqlHostInfo("host1", 1234);
+  private static KsqlHostInfo HOST2 = new KsqlHostInfo("host2", 1234);
+  private static KsqlHostInfoEntity HOST_ENTITY1 = new KsqlHostInfoEntity("host1", 1234);
+  private static KsqlHostInfoEntity HOST_ENTITY2 = new KsqlHostInfoEntity("host2", 1234);
+  private static KsqlHostInfo HI1 = new KsqlHostInfo("host1", 1234);
+  private static KsqlHostInfo HI2 = new KsqlHostInfo("host2", 1234);
   private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
       new HostStoreLags(ImmutableMap.of(), 0);
   private static final ImmutableMap<String, ActiveStandbyEntity> EMPTY_ACTIVE_STANDBY_PER_QUERY =
@@ -65,20 +65,20 @@ public class LagReportingAgentTest {
       false, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
 
 
-  private static ImmutableMap<KsqlHost, HostStatus> HOSTS_ALIVE
-      = ImmutableMap.<KsqlHost, HostStatus>builder()
+  private static ImmutableMap<KsqlHostInfo, HostStatus> HOSTS_ALIVE
+      = ImmutableMap.<KsqlHostInfo, HostStatus>builder()
       .put(HOST1, HOST1_STATUS_ALIVE)
       .put(HOST2, HOST2_STATUS_ALIVE)
       .build();
 
-  private static ImmutableMap<KsqlHost, HostStatus> HOSTS_HOST1_DEAD
-      = ImmutableMap.<KsqlHost, HostStatus>builder()
+  private static ImmutableMap<KsqlHostInfo, HostStatus> HOSTS_HOST1_DEAD
+      = ImmutableMap.<KsqlHostInfo, HostStatus>builder()
       .put(HOST1, HOST1_STATUS_DEAD)
       .put(HOST2, HOST2_STATUS_ALIVE)
       .build();
 
-  private static ImmutableMap<KsqlHost, HostStatus> HOSTS_HOST2_DEAD
-      = ImmutableMap.<KsqlHost, HostStatus>builder()
+  private static ImmutableMap<KsqlHostInfo, HostStatus> HOSTS_HOST2_DEAD
+      = ImmutableMap.<KsqlHostInfo, HostStatus>builder()
       .put(HOST1, HOST1_STATUS_ALIVE)
       .put(HOST2, HOST2_STATUS_DEAD)
       .build();
@@ -244,7 +244,7 @@ public class LagReportingAgentTest {
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
 
     // Then:
-    ImmutableMap<KsqlHostEntity, HostStoreLags> allLags = lagReportingAgent.getAllLags();
+    ImmutableMap<KsqlHostInfoEntity, HostStoreLags> allLags = lagReportingAgent.getAllLags();
     LagInfoEntity lag = allLags.get(HOST_ENTITY1).getStateStoreLags(QUERY_STORE_A)
         .flatMap(s -> s.getLagByPartition(1)).get();
     assertEquals(M1_A1_CUR, lag.getCurrentOffsetPosition());
@@ -313,7 +313,7 @@ public class LagReportingAgentTest {
   }
 
   private LagReportingMessage hostLag(
-      KsqlHostEntity host,
+      KsqlHostInfoEntity host,
       ImmutableMap<QueryStateStoreId, StateStoreLags> lagMap,
       long lastUpdateMs) {
     return new LagReportingMessage(host, new HostStoreLags(lagMap, lastUpdateMs));

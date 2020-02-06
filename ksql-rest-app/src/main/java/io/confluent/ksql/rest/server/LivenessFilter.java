@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,7 +46,7 @@ public class LivenessFilter implements RoutingFilter {
   @Override
   public boolean filter(
       final HostInfo activeHost,
-      final KsqlHost host,
+      final KsqlHostInfo host,
       final String storeName,
       final int partition) {
 
@@ -54,7 +54,7 @@ public class LivenessFilter implements RoutingFilter {
       return true;
     }
 
-    final Map<KsqlHost, HostStatus> allHostsStatus = heartbeatAgent.get().getHostsStatus();
+    final Map<KsqlHostInfo, HostStatus> allHostsStatus = heartbeatAgent.get().getHostsStatus();
     final HostStatus status = allHostsStatus.get(host);
     return status == null ? true : allHostsStatus.get(host).isHostAlive();
   }

@@ -230,7 +230,7 @@ public final class PullQueryExecutor {
       try {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
-        LOG.info("Error routing query {} to host {} at timestamp {}",
+        LOG.debug("Error routing query {} to host {} at timestamp {}",
                  statement.getStatementText(), node, System.currentTimeMillis());
       }
     }

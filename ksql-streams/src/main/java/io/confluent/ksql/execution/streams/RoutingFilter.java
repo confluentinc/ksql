@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import org.apache.kafka.streams.state.HostInfo;
 
 /**
@@ -27,7 +27,7 @@ public interface RoutingFilter {
 
   boolean filter(
       HostInfo activeHost,
-      KsqlHost hostInfo,
+      KsqlHostInfo hostInfo,
       String storeName,
       int partition);
 

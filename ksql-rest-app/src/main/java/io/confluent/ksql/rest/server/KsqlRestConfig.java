@@ -158,12 +158,6 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC =
       "Interval at which lag reports are broadcasted to servers.";
 
-  public static final String KSQL_QUERY_STANDBY_ENABLE_CONFIG =
-      KSQL_CONFIG_PREFIX + "query.standby.enable";
-  private static final String KSQL_QUERY_STANDBY_ENABLE_DOC =
-      "Whether the queries are forwarded to standby hosts when the active is down."
-          + " It is disabled by default.";
-
   private static final ConfigDef CONFIG_DEF;
 
   static {

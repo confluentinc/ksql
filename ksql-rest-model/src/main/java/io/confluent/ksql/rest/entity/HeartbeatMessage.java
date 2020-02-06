@@ -25,17 +25,17 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class HeartbeatMessage {
 
-  private final KsqlHostEntity hostInfo;
+  private final KsqlHostInfoEntity hostInfo;
   private final long timestamp;
 
   @JsonCreator
-  public HeartbeatMessage(@JsonProperty("hostInfo") final KsqlHostEntity hostInfo,
+  public HeartbeatMessage(@JsonProperty("hostInfo") final KsqlHostInfoEntity hostInfo,
                           @JsonProperty("timestamp") final long timestamp) {
     this.hostInfo = hostInfo;
     this.timestamp = timestamp;
   }
 
-  public KsqlHostEntity getHostInfo() {
+  public KsqlHostInfoEntity getHostInfo() {
     return hostInfo;
   }
 

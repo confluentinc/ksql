@@ -19,7 +19,7 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ class HighAvailabilityTestUtil {
 
   static void sendHeartbeartsForWindowLength(
       final TestKsqlRestApp receiverApp,
-      final KsqlHostEntity sender,
+      final KsqlHostInfoEntity sender,
       final long window
   ) {
     long start = System.currentTimeMillis();
@@ -59,8 +59,8 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
       final TestKsqlRestApp restApp,
-      final KsqlHostEntity remoteServer,
-      final BiFunction<KsqlHostEntity, Map<KsqlHostEntity, HostStatusEntity>, Boolean> function
+      final KsqlHostInfoEntity remoteServer,
+      final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function
   ) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
@@ -92,11 +92,11 @@ class HighAvailabilityTestUtil {
   }
 
   static void waitForStreamsMetadataToInitialize(
-      final TestKsqlRestApp restApp, List<KsqlHostEntity> hosts, String queryId
+      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts, String queryId
   ) {
     while (true) {
       ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(restApp);
-      List<KsqlHostEntity> initialized = hosts.stream()
+      List<KsqlHostInfoEntity> initialized = hosts.stream()
           .filter(hostInfo -> Optional.ofNullable(
               clusterStatusResponse
                   .getClusterStatus()
@@ -116,13 +116,13 @@ class HighAvailabilityTestUtil {
   }
 
   static boolean remoteServerIsDown(
-      final KsqlHostEntity remoteServer,
-      final Map<KsqlHostEntity, HostStatusEntity> clusterStatus
+      final KsqlHostInfoEntity remoteServer,
+      final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus
   ) {
     if (!clusterStatus.containsKey(remoteServer)) {
       return true;
     }
-    for( Entry<KsqlHostEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
+    for( Entry<KsqlHostInfoEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
       if (entry.getKey().getPort() == remoteServer.getPort()
           && !entry.getValue().getHostAlive()) {
         return true;
@@ -132,10 +132,10 @@ class HighAvailabilityTestUtil {
   }
 
   static boolean remoteServerIsUp(
-      final KsqlHostEntity remoteServer,
-      final Map<KsqlHostEntity, HostStatusEntity> clusterStatus
+      final KsqlHostInfoEntity remoteServer,
+      final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus
   ) {
-    for( Entry<KsqlHostEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
+    for( Entry<KsqlHostInfoEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
       if (entry.getKey().getPort() == remoteServer.getPort()
           && entry.getValue().getHostAlive()) {
         return true;
@@ -146,14 +146,14 @@ class HighAvailabilityTestUtil {
 
   private static boolean allServersDiscovered(
       final int numServers,
-      final Map<KsqlHostEntity, HostStatusEntity> clusterStatus
+      final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus
   ) {
     return clusterStatus.size() >= numServers;
   }
 
   private static void sendHeartbeatRequest(
       final TestKsqlRestApp restApp,
-      final KsqlHostEntity hostInfoEntity,
+      final KsqlHostInfoEntity hostInfoEntity,
       final long timestamp
   ) {
 

@@ -34,7 +34,7 @@ import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -74,9 +74,9 @@ public class KsLocatorTest {
   @Mock
   private RoutingFilter activeFilter;
 
-  private KsqlHost activeHost;
-  private KsqlHost standByHost1;
-  private KsqlHost standByHost2;
+  private KsqlHostInfo activeHost;
+  private KsqlHostInfo standByHost1;
+  private KsqlHostInfo standByHost2;
   private HostInfo activeHostInfo;
   private HostInfo standByHostInfo1;
   private HostInfo standByHostInfo2;
@@ -84,7 +84,7 @@ public class KsLocatorTest {
   private KsqlNode activeNode;
   private KsqlNode standByNode1;
   private KsqlNode standByNode2;
-  private Map<KsqlHost, HostStatus> allHostsStatus;
+  private Map<KsqlHostInfo, HostStatus> allHostsStatus;
   private RoutingFilters routingStandbyFilters;
   private RoutingFilters routingActiveFilters;
   private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
@@ -97,11 +97,11 @@ public class KsLocatorTest {
   public void setUp() {
     locator = new KsLocator(STORE_NAME, kafkaStreams, keySerializer, LOCAL_HOST_URL);
 
-    activeHost = new KsqlHost("remoteHost", 2345);
+    activeHost = new KsqlHostInfo("remoteHost", 2345);
     activeHostInfo = new HostInfo("remoteHost", 2345);
-    standByHost1 = new KsqlHost("standby1", 1234);
+    standByHost1 = new KsqlHostInfo("standby1", 1234);
     standByHostInfo1 = new HostInfo("standby1", 1234);
-    standByHost2 = new KsqlHost("standby2", 5678);
+    standByHost2 = new KsqlHostInfo("standby2", 5678);
     standByHostInfo2 = new HostInfo("standby2", 5678);
 
     activeNode = locator.asNode(activeHost);
@@ -177,7 +177,7 @@ public class KsLocatorTest {
   public void shouldReturnLocalOwnerIfSameAsSuppliedLocalHost() {
     // Given:
     final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort());
-    final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
@@ -195,7 +195,7 @@ public class KsLocatorTest {
   public void shouldReturnLocalOwnerIfExplicitlyLocalHostOnSamePortAsSuppliedLocalHost() {
     // Given:
     final HostInfo localHostInfo = new HostInfo("LocalHOST", LOCAL_HOST_URL.getPort());
-    final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
@@ -213,7 +213,7 @@ public class KsLocatorTest {
   public void shouldReturnRemoteOwnerForDifferentHost() {
     // Given:
     final HostInfo localHostInfo = new HostInfo("different", LOCAL_HOST_URL.getPort());
-    final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
@@ -231,7 +231,7 @@ public class KsLocatorTest {
   public void shouldReturnRemoteOwnerForDifferentPort() {
     // Given:
     final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort()+1);
-    final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);
@@ -249,7 +249,7 @@ public class KsLocatorTest {
   public void shouldReturnRemoteOwnerForDifferentPortOnLocalHost() {
     // Given:
     final HostInfo localHostInfo = new HostInfo("LOCALhost", LOCAL_HOST_URL.getPort()+1);
-    final KsqlHost localHost = locator.asKsqlHost(localHostInfo);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHostInfo), eq(localHost), anyString(), anyInt()))
         .thenReturn(true);

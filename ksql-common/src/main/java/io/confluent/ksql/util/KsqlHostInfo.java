@@ -24,12 +24,12 @@ import java.util.Objects;
  * from KStreams.
  */
 @Immutable
-public class KsqlHost {
+public class KsqlHostInfo {
 
   private final String host;
   private final int port;
 
-  public KsqlHost(final String host, final int port) {
+  public KsqlHostInfo(final String host, final int port) {
     this.host = host;
     this.port = port;
   }
@@ -43,8 +43,8 @@ public class KsqlHost {
       return false;
     }
 
-    final KsqlHost host = (KsqlHost) o;
-    return this.host.equals(host.host) && port == host.port;
+    final KsqlHostInfo other = (KsqlHostInfo) o;
+    return this.host.equals(other.host) && port == other.port;
   }
 
   @Override
@@ -62,6 +62,6 @@ public class KsqlHost {
 
   @Override
   public String toString() {
-    return "KsqlHost{host='" + this.host + '\'' + ", port=" + this.port + '}';
+    return "KsqlHostInfo{host='" + this.host + '\'' + ", port=" + this.port + '}';
   }
 }

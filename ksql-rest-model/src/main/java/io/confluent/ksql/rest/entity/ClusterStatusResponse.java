@@ -29,15 +29,15 @@ import java.util.Objects;
 @Immutable
 public final class ClusterStatusResponse {
 
-  private final ImmutableMap<KsqlHostEntity, HostStatusEntity> clusterStatus;
+  private final ImmutableMap<KsqlHostInfoEntity, HostStatusEntity> clusterStatus;
 
   @JsonCreator
   public ClusterStatusResponse(
-      @JsonProperty("clusterStatus") final Map<KsqlHostEntity, HostStatusEntity> clusterStatus) {
+      @JsonProperty("clusterStatus") final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus) {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
   }
 
-  public Map<KsqlHostEntity, HostStatusEntity> getClusterStatus() {
+  public Map<KsqlHostInfoEntity, HostStatusEntity> getClusterStatus() {
     return clusterStatus;
   }
 

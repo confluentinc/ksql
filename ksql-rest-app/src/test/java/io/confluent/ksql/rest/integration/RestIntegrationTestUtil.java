@@ -67,7 +67,6 @@ final class RestIntegrationTestUtil {
 
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 
-      System.out.println("------------> Create stream response = " + res);
       throwOnError(res);
 
       return awaitResults(restClient, res.getResponse());

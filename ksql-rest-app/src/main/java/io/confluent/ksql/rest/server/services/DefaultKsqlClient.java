@@ -28,11 +28,11 @@ import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -101,13 +101,13 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final KsqlHost host,
+      final KsqlHostInfo host,
       final long timestamp) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
     getTarget(target, authHeader)
-        .postAsyncHeartbeatRequest(new KsqlHostEntity(host.host(), host.port()), timestamp);
+        .postAsyncHeartbeatRequest(new KsqlHostInfoEntity(host.host(), host.port()), timestamp);
   }
 
   @Override

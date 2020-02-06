@@ -177,7 +177,9 @@ public class KsqlConfig extends AbstractConfig {
           + "consistency for higher availability.  "
           + "Possible values are \"true\", \"false\". Setting to \"true\" guarantees high "
           + "availability for pull queries. If set to \"false\", pull queries will fail when"
-          + "the active is dead and until a new active is elected. Default value is \"false\". ";
+          + "the active is dead and until a new active is elected. Default value is \"false\". "
+          + "For using this functionality, the server must be configured with "
+          + "to ksql.streams.num.standby.replicas >= 1";
   public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
 
 

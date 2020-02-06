@@ -25,19 +25,19 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LagReportingMessage {
 
-  private final KsqlHostEntity ksqlHost;
+  private final KsqlHostInfoEntity ksqlHost;
   private final HostStoreLags hostStoreLags;
 
   @JsonCreator
   public LagReportingMessage(
-      @JsonProperty("ksqlHost") final KsqlHostEntity ksqlHost,
+      @JsonProperty("ksqlHost") final KsqlHostInfoEntity ksqlHost,
       @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
   ) {
     this.ksqlHost = Objects.requireNonNull(ksqlHost, "hostInfo");
     this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
   }
 
-  public KsqlHostEntity getKsqlHost() {
+  public KsqlHostInfoEntity getKsqlHost() {
     return ksqlHost;
   }
 

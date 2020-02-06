@@ -13,43 +13,44 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.resources;
+package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.rest.entity.HeartbeatMessage;
-import io.confluent.ksql.rest.entity.HeartbeatResponse;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
-import io.confluent.ksql.rest.server.HeartbeatAgent;
-import javax.ws.rs.core.Response;
+import io.confluent.ksql.util.KsqlHostInfo;
+import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HeartbeatResourceTest {
+public class ActiveHostFilterTest {
 
-  @Mock
-  private HeartbeatAgent heartbeatAgent;
-  private HeartbeatResource heartbeatResource;
+  private KsqlHostInfo activeHost;
+  private KsqlHostInfo standByHost;
+  private HostInfo activeHostInfo;
+  private ActiveHostFilter activeHostFilter;
 
   @Before
   public void setUp() {
-    heartbeatResource = new HeartbeatResource(heartbeatAgent);
+    activeHost = new KsqlHostInfo("activeHost", 2345);
+    activeHostInfo = new HostInfo("activeHost", 2345);
+    standByHost = new KsqlHostInfo("standby1", 1234);
+    activeHostFilter = new ActiveHostFilter();
   }
 
   @Test
-  public void shouldSendHeartbeat() {
+  public void shouldFilterActive() {
+    // Given:
+
     // When:
-    final HeartbeatMessage request = new HeartbeatMessage(new KsqlHostInfoEntity("localhost", 8080), 1);
-    final Response response = heartbeatResource.registerHeartbeat(request);
+    final boolean filterActive = activeHostFilter.filter(activeHostInfo, activeHost, "", -1);
+    final boolean filterStandby = activeHostFilter.filter(activeHostInfo, standByHost, "", -1);
 
     // Then:
-    assertThat(response.getStatus(), is(200));
-    assertThat(response.getEntity(), instanceOf(HeartbeatResponse.class));
+    assertThat(filterActive, is(true));
+    assertThat(filterStandby, is(false));
   }
 }

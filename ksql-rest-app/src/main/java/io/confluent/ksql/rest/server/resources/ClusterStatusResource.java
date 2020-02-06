@@ -23,13 +23,13 @@ import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -74,13 +74,13 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    final Map<KsqlHost, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
+    final Map<KsqlHostInfo, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
 
-    final Map<KsqlHostEntity, HostStatusEntity> response = allHostStatus
+    final Map<KsqlHostInfoEntity, HostStatusEntity> response = allHostStatus
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> new KsqlHostEntity(entry.getKey().host(), entry.getKey().port()) ,
+            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()) ,
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
                                           getActiveStandbyInformation(entry.getKey()),
@@ -91,33 +91,34 @@ public class ClusterStatusResource {
   }
 
 
-  private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
+  private HostStoreLags getHostStoreLags(final KsqlHostInfo ksqlHostInfo) {
     return lagReportingAgent
-        .flatMap(agent -> agent.getLagPerHost(ksqlHost))
+        .flatMap(agent -> agent.getLagPerHost(ksqlHostInfo))
         .orElse(EMPTY_HOST_STORE_LAGS);
   }
 
-  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHost ksqlHost) {
+  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(final KsqlHostInfo ksqlHostInfo) {
     return engine.getPersistentQueries().stream()
     .flatMap(persistentQueryMetadata -> persistentQueryMetadata.getAllMetadata()
         .stream()
-        .map(streamsMetadata -> new QueryIdAndSteamMetadata(
+        .map(streamsMetadata -> new QueryIdAndStreamsMetadata(
             persistentQueryMetadata.getQueryId().toString(), streamsMetadata)))
-        .filter(queryIdAndSteamMetadata ->
-                    queryIdAndSteamMetadata.streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
-        .filter(queryIdAndSteamMetadata ->
-                    queryIdAndSteamMetadata.streamsMetadata.hostInfo().equals(asHostInfo(ksqlHost)))
-        .collect(Collectors.toMap(queryIdAndSteamMetadata ->
-                                      queryIdAndSteamMetadata.queryId ,
-                                      QueryIdAndSteamMetadata::toActiveStandbyEntity));
+        .filter(queryIdAndStreamsMetadata ->
+                    queryIdAndStreamsMetadata.streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(queryIdAndStreamsMetadata ->
+                    queryIdAndStreamsMetadata.streamsMetadata.hostInfo().equals(asHostInfo(
+                        ksqlHostInfo)))
+        .collect(Collectors.toMap(queryIdAndStreamsMetadata ->
+                                      queryIdAndStreamsMetadata.queryId ,
+                                  QueryIdAndStreamsMetadata::toActiveStandbyEntity));
   }
 
-  private static final class QueryIdAndSteamMetadata {
+  private static final class QueryIdAndStreamsMetadata {
 
     final String queryId;
     final StreamsMetadata streamsMetadata;
 
-    QueryIdAndSteamMetadata(
+    QueryIdAndStreamsMetadata(
         final String queryId,
         final StreamsMetadata streamsMetadata
     ) {
@@ -146,7 +147,7 @@ public class ClusterStatusResource {
     }
   }
 
-  private HostInfo asHostInfo(final KsqlHost ksqlHost) {
-    return new HostInfo(ksqlHost.host(), ksqlHost.port());
+  private HostInfo asHostInfo(final KsqlHostInfo ksqlHostInfo) {
+    return new HostInfo(ksqlHostInfo.host(), ksqlHostInfo.port());
   }
 }

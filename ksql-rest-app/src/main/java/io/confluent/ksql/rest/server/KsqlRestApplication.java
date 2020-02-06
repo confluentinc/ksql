@@ -166,7 +166,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
 
-
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -195,7 +194,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent
-
   ) {
     super(restConfig);
 
@@ -541,7 +539,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
   }
 
-  @SuppressWarnings("checkstyle:MethodLength")
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,

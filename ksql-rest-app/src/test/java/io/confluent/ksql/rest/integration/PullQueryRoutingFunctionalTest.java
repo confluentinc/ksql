@@ -254,6 +254,10 @@ public class PullQueryRoutingFunctionalTest {
         clusterFormation.router.right,
         clusterFormation.active.left,
         HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.right,
+        clusterFormation.standBy.left,
+        HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.right, sql);

@@ -303,7 +303,6 @@ public final class PullQueryExecutor {
           pullQueryContext.contextStacker
       );
     }
-    System.out.println("Result of pull query = " + rows);
     return new TableRowsEntity(
         statement.getStatementText(),
         pullQueryContext.queryId,

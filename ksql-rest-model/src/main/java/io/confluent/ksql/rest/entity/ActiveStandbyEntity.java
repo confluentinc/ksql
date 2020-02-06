@@ -74,10 +74,10 @@ public class ActiveStandbyEntity {
     }
 
     final ActiveStandbyEntity that = (ActiveStandbyEntity) o;
-    return activeStores.equals(that.activeStores)
-        && standByStores.equals(that.standByStores)
-        && activePartitions.equals(that.activePartitions)
-        && standByPartitions.equals(that.standByPartitions);
+    return Objects.equals(activeStores, that.activeStores)
+        && Objects.equals(standByStores, that.standByStores)
+        && Objects.equals(activePartitions, that.activePartitions)
+        && Objects.equals(standByPartitions, that.standByPartitions);
   }
 
   @Override

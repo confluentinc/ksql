@@ -118,9 +118,9 @@ public class PullQueryRoutingFunctionalTest {
   private static final long HOST_END_OFFSET = 75;
   private static final long HOST_LAG = 50;
   private static final Map<String, ?> LAG_FILTER_100 =
-      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_CONFIG, "100");
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG, "100");
   private static final Map<String, ?> LAG_FILTER_25 =
-      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_CONFIG, "25");
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG, "25");
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()

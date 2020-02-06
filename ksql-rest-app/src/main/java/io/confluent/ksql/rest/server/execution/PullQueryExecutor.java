@@ -979,7 +979,7 @@ public final class PullQueryExecutor {
     @Override
     public long getOffsetLagAllowed() {
       return ksqlConfig.getLong(
-          KsqlConfig.KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_CONFIG);
+          KsqlConfig.KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG);
     }
   }
 }

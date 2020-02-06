@@ -168,7 +168,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_QUERY_PULL_ENABLE_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS =
-        "ksql.query.pull.enable.stale.reads";
+        "ksql.query.pull.enable.standby.reads";
   private static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
       "Config to enable/disable forwarding pull queries to standby hosts when the active is dead. "
           + "This means that stale values may be returned for these queries since standby hosts"

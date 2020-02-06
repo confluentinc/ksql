@@ -219,7 +219,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-
   }
 
   @Override

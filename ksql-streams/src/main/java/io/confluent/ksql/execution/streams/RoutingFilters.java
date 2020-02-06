@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Objects;
-import org.apache.kafka.streams.state.HostInfo;
 
 public final class RoutingFilters implements RoutingFilter {
 
@@ -28,13 +27,8 @@ public final class RoutingFilters implements RoutingFilter {
     this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
   }
 
-  public  boolean filter(
-      final HostInfo activeHost,
-      final KsqlHostInfo host,
-      final String storeName,
-      final int partition
-  ) {
+  public  boolean filter(final KsqlHostInfo host) {
     return routingFilters.stream()
-        .allMatch(f -> f.filter(activeHost, host, storeName, partition));
+        .allMatch(f -> f.filter(host));
   }
 }

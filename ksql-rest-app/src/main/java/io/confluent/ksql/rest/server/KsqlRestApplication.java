@@ -31,6 +31,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -476,10 +477,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           ErrorMessages.class
       ));
 
-      final RoutingFilters routingFilters = initializeRoutingFilters(
-          ksqlConfigNoPort, heartbeatAgent);
+      final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(
+          ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
       final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          ksqlEngine, heartbeatAgent, routingFilters);
+          ksqlEngine, heartbeatAgent, routingFilterFactory);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -611,10 +612,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
         initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
-    final RoutingFilters routingFilters = initializeRoutingFilters(ksqlConfig, heartbeatAgent);
+    final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(ksqlConfig,
+        heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, heartbeatAgent, routingFilters);
+        ksqlEngine, heartbeatAgent, routingFilterFactory);
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -740,16 +742,21 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     return Optional.empty();
   }
 
-  private static RoutingFilters initializeRoutingFilters(
+  private static RoutingFilterFactory initializeRoutingFilterFactory(
       final KsqlConfig ksqlConfig,
-      final Optional<HeartbeatAgent> heartbeatAgent) {
-    final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-      filterBuilder.add(new ActiveHostFilter());
-    }
-    filterBuilder.add(new LivenessFilter(heartbeatAgent));
-    final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
-    return routingFilters;
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent) {
+    return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
+      final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
+        filterBuilder.add(new ActiveHostFilter(active));
+      }
+      filterBuilder.add(new LivenessFilter(heartbeatAgent));
+      MaxAllowedLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+          storeName, partition)
+          .map(filterBuilder::add);
+      return new RoutingFilters(filterBuilder.build());
+    };
   }
 
   private void registerCommandTopic() {

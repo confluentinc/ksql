@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
@@ -78,9 +80,18 @@ final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
+    return makeQueryRequest(restApp, sql, userCreds, null);
+  }
+
+  static List<StreamedRow> makeQueryRequest(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Map<String, ?> properties
+  ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
-      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null);
+      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
 
       throwOnError(res);
 
@@ -91,6 +102,22 @@ final class RestIntegrationTestUtil {
         builder.add(s.next());
       }
       return builder.build();
+    }
+  }
+
+  static KsqlErrorMessage makeQueryRequestWithError(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Map<String, ?> properties
+  ) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+
+      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
+
+      throwOnNoError(res);
+
+      return res.getErrorMessage();
     }
   }
 
@@ -183,6 +210,12 @@ final class RestIntegrationTestUtil {
     if (res.isErroneous()) {
       throw new AssertionError("Failed to await result."
           + "msg: " + res.getErrorMessage());
+    }
+  }
+
+  private static void throwOnNoError(final RestResponse<?> res) {
+    if (!res.isErroneous()) {
+      throw new AssertionError("Failed to get erroneous result.");
     }
   }
 

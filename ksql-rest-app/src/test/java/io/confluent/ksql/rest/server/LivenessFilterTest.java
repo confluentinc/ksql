@@ -69,9 +69,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(true));
@@ -90,9 +90,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(false));
@@ -111,9 +111,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(true));
@@ -132,9 +132,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(false));

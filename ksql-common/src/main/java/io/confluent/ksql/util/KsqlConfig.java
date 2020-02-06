@@ -182,6 +182,13 @@ public class KsqlConfig extends AbstractConfig {
           + "to ksql.streams.num.standby.replicas >= 1";
   public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_CONFIG =
+      "ksql.query.pull.stale.reads.lag.max.offsets";
+  public static final Long KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_DEFAULT = 0L;
+  private static final String KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_DOC =
+      "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
+          + "hosts storing it, both active and standbys included. Only enabled when "
+          + "lag.reporting.enable is true. By default, no lag is is allowed.";
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
       "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
@@ -532,6 +539,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT,
             Importance.MEDIUM,
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
+        ).define(
+            KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_STALE_READS_LAG_MAX_OFFSETS_DOC
         ).define(
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
             ConfigDef.Type.LONG,

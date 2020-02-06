@@ -50,6 +50,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializationFactoryTest {
 
+  private static final String APPLICATION_ID = "app_id";
   private static final String STORE_NAME = "someStore";
   private static final URL DEFAULT_APP_SERVER = buildDefaultAppServer();
 
@@ -88,7 +89,7 @@ public class KsMaterializationFactoryTest {
         materializationFactory
     );
 
-    when(locatorFactory.create(any(), any(), any(), any())).thenReturn(locator);
+    when(locatorFactory.create(any(), any(), any(), any(), any())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
@@ -113,7 +114,7 @@ public class KsMaterializationFactoryTest {
     // When:
     final Optional<KsMaterialization> result = factory
         .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig);
+            ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -123,14 +124,15 @@ public class KsMaterializationFactoryTest {
   public void shouldBuildLocatorWithCorrectParams() {
     // When:
     factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig);
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(locatorFactory).create(
         STORE_NAME,
         kafkaStreams,
         keySerializer,
-        DEFAULT_APP_SERVER
+        DEFAULT_APP_SERVER,
+        APPLICATION_ID
     );
   }
 
@@ -138,7 +140,7 @@ public class KsMaterializationFactoryTest {
   public void shouldBuildStateStoreWithCorrectParams() {
     // When:
     factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig);
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(storeFactory).create(
@@ -157,7 +159,7 @@ public class KsMaterializationFactoryTest {
 
     // When:
     factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowInfo, streamsProperties,
-        ksqlConfig);
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(materializationFactory).create(
@@ -172,7 +174,7 @@ public class KsMaterializationFactoryTest {
     // When:
     final Optional<KsMaterialization> result = factory
         .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig);
+            ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result,  is(Optional.of(materialization)));

@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import java.util.List;
 import java.util.Map;
@@ -162,5 +163,14 @@ class HighAvailabilityTestUtil {
     }
   }
 
+  public static void sendLagReportingRequest(
+      final TestKsqlRestApp restApp,
+      final LagReportingMessage lagReportingMessage
+  ) {
+
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+      restClient.makeAsyncLagReportingRequest(lagReportingMessage);
+    }
+  }
 }
 

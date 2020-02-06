@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -35,7 +36,8 @@ public interface SimpleKsqlClient {
 
   RestResponse<List<StreamedRow>> makeQueryRequest(
       URI serverEndPoint,
-      String sql
+      String sql,
+      Map<String, ?> properties
   );
 
   /**

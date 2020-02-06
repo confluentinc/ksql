@@ -30,15 +30,14 @@ public class ActiveHostFilterTest {
 
   private KsqlHostInfo activeHost;
   private KsqlHostInfo standByHost;
-  private HostInfo activeHostInfo;
   private ActiveHostFilter activeHostFilter;
 
   @Before
   public void setUp() {
     activeHost = new KsqlHostInfo("activeHost", 2345);
-    activeHostInfo = new HostInfo("activeHost", 2345);
+    HostInfo activeHostInfo = new HostInfo("activeHost", 2345);
     standByHost = new KsqlHostInfo("standby1", 1234);
-    activeHostFilter = new ActiveHostFilter();
+    activeHostFilter = new ActiveHostFilter(activeHostInfo);
   }
 
   @Test
@@ -46,8 +45,8 @@ public class ActiveHostFilterTest {
     // Given:
 
     // When:
-    final boolean filterActive = activeHostFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby = activeHostFilter.filter(activeHostInfo, standByHost, "", -1);
+    final boolean filterActive = activeHostFilter.filter(activeHost);
+    final boolean filterStandby = activeHostFilter.filter(standByHost);
 
     // Then:
     assertThat(filterActive, is(true));

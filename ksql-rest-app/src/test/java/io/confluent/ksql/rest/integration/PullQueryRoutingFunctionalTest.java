@@ -42,7 +42,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -97,7 +97,6 @@ public class PullQueryRoutingFunctionalTest {
   private static final String USER_TOPIC = "user_topic";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
-  private static final Format VALUE_FORMAT = Format.JSON;
   private static final int HEADER = 1;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final int BASE_TIME = 1_000_000;
@@ -178,7 +177,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.produceRows(
         USER_TOPIC,
         USER_PROVIDER,
-        VALUE_FORMAT,
+        FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
   }
@@ -193,8 +192,7 @@ public class PullQueryRoutingFunctionalTest {
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
             + "   key='" + USER_PROVIDER.key() + "', "
-            + "   value_format='" + VALUE_FORMAT + "'"
-            + ");"
+            + "   value_format='JSON');"
     );
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -380,7 +378,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
-        VALUE_FORMAT,
+        FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );
   }

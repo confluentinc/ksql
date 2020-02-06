@@ -165,7 +165,7 @@ are named *windows*.
    :alt: Diagram showing the relationship between records and time in a KSQL stream
 
 A window has a start time and an end time, which you access in your queries by
-using the WINDOWSTART() and WINDOWEND() functions.
+using the WINDOWSTART and WINDOWEND system columns.
 
 .. important::
 
@@ -339,7 +339,7 @@ window to have zero records.
 
 If a session window contains exactly one record, the record's ROWTIME timestamp
 is identical to the window's own start and end times. Access these by using the
-WINDOWSTART() and WINDOWEND() functions.
+WINDOWSTART and WINDOWEND system columns.
 
 If a session window contains two or more records, then the earliest/oldest
 record's ROWTIME timestamp is identical to the window's start time, and the

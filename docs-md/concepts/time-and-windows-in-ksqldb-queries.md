@@ -178,7 +178,7 @@ boundaries are named *windows*.
 ![Diagram showing the relationship between records and time in a ksqlDB stream](../img/ksql-window.png)
 
 A window has a start time and an end time, which you access in your
-queries by using the WINDOWSTART() and WINDOWEND() functions.
+queries by using the WINDOWSTART and WINDOWEND system columns.
 
 !!! important
       ksqlDB is based on the Unix epoch time in the UTC timezone, and this can
@@ -339,7 +339,7 @@ session window to have zero records.
 
 If a session window contains exactly one record, the record's ROWTIME
 timestamp is identical to the window's own start and end times. Access
-these by using the WINDOWSTART() and WINDOWEND() functions.
+these by using the WINDOWSTART and WINDOWEND system columns.
 
 If a session window contains two or more records, then the
 earliest/oldest record's ROWTIME timestamp is identical to the

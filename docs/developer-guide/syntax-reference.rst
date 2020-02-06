@@ -1290,7 +1290,7 @@ Pulls the current value from the materialized table and terminate.
 The result of this statement will not be persisted in a Kafka topic and will only be printed out in
 the console.
 
-The WHERE clause must contain a single value of ``ROWKEY`` to retieve and may optionally include
+The WHERE clause must contain a single value of ``ROWKEY`` to retrieve and may optionally include
 bounds on WINDOWSTART if the materialized table is windowed.
 
 Example:
@@ -2156,12 +2156,6 @@ Aggregate functions
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
 |                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
-+------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| WindowStart            | ``WindowStart()``         | Stream     | Extract the start time of the current window, in milliseconds.      |
-|                        |                           | Table      | If the query is not windowed the function will return null.         |
-+------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| WindowEnd              | ``WindowEnd()``           | Stream     | Extract the end time of the current window, in milliseconds.        |
-|                        |                           | Table      | If the query is not windowed the function will return null.         |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
 For more information, see :ref:`aggregate-streaming-data-with-ksql`.

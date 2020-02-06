@@ -170,23 +170,5 @@ Stream
 Return the distinct Top *K* values for the given column and window
 Note: rows where `col1` is null will be ignored.
 
-WindowStart
------------
-
-`WindowStart()`
-
-Stream, Table
-
-Extract the start time of the current window, in milliseconds.
-If the query is not windowed the function will return null.
-
-WindowEnd
----------
-
-`WindowEnd()`
-
-Extract the end time of the current window, in milliseconds.
-If the query is not windowed the function will return null.
-
 
 Page last revised on: {{ git_revision_date }}

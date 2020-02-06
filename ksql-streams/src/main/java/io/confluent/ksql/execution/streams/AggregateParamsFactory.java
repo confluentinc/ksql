@@ -30,6 +30,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -61,16 +62,24 @@ public class AggregateParamsFactory {
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList
   ) {
-    return create(schema, nonAggregateColumns, functionRegistry, functionList, true);
+    return create(schema, nonAggregateColumns, functionRegistry, functionList, true, false);
   }
 
   public AggregateParams create(
       final LogicalSchema schema,
       final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
-      final List<FunctionCall> functionList
+      final List<FunctionCall> functionList,
+      final boolean windowedAggregation
   ) {
-    return create(schema, nonAggregateColumns, functionRegistry, functionList, false);
+    return create(
+        schema,
+        nonAggregateColumns,
+        functionRegistry,
+        functionList,
+        false,
+        windowedAggregation
+    );
   }
 
   private AggregateParams create(
@@ -78,7 +87,8 @@ public class AggregateParamsFactory {
       final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList,
-      final boolean table
+      final boolean table,
+      final boolean windowedAggregation
   ) {
     final List<KsqlAggregateFunction<?, ?, ?>> functions =
         resolveAggregateFunctions(schema, functionRegistry, functionList);
@@ -90,9 +100,11 @@ public class AggregateParamsFactory {
     final Optional<KudafUndoAggregator> undoAggregator =
         buildUndoAggregators(nonAggregateColumns.size(), table, functions);
 
-    final LogicalSchema aggregateSchema = buildSchema(schema, nonAggregateColumns, functions, true);
+    final LogicalSchema aggregateSchema =
+        buildSchema(schema, nonAggregateColumns, functions, true, false);
 
-    final LogicalSchema outputSchema = buildSchema(schema, nonAggregateColumns, functions, false);
+    final LogicalSchema outputSchema =
+        buildSchema(schema, nonAggregateColumns, functions, false, windowedAggregation);
 
     return new AggregateParams(
         new KudafInitializer(nonAggregateColumns.size(), initialValueSuppliers),
@@ -138,7 +150,8 @@ public class AggregateParamsFactory {
       final LogicalSchema schema,
       final List<ColumnName> nonAggregateColumns,
       final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions,
-      final boolean useAggregate
+      final boolean useAggregate,
+      final boolean addWindowBounds
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
@@ -158,6 +171,12 @@ public class AggregateParamsFactory {
           ? aggregateFunction.getAggregateType()
           : aggregateFunction.returnType();
       schemaBuilder.valueColumn(colName, fieldType);
+    }
+
+    if (addWindowBounds) {
+      // Add window bounds columns, as populated by WindowBoundsPopulator
+      schemaBuilder.valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE);
+      schemaBuilder.valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE);
     }
 
     return schemaBuilder.build();

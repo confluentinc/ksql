@@ -17,6 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
@@ -49,11 +50,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
   private final ResultMaterialization resultMaterialization;
+  private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
@@ -70,7 +73,16 @@ public class Analysis implements ImmutableAnalysis {
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
   public Analysis(final ResultMaterialization resultMaterialization) {
+    this(resultMaterialization, SourceSchemas::new);
+  }
+
+  @VisibleForTesting
+  Analysis(
+      final ResultMaterialization resultMaterialization,
+      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
+  ) {
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
   }
 
   ResultMaterialization getResultMaterialization() {
@@ -179,14 +191,14 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public SourceSchemas getFromSourceSchemas() {
+  public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
-            Analysis::buildStreamsSchema
+            ads -> buildStreamsSchema(ads, postAggregate)
         ));
 
-    return new SourceSchemas(schemaBySource);
+    return sourceSchemasFactory.apply(schemaBySource);
   }
 
   void addDataSource(final SourceName alias, final DataSource dataSource) {
@@ -229,12 +241,22 @@ public class Analysis implements ImmutableAnalysis {
     return tableFunctions;
   }
 
-  private static LogicalSchema buildStreamsSchema(final AliasedDataSource s) {
-    // Include metadata & key columns in the value schema to match the schema the streams
-    // topology will use.
-    return s.getDataSource()
+  private LogicalSchema buildStreamsSchema(
+      final AliasedDataSource ds,
+      final boolean postAggregate
+  ) {
+    // While the special casing exists to copy WINDOWSTART and WINDOWEND into the value schema
+    // for some query types, a matching hack is required here:
+
+    // For windowed sources:
+    final boolean windowedSource = ds.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
+
+    // Post the GROUP BY the window bounds columns are available:
+    final boolean windowedGroupBy = postAggregate && windowExpression.isPresent();
+
+    return ds.getDataSource()
         .getSchema()
-        .withMetaAndKeyColsInValue(s.getDataSource().getKsqlTopic().getKeyFormat().isWindowed());
+        .withMetaAndKeyColsInValue(windowedSource || windowedGroupBy);
   }
 
   @Immutable

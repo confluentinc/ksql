@@ -58,17 +58,20 @@ Topologies:
       --> Aggregate-Aggregate-ToOutputSchema
       <-- Aggregate-Prepare
     Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
-      --> Aggregate-Aggregate-WindowSelect
+      --> Aggregate-Aggregate-WindowSelect2
       <-- KSTREAM-AGGREGATE-0000000003
+    Processor: Aggregate-Aggregate-WindowSelect2 (stores: [])
+      --> Aggregate-Aggregate-WindowSelect
+      <-- Aggregate-Aggregate-ToOutputSchema
     Processor: Aggregate-Aggregate-WindowSelect (stores: [])
       --> Aggregate-Project
-      <-- Aggregate-Aggregate-ToOutputSchema
+      <-- Aggregate-Aggregate-WindowSelect2
     Processor: Aggregate-Project (stores: [])
-      --> KTABLE-TOSTREAM-0000000007
+      --> KTABLE-TOSTREAM-0000000008
       <-- Aggregate-Aggregate-WindowSelect
-    Processor: KTABLE-TOSTREAM-0000000007 (stores: [])
-      --> KSTREAM-SINK-0000000008
+    Processor: KTABLE-TOSTREAM-0000000008 (stores: [])
+      --> KSTREAM-SINK-0000000009
       <-- Aggregate-Project
-    Sink: KSTREAM-SINK-0000000008 (topic: S2)
-      <-- KTABLE-TOSTREAM-0000000007
+    Sink: KSTREAM-SINK-0000000009 (topic: S2)
+      <-- KTABLE-TOSTREAM-0000000008
 

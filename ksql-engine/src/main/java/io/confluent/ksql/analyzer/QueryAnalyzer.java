@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -99,8 +100,14 @@ public class QueryAnalyzer {
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
     final QualifiedColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
-    final AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
+
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(
+        aggregateAnalysis,
+        defaultArgument,
+        analysis.getWindowExpression().isPresent(),
+        metaStore
+    );
+
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
 
@@ -120,6 +127,11 @@ public class QueryAnalyzer {
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);
     }
+
+    processWhereExpression(
+        analysis,
+        aggregateAnalyzer
+    );
 
     processGroupByExpression(
         analysis,
@@ -149,6 +161,14 @@ public class QueryAnalyzer {
 
     aggregateAnalysis.setHavingExpression(
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, having));
+  }
+
+  private static void processWhereExpression(
+      final Analysis analysis,
+      final AggregateAnalyzer aggregateAnalyzer
+  ) {
+    analysis.getWhereExpression()
+        .ifPresent(aggregateAnalyzer::processWhere);
   }
 
   private static void processGroupByExpression(
@@ -200,6 +220,9 @@ public class QueryAnalyzer {
         .stream()
         // Remove any that exactly match a group by expression:
         .filter(e -> !groupByExprs.contains(e.getKey()))
+        // Remove any window bounds expressions, which are implicit:
+        .filter(e -> !(e.getKey() instanceof ColumnReferenceExp
+            && SchemaUtil.isWindowBound(((ColumnReferenceExp) e.getKey()).getReference())))
         // Remove any that are constants,
         // or expressions where all params exactly match a group by expression:
         .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())

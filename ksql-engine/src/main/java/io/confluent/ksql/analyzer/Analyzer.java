@@ -304,23 +304,20 @@ class Analyzer {
     private void throwOnUnknownColumnReference() {
 
       final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas(true));
 
-      for (final SelectExpression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression.getExpression());
-      }
+      analysis.getWhereExpression()
+          .ifPresent(expressionAnalyzer::analyzeExpression);
 
-      analysis.getWhereExpression().ifPresent(where -> {
-        expressionAnalyzer.analyzeExpression(where);
-      });
+      analysis.getGroupByExpressions()
+          .forEach(expressionAnalyzer::analyzeExpression);
 
-      for (final Expression expression : analysis.getGroupByExpressions()) {
-        expressionAnalyzer.analyzeExpression(expression);
-      }
+      analysis.getHavingExpression()
+          .ifPresent(expressionAnalyzer::analyzeExpression);
 
-      analysis.getHavingExpression().ifPresent(having ->
-          expressionAnalyzer.analyzeExpression(having)
-      );
+      analysis.getSelectExpressions().stream()
+          .map(SelectExpression::getExpression)
+          .forEach(expressionAnalyzer::analyzeExpression);
     }
 
     @Override
@@ -344,7 +341,7 @@ class Analyzer {
       }
 
       final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas(false));
 
       final Set<SourceName> srcsUsedInLeft = expressionAnalyzer
           .analyzeExpression(comparisonExpression.getLeft());
@@ -604,7 +601,7 @@ class Analyzer {
       // but are added at the back during processing for performance reasons.
       // Switch them around here:
       final Map<Boolean, List<Column>> partitioned = columns.stream()
-          .collect(Collectors.groupingBy(c -> SchemaUtil.systemColumnNames().contains(c.name())));
+          .collect(Collectors.groupingBy(c -> SchemaUtil.isSystemColumn(c.name())));
 
       final List<Column> all = partitioned.get(true);
       all.addAll(partitioned.get(false));
@@ -638,7 +635,7 @@ class Analyzer {
 
     private void addSelectItem(final Expression exp, final ColumnName columnName) {
       if (persistent) {
-        if (SchemaUtil.systemColumnNames().contains(columnName)) {
+        if (SchemaUtil.isSystemColumn(columnName)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
         }

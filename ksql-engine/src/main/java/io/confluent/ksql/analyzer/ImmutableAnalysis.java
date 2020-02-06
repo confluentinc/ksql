@@ -60,5 +60,5 @@ public interface ImmutableAnalysis {
 
   CreateSourceAsProperties getProperties();
 
-  SourceSchemas getFromSourceSchemas();
+  SourceSchemas getFromSourceSchemas(boolean postAggregate);
 }

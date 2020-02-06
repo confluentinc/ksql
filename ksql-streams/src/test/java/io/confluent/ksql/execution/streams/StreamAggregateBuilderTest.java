@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.clearInvocations;
@@ -76,7 +77,6 @@ import org.apache.kafka.streams.kstream.SessionWindowedKStream;
 import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.TimeWindowedKStream;
 import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.Windows;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -85,8 +85,6 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -155,7 +153,9 @@ public class StreamAggregateBuilderTest {
   @Mock
   private KTable<Windowed<Struct>, GenericRow> windowedWithResults;
   @Mock
-  private KTable<Windowed<Struct>, GenericRow> windowedWithWindowBoundaries;
+  private KTable<Windowed<Struct>, GenericRow> windowedWithWindowBounds;
+  @Mock
+  private KTable<Windowed<Struct>, GenericRow> windowedWithWindowUdafs;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -173,8 +173,6 @@ public class StreamAggregateBuilderTest {
   @Mock
   private WindowSelectMapper windowSelectMapper;
   @Mock
-  private KsqlTransformer<Windowed<Object>, GenericRow> windowSelectTransformer;
-  @Mock
   private Merger<Struct, GenericRow> merger;
   @Mock
   private MaterializedFactory materializedFactory;
@@ -190,9 +188,6 @@ public class StreamAggregateBuilderTest {
   private Materialized<Struct, GenericRow, SessionStore<Bytes, byte[]>> sessionWindowMaterialized;
   @Mock
   private ExecutionStep<KGroupedStreamHolder> sourceStep;
-  @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier<Windowed<Struct>, GenericRow, GenericRow>>
-      windowedTransformerCaptor;
   @Mock
   private KsqlProcessingContext ctx;
 
@@ -207,7 +202,7 @@ public class StreamAggregateBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), any(), any(), any()))
+    when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
@@ -257,6 +252,8 @@ public class StreamAggregateBuilderTest {
         .thenReturn(windowed);
     when(windowed.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) windowedWithResults);
+    when(windowedWithResults.transformValues(any(), any(Named.class)))
+        .thenReturn((KTable) windowedWithWindowBounds);
   }
 
   private void givenTumblingWindowedAggregate() {
@@ -297,6 +294,9 @@ public class StreamAggregateBuilderTest {
         .thenReturn(windowed);
     when(windowed.transformValues(any(), any(Named.class)))
         .thenReturn((KTable) windowedWithResults);
+    when(windowedWithResults.transformValues(any(), any(Named.class)))
+        .thenReturn((KTable) windowedWithWindowBounds);
+
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
@@ -344,7 +344,7 @@ public class StreamAggregateBuilderTest {
     final KTableHolder<Struct> result = aggregate.build(planBuilder);
 
     // Then:
-    assertCorrectMaterializationBuilder(result);
+    assertCorrectMaterializationBuilder(result, false);
   }
 
   @Test
@@ -412,7 +412,8 @@ public class StreamAggregateBuilderTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        false
     );
   }
 
@@ -425,16 +426,18 @@ public class StreamAggregateBuilderTest {
     final KTableHolder<Windowed<Struct>> result = windowedAggregate.build(planBuilder);
 
     // Then:
-    assertThat(result.getTable(), is(windowedWithResults));
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         timeWindowedStream,
         windowed,
-        windowedWithResults
+        windowedWithResults,
+        windowedWithWindowBounds
     );
     inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
+    inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
   }
 
@@ -447,16 +450,18 @@ public class StreamAggregateBuilderTest {
     final KTableHolder<Windowed<Struct>> result = windowedAggregate.build(planBuilder);
 
     // Then:
-    assertThat(result.getTable(), is(windowedWithResults));
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         timeWindowedStream,
         windowed,
-        windowedWithResults
+        windowedWithResults,
+        windowedWithWindowBounds
     );
     inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).advanceBy(HOP));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
+    inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
   }
 
@@ -469,12 +474,13 @@ public class StreamAggregateBuilderTest {
     final KTableHolder<Windowed<Struct>> result = windowedAggregate.build(planBuilder);
 
     // Then:
-    assertThat(result.getTable(), is(windowedWithResults));
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
     final InOrder inOrder = Mockito.inOrder(
         groupedStream,
         sessionWindowedStream,
         windowed,
-        windowedWithResults
+        windowedWithResults,
+        windowedWithWindowBounds
     );
     inOrder.verify(groupedStream).windowedBy(SessionWindows.with(WINDOW));
     inOrder.verify(sessionWindowedStream).aggregate(
@@ -484,6 +490,7 @@ public class StreamAggregateBuilderTest {
         sessionWindowMaterialized
     );
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
+    inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
   }
 
@@ -496,7 +503,7 @@ public class StreamAggregateBuilderTest {
     final KTableHolder<?> result = windowedAggregate.build(planBuilder);
 
     // Then:
-    assertCorrectMaterializationBuilder(result);
+    assertCorrectMaterializationBuilder(result, true);
   }
 
   @Test
@@ -617,7 +624,7 @@ public class StreamAggregateBuilderTest {
           aggregated,
           aggregateParamsFactory
       );
-      when(aggregateParamsFactory.create(any(), any(), any(), any()))
+      when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
           .thenReturn(aggregateParams);
       given.run();
 
@@ -626,7 +633,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(aggregateParamsFactory)
-          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS);
+          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true);
     }
   }
 
@@ -635,11 +642,11 @@ public class StreamAggregateBuilderTest {
   public void shouldAddWindowBoundariesIfSpecified() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(
-          groupedStream, timeWindowedStream, sessionWindowedStream, windowed, windowedWithResults);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, windowed,
+          windowedWithResults, windowedWithWindowBounds);
       when(windowSelectMapper.hasSelects()).thenReturn(true);
-      when(windowedWithResults.transformValues(any(), any(Named.class))).thenReturn(
-          (KTable) windowedWithWindowBoundaries);
+      when(windowedWithWindowBounds.transformValues(any(), any(Named.class))).thenReturn(
+          (KTable) windowedWithWindowUdafs);
       given.run();
 
       // When:
@@ -647,20 +654,22 @@ public class StreamAggregateBuilderTest {
           windowedAggregate.build(planBuilder);
 
       // Then:
-      assertThat(result.getTable(), is(windowedWithWindowBoundaries));
-      verify(windowedWithResults)
-          .transformValues(windowedTransformerCaptor.capture(), any(Named.class));
+      assertThat(result.getTable(), is(windowedWithWindowUdafs));
+      verify(windowedWithWindowBounds).transformValues(any(), any(Named.class));
     }
   }
 
-  private void assertCorrectMaterializationBuilder(final KTableHolder<?> result) {
+  private void assertCorrectMaterializationBuilder(
+      final KTableHolder<?> result,
+      final boolean windowed
+  ) {
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
 
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
     assertThat(info.stateStoreName(), equalTo("agg-regate-Materialize"));
     assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA));
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
-    assertThat(info.getTransforms(), hasSize(1));
+    assertThat(info.getTransforms(), hasSize(1 + (windowed ? 1 : 0)));
 
     final MapperInfo aggMapInfo = (MapperInfo) info.getTransforms().get(0);
     final KsqlTransformer<Object, GenericRow> mapper = aggMapInfo.getMapper(name -> null);

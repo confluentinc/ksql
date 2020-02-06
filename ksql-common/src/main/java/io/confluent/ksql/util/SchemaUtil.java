@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -48,13 +49,18 @@ public final class SchemaUtil {
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
+  public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
-  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.of(
-      ROWKEY_NAME,
-      ROWTIME_NAME,
+  private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
       WINDOWSTART_NAME,
       WINDOWEND_NAME
   );
+
+  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
+      .add(ROWKEY_NAME)
+      .add(ROWTIME_NAME)
+      .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
+      .build();
 
   private static final Set<Schema.Type> ARITHMETIC_TYPES = ImmutableSet.of(
       Type.INT8,
@@ -68,6 +74,18 @@ public final class SchemaUtil {
   private static final char FIELD_NAME_DELIMITER = '.';
 
   private SchemaUtil() {
+  }
+
+  public static boolean isWindowBound(final ColumnName columnName) {
+    return windowBoundsColumnNames().contains(columnName);
+  }
+
+  public static Set<ColumnName> windowBoundsColumnNames() {
+    return WINDOW_BOUNDS_COLUMN_NAMES;
+  }
+
+  public static boolean isSystemColumn(final ColumnName columnName) {
+    return systemColumnNames().contains(columnName);
   }
 
   public static Set<ColumnName> systemColumnNames() {

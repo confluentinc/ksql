@@ -140,8 +140,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public SourceSchemas getFromSourceSchemas() {
-    return original.getFromSourceSchemas();
+  public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
+    return original.getFromSourceSchemas(postAggregate);
   }
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {

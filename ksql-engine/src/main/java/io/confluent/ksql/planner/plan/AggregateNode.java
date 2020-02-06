@@ -112,7 +112,7 @@ public class AggregateNode extends PlanNode {
 
   @Override
   public LogicalSchema getSchema() {
-    return this.schema;
+    return schema;
   }
 
   @Override
@@ -135,10 +135,6 @@ public class AggregateNode extends PlanNode {
 
   public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
-  }
-
-  public List<Expression> getAggregateFunctionArguments() {
-    return aggregateFunctionArguments;
   }
 
   public List<FunctionCall> getFunctionCalls() {
@@ -186,8 +182,9 @@ public class AggregateNode extends PlanNode {
 
     // Pre aggregate computations
     final InternalSchema internalSchema = new InternalSchema(
-        getRequiredColumns(),
-        getAggregateFunctionArguments());
+        requiredColumns,
+        aggregateFunctionArguments
+    );
 
     final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
         internalSchema.getAggArgExpansionList(),
@@ -203,7 +200,7 @@ public class AggregateNode extends PlanNode {
         .getValueFormat();
 
     final List<Expression> internalGroupByColumns = internalSchema.resolveGroupByExpressions(
-        getGroupByExpressions(),
+        groupByExpressions,
         aggregateArgExpanded
     );
 
@@ -228,6 +225,7 @@ public class AggregateNode extends PlanNode {
         .map(e -> (UnqualifiedColumnReferenceExp) internalSchema.resolveToInternal(e))
         .map(UnqualifiedColumnReferenceExp::getReference)
         .collect(Collectors.toList());
+
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
         requiredColumnNames,
         functionsWithInternalIdentifiers,
@@ -362,6 +360,10 @@ public class AggregateNode extends PlanNode {
     }
 
     private Expression resolveToInternal(final Expression exp) {
+      if (isWindowBound(exp)) {
+        return exp;
+      }
+
       final ColumnName name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
         return new UnqualifiedColumnReferenceExp(
@@ -370,6 +372,15 @@ public class AggregateNode extends PlanNode {
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
+    }
+
+    private static boolean isWindowBound(final Expression exp) {
+      if (!(exp instanceof ColumnReferenceExp)) {
+        return false;
+      }
+
+      final ColumnReferenceExp column = (ColumnReferenceExp)exp;
+      return SchemaUtil.isWindowBound(column.getReference());
     }
 
     private final class ResolveToInternalRewriter

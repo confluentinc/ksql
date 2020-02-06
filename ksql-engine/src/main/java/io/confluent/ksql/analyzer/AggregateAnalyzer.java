@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,21 +37,26 @@ class AggregateAnalyzer {
   private final MutableAggregateAnalysis aggregateAnalysis;
   private final QualifiedColumnReferenceExp defaultArgument;
   private final FunctionRegistry functionRegistry;
+  private final boolean hasWindowExpression;
 
   AggregateAnalyzer(
       final MutableAggregateAnalysis aggregateAnalysis,
       final QualifiedColumnReferenceExp defaultArgument,
+      final boolean hasWindowExpression,
       final FunctionRegistry functionRegistry
   ) {
     this.aggregateAnalysis = Objects.requireNonNull(aggregateAnalysis, "aggregateAnalysis");
     this.defaultArgument = Objects.requireNonNull(defaultArgument, "defaultArgument");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.hasWindowExpression = hasWindowExpression;
   }
 
   void processSelect(final Expression expression) {
     final Set<ColumnReferenceExp> nonAggParams = new HashSet<>();
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
-      if (!aggFuncName.isPresent()) {
+      if (aggFuncName.isPresent()) {
+        throwOnWindowBoundColumnIfWindowedAggregate(node);
+      } else {
         nonAggParams.add(node);
       }
     });
@@ -70,6 +76,15 @@ class AggregateAnalyzer {
         throw new KsqlException("GROUP BY does not support aggregate functions: "
             + aggFuncName.get().name() + " is an aggregate function.");
       }
+      throwOnWindowBoundColumnIfWindowedAggregate(node);
+    });
+
+    visitor.process(expression, null);
+  }
+
+  void processWhere(final Expression expression) {
+    final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
+      throwOnWindowBoundColumnIfWindowedAggregate(node);
     });
 
     visitor.process(expression, null);
@@ -77,11 +92,29 @@ class AggregateAnalyzer {
 
   void processHaving(final Expression expression) {
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
+      throwOnWindowBoundColumnIfWindowedAggregate(node);
       if (!aggFuncName.isPresent()) {
         aggregateAnalysis.addNonAggregateHavingField(node);
       }
     });
     visitor.process(expression, null);
+  }
+
+  private void throwOnWindowBoundColumnIfWindowedAggregate(final ColumnReferenceExp node) {
+    // Window bounds are supported for operations on windowed sources
+    if (!hasWindowExpression) {
+      return;
+    }
+
+    // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
+    if (SchemaUtil.isWindowBound(node.getReference())) {
+      throw new KsqlException(
+          "Window bounds column " + node + " can only be used in the SELECT clause of "
+              + "windowed aggregations."
+              + System.lineSeparator()
+              + "See https://github.com/confluentinc/ksql/issues/4397"
+      );
+    }
   }
 
   private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
@@ -135,7 +168,10 @@ class AggregateAnalyzer {
         final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
-      aggregateAnalysis.addRequiredColumn(node);
+
+      if (!SchemaUtil.isWindowBound(node.getReference())) {
+        aggregateAnalysis.addRequiredColumn(node);
+      }
       return null;
     }
 
@@ -145,7 +181,10 @@ class AggregateAnalyzer {
         final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
-      aggregateAnalysis.addRequiredColumn(node);
+
+      if (!SchemaUtil.isWindowBound(node.getReference())) {
+        aggregateAnalysis.addRequiredColumn(node);
+      }
       return null;
     }
   }

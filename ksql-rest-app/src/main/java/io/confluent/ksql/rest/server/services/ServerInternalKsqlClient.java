@@ -27,7 +27,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -78,7 +78,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final KsqlHost host,
+      final KsqlHostInfo host,
       final long timestamp
   ) {
     throw new UnsupportedOperationException();

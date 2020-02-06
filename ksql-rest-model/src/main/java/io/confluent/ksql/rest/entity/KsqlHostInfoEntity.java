@@ -20,17 +20,17 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Objects;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class KsqlHostEntity {
+public class KsqlHostInfoEntity {
 
   private final String host;
   private final int port;
 
-  public KsqlHostEntity(
+  public KsqlHostInfoEntity(
       final String host,
       final int port
   ) {
@@ -39,7 +39,7 @@ public class KsqlHostEntity {
   }
 
   @JsonCreator
-  public KsqlHostEntity(final String serializedPair) {
+  public KsqlHostInfoEntity(final String serializedPair) {
     final String [] parts = serializedPair.split(":");
     if (parts.length != 2) {
       throw new KsqlException("Invalid host info. Expected format: <hostname>:<port>, but was "
@@ -64,8 +64,8 @@ public class KsqlHostEntity {
     return port;
   }
 
-  public KsqlHost toKsqlHost() {
-    return new KsqlHost(host, port);
+  public KsqlHostInfo toKsqlHost() {
+    return new KsqlHostInfo(host, port);
   }
 
   @Override
@@ -78,7 +78,7 @@ public class KsqlHostEntity {
       return false;
     }
 
-    final KsqlHostEntity that = (KsqlHostEntity) o;
+    final KsqlHostInfoEntity that = (KsqlHostInfoEntity) o;
     return Objects.equals(host, that.host)
         && port == that.port;
   }

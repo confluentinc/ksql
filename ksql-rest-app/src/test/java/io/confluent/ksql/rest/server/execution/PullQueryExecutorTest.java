@@ -24,15 +24,18 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,18 +65,15 @@ public class PullQueryExecutorTest {
           ImmutableMap.of(),
           engine.getKsqlConfig()
       );
+      PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
+          engine.getEngine(), Optional.empty(), new RoutingFilters(ImmutableList.of()));
 
       // Then:
       expectedException.expect(KsqlException.class);
       expectedException.expectMessage(containsString("Pull queries are disabled"));
 
       // When:
-      PullQueryExecutor.execute(
-          query,
-          ImmutableMap.of(),
-          engine.getEngine(),
-          engine.getServiceContext()
-      );
+      pullQueryExecutor.execute(query, engine.getServiceContext());
     }
   }
 

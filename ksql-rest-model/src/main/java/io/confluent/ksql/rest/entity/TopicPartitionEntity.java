@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -18,55 +18,58 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSubTypes({})
-public class HeartbeatMessage {
+public class TopicPartitionEntity {
 
-  private final KsqlHostInfoEntity hostInfo;
-  private final long timestamp;
+  private final String topic;
+  private final int partition;
 
   @JsonCreator
-  public HeartbeatMessage(@JsonProperty("hostInfo") final KsqlHostInfoEntity hostInfo,
-                          @JsonProperty("timestamp") final long timestamp) {
-    this.hostInfo = hostInfo;
-    this.timestamp = timestamp;
+  public TopicPartitionEntity(
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partition") final int partition
+  ) {
+    this.topic = topic;
+    this.partition = partition;
   }
 
-  public KsqlHostInfoEntity getHostInfo() {
-    return hostInfo;
+  public String getTopic() {
+    return topic;
   }
 
-  public long getTimestamp() {
-    return timestamp;
+  public int getPartition() {
+    return partition;
   }
 
   @Override
-  public boolean equals(final Object other) {
-    if (this == other) {
+  public boolean equals(final Object o) {
+    if (this == o) {
       return true;
     }
 
-    if (!(other instanceof HeartbeatMessage)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
 
-    final HeartbeatMessage that = (HeartbeatMessage) other;
-    return this.timestamp == that.timestamp && Objects.equals(hostInfo, that.hostInfo);
+    final TopicPartitionEntity that = (TopicPartitionEntity) o;
+    return topic.equals(that.topic)
+        && partition == that.partition;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostInfo, timestamp);
+    return Objects.hash(topic, partition);
   }
 
   @Override
   public String toString() {
-    return "HearbeatMessage{"
-        + "hostInfo='" + hostInfo + '\''
-        + "timestamp='" + timestamp + '\''
+    return "TopicPartition{"
+        + "topic=" + topic
+        + ", partition=" + partition
         + '}';
   }
 }

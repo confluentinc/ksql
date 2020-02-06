@@ -52,6 +52,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.IPullQueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
@@ -139,7 +141,7 @@ public class WSQueryEndpointTest {
   @Mock
   private QueryPublisher pushQueryPublisher;
   @Mock
-  private QueryPublisher pullQueryPublisher;
+  private IPullQueryPublisher pullQueryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
   @Mock
@@ -164,6 +166,8 @@ public class WSQueryEndpointTest {
   private Errors errorsHandler;
   @Mock
   private DefaultServiceContextFactory defaultServiceContextProvider;
+  @Mock
+  private PullQueryExecutor pullQueryExecutor;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -207,7 +211,8 @@ public class WSQueryEndpointTest {
         serviceContextFactory,
         defaultServiceContextProvider,
         serverState,
-        schemaRegistryClientSupplier
+        schemaRegistryClientSupplier,
+        pullQueryExecutor
     );
   }
 
@@ -439,7 +444,8 @@ public class WSQueryEndpointTest {
         eq(serviceContext),
         eq(exec),
         eq(configuredStatement),
-        any());
+        any(),
+        eq(pullQueryExecutor));
   }
 
   @Test

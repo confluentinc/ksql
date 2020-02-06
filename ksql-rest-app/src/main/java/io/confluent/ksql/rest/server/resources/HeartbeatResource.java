@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -49,9 +49,10 @@ public class HeartbeatResource {
   }
 
   private void handleHeartbeat(final HeartbeatMessage request) {
-    final KsqlHostEntity ksqlHostEntity = request.getHostInfo();
-    final KsqlHost ksqlHost = new KsqlHost(ksqlHostEntity.getHost(), ksqlHostEntity.getPort());
+    final KsqlHostInfoEntity ksqlHostInfoEntity = request.getHostInfo();
+    final KsqlHostInfo ksqlHostInfo = new KsqlHostInfo(
+        ksqlHostInfoEntity.getHost(), ksqlHostInfoEntity.getPort());
     final long timestamp = request.getTimestamp();
-    heartbeatAgent.receiveHeartbeat(ksqlHost, timestamp);
+    heartbeatAgent.receiveHeartbeat(ksqlHostInfo, timestamp);
   }
 }

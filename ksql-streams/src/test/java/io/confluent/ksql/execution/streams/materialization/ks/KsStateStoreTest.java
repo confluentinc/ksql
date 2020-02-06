@@ -142,7 +142,6 @@ public class KsStateStoreTest {
     when(kafkaStreams.state())
         .thenReturn(State.RUNNING)
         .thenReturn(State.NOT_RUNNING);
-
     when(kafkaStreams.store(any())).thenThrow(new IllegalStateException());
 
     // When:

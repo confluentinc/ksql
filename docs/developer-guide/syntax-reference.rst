@@ -1180,7 +1180,7 @@ DROP STREAM [IF EXISTS] [DELETE TOPIC];
 
 Drops an existing stream.
 
-If the DELETE TOPIC clause is present, the the stream's source topic is marked
+If the DELETE TOPIC clause is present, the stream's source topic is marked
 for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.

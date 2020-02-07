@@ -280,7 +280,7 @@ Your output should resemble:
       The data generated has the same value in the {{ site.ak }} record's key
       as the `userId` field in the value. Specifying `key='userId'`
       in the WITH clause above lets ksqlDB know this. This information
-      will be used later allow joins against the table to use the more
+      to allow joins against the table to use the more
       descriptive `userId` column name, rather than `ROWKEY`. Joining
       on either will yield the same results. If your data does not
       contain a copy of the key in the value simply join on `ROWKEY`.

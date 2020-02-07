@@ -221,7 +221,7 @@ These examples query messages from Kafka topics called `pageviews` and
 
     !!! tip
           You can run `DESCRIBE pageviews_original;` to see the schema for the
-          stream. Notice that KSQL created an additional columns, named
+          stream. Notice that ksqlDB created an additional column, named
           `ROWTIME`, which corresponds with the Kafka message timestamp.
 
 2.  Create a table, named `users_original`, from the `users` Kafka

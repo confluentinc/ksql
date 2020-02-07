@@ -225,6 +225,10 @@ public final class Errors {
     return errorMessages.kafkaAuthorizationErrorMessage(e);
   }
 
+  public String transactionInitTimeoutErrorMessage(final Exception e) {
+    return errorMessages.transactionInitTimeoutErrorMessage(e);
+  }
+
   public Response generateResponse(
       final Exception e,
       final Response defaultResponse

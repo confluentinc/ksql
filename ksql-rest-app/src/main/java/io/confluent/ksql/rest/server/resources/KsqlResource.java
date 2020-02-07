@@ -167,7 +167,8 @@ public class KsqlResource implements KsqlConfigurable {
             distributedCmdResponseTimeout,
             injectorFactory,
             authorizationValidator,
-            new ValidatedCommandFactory(config)
+            new ValidatedCommandFactory(config),
+            errorHandler
         ),
         ksqlEngine,
         config,

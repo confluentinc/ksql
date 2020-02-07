@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -130,6 +131,8 @@ public class DistributingExecutorTest {
   private Producer<CommandId, Command> transactionalProducer;
   @Mock
   private Command command;
+  @Mock
+  private Errors errorHandler;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -159,7 +162,8 @@ public class DistributingExecutorTest {
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
-        validatedCommandFactory
+        validatedCommandFactory,
+        errorHandler
     );
   }
 

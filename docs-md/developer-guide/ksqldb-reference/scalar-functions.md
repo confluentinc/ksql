@@ -16,6 +16,7 @@ keywords: ksqlDB, function, scalar
   - [GENERATE_SERIES](#generateseries-1)
   - [GEO_DISTANCE](#geodistance)
   - [LN](#ln)
+  - [MOD](#mod)
   - [RANDOM](#random)
   - [ROUND](#round)
   - [SIGN](#sign)
@@ -138,6 +139,13 @@ LN
 `LN(col1)`
 
 The natural logarithm of a value.
+
+MOD
+--
+
+`MOD(col1, divisor)`
+
+The remainder of a numeric value divided by another one.
 
 RANDOM
 ------

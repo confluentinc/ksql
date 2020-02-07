@@ -1767,10 +1767,10 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | Function               | Example                                                                   | Description                                       |
 +========================+===========================================================================+===================================================+
-| ABS                    |  ``ABS(col1)``                                                            | The absolute value of a value                     |
+| ABS                    |  ``ABS(col1)``                                                            | The absolute value of a value.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
-|                        |                                                                           | value contains in it                              |
+|                        |                                                                           | value contains in it.                             |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | AS_ARRAY               |  ``AS_ARRAY(col1, col2)```                                                | Construct an array from a variable number of      |
 |                        |                                                                           | inputs.                                           |
@@ -1781,15 +1781,6 @@ Scalar functions
 | CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| UNIX_DATE              |  ``UNIX_DATE()``                                                          | Gets an integer representing days since epoch.    |
-|                        |                                                                           | The returned timestamp may differ depending on    |
-|                        |                                                                           | the local time of different KSQL Server instances.|
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP()``                                                     | Gets the Unix timestamp in milliseconds,          |
-|                        |                                                                           | represented as a BIGINT.                          |
-|                        |                                                                           | The returned timestamp may differ depending on    |
-|                        |                                                                           | the local time of different KSQL Server instances.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
@@ -1907,6 +1898,9 @@ Scalar functions
 |                        |                                                                           | For example: ``MASK_RIGHT("My Test $123", 4)``    |
 |                        |                                                                           | will return ``My Test -nnn``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| MOD                    |  ``MOD(col1, dividend)``                                                  | The remainder of a numeric value divided by       |
+|                        |                                                                           | another one.                                      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
@@ -1927,8 +1921,6 @@ Scalar functions
 |                        |                                                                           | * 1 if the argument is positive                   |
 |                        |                                                                           | * ``null`` argument is null                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SLICE                  |  ``SLICE(col1, from, to)``                                                | Slices a list based on the supplied indices. The  |
 |                        |                                                                           | indices start at 1 and include both endpoints.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1943,6 +1935,8 @@ Scalar functions
 |                        |                                                                           | If the delimiter is found at the beginning or end |
 |                        |                                                                           | of the string, or there are contiguous delimiters,|
 |                        |                                                                           | then an empty space is added to the array.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |
@@ -2002,6 +1996,15 @@ Scalar functions
 |                        |                                                                           | a string.                                         |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| UNIX_DATE              |  ``UNIX_DATE()``                                                          | Gets an integer representing days since epoch.    |
+|                        |                                                                           | The returned timestamp may differ depending on    |
+|                        |                                                                           | the local time of different KSQL Server instances.|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP()``                                                     | Gets the Unix timestamp in milliseconds,          |
+|                        |                                                                           | represented as a BIGINT.                          |
+|                        |                                                                           | The returned timestamp may differ depending on    |
+|                        |                                                                           | the local time of different KSQL Server instances.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                               | Unescapes the `URL-param-encoded`_ value in       |
 |                        |                                                                           | ``col1`` This is the inverse of URL_ENCODE_PARAM  |

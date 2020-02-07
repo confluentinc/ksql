@@ -159,7 +159,7 @@ SHOW ALL TOPICS;
 Your output should resemble:
 
 ```
-  Kafka Topic                            | Partitions | Partition Replicas 
+ Kafka Topic                            | Partitions | Partition Replicas 
 --------------------------------------------------------------------------
  __confluent.support.metrics            | 1          | 1                  
  _confluent-ksql-default__command_topic | 1          | 1                  

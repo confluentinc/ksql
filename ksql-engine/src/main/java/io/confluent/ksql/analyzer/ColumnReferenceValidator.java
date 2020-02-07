@@ -34,11 +34,11 @@ import java.util.stream.Collectors;
 /**
  * Searches through the AST for any column references and throws if they are unknown or ambiguous.
  */
-class ExpressionAnalyzer {
+class ColumnReferenceValidator {
 
   private final SourceSchemas sourceSchemas;
 
-  ExpressionAnalyzer(final SourceSchemas sourceSchemas) {
+  ColumnReferenceValidator(final SourceSchemas sourceSchemas) {
     this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 

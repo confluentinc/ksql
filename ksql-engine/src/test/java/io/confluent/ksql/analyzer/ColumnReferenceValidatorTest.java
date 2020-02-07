@@ -44,7 +44,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ExpressionAnalyzerTest {
+public class ColumnReferenceValidatorTest {
 
   private static final Expression WINDOW_START_EXP = new UnqualifiedColumnReferenceExp(
       SchemaUtil.WINDOWSTART_NAME
@@ -57,11 +57,11 @@ public class ExpressionAnalyzerTest {
 
   @Mock
   private SourceSchemas sourceSchemas;
-  private ExpressionAnalyzer analyzer;
+  private ColumnReferenceValidator analyzer;
 
   @Before
   public void setUp() {
-    analyzer = new ExpressionAnalyzer(sourceSchemas);
+    analyzer = new ColumnReferenceValidator(sourceSchemas);
   }
 
   @Test

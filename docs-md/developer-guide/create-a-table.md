@@ -45,7 +45,7 @@ data format is `JSON`. Other options are `Avro`, `DELIMITED` and `KAFKA`. For
 more information, see
 [Serialization Formats](serialization.md#serialization-formats).
 
-ksqlDB requires keys to have been serialized using Kafka's own, or compatible,
+ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
 serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
 
 In the ksqlDB CLI, paste the following CREATE TABLE statement:

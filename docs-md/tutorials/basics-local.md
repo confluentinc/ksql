@@ -244,7 +244,7 @@ These examples query messages from Kafka topics called `pageviews` and
           You may have noticed the CREATE TABLE did not define the set of columns
           like the CREATE STREAM statement did. This is because the value format
           is Avro, and the DataGen tool publishes the Avro schema to {{ site.sr }}.
-          ksqlDB retrieves the schema from the Schema Registry and uses this to build
+          ksqlDB retrieves the schema from {{ site.sr }} and uses this to build
           the SQL schema for the table. You may still provide the schema if you wish.
           Until [Github issue #4462](https://github.com/confluentinc/ksql/issues/4462)
           is complete, schema inference is only available where the key of the data

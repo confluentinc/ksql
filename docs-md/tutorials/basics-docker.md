@@ -859,7 +859,7 @@ After both `CREATE STREAM` statements, your output should resemble:
 
 ### 2. Populate two source topics
 
-Populate the streams with some sample data using the INSERT VALUES statement:
+Populate the streams with some sample data by using the INSERT VALUES statement:
 
 ```sql
 -- Insert values in NEW_ORDERS:

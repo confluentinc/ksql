@@ -283,7 +283,7 @@ Your output should resemble:
       to allow joins against the table to use the more
       descriptive `userId` column name, rather than `ROWKEY`. Joining
       on either yields the same results. If your data doesn't
-      contain a copy of the key in the value simply join on `ROWKEY`.
+      contain a copy of the key in the value, you can join on `ROWKEY`.
 
 !!! tip
     You can run `DESCRIBE users_original;` to see the schema for the

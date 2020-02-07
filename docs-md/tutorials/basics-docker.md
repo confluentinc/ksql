@@ -422,7 +422,7 @@ Query terminated
 ### 2. Create a persistent query
 
 Create a persistent query by using the `CREATE STREAM` keywords to
-precede the `SELECT` statement, and removing the `LIMIT` clause.
+precede the `SELECT` statement and removing the `LIMIT` clause.
 The results from this query are written to the `PAGEVIEWS_ENRICHED` {{ site.ak }} topic.
 
 ```sql

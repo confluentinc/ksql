@@ -38,7 +38,7 @@ column that represents the key has the name `ROWKEY`.
 When you create a table by using a CREATE TABLE statement, the key of the
 table is the same as that of the records in the underlying Kafka topic.
 You must set the type of the `ROWKEY` column in the
-CREATE TABLE statement to match the key data in the underlying Kafka topic.
+CREATE TABLE statement to match the key data in the underlying {{ site.ak }} topic.
 
 When you create a table by using a CREATE TABLE AS SELECT statement, the key of
 the resulting table is determined as follows:

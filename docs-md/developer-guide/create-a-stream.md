@@ -40,6 +40,9 @@ data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more
 details.
 
+ksqlDB requires keys to have been serialized using Kafka's own, or compatible,
+serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
+
 In the ksqlDB CLI, paste the following CREATE STREAM statement:
 
 ```sql

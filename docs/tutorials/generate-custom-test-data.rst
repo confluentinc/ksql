@@ -76,13 +76,10 @@ Name                                          Default                           
 ``topic=<kafka topic name>``                                                                       Name of the topic that receives generated records. Required by the ``schema`` option.
 ``key=<name of key column>``                                                                       Field to use as the key for generated records. Required by the ``schema`` option.
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.
-``maxInterval=<max time between records>``    500                                                  Longest time to wait before generating a new record, in milliseconds. 
+``msgRate=<rate to produce in msgs/second>``  -1 (unlimited, i.e. as fast as possible)             The rate to produce messages at, in messages-per-second.
 ``propertiesFile=<path-to-properties-file>``  ``<path-to-confluent>/etc/ksql/datagen.properties``  Path to the ``ksql-datagen`` properties file. 
 ``schemaRegistryUrl``                         http://localhost:8081                                URL of |sr| when ``format`` is ``avro``.
 ============================================  ===================================================  =========================================================================================
-
-Records are generated at random intervals, with the longest interval specified
-by the ``maxInterval`` option.
 
 .. tip:: For usage information, enter ``ksql-datagen help``.
 

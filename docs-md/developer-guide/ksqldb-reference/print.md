@@ -13,17 +13,13 @@ Synopsis
 --------
 
 ```sql
-PRINT qualifiedName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
+PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 ```
 
 Description
 -----------
 
 Print the contents of Kafka topics to the ksqlDB CLI.
-
-!!! important
-	SQL grammar defaults to uppercase formatting. You can use quotations
-    (`"`) to print topics that contain lowercase characters.
 
 The PRINT statement supports the following properties:
 
@@ -40,7 +36,7 @@ The following statement shows how to print all of the records in a topic named
 `ksql__commands`.
 
 ```sql
-PRINT 'ksql__commands' FROM BEGINNING;
+PRINT ksql__commands FROM BEGINNING;
 ```
 
 Your output should resemble:

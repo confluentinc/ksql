@@ -98,7 +98,7 @@ public class SerdeBenchmark {
 
       final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
       row = genericRowPair.getRight();
-      schema = rowGenerator.schema().valueConnectSchema();
+      schema = rowGenerator.valueSchema();
     }
 
     private InputStream getSchemaStream() {

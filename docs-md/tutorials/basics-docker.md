@@ -323,7 +323,7 @@ Viewing your data
    returned in the query result, and the `EMIT CHANGES` keywords to
    indicate you that want to stream results back. This is known as a
    [push query](../concepts/queries/push.md). See the
-   [queries](../concepts/queries/index.md) for an explanation of the
+   [queries](../concepts/queries/index.md) section for an explanation of the
    different query types. Note that exact data output may vary because
    of the randomness of the data generation.
    ```sql

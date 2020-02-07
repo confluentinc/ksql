@@ -252,7 +252,7 @@ These examples query messages from Kafka topics called `pageviews` and
 
     !!! note
           The data generated has the same value in the {{ site.ak }} record's key
-          as is in the userId field in the value. Specifying `key='userId'`
+          as the `userId` field in the value. Specifying `key='userId'`
           in the WITH clause above lets ksqlDB know this. This information
           will be used later allow joins against the table to use the more
           descriptive `userId` column name, rather than `ROWKEY`. Joining

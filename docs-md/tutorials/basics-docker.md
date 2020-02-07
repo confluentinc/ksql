@@ -613,7 +613,7 @@ Your output should resemble:
 ...
 ```
 
-Pull queries on windowed tables such as pageviews_regions also supports querying a single window's result:
+Pull queries on windowed tables such as `pageviews_regions` also support querying a single window's result:
 
 ```sql
 SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDOWSTART=1581080550000;

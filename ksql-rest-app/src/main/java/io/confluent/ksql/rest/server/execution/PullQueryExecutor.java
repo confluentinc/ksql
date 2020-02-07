@@ -974,7 +974,7 @@ public final class PullQueryExecutor {
       this.overrides = overrides;
     }
 
-    private long getLong(String key) {
+    private long getLong(final String key) {
       if (overrides.containsKey(key)) {
         return (Long) overrides.get(key);
       }

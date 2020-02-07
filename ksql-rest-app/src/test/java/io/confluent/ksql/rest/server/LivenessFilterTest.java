@@ -37,12 +37,10 @@ public class LivenessFilterTest {
   @Mock
   private HeartbeatAgent heartbeatAgent;
 
-  private Optional<HeartbeatAgent> optionalHeartbeatAgent;
   private Map<KsqlHostInfo, HostStatus> allHostsStatus;
   private KsqlHostInfo activeHost;
   private KsqlHostInfo standByHost1;
   private KsqlHostInfo standByHost2;
-  private HostInfo activeHostInfo;
   private LivenessFilter livenessFilter;
 
   private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
@@ -51,10 +49,9 @@ public class LivenessFilterTest {
   @Before
   public void setUp() {
     activeHost = new KsqlHostInfo("activeHost", 2345);
-    activeHostInfo = new HostInfo("activeHost", 2345);
     standByHost1 = new KsqlHostInfo("standby1", 1234);
     standByHost2 = new KsqlHostInfo("standby2", 5678);
-    optionalHeartbeatAgent = Optional.of(heartbeatAgent);
+    Optional<HeartbeatAgent> optionalHeartbeatAgent = Optional.of(heartbeatAgent);
     livenessFilter = new LivenessFilter(optionalHeartbeatAgent);
   }
 

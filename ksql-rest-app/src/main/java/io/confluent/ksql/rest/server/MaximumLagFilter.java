@@ -50,7 +50,7 @@ public final class MaximumLagFilter implements RoutingFilter {
       final OptionalLong maxEndOffset
   ) {
     this.lagByHost = requireNonNull(lagByHost, "lagByHost");
-    this.routingOptions = requireNonNull(routingOptions, "requireNonNull");
+    this.routingOptions = requireNonNull(routingOptions, "routingOptions");
     this.maxEndOffset = requireNonNull(maxEndOffset, "maxEndOffset");
   }
 

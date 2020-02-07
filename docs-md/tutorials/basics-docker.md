@@ -150,7 +150,7 @@ Your output should resemble:
 ```
 
 By default, KSQL hides internal and system topics. Use the SHOW ALL TOPICS
-statement to see the full list of topics in the Kafka cluster:
+statement to see the full list of topics in the {{ site.ak }} cluster:
 
 ```sql
 SHOW ALL TOPICS;

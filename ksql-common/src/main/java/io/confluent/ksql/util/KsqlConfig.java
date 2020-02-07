@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -182,13 +184,14 @@ public class KsqlConfig extends AbstractConfig {
           + "to ksql.streams.num.standby.replicas >= 1";
   public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG =
-      "ksql.query.pull.standby.reads.max.offset.lag";
-  public static final Long KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_DEFAULT = 0L;
-  private static final String KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_DOC =
+  public static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG =
+      "ksql.query.pull.max.allowed.offset.lag";
+  public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = 0L;
+  private static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
       "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
-          + "hosts storing it, both active and standbys included. Only enabled when "
-          + "lag.reporting.enable is true. By default, no lag is is allowed.";
+          + "hosts storing it, both active and standbys included. This can be overridden per query "
+          + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
+          + "By default, no lag is is allowed.";
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
       "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
@@ -540,11 +543,12 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
         ).define(
-            KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG,
             Type.LONG,
-            KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_DEFAULT,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT,
+            zeroOrPositive(),
             Importance.MEDIUM,
-            KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_DOC
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
         ).define(
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
             ConfigDef.Type.LONG,

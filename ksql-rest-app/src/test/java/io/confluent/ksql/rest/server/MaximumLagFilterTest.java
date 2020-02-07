@@ -21,13 +21,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class MaximumLagFilterTest {
 
-  private static KsqlHostInfo HOST = new KsqlHostInfo("host", 8088);
+  private static KsqlHostInfo HOST1 = new KsqlHostInfo("host", 8088);
   private static KsqlHostInfo HOST2 = new KsqlHostInfo("host2", 8088);
-  private static List<KsqlHostInfo> HOSTS = ImmutableList.of(HOST, HOST2);
+  private static List<KsqlHostInfo> HOSTS = ImmutableList.of(HOST1, HOST2);
   private static String APPLICATION_ID = "app_id";
   private static String STATE_STORE = "state_store";
   private static int PARTITION = 3;
-  private static LagInfoEntity LAG = new LagInfoEntity(3, 12, 9);
+  private static LagInfoEntity LAG1 = new LagInfoEntity(3, 12, 9);
   private static LagInfoEntity LAG2 = new LagInfoEntity(7, 15, 8);
 
   @Mock
@@ -39,10 +39,10 @@ public class MaximumLagFilterTest {
 
   @Before
   public void setUp() {
-    when(lagReportingAgent.getHostsPartitionLagInfo(eq(HOST),
+    when(lagReportingAgent.getLagInfoForHost(eq(HOST1),
         eq(QueryStateStoreId.of(APPLICATION_ID, STATE_STORE)), eq(PARTITION)))
-        .thenReturn(Optional.of(LAG));
-    when(lagReportingAgent.getHostsPartitionLagInfo(eq(HOST2),
+        .thenReturn(Optional.of(LAG1));
+    when(lagReportingAgent.getLagInfoForHost(eq(HOST2),
         eq(QueryStateStoreId.of(APPLICATION_ID, STATE_STORE)), eq(PARTITION)))
         .thenReturn(Optional.of(LAG2));
   }
@@ -61,7 +61,7 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertTrue(filter.filter(HOST));
+    assertTrue(filter.filter(HOST1));
   }
 
   @Test
@@ -77,13 +77,13 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertFalse(filter.filter(HOST));
+    assertFalse(filter.filter(HOST1));
   }
 
   @Test
-  public void filter_hostNotReturned() {
+  public void filter_hostNoLag() {
     // Given:
-    when(lagReportingAgent.getHostsPartitionLagInfo(eq(HOST),
+    when(lagReportingAgent.getLagInfoForHost(eq(HOST1),
         eq(QueryStateStoreId.of(APPLICATION_ID, STATE_STORE)), eq(PARTITION)))
         .thenReturn(Optional.empty());
     when(routingOptions.getOffsetLagAllowed()).thenReturn(13L);
@@ -94,7 +94,7 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertTrue(filter.filter(HOST));
+    assertFalse(filter.filter(HOST1));
   }
 
   @Test

@@ -43,8 +43,8 @@ public interface RoutingFilter {
      * @param routingOptions The options to use when filtering
      * @param hosts The set of all hosts that have the store, including actives and standbys
      * @param activeHost The active host
-     * @param applicationQueryId The application query id
-     * @param storeName The state store name
+     * @param applicationQueryId The query id of the persistent query that materialized the table
+     * @param storeName The state store name of the materialized table
      * @param partition The partition of the changelog topic
      * @return The new RoutingFilter
      */

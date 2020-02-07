@@ -215,9 +215,8 @@ public final class PullQueryExecutor {
       final ServiceContext serviceContext,
       final PullQueryContext pullQueryContext
   ) {
-    final KsqlConfig ksqlConfigWithOverrides = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-    final RoutingOptions routingOptions = new ConfigRoutingOptions(ksqlConfigWithOverrides);
+    final RoutingOptions routingOptions = new ConfigRoutingOptions(
+        statement.getConfig(), statement.getOverrides());
 
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
@@ -235,8 +234,7 @@ public final class PullQueryExecutor {
     // increasing order of lag.
     for (KsqlNode node : filteredAndOrderedNodes) {
       try {
-        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext,
-            ksqlConfigWithOverrides);
+        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {}",
                  statement.getStatementText(), node, System.currentTimeMillis());
@@ -251,8 +249,7 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final PullQueryContext pullQueryContext,
-      final KsqlConfig ksqlConfigWithOverrides
+      final PullQueryContext pullQueryContext
   ) {
 
     if (node.isLocal()) {
@@ -261,8 +258,7 @@ public final class PullQueryExecutor {
       return queryRowsLocally(
           statement,
           executionContext,
-          pullQueryContext,
-          ksqlConfigWithOverrides);
+          pullQueryContext);
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());
@@ -274,8 +270,7 @@ public final class PullQueryExecutor {
   TableRowsEntity queryRowsLocally(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
-      final PullQueryContext pullQueryContext,
-      final KsqlConfig ksqlConfigWithOverrides
+      final PullQueryContext pullQueryContext
   ) {
     final Result result;
     if (pullQueryContext.whereInfo.windowStartBounds.isPresent()) {
@@ -311,8 +306,7 @@ public final class PullQueryExecutor {
           outputSchema,
           pullQueryContext.mat.windowType(),
           pullQueryContext.queryId,
-          pullQueryContext.contextStacker,
-          ksqlConfigWithOverrides
+          pullQueryContext.contextStacker
       );
     }
     return new TableRowsEntity(
@@ -703,8 +697,7 @@ public final class PullQueryExecutor {
       final LogicalSchema outputSchema,
       final Optional<WindowType> windowType,
       final QueryId queryId,
-      final Stacker contextStacker,
-      final KsqlConfig ksqlConfigWithOverrides
+      final Stacker contextStacker
   ) {
     final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
         .noneMatch(SchemaUtil::isSystemColumn);
@@ -747,10 +740,13 @@ public final class PullQueryExecutor {
       };
     }
 
+    final KsqlConfig ksqlConfig = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
         intermediateSchema,
-        ksqlConfigWithOverrides,
+        ksqlConfig,
         executionContext.getMetaStore()
     );
 
@@ -971,15 +967,23 @@ public final class PullQueryExecutor {
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
+    private final Map<String, ?> overrides;
 
-    ConfigRoutingOptions(final KsqlConfig ksqlConfig) {
+    ConfigRoutingOptions(final KsqlConfig ksqlConfig, final Map<String, ?> overrides) {
       this.ksqlConfig = ksqlConfig;
+      this.overrides = overrides;
+    }
+
+    private long getLong(String key) {
+      if (overrides.containsKey(key)) {
+        return (Long) overrides.get(key);
+      }
+      return ksqlConfig.getLong(key);
     }
 
     @Override
     public long getOffsetLagAllowed() {
-      return ksqlConfig.getLong(
-          KsqlConfig.KSQL_QUERY_PULL_STANDBY_READS_MAX_OFFSET_LAG_CONFIG);
+      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
   }
 }

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -37,6 +38,12 @@ public final class MaximumLagFilter implements RoutingFilter {
   private final RoutingOptions routingOptions;
   private final OptionalLong maxEndOffset;
 
+  /**
+   * Creates a MaximumLagFilter
+   * @param routingOptions The routing options used for filtering
+   * @param lagByHost The map of hosts with the store to their lags
+   * @param maxEndOffset The maximum end offset across hosts.
+   */
   private MaximumLagFilter(
       final RoutingOptions routingOptions,
       final ImmutableMap<KsqlHostInfo, Optional<LagInfoEntity>> lagByHost,
@@ -50,18 +57,17 @@ public final class MaximumLagFilter implements RoutingFilter {
   @Override
   public boolean filter(final KsqlHostInfo hostInfo) {
     final long allowedOffsetLag = routingOptions.getOffsetLagAllowed();
-    if (allowedOffsetLag >= 0) {
-      return lagByHost.getOrDefault(hostInfo, Optional.empty())
-          .map(hostLag -> {
-            // Compute the lag from the maximum end offset we've seen
-            final long endOffset = maxEndOffset.orElse(hostLag.getEndOffsetPosition());
-            final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
-            return offsetLag <= allowedOffsetLag;
-          })
-          // If we don't have lag info, we'll be conservative and include the host
-          .orElse(true);
-    }
-    return true;
+    return lagByHost.getOrDefault(hostInfo, Optional.empty())
+        .map(hostLag -> {
+          Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
+          // Compute the lag from the maximum end offset reported by all hosts.  This is so that
+          // hosts that have fallen behind are held to the same end offset when computing lag.
+          final long endOffset = maxEndOffset.getAsLong();
+          final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
+          return offsetLag <= allowedOffsetLag;
+        })
+        // If we don't have lag info, we'll be conservative and not include the host
+        .orElse(false);
   }
 
   /**
@@ -69,8 +75,8 @@ public final class MaximumLagFilter implements RoutingFilter {
    * @param lagReportingAgent The optional lag reporting agent.
    * @param routingOptions The routing options
    * @param hosts The set of all hosts that have the store, including actives and standbys
-   * @param applicationQueryId The application query id
-   * @param storeName The state store name
+   * @param applicationQueryId The query id of the persistent query that materialized the table
+   * @param storeName The state store name of the materialized table
    * @param partition The partition of the topic
    * @return a new FreshnessFilter, unless lag reporting is disabled.
    */
@@ -89,7 +95,7 @@ public final class MaximumLagFilter implements RoutingFilter {
     final ImmutableMap<KsqlHostInfo, Optional<LagInfoEntity>> lagByHost = hosts.stream()
         .collect(ImmutableMap.toImmutableMap(
             Function.identity(),
-            host -> lagReportingAgent.get().getHostsPartitionLagInfo(
+            host -> lagReportingAgent.get().getLagInfoForHost(
                 host,
                 queryStateStoreId,
                 partition)));

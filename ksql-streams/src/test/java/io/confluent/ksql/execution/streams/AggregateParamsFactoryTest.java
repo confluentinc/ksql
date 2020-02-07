@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
@@ -21,8 +20,6 @@ import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
-import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -32,9 +29,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -204,40 +198,6 @@ public class AggregateParamsFactoryTest {
 
     // Then:
     assertThat(undoAggregator, is(undoAggregator));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSelectMapperForNonWindowSelections() {
-    // When:
-    final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
-
-    // Then:
-    assertThat(windowSelectMapper.hasSelects(), is(false));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSelectMapperForWindowSelections() {
-    // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
-        INPUT_SCHEMA,
-        NON_AGG_COLUMNS,
-        functionRegistry,
-        ImmutableList.of(WINDOW_START),
-        false
-    );
-
-    // When:
-    final KsqlTransformer<Windowed<Struct>, GenericRow> windowSelectMapper =
-        aggregateParams
-            .getWindowSelectMapper()
-            .getTransformer();
-
-    // Then:
-    final Windowed<Struct> window = new Windowed<>(null, new TimeWindow(10, 20));
-    assertThat(
-        windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
-        equalTo(genericRow("fiz", "baz", 10L))
-    );
   }
 
   @Test

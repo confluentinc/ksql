@@ -58,14 +58,14 @@ Topologies:
       --> Aggregate-Aggregate-ToOutputSchema
       <-- Aggregate-Prepare
     Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
-      --> Aggregate-Aggregate-WindowSelect2
+      --> Aggregate-Aggregate-WindowSelect
       <-- KSTREAM-AGGREGATE-0000000003
-    Processor: Aggregate-Aggregate-WindowSelect2 (stores: [])
+    Processor: Aggregate-Aggregate-WindowSelect (stores: [])
       --> Aggregate-HavingFilter-ApplyPredicate
       <-- Aggregate-Aggregate-ToOutputSchema
     Processor: Aggregate-HavingFilter-ApplyPredicate (stores: [])
       --> Aggregate-HavingFilter-Filter
-      <-- Aggregate-Aggregate-WindowSelect2
+      <-- Aggregate-Aggregate-WindowSelect
     Processor: Aggregate-HavingFilter-Filter (stores: [])
       --> Aggregate-HavingFilter-PostProcess
       <-- Aggregate-HavingFilter-ApplyPredicate

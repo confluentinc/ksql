@@ -49,7 +49,6 @@ import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
@@ -155,8 +154,6 @@ public class StreamAggregateBuilderTest {
   @Mock
   private KTable<Windowed<Struct>, GenericRow> windowedWithWindowBounds;
   @Mock
-  private KTable<Windowed<Struct>, GenericRow> windowedWithWindowUdafs;
-  @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
@@ -170,8 +167,6 @@ public class StreamAggregateBuilderTest {
   private KudafAggregator<Struct> aggregator;
   @Mock
   private KsqlTransformer<Struct, GenericRow> resultMapper;
-  @Mock
-  private WindowSelectMapper windowSelectMapper;
   @Mock
   private Merger<Struct, GenericRow> merger;
   @Mock
@@ -210,8 +205,6 @@ public class StreamAggregateBuilderTest {
     when(aggregator.getMerger()).thenReturn(merger);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
     when(aggregateParams.getInitializer()).thenReturn(initializer);
-    when(aggregateParams.getWindowSelectMapper()).thenReturn(windowSelectMapper);
-    when(windowSelectMapper.hasSelects()).thenReturn(false);
 
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -439,6 +432,8 @@ public class StreamAggregateBuilderTest {
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
+
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
   }
 
   @Test
@@ -463,6 +458,8 @@ public class StreamAggregateBuilderTest {
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
+
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
   }
 
   @Test
@@ -492,6 +489,8 @@ public class StreamAggregateBuilderTest {
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
     inOrder.verifyNoMoreInteractions();
+
+    assertThat(result.getTable(), is(windowedWithWindowBounds));
   }
 
   @Test
@@ -634,28 +633,6 @@ public class StreamAggregateBuilderTest {
       // Then:
       verify(aggregateParamsFactory)
           .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true);
-    }
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldAddWindowBoundariesIfSpecified() {
-    for (final Runnable given : given()) {
-      // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, windowed,
-          windowedWithResults, windowedWithWindowBounds);
-      when(windowSelectMapper.hasSelects()).thenReturn(true);
-      when(windowedWithWindowBounds.transformValues(any(), any(Named.class))).thenReturn(
-          (KTable) windowedWithWindowUdafs);
-      given.run();
-
-      // When:
-      final KTableHolder<Windowed<Struct>> result =
-          windowedAggregate.build(planBuilder);
-
-      // Then:
-      assertThat(result.getTable(), is(windowedWithWindowUdafs));
-      verify(windowedWithWindowBounds).transformValues(any(), any(Named.class));
     }
   }
 

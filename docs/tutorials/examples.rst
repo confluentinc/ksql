@@ -293,8 +293,8 @@ end time of the current session window into fields within output rows.
 
     CREATE TABLE pageviews_per_region_per_session AS
       SELECT regionid,
-             windowStart(),
-             windowEnd(),
+             windowStart AS WSTART,
+             windowEnd AS WEND,
              count(*)
       FROM pageviews_enriched
       WINDOW SESSION (60 SECONDS)

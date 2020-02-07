@@ -694,7 +694,7 @@ public final class PullQueryExecutor {
       final Stacker contextStacker
   ) {
     final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
-        .noneMatch(ref -> SchemaUtil.isSystemColumn(ref));
+        .noneMatch(SchemaUtil::isSystemColumn);
 
     final LogicalSchema intermediateSchema;
     final Function<TableRow, GenericRow> preSelectTransform;

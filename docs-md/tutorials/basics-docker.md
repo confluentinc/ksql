@@ -553,7 +553,7 @@ Your output should resemble:
 !!! tip
     You can run `DESCRIBE pageviews_regions;` to describe the table.
 
-### 7. View query results using push query
+### 7. View query results using a push query
 
 View results from the previous queries by using the `SELECT` statement.
 

@@ -253,7 +253,7 @@ These examples query messages from Kafka topics called `pageviews` and
     !!! note
           The data generated has the same value in the {{ site.ak }} record's key
           as the `userId` field in the value. Specifying `key='userId'`
-          in the WITH clause above lets ksqlDB know this. This information
+          in the WITH clause above lets ksqlDB know this. ksqlDB uses this information
           will be used later allow joins against the table to use the more
           descriptive `userId` column name, rather than `ROWKEY`. Joining
           on either will yield the same results. If your data does not

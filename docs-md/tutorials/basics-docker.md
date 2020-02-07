@@ -846,7 +846,7 @@ WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON', PARTITIONS=2);
 
 !!! note
   ksqlDB creates the underlying topics in {{ site.ak }} when it executes these statements.
-  are executed. You can also specify the `REPLICAS` count.
+  You can also specify the `REPLICAS` count.
 
 After both `CREATE STREAM` statements, your output should resemble:
 

@@ -29,7 +29,7 @@ the stream, which implicitly defines a key for it.
 
 ksqlDB requires keys to use the `KAFKA` format. For more information, see
 [Serialization Formats](serialization.md#serialization-formats). If internally
-repartitioning, the correct format will be used.
+repartitioning, ksqlDB uses the correct format.
 
 Because you can only use the primary key of a table as a joining column, it's
 important to understand how keys are defined. For both streams and tables, the

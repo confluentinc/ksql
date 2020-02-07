@@ -74,7 +74,7 @@ column (`userId`) and assign the key before performing the join.
     -- the schema of table users is: ROWTIME BIGINT | ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
     CREATE TABLE  users  (ROWKEY BIGINT KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
 
-    -- join of users table with clicks stream, joining on the tables primary key alias and the streams userId column: 
+    -- join of users table with clicks stream, joining on the table's primary key alias and the stream's userId column: 
     -- join will automatically repartition clicks stream:
     SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.userId;
     

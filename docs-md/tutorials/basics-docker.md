@@ -413,7 +413,7 @@ Query terminated
 
 !!! note
   The join to the `users` table is on the `userid` column, which was identified as
-  an alias for the tables primary key, `ROWKEY`, in the CREATE TABLE statement.
+  an alias for the table's primary key, `ROWKEY`, in the CREATE TABLE statement.
   `userId` and `ROWKEY` can be used interchangeably as the join criteria for
   the table. However, the data in `userid` on the stream side does not match
   the stream's key. Hence, ksqlDB will first internally repartition the stream

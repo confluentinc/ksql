@@ -620,7 +620,7 @@ SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDO
 ```
 
 !!! important
-   You will need to change value of `WINDOWSTART` in the above SQL to match one of the window boundaries in your data.
+   You must change the value of `WINDOWSTART` in the above SQL to match one of the window boundaries in your data.
    Otherwise no results will be returned.
 
 Your output should resemble:

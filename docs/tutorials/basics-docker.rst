@@ -47,7 +47,7 @@ Download the Tutorial and Start KSQL
             quickstart=pageviews \
             format=delimited \
             topic=pageviews \
-            maxInterval=500 
+            msgRate=5
 
    .. codewithvars:: bash
 
@@ -58,7 +58,7 @@ Download the Tutorial and Start KSQL
             quickstart=users \
             format=json \
             topic=users \
-            maxInterval=100 
+            msgRate=1
 
 #. From the host machine, start KSQL CLI
 

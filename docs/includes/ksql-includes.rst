@@ -72,14 +72,14 @@ Create and produce data to the Kafka topics ``pageviews`` and ``users``. These s
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=500
+       $ <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews msgRate=5
 
 2. Produce Kafka data to the ``users`` topic using the data generator. The following example continuously generates data with a value in
    JSON format.
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users maxInterval=100
+       $ <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users msgRate=1
 
 .. tip:: You can also produce Kafka data using the ``kafka-console-producer`` CLI provided with |cp|.
 

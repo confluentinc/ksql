@@ -64,10 +64,11 @@ public class DataGenProducer {
 
     final RowGenerator rowGenerator = new RowGenerator(generator, key);
 
-    final Serializer<Struct> keySerializer = getKeySerializer();
+    final Serializer<Struct> keySerializer =
+        getKeySerializer(rowGenerator.keySchema());
 
     final Serializer<GenericRow> valueSerializer =
-        getValueSerializer(rowGenerator.schema().valueConnectSchema());
+        getValueSerializer(rowGenerator.valueSchema());
 
     final KafkaProducer<Struct, GenericRow> producer = new KafkaProducer<>(
         props,
@@ -125,9 +126,11 @@ public class DataGenProducer {
             printRows));
   }
 
-  private Serializer<Struct> getKeySerializer() {
+  private Serializer<Struct> getKeySerializer(
+      final ConnectSchema keySchema
+  ) {
     final PersistenceSchema schema = PersistenceSchema
-        .from(RowGenerator.KEY_SCHEMA, keySerializerFactory.format().supportsWrapping());
+        .from(keySchema, keySerializerFactory.format().supportsWrapping());
 
     return keySerializerFactory.create(schema);
   }

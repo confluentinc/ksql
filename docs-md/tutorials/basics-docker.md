@@ -76,7 +76,7 @@ docker run --network tutorials_default --rm --name datagen-pageviews \
         quickstart=pageviews \
         format=delimited \
         topic=pageviews \
-        maxInterval=500 
+        msgRate=5 
 ```
 
 ```bash
@@ -85,9 +85,9 @@ docker run --network tutorials_default --rm --name datagen-users \
     ksql-datagen \
         bootstrap-server=kafka:39092 \
         quickstart=users \
-        format=json \
+        format=avro \
         topic=users \
-        maxInterval=100 
+        msgRate=1 
 ```
 
 ### 5. Start the ksqlDB CLI
@@ -141,25 +141,50 @@ SHOW TOPICS;
 Your output should resemble:
 
 ```
- Kafka Topic        | Partitions | Partition Replicas
-------------------------------------------------------
- _confluent-metrics | 12         | 1
- _schemas           | 1          | 1
- pageviews          | 1          | 1
- users              | 1          | 1
-------------------------------------------------------
+ Kafka Topic                 | Partitions | Partition Replicas
+--------------------------------------------------------------
+ default_ksql_processing_log | 1          | 1
+ pageviews                   | 1          | 1
+ users                       | 1          | 1
+--------------------------------------------------------------
+```
+
+By default, KSQL hides internal and system topics. Use the SHOW ALL TOPICS
+statement to see the full list of topics in the {{ site.ak }} cluster:
+
+```sql
+SHOW ALL TOPICS;
+```
+
+Your output should resemble:
+
+```
+ Kafka Topic                            | Partitions | Partition Replicas 
+--------------------------------------------------------------------------
+ __confluent.support.metrics            | 1          | 1                  
+ _confluent-ksql-default__command_topic | 1          | 1                  
+ _confluent-license                     | 1          | 1                  
+ _confluent-metrics                     | 12         | 1                  
+ default_ksql_processing_log            | 1          | 1                  
+ pageviews                              | 1          | 1                  
+ users                                  | 1          | 1                  
+--------------------------------------------------------------------------
 ```
 
 Inspect the `users` topic by using the PRINT statement:
 
 ```sql
-PRINT 'users';
+PRINT users;
 ```
+
+!!! note
+   The PRINT statement is one of the few case-sensitive commands in ksqlDB,
+   even when the topic name is not quoted.
 
 Your output should resemble:
 
 ```json
-    Format:JSON
+    Format:AVRO
     {"ROWTIME":1540254230041,"ROWKEY":"User_1","registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
     {"ROWTIME":1540254230081,"ROWKEY":"User_3","registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
     {"ROWTIME":1540254230091,"ROWKEY":"User_7","registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
@@ -172,17 +197,17 @@ Press Ctrl+C to stop printing messages.
 Inspect the `pageviews` topic by using the PRINT statement:
 
 ```sql
-PRINT 'pageviews';
+PRINT pageviews;
 ```
 
 Your output should resemble:
 
 ```
     Format:STRING
-    10/23/18 12:24:03 AM UTC , 9461 , 1540254243183,User_9,Page_20
-    10/23/18 12:24:03 AM UTC , 9471 , 1540254243617,User_7,Page_47
-    10/23/18 12:24:03 AM UTC , 9481 , 1540254243888,User_4,Page_27
-    ^C10/23/18 12:24:05 AM UTC , 9521 , 1540254245161,User_9,Page_62
+    10/23/18 12:24:03 AM UTC , 1540254243183 , 1540254243183,User_9,Page_20
+    10/23/18 12:24:03 AM UTC , 1540254243617 , 1540254243617,User_7,Page_47
+    10/23/18 12:24:03 AM UTC , 1540254243888 , 1540254243888,User_4,Page_27
+    ^C10/23/18 12:24:05 AM UTC , 1540254245161 , 1540254245161,User_9,Page_62
     Topic printing ceased
     ksql>
 ```
@@ -205,8 +230,8 @@ Create a stream, named `pageviews_original`, from the `pageviews`
 {{ site.ak }} topic, specifying the `value_format` of `DELIMITED`.
 
 ```sql
-CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH
-(kafka_topic='pageviews', value_format='DELIMITED');
+CREATE STREAM pageviews_original (rowkey bigint key, viewtime bigint, userid varchar, pageid varchar)
+  WITH (kafka_topic='pageviews', value_format='DELIMITED');
 ```
 
 Your output should resemble:
@@ -220,18 +245,16 @@ Your output should resemble:
 
 !!! tip
     You can run `DESCRIBE pageviews_original;` to see the schema for the
-    stream. Notice that ksqlDB created two additional columns, named
-    `ROWTIME`, which corresponds with the {{ site.ak }} message timestamp, and
-    `ROWKEY`, which corresponds with the {{ site.ak }} message key.
+    stream. Notice that ksqlDB created an additional column, named
+    `ROWTIME`, which corresponds with the Kafka message timestamp.
 
 ### 2. Create a ksqlDB table
 
 Create a table, named `users_original`, from the `users` topic, specifying
-the `value_format` of `JSON`.
+the `value_format` of `AVRO`.
 
 ```sql
-CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH
-(kafka_topic='users', value_format='JSON', key = 'userid');
+CREATE TABLE users_original WITH (kafka_topic='users', value_format='AVRO', key = 'userid');
 ```
 
 Your output should resemble:
@@ -243,6 +266,25 @@ Your output should resemble:
 ---------------
 ```
 
+!!! note
+      You may have noticed the CREATE TABLE did not define the set of columns
+      like the CREATE STREAM statement did. This is because the value format
+      is Avro, and the DataGen tool publishes the Avro schema to {{ site.sr }}.
+      ksqlDB retrieves the schema from {{ site.sr }} and uses this to build
+      the SQL schema for the table. You may still provide the schema if you wish.
+      Until [Github issue #4462](https://github.com/confluentinc/ksql/issues/4462)
+      is complete, schema inference is only available where the key of the data
+      is a STRING, as is the case here.
+
+!!! note
+      The data generated has the same value in the {{ site.ak }} record's key
+      as the `userId` field in the value. Specifying `key='userId'`
+      in the WITH clause above lets ksqlDB know this. ksqlDB uses this information
+      to allow joins against the table to use the more
+      descriptive `userId` column name, rather than `ROWKEY`. Joining
+      on either yields the same results. If your data doesn't
+      contain a copy of the key in the value, you can join on `ROWKEY`.
+
 !!! tip
     You can run `DESCRIBE users_original;` to see the schema for the
     Table.
@@ -252,70 +294,153 @@ Optional: Show all streams and tables.
 ```
 ksql> SHOW STREAMS;
 
-Stream Name              | Kafka Topic              | Format
------------------------------------------------------------------
-PAGEVIEWS_ORIGINAL       | pageviews                | DELIMITED
+ Stream Name         | Kafka Topic                 | Format    
+---------------------------------------------------------------
+ KSQL_PROCESSING_LOG | default_ksql_processing_log | JSON      
+ PAGEVIEWS_ORIGINAL  | pageviews                   | DELIMITED 
+---------------------------------------------------------------
 
 ksql> SHOW TABLES;
 
-Table Name        | Kafka Topic       | Format    | Windowed
---------------------------------------------------------------
-USERS_ORIGINAL    | users             | JSON      | false
+ Table Name     | Kafka Topic | Format | Windowed 
+--------------------------------------------------
+ USERS_ORIGINAL | users       | AVRO   | false    
+--------------------------------------------------
 ```
+
+!!! tip
+    Notice the `KSQL_PROCESSING_LOG` stream listed in the SHOW STREAMS
+    output? ksqlDB appends messages that describe any issues it
+    encountered while processing your data. If things aren't working
+    as you expect, check the contents of this stream
+    to see if ksqlDB is encountering data errors.
+
+Viewing your data
+-----------------
+
+1. Use `SELECT` to create a query that returns data from a TABLE. This
+   query includes the `LIMIT` keyword to limit the number of rows
+   returned in the query result, and the `EMIT CHANGES` keywords to
+   indicate you that want to stream results back. This is known as a
+   [push query](../concepts/queries/push.md). See the
+   [queries](../concepts/queries/index.md) section for an explanation of the
+   different query types. Note that exact data output may vary because
+   of the randomness of the data generation.
+   ```sql
+   SELECT * from users_original emit changes limit 5;
+   ```
+
+   Your output should resemble:
+
+   ```
+   +--------------------+--------------+--------------+---------+----------+-------------+
+   |ROWTIME             |ROWKEY        |REGISTERTIME  |GENDER   |REGIONID  |USERID       |
+   +--------------------+--------------+--------------+---------+----------+-------------+
+   |1581077558655       |User_9        |1513529638461 |OTHER    |Region_1  |User_9       |
+   |1581077561454       |User_7        |1489408314958 |OTHER    |Region_2  |User_7       |
+   |1581077561654       |User_3        |1511291005264 |MALE     |Region_2  |User_3       |
+   |1581077561857       |User_4        |1496797956753 |OTHER    |Region_1  |User_4       |
+   |1581077562858       |User_8        |1489169082491 |FEMALE   |Region_8  |User_8       |
+   Limit Reached
+   Query terminated
+   ```
+   !!! note
+         Push queries on tables output the full history of the table that is stored
+         in the {{ site.ak }} changelog topic, which means that it outputs historic data, followed by the
+         stream of updates to the table. So it's likely that rows with matching
+         `ROWKEY` are output as existing rows in the table are updated.
+
+2. View the data in your `pageviews_original` stream by issuing the following
+   push query:
+   ```sql
+   SELECT viewtime, userid, pageid FROM pageviews_original emit changes LIMIT 3;
+   ```
+
+   Your output should resemble:
+
+   ```
+   +--------------+--------------+--------------+
+   |VIEWTIME      |USERID        |PAGEID        |
+   +--------------+--------------+--------------+
+   |1581078296791 |User_1        |Page_54       |
+   |1581078297792 |User_8        |Page_93       |
+   |1581078298792 |User_6        |Page_26       |
+   Limit Reached
+   Query terminated
+   ```
+
+   !!! note
+      By default, push queries on streams only output changes that occur
+      after the query is started, which means that historic data isn't included.
+      Run `set 'auto.offset.reset'='earliest';` to update your session
+      properties if you want to see the historic data.
 
 Write Queries
 -------------
 
 These examples write queries using ksqlDB.
 
-!!! note
-	By default ksqlDB reads the topics for streams and tables from
-    the latest offset.
-
 ### 1. Create a query that returns data from a ksqlDB stream
 
-Use `SELECT` to create a query that returns data from a STREAM. This
-query includes the `LIMIT` keyword to limit the number of rows
-returned in the query result. Note that exact data output may vary
-because of the randomness of the data generation.
+Create a query that enriches the pageviews data with the user's `gender`
+and `regionid` from the `users` table. The following query enriches the
+`pageviews_original` STREAM by doing a `LEFT JOIN` with the
+`users_original` TABLE on the `userid` column.
 
 ```sql
-SELECT pageid FROM pageviews_original LIMIT 3;
+SELECT users_original.userid AS userid, pageid, regionid, gender
+  FROM pageviews_original
+  LEFT JOIN users_original
+    ON pageviews_original.userid = users_original.userid
+  EMIT CHANGES
+  LIMIT 5;
 ```
 
 Your output should resemble:
 
 ```
-Page_24
-Page_73
-Page_78
-LIMIT reached
++-------------------+-------------------+-------------------+-------------------+
+|USERID             |PAGEID             |REGIONID           |GENDER             |
++-------------------+-------------------+-------------------+-------------------+
+|User_7             |Page_23            |Region_2           |OTHER              |
+|User_3             |Page_42            |Region_2           |MALE               |
+|User_7             |Page_87            |Region_2           |OTHER              |
+|User_2             |Page_57            |Region_5           |FEMALE             |
+|User_9             |Page_59            |Region_1           |OTHER              |
+Limit Reached
 Query terminated
 ```
+
+!!! note
+  The join to the `users` table is on the `userid` column, which was identified as
+  an alias for the table's primary key, `ROWKEY`, in the CREATE TABLE statement.
+  `userId` and `ROWKEY` can be used interchangeably as the join criteria for
+  the table. However, the data in `userid` on the stream side does not match
+  the stream's key. Hence, ksqlDB internally repartitions the stream
+  by the `userId` column before performing the join.
 
 ### 2. Create a persistent query
 
 Create a persistent query by using the `CREATE STREAM` keywords to
-precede the `SELECT` statement. The results from this query are
-written to the `PAGEVIEWS_ENRICHED` Kafka topic. The following query
-enriches the `pageviews_original` STREAM by doing a `LEFT JOIN` with
-the `users_original` TABLE on the user ID.
+precede the `SELECT` statement and removing the `LIMIT` clause.
+The results from this query are written to the `PAGEVIEWS_ENRICHED` {{ site.ak }} topic.
 
 ```sql
 CREATE STREAM pageviews_enriched AS
-    SELECT users_original.userid AS userid, pageid, regionid, gender
-    FROM pageviews_original
-    LEFT JOIN users_original
-    ON pageviews_original.userid = users_original.userid;
+  SELECT users_original.userid AS userid, pageid, regionid, gender
+  FROM pageviews_original
+  LEFT JOIN users_original
+    ON pageviews_original.userid = users_original.userid
+  EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-  Message
-----------------------------
-  Stream created and running
-----------------------------
+ Message                                                                                                  
+----------------------------------------------------------------------------------------------------------
+ Stream PAGEVIEWS_ENRICHED created and running. Created by query with query ID: CSAS_PAGEVIEWS_ENRICHED_0 
+----------------------------------------------------------------------------------------------------------
 ```
 
 !!! tip
@@ -329,17 +454,23 @@ console but it does not terminate the actual query. The query
 continues to run in the underlying ksqlDB application.
 
 ```sql
-SELECT * FROM pageviews_enriched;
+SELECT * FROM pageviews_enriched emit changes;
 ```
 
 Your output should resemble:
 
 ```
-1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
-1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
-1519746862164 | User_1 | User_1 | Page_90 | Region_7 | FEMALE
++-------------+------------+------------+------------+------------+------------+
+|ROWTIME      |ROWKEY      |USERID      |PAGEID      |REGIONID    |GENDER      |
++-------------+------------+------------+------------+------------+------------+
+|1581079706741|User_5      |User_5      |Page_53     |Region_3    |FEMALE      |
+|1581079707742|User_2      |User_2      |Page_86     |Region_5    |OTHER       |
+|1581079708745|User_9      |User_9      |Page_75     |Region_1    |OTHER       |
+
 ^CQuery terminated
 ```
+
+Use CTRL+C to terminate the query.
 
 ### 4. Create a filter query
 
@@ -349,17 +480,18 @@ Kafka topic called `PAGEVIEWS_FEMALE`.
 
 ```sql
 CREATE STREAM pageviews_female AS
-    SELECT * FROM pageviews_enriched
-    WHERE gender = 'FEMALE';
+  SELECT * FROM pageviews_enriched
+  WHERE gender = 'FEMALE'
+  EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-  Message
-----------------------------
-  Stream created and running
-----------------------------
+ Message                                                                                               
+-------------------------------------------------------------------------------------------------------
+ Stream PAGEVIEWS_FEMALE created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_11 
+-------------------------------------------------------------------------------------------------------
 ```
 
 !!! tip
@@ -373,18 +505,19 @@ Create a new persistent query where another condition is met, using
 
 ```sql
 CREATE STREAM pageviews_female_like_89
-    WITH (kafka_topic='pageviews_enriched_r8_r9') AS
-SELECT * FROM pageviews_female
-WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+  WITH (kafka_topic='pageviews_enriched_r8_r9') AS
+  SELECT * FROM pageviews_female
+  WHERE regionid LIKE '%_8' OR regionid LIKE '%_9'
+  EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-  Message
-----------------------------
-  Stream created and running
-----------------------------
+ Message                                                                                                               
+-----------------------------------------------------------------------------------------------------------------------
+ Stream PAGEVIEWS_FEMALE_LIKE_89 created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_LIKE_89_13 
+-----------------------------------------------------------------------------------------------------------------------
 ```
 
 ### 6. Count and group pageview events
@@ -400,48 +533,129 @@ format. ksqlDB registers the Avro schema with the configured
 
 ```sql
 CREATE TABLE pageviews_regions
-    WITH (VALUE_FORMAT='avro') AS
+ WITH (VALUE_FORMAT='avro') AS
 SELECT gender, regionid , COUNT(*) AS numusers
 FROM pageviews_enriched
-    WINDOW TUMBLING (size 30 second)
+  WINDOW TUMBLING (size 30 second)
 GROUP BY gender, regionid
-HAVING COUNT(*) > 1;
+EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-  Message
----------------------------
-  Table created and running
----------------------------
+ Message                                                                                                
+--------------------------------------------------------------------------------------------------------
+ Table PAGEVIEWS_REGIONS created and running. Created by query with query ID: CTAS_PAGEVIEWS_REGIONS_15 
+--------------------------------------------------------------------------------------------------------
 ```
 
 !!! tip
     You can run `DESCRIBE pageviews_regions;` to describe the table.
 
-### 7. View query results
+### 7. View query results using a push query
 
 View results from the previous queries by using the `SELECT` statement.
 
 ```sql
-SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
+SELECT * FROM pageviews_regions EMIT CHANGES LIMIT 5;
 ```
 
 Your output should resemble:
 
 ```
-FEMALE | Region_6 | 3
-FEMALE | Region_1 | 4
-FEMALE | Region_9 | 6
-MALE | Region_8 | 2
-OTHER | Region_5 | 4
-LIMIT reached
++---------------+-----------------+---------------+---------------+---------------+---------------+---------------+
+|ROWTIME        |ROWKEY           |WINDOWSTART    |WINDOWEND      |GENDER         |REGIONID       |NUMUSERS       |
++---------------+-----------------+---------------+---------------+---------------+---------------+---------------+
+|1581080500530  |OTHER|+|Region_9 |1581080490000  |1581080520000  |OTHER          |Region_9       |1              |
+|1581080501530  |OTHER|+|Region_5 |1581080490000  |1581080520000  |OTHER          |Region_5       |2              |
+|1581080510532  |MALE|+|Region_7  |1581080490000  |1581080520000  |MALE           |Region_7       |4              |
+|1581080513532  |FEMALE|+|Region_1|1581080490000  |1581080520000  |FEMALE         |Region_1       |2              |
+|1581080516533  |MALE|+|Region_2  |1581080490000  |1581080520000  |MALE           |Region_2       |3              |
+Limit Reached
 Query terminated
-ksql>
 ```
 
-### 8. View persistent queries
+!!! note
+   Notice the addition of the WINDOWSTART and WINDOWEND columns.
+   These are available because `pageviews_regions` is aggregating data
+   per 30 second _window_. ksqlDB automatically adds these system columns
+   for windowed results.
+
+### 8. View query results using a pull query
+
+When a CREATE TABLE statement contains a GROUP BY clause, ksqlDB builds an internal
+table containing the results of the aggregation. ksqlDB supports pull queries against
+such aggregation results.
+
+Unlike the push query used in the previous step, which _pushes_ a stream of results to you,
+pull queries pull a result set and automatically terminate.
+
+Pull queries do not have the `EMIT CHANGES` clause.
+
+View all of the windows and user counts that are available for a specific gender and region by using a pull query:
+
+```sql
+SELECT * FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9';
+```
+
+Your output should resemble:
+
+```
++------------------+------------------+------------------+------------------+------------------+------------------+------------------+
+|ROWKEY            |WINDOWSTART       |WINDOWEND         |ROWTIME           |GENDER            |REGIONID          |NUMUSERS          |
++------------------+------------------+------------------+------------------+------------------+------------------+------------------+
+|OTHER|+|Region_9  |1581080490000     |1581080520000     |1581080500530     |OTHER             |Region_9          |1                 |
+|OTHER|+|Region_9  |1581080550000     |1581080580000     |1581080576526     |OTHER             |Region_9          |4                 |
+|OTHER|+|Region_9  |1581080580000     |1581080610000     |1581080606525     |OTHER             |Region_9          |4                 |
+|OTHER|+|Region_9  |1581080610000     |1581080640000     |1581080622524     |OTHER             |Region_9          |3                 |
+|OTHER|+|Region_9  |1581080640000     |1581080670000     |1581080667528     |OTHER             |Region_9          |6                 |
+...
+```
+
+Pull queries on windowed tables such as `pageviews_regions` also support querying a single window's result:
+
+```sql
+SELECT NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND WINDOWSTART=1581080550000;
+```
+
+!!! important
+   You must change the value of `WINDOWSTART` in the above SQL to match one of the window boundaries in your data.
+   Otherwise no results will be returned.
+
+Your output should resemble:
+
+```
++----------+
+|NUMUSERS  |
++----------+
+|4         |
+Query terminated
+```
+
+Or querying a range of windows:
+
+```sql
+SELECT WINDOWSTART, WINDOWEND, NUMUSERS FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9' AND 1581080550000 <= WINDOWSTART AND WINDOWSTART <= 1581080610000;
+```
+
+!!! important
+   You must change the value of `WINDOWSTART` in the above SQL to match one of the window boundaries in your data.
+   Otherwise no results will be returned.
+
+Your output should resemble:
+
+```
++----------------------------+----------------------------+----------------------------+
+|WINDOWSTART                 |WINDOWEND                   |NUMUSERS                    |
++----------------------------+----------------------------+----------------------------+
+|1581080550000               |1581080580000               |4                           |
+|1581080580000               |1581080610000               |4                           |
+|1581080610000               |1581080640000               |3                           |
+Query terminated
+```
+
+### 9. View persistent queries
 
 Show the running persistent queries:
 
@@ -452,17 +666,17 @@ SHOW QUERIES;
 Your output should resemble:
 
 ```
-Query ID                        | Kafka Topic              | Query String
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE';
-CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
-CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid;
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Query ID                         | Status  | Sink Name                | Sink Kafka Topic         | Query String                                                                                                                                                                                                                                                                                                                                                                                                 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CTAS_PAGEVIEWS_REGIONS_15        | RUNNING | PAGEVIEWS_REGIONS        | PAGEVIEWS_REGIONS        | CREATE TABLE PAGEVIEWS_REGIONS WITH (KAFKA_TOPIC='PAGEVIEWS_REGIONS', PARTITIONS=1, REPLICAS=1, VALUE_FORMAT='avro') AS SELECT  PAGEVIEWS_ENRICHED.GENDER GENDER,  PAGEVIEWS_ENRICHED.REGIONID REGIONID,  COUNT(*) NUMUSERSFROM PAGEVIEWS_ENRICHED PAGEVIEWS_ENRICHEDWINDOW TUMBLING ( SIZE 30 SECONDS ) GROUP BY PAGEVIEWS_ENRICHED.GENDER, PAGEVIEWS_ENRICHED.REGIONIDEMIT CHANGES;                        
+ CSAS_PAGEVIEWS_FEMALE_LIKE_89_13 | RUNNING | PAGEVIEWS_FEMALE_LIKE_89 | pageviews_enriched_r8_r9 | CREATE STREAM PAGEVIEWS_FEMALE_LIKE_89 WITH (KAFKA_TOPIC='pageviews_enriched_r8_r9', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM PAGEVIEWS_FEMALE PAGEVIEWS_FEMALEWHERE ((PAGEVIEWS_FEMALE.REGIONID LIKE '%_8') OR (PAGEVIEWS_FEMALE.REGIONID LIKE '%_9'))EMIT CHANGES;                                                                                                                                        
+ CSAS_PAGEVIEWS_ENRICHED_0        | RUNNING | PAGEVIEWS_ENRICHED       | PAGEVIEWS_ENRICHED       | CREATE STREAM PAGEVIEWS_ENRICHED WITH (KAFKA_TOPIC='PAGEVIEWS_ENRICHED', PARTITIONS=1, REPLICAS=1) AS SELECT  USERS_ORIGINAL.USERID USERID,  PAGEVIEWS_ORIGINAL.PAGEID PAGEID,  USERS_ORIGINAL.REGIONID REGIONID,  USERS_ORIGINAL.GENDER GENDERFROM PAGEVIEWS_ORIGINAL PAGEVIEWS_ORIGINALLEFT OUTER JOIN USERS_ORIGINAL USERS_ORIGINAL ON ((PAGEVIEWS_ORIGINAL.USERID = USERS_ORIGINAL.USERID))EMIT CHANGES; 
+ CSAS_PAGEVIEWS_FEMALE_11         | RUNNING | PAGEVIEWS_FEMALE         | PAGEVIEWS_FEMALE         | CREATE STREAM PAGEVIEWS_FEMALE WITH (KAFKA_TOPIC='PAGEVIEWS_FEMALE', PARTITIONS=1, REPLICAS=1) AS SELECT *FROM PAGEVIEWS_ENRICHED PAGEVIEWS_ENRICHEDWHERE (PAGEVIEWS_ENRICHED.GENDER = 'FEMALE')EMIT CHANGES;                                                                                              
+
 For detailed information on a Query run: EXPLAIN <Query ID>;
 ```
 
-### 9. Examine query run-time metrics and details
+### 10. Examine query run-time metrics and details
 
 Observe that information including the target {{ site.ak }} topic is
 available, as well as throughput figures for the messages being processed.
@@ -476,33 +690,38 @@ Your output should resemble:
 ```
 Name                 : PAGEVIEWS_REGIONS
 Type                 : TABLE
-Key field            : KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1
-Key format           : STRING
+Key field            : 
 Timestamp field      : Not set - using <ROWTIME>
+Key format           : KAFKA
 Value format         : AVRO
-Kafka topic          : PAGEVIEWS_REGIONS (partitions: 4, replication: 1)
+Kafka topic          : PAGEVIEWS_REGIONS (partitions: 1, replication: 1)
+Statement            : CREATE TABLE PAGEVIEWS_REGIONS WITH (KAFKA_TOPIC='PAGEVIEWS_REGIONS', PARTITIONS=1, REPLICAS=1, VALUE_FORMAT='json') AS SELECT
+  PAGEVIEWS_ENRICHED.GENDER GENDER,
+  PAGEVIEWS_ENRICHED.REGIONID REGIONID,
+  COUNT(*) NUMUSERS
+FROM PAGEVIEWS_ENRICHED PAGEVIEWS_ENRICHED
+WINDOW TUMBLING ( SIZE 30 SECONDS ) 
+GROUP BY PAGEVIEWS_ENRICHED.GENDER, PAGEVIEWS_ENRICHED.REGIONID
+EMIT CHANGES;
 
-Field    | Type
---------------------------------------
-ROWTIME  | BIGINT           (system)
-ROWKEY   | VARCHAR(STRING)  (system)
-GENDER   | VARCHAR(STRING)
-REGIONID | VARCHAR(STRING)
-NUMUSERS | BIGINT
---------------------------------------
+ Field    | Type                                              
+--------------------------------------------------------------
+ ROWTIME  | BIGINT           (system)                         
+ ROWKEY   | VARCHAR(STRING)  (system) (Window type: TUMBLING) 
+ GENDER   | VARCHAR(STRING)                                   
+ REGIONID | VARCHAR(STRING)                                   
+ NUMUSERS | BIGINT                                            
+--------------------------------------------------------------
 
-Queries that write into this TABLE
+Queries that write from this TABLE
 -----------------------------------
-CTAS_PAGEVIEWS_REGIONS_3 : CREATE TABLE pageviews_regions         WITH (value_format='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+CTAS_PAGEVIEWS_REGIONS_15 (RUNNING) : CREATE TABLE PAGEVIEWS_REGIONS WITH (KAFKA_TOPIC='PAGEVIEWS_REGIONS', PARTITIONS=1, REPLICAS=1, VALUE_FORMAT='json') AS SELECT  PAGEVIEWS_ENRICHED.GENDER GENDER,  PAGEVIEWS_ENRICHED.REGIONID REGIONID,  COUNT(*) NUMUSERSFROM PAGEVIEWS_ENRICHED PAGEVIEWS_ENRICHEDWINDOW TUMBLING ( SIZE 30 SECONDS ) GROUP BY PAGEVIEWS_ENRICHED.GENDER, PAGEVIEWS_ENRICHED.REGIONIDEMIT CHANGES;
 
 For query topology and execution plan please run: EXPLAIN <QueryId>
 
 Local runtime statistics
 ------------------------
-messages-per-sec:      3.06   total-messages:      1827     last-message: 7/19/18 4:17:55 PM UTC
-failed-messages:         0 failed-messages-per-sec:         0      last-failed:       n/a
-(Statistics of the local KSQL server interaction with the Kafka topic PAGEVIEWS_REGIONS)
-ksql>
+messages-per-sec:      0.90   total-messages:       498     last-message: 2020-02-07T13:10:32.033Z
 ```
 
 Use Nested Schemas (STRUCT) in ksqlDB
@@ -522,10 +741,10 @@ docker run --network tutorials_default --rm  \
   confluentinc/ksql-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
-      format=avro \
+      format=json \
       topic=orders \
-      bootstrap-server=kafka:39092 \
-      schemaRegistryUrl=http://schema-registry:8081
+      msgRate=5 \
+      bootstrap-server=kafka:39092
 ```
 
 ### 2. Register a stream
@@ -533,7 +752,16 @@ docker run --network tutorials_default --rm  \
 From the ksqlDB command prompt, register the a stream on the `orders` topic:
 
 ```sql
-CREATE STREAM ORDERS WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='AVRO');
+CREATE STREAM ORDERS 
+ (
+   ROWKEY INT KEY, 
+   ORDERTIME BIGINT, 
+   ORDERID INT, 
+   ITEMID STRING, 
+   ORDERUNITS DOUBLE, 
+   ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
+ )
+   WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='json', key='orderid');
 ```
 
 Your output should resemble:
@@ -561,7 +789,7 @@ Name                 : ORDERS
  Field      | Type
 ----------------------------------------------------------------------------------
  ROWTIME    | BIGINT           (system)
- ROWKEY     | VARCHAR(STRING)  (system)
+ ROWKEY     | INT              (system)
  ORDERTIME  | BIGINT
  ORDERID    | INTEGER
  ITEMID     | VARCHAR(STRING)
@@ -577,20 +805,23 @@ ksql>
 Query the data by using the `->` notation to access the struct contents:
 
 ```sql
-SELECT ORDERID, ADDRESS->CITY FROM ORDERS;
+SELECT ORDERID, ADDRESS->CITY FROM ORDERS EMIT CHANGES LIMIT 5;
 ```
 
 Your output should resemble:
 
 ```
-0 | City_35
-1 | City_21
-2 | City_47
-3 | City_57
-4 | City_17
++-----------------------------------+-----------------------------------+
+|ORDERID                            |ADDRESS__CITY                      |
++-----------------------------------+-----------------------------------+
+|1188                               |City_95                            |
+|1189                               |City_24                            |
+|1190                               |City_57                            |
+|1191                               |City_37                            |
+|1192                               |City_82                            |
+Limit Reached
+Query terminated
 ```
-
-Press Ctrl+C to cancel the `SELECT` query.
 
 Stream-Stream join
 ------------------
@@ -600,47 +831,22 @@ common key. An example of this could be a stream of order events and
 a stream of shipment events. By joining these on the order key, you can
 see shipment information alongside the order.
 
-### 1. Populate two source topics
+### 1. Create two streams
 
-In a separate console window, populate the `orders` and `shipments`
-topics by using the `kafkacat` utility:
-
-```bash
-docker run --interactive --rm --network tutorials_default \
-  confluentinc/cp-kafkacat \
-  kafkacat -b kafka:39092 \
-          -t new_orders \
-          -K: \
-          -P <<EOF
-1:{"order_id":1,"total_amount":10.50,"customer_name":"Bob Smith"}
-2:{"order_id":2,"total_amount":3.32,"customer_name":"Sarah Black"}
-3:{"order_id":3,"total_amount":21.00,"customer_name":"Emma Turner"}
-EOF
-```
-
-```bash
-docker run --interactive --rm --network tutorials_default \
-  confluentinc/cp-kafkacat \
-  kafkacat -b kafka:39092 \
-          -t shipments \
-          -K: \
-          -P <<EOF
-1:{"order_id":1,"shipment_id":42,"warehouse":"Nashville"}
-3:{"order_id":3,"shipment_id":43,"warehouse":"Palo Alto"}
-EOF
-```
-
-### 2. Register two streams
-
-In the ksqlDB CLI, register both topics as ksqlDB streams:
+In the ksqlDB CLI create two new streams. Both streams will store their
+order ID in ROWKEY:
 
 ```sql
-CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
-WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON');
+CREATE STREAM NEW_ORDERS (ROWKEY INT KEY, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
+WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON', PARTITIONS=2);
 
-CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
-WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON');
+CREATE STREAM SHIPMENTS (ROWKEY INT KEY, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
+WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON', PARTITIONS=2);
 ```
+
+!!! note
+  ksqlDB creates the underlying topics in {{ site.ak }} when it executes these statements.
+  You can also specify the `REPLICAS` count.
 
 After both `CREATE STREAM` statements, your output should resemble:
 
@@ -651,10 +857,29 @@ After both `CREATE STREAM` statements, your output should resemble:
 ----------------
 ```
 
+### 2. Populate two source topics
+
+Populate the streams with some sample data by using the INSERT VALUES statement:
+
+```sql
+-- Insert values in NEW_ORDERS:
+-- insert supplying the list of columns to insert:
+INSERT INTO NEW_ORDERS (ROWKEY, CUSTOMER_NAME, TOTAL_AMOUNT) 
+  VALUES (1, 'Bob Smith', 10.50);
+  
+-- shorthand version can be used when inserting values for all columns, (except ROWTIME), in column order:
+INSERT INTO NEW_ORDERS  VALUES (2, 3.32, 'Sarah Black');
+INSERT INTO NEW_ORDERS  VALUES (3, 21.00, 'Emma Turner');
+
+-- Insert values in SHIPMENTS:
+INSERT INTO SHIPMENTS VALUES (1, 42, 'Nashville');
+INSERT INTO SHIPMENTS VALUES (3, 43, 'Palo Alto');
+```
+
 ### 3. Set the auto.offset.reset property
 
 Run the following statement to tell ksqlDB to read from the beginning of all
-topics:
+streams:
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';
@@ -671,28 +896,38 @@ Query the streams to confirm that events are present in the topics.
 For the `NEW_ORDERS` stream, run:
 
 ```sql
-SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS LIMIT 3;
+SELECT * FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
 ```
 
 Your output should resemble:
 
 ```
-1 | 10.5 | Bob Smith
-2 | 3.32 | Sarah Black
-3 | 21.0 | Emma Turner
++-------------------------+-------------------------+-------------------------+-------------------------+
+|ROWTIME                  |ROWKEY                   |TOTAL_AMOUNT             |CUSTOMER_NAME            |
++-------------------------+-------------------------+-------------------------+-------------------------+
+|1581083057609            |1                        |10.5                     |Bob Smith                |
+|1581083178418            |2                        |3.32                     |Sarah Black              |
+|1581083210494            |3                        |21.0                     |Emma Turner              |
+Limit Reached
+Query terminated
 ```
 
 For the `SHIPMENTS` stream, run:
 
 ```sql
-SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS LIMIT 2;
+SELECT * FROM SHIPMENTS EMIT CHANGES LIMIT 2;
 ```
 
 Your output should resemble:
 
 ```
-1 | 42 | Nashville
-3 | 43 | Palo Alto
++-------------------------+-------------------------+-------------------------+-------------------------+
+|ROWTIME                  |ROWKEY                   |SHIPMENT_ID              |WAREHOUSE                |
++-------------------------+-------------------------+-------------------------+-------------------------+
+|1581083340711            |1                        |42                       |Nashville                |
+|1581083384229            |3                        |43                       |Palo Alto                |
+Limit Reached
+Query terminated
 ```
 
 ### 5. Join the streams
@@ -701,24 +936,55 @@ Run the following query, which will show orders with associated
 shipments, based on a join window of 1 hour.
 
 ```sql
-SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
+SELECT O.ROWKEY AS ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
 S.SHIPMENT_ID, S.WAREHOUSE
 FROM NEW_ORDERS O
 INNER JOIN SHIPMENTS S
   WITHIN 1 HOURS
-  ON O.ORDER_ID = S.ORDER_ID;
+  ON O.ROWKEY = S.ROWKEY
+EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-1 | 10.5 | Bob Smith | 42 | Nashville
-3 | 21.0 | Emma Turner | 43 | Palo Alto
++--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
+|ORDER_ID                  |TOTAL_AMOUNT              |CUSTOMER_NAME             |SHIPMENT_ID               |WAREHOUSE                 |
++--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
+|1                         |10.5                      |Bob Smith                 |42                        |Nashville                 |
+|3                         |21.0                      |Emma Turner               |43                        |Palo Alto                 |
 ```
 
 Messages with `ORDER_ID=2` have no corresponding `SHIPMENT_ID` or
 `WAREHOUSE`. This is because there's no corresponding row on the
 `SHIPMENTS` stream within the time window specified.
+
+Start the ksqlDB CLI in a second window by running:
+
+```bash
+docker run --network tutorials_default --rm --interactive --tty \
+    confluentinc/ksqldb-cli:{{ site.release }} ksql \
+    http://ksql-server:8088
+```
+
+Enter the following INSERT VALUES statement to insert the shipment for
+order id 2:
+
+```sql
+INSERT INTO SHIPMENTS VALUES (2, 49, 'London');
+```
+
+Switching back to your primary ksqlDB CLI window, notice that a third
+row has now been output:
+
+```
++--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
+|ORDER_ID                  |TOTAL_AMOUNT              |CUSTOMER_NAME             |SHIPMENT_ID               |WAREHOUSE                 |
++--------------------------+--------------------------+--------------------------+--------------------------+--------------------------+
+|1                         |10.5                      |Bob Smith                 |42                        |Nashville                 |
+|3                         |21.0                      |Emma Turner               |43                        |Palo Alto                 |
+|2                         |3.32                      |Sarah Black               |49                        |London                    |
+```
 
 Press Ctrl+C to cancel the `SELECT` query and return to the prompt.
 
@@ -733,51 +999,26 @@ not supported in the current semantic model.
 In this example, location data about a warehouse from one system is
 enriched with data about the size of the warehouse from another.
 
-### 1. Populate two source topics
+### 1. Register two tables
 
-In a separate console window, populate the two topics by using the
-`kafkacat` utility:
-
-```bash
-docker run --interactive --rm --network tutorials_default \
-  confluentinc/cp-kafkacat \
-  kafkacat -b kafka:39092 \
-          -t warehouse_location \
-          -K: \
-          -P <<EOF
-1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
-2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
-3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
-EOF
-```
-
-```bash
-docker run --interactive --rm --network tutorials_default \
-  confluentinc/cp-kafkacat \
-  kafkacat -b kafka:39092 \
-          -t warehouse_size \
-          -K: \
-          -P <<EOF
-1:{"warehouse_id":1,"square_footage":16000}
-2:{"warehouse_id":2,"square_footage":42000}
-3:{"warehouse_id":3,"square_footage":94000}
-EOF
-```
-
-### 2. Register two tables
-
-In the ksqlDB CLI, register both topics as ksqlDB tables:
+In the KSQL CLI, register both topics as KSQL tables. Note, in this example
+the warehouse id is stored both in the key and in the WAREHOUSE_ID field
+in the value:
 
 ```sql
-CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
-WITH (KAFKA_TOPIC='warehouse_location',
+CREATE TABLE WAREHOUSE_LOCATION 
+   (ROWKEY INT KEY, WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+   WITH (KAFKA_TOPIC='warehouse_location',
       VALUE_FORMAT='JSON',
-      KEY='WAREHOUSE_ID');
+      KEY='WAREHOUSE_ID',
+      PARTITIONS=2);
 
-CREATE TABLE WAREHOUSE_SIZE (WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
-WITH (KAFKA_TOPIC='warehouse_size',
+CREATE TABLE WAREHOUSE_SIZE 
+   (ROWKEY INT KEY, WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+   WITH (KAFKA_TOPIC='warehouse_size',
       VALUE_FORMAT='JSON',
-      KEY='WAREHOUSE_ID');
+      KEY='WAREHOUSE_ID',
+      PARTITIONS=2);
 ```
 
 After both `CREATE TABLE` statements, your output should resemble:
@@ -789,24 +1030,42 @@ After both `CREATE TABLE` statements, your output should resemble:
 ---------------
 ```
 
+### 2. Populate two source topics
+
+In the KSQL CLI, insert sample data into the tables:
+
+```sql
+-- note: ksqlDB will automatically populate ROWKEY with the same value as WAREHOUSE_ID:
+INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (1, 'Leeds', 'UK');
+INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (2, 'Sheffield', 'UK');
+INSERT INTO WAREHOUSE_LOCATION (WAREHOUSE_ID, CITY, COUNTRY) VALUES (3, 'Berlin', 'Germany');
+
+INSERT INTO WAREHOUSE_SIZE (WAREHOUSE_ID, SQUARE_FOOTAGE) VALUES (1, 16000);
+INSERT INTO WAREHOUSE_SIZE (WAREHOUSE_ID, SQUARE_FOOTAGE) VALUES (2, 42000);
+INSERT INTO WAREHOUSE_SIZE (WAREHOUSE_ID, SQUARE_FOOTAGE) VALUES (3, 94000);
+```
+
 ### 3. Examine tables for keys
 
 Check both tables that the message key (`ROWKEY`) matches the declared
 key (`WAREHOUSE_ID`). The output should show that they are equal. If
-they aren't, the join won't succeed or behave as expected.
+they were not, the join won't succeed or behave as expected.
 
 Inspect the WAREHOUSE_LOCATION table:
 
 ```sql
-SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION LIMIT 3;
+SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION EMIT CHANGES LIMIT 3;
 ```
 
 Your output should resemble:
 
 ```
-1 | 1
-2 | 2
-3 | 3
++---------------------------------------+---------------------------------------+
+|ROWKEY                                 |WAREHOUSE_ID                           |
++---------------------------------------+---------------------------------------+
+|2                                      |2                                      |
+|1                                      |1                                      |
+|3                                      |3                                      |
 Limit Reached
 Query terminated
 ```
@@ -814,15 +1073,18 @@ Query terminated
 Inspect the WAREHOUSE_SIZE table:
 
 ```sql
-SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE LIMIT 3;
+SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE EMIT CHANGES LIMIT 3;
 ```
 
 Your output should resemble:
 
 ```
-1 | 1
-2 | 2
-3 | 3
++---------------------------------------+---------------------------------------+
+|ROWKEY                                 |WAREHOUSE_ID                           |
++---------------------------------------+---------------------------------------+
+|2                                      |2                                      |
+|1                                      |1                                      |
+|3                                      |3                                      |
 Limit Reached
 Query terminated
 ```
@@ -836,15 +1098,19 @@ SELECT WL.WAREHOUSE_ID, WL.CITY, WL.COUNTRY, WS.SQUARE_FOOTAGE
 FROM WAREHOUSE_LOCATION WL
   LEFT JOIN WAREHOUSE_SIZE WS
     ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID
+EMIT CHANGES
 LIMIT 3;
 ```
 
 Your output should resemble:
 
 ```
-1 | Leeds | UK | 16000.0
-2 | Sheffield | UK | 42000.0
-3 | Berlin | Germany | 94000.0
++------------------+------------------+------------------+------------------+
+|WL_WAREHOUSE_ID   |CITY              |COUNTRY           |SQUARE_FOOTAGE    |
++------------------+------------------+------------------+------------------+
+|1                 |Leeds             |UK                |16000.0           |
+|1                 |Leeds             |UK                |16000.0           |
+|2                 |Sheffield         |UK                |42000.0           |
 Limit Reached
 Query terminated
 ```
@@ -866,10 +1132,10 @@ docker run --network tutorials_default --rm  --name datagen-orders-local \
   confluentinc/ksql-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
-      format=avro \
+      format=json \
       topic=orders_local \
-      bootstrap-server=kafka:39092 \
-      schemaRegistryUrl=http://schema-registry:8081
+      msgRate=2 \
+      bootstrap-server=kafka:39092
 ```
 
 ```bash
@@ -877,10 +1143,10 @@ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
   confluentinc/ksql-examples:{{ site.release }} \
   ksql-datagen \
       quickstart=orders \
-      format=avro \
+      format=json \
       topic=orders_3rdparty \
-      bootstrap-server=kafka:39092 \
-      schemaRegistryUrl=http://schema-registry:8081
+      msgRate=2 \
+      bootstrap-server=kafka:39092
 ```
 
 ### 2. Register streams
@@ -889,10 +1155,26 @@ In ksqlDB, register the source topic for each:
 
 ```sql
 CREATE STREAM ORDERS_SRC_LOCAL
-  WITH (KAFKA_TOPIC='orders_local', VALUE_FORMAT='AVRO');
+ (
+   ROWKEY INT KEY, 
+   ORDERTIME BIGINT, 
+   ORDERID INT, 
+   ITEMID STRING, 
+   ORDERUNITS DOUBLE, 
+   ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
+ )
+  WITH (KAFKA_TOPIC='orders_local', VALUE_FORMAT='JSON');
 
 CREATE STREAM ORDERS_SRC_3RDPARTY
-  WITH (KAFKA_TOPIC='orders_3rdparty', VALUE_FORMAT='AVRO');
+ (
+   ROWKEY INT KEY, 
+   ORDERTIME BIGINT, 
+   ORDERID INT, 
+   ITEMID STRING, 
+   ORDERUNITS DOUBLE, 
+   ADDRESS STRUCT<CITY STRING, STATE STRING, ZIPCODE BIGINT>
+ )
+  WITH (KAFKA_TOPIC='orders_3rdparty', VALUE_FORMAT='JSON');
 ```
 
 After each `CREATE STREAM` statement you should get the message:
@@ -912,16 +1194,16 @@ target, it is useful to add in lineage information. This can be done by
 simply including it as part of the `SELECT`:
 
 ```sql
-CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
+CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
- Message
-----------------------------
- Stream created and running
-----------------------------
+ Message                                                                                   
+-------------------------------------------------------------------------------------------
+ Stream ALL_ORDERS created and running. Created by query with query ID: CSAS_ALL_ORDERS_17 
+-------------------------------------------------------------------------------------------
 ```
 
 ### 4. Examine the stream's schema
@@ -936,16 +1218,16 @@ Your output should resemble:
 
 ```
 Name                 : ALL_ORDERS
- Field      | Type
+ Field      | Type                                                                
 ----------------------------------------------------------------------------------
- ROWTIME    | BIGINT           (system)
- ROWKEY     | VARCHAR(STRING)  (system)
- SRC        | VARCHAR(STRING)
- ORDERTIME  | BIGINT
- ORDERID    | INTEGER
- ITEMID     | VARCHAR(STRING)
- ORDERUNITS | DOUBLE
- ADDRESS    | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE BIGINT>
+ ROWTIME    | BIGINT           (system)                                           
+ ROWKEY     | INTEGER          (system)                                           
+ SRC        | VARCHAR(STRING)                                                     
+ ORDERTIME  | BIGINT                                                              
+ ORDERID    | INTEGER                                                             
+ ITEMID     | VARCHAR(STRING)                                                     
+ ORDERUNITS | DOUBLE                                                              
+ ADDRESS    | STRUCT<CITY VARCHAR(STRING), STATE VARCHAR(STRING), ZIPCODE BIGINT> 
 ----------------------------------------------------------------------------------
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ```
@@ -955,16 +1237,16 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 Add a stream of 3rd-party orders into the existing output stream:
 
 ```sql
-INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
+INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
- Message
--------------------------------
- Insert Into query is running.
--------------------------------
+ Message                                                    
+------------------------------------------------------------
+ Insert Into query is running with query ID: InsertQuery_43 
+------------------------------------------------------------
 ```
 
 ### 6. Query the output stream
@@ -973,18 +1255,18 @@ Query the output stream to verify that data from each source is being
 written to it:
 
 ```sql
-SELECT * FROM ALL_ORDERS;
+SELECT * FROM ALL_ORDERS EMIT CHANGES;
 ```
 
 Your output should resemble:
 
 ```
-1531736084879 | 1802 | 3RD PARTY | 1508543844870 | 1802 | Item_427 | 5.003326679575532 | {CITY=City_27, STATE=State_63, ZIPCODE=12589}
-1531736085016 | 1836 | LOCAL | 1489112050820 | 1836 | Item_224 | 9.561788841477156 | {CITY=City_67, STATE=State_99, ZIPCODE=28638}
-1531736085118 | 1803 | 3RD PARTY | 1516295084125 | 1803 | Item_208 | 7.984495994658404 | {CITY=City_13, STATE=State_56, ZIPCODE=23417}
-1531736085222 | 1804 | 3RD PARTY | 1503734687976 | 1804 | Item_498 | 4.8212828530483876 | {CITY=City_42, STATE=State_45, ZIPCODE=87842}
-1531736085444 | 1837 | LOCAL | 1511189492298 | 1837 | Item_183 | 1.3867306505950954 | {CITY=City_28, STATE=State_86, ZIPCODE=14742}
-1531736085531 | 1838 | LOCAL | 1497601536360 | 1838 | Item_945 | 4.825111590185673 | {CITY=City_78, STATE=State_13, ZIPCODE=59763}
++--------------+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
+|ROWTIME       |ROWKEY    |SRC        |ORDERTIME     |ORDERID   |ITEMID       |ORDERUNITS            |ADDRESS                                      |
++--------------+----------+-----------+--------------+----------+-------------+----------------------+---------------------------------------------+
+|1581085344272 |510       |3RD PARTY  |1503198352036 |510       |Item_643     |1.653210222047296     |{CITY=City_94, STATE=State_72, ZIPCODE=61274}|
+|1581085344293 |546       |LOCAL      |1498476865306 |546       |Item_234     |9.284691223615178     |{CITY=City_44, STATE=State_29, ZIPCODE=84678}|
+|1581085344776 |511       |3RD PARTY  |1489945722538 |511       |Item_264     |8.213163488516212     |{CITY=City_36, STATE=State_13, ZIPCODE=44821}|
 …
 ```
 
@@ -1003,11 +1285,11 @@ SHOW QUERIES;
 Your output should resemble:
 
 ```
- Query ID          | Kafka Topic | Query String
--------------------------------------------------------------------------------------------------------------------
- CSAS_ALL_ORDERS_0 | ALL_ORDERS  | CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
- InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
--------------------------------------------------------------------------------------------------------------------
+ Query ID                         | Status  | Sink Name                | Sink Kafka Topic         | Query String                                                                                                                                                                                                                                                                                                                                                                                                 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ InsertQuery_43                   | RUNNING | ALL_ORDERS               | ALL_ORDERS               | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY EMIT CHANGES;                                                                                                                                                                                                                                                                                                                   
+ CSAS_ALL_ORDERS_17               | RUNNING | ALL_ORDERS               | ALL_ORDERS               | CREATE STREAM ALL_ORDERS WITH (KAFKA_TOPIC='ALL_ORDERS', PARTITIONS=1, REPLICAS=1) AS SELECT  'LOCAL' SRC,  *FROM ORDERS_SRC_LOCAL ORDERS_SRC_LOCALEMIT CHANGES;                                                                                                                                                                                                                                             
+...
 ```
 
 Terminate and Exit
@@ -1022,10 +1304,10 @@ Terminate and Exit
 
 From the output of `SHOW QUERIES;` identify a query ID you would
 like to terminate. For example, if you wish to terminate query ID
-`CTAS_PAGEVIEWS_REGIONS`:
+`CTAS_PAGEVIEWS_REGIONS_15`:
 
 ```sql
-TERMINATE CTAS_PAGEVIEWS_REGIONS;
+TERMINATE CTAS_PAGEVIEWS_REGIONS_15;
 ```
 
 !!! tip
@@ -1114,7 +1396,22 @@ key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
 key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
 ```
 
-You can also use `kafkacat` from Docker, as demonstrated in the previous
+You can also use the `kafkacat` command line tool:
+
+```bash
+docker run --interactive --rm --network tutorials_default \
+  confluentinc/cp-kafkacat \
+  kafkacat -b kafka:39092 \
+          -t warehouse_size \
+          -K: \
+          -P <<EOF
+1:{"warehouse_id":1,"square_footage":16000}
+2:{"warehouse_id":2,"square_footage":42000}
+3:{"warehouse_id":3,"square_footage":94000}
+EOF
+```
+
+You can also use `INSERT VALUES` SQL statements, as demonstrated in the previous
 examples.
 
 ### Verify your environment

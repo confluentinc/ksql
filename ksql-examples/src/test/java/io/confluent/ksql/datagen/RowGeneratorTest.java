@@ -44,7 +44,7 @@ public class RowGeneratorTest {
 
     final Struct key = rowPair.getLeft();
     assertThat(key, is(notNullValue()));
-    assertThat(key.get("ROWKEY"), is(instanceOf(String.class)));
+    assertThat(key.get("ROWKEY"), is(instanceOf(Integer.class)));
 
     assertThat(rowPair.getRight().values(), hasSize(5));
     assertThat(rowPair.getRight().get(4), instanceOf(Struct.class));
@@ -54,5 +54,21 @@ public class RowGeneratorTest {
     assertThat(struct.schema().field("city").schema().type(), equalTo(Type.STRING));
     assertThat(struct.schema().field("state").schema().type(), equalTo(Type.STRING));
     assertThat(struct.schema().field("zipcode").schema().type(), equalTo(Type.INT64));
+  }
+
+  @Test
+  public void shouldGenerateCorrectKey() throws IOException {
+    final Generator generator = new Generator(new File("./src/main/resources/pageviews_schema.avro"), new Random());
+
+    final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime");
+
+    final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
+
+    final Struct key = rowPair.getLeft();
+    final GenericRow value = rowPair.getRight();
+    assertThat(key, is(notNullValue()));
+    assertThat(key.get("ROWKEY"), is(instanceOf(Long.class)));
+
+    assertThat("must match copy of key in value", key.get("ROWKEY"), is(value.get(0)));
   }
 }

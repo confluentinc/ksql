@@ -36,7 +36,7 @@ These steps use the KSQL datagen that is included {{ site.cp }}.
     value in DELIMITED format.
 
     ```bash
-    <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=500
+    <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews msgRate=5
     ```
 
 2.  Produce Kafka data to the `users` topic using the data generator.
@@ -44,7 +44,7 @@ These steps use the KSQL datagen that is included {{ site.cp }}.
     JSON format.
 
     ```bash
-    <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users maxInterval=100
+    <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users msgRate=1
     ```
 
 !!! tip

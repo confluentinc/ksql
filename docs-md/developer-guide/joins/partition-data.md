@@ -45,7 +45,7 @@ the resulting table is determined as follows:
 
 - If the FROM clause contains a stream, the statement must have a GROUP BY clause,
   and the grouping columns determine the key of the resulting table.
-    - When grouping by a single column or expression the type of `ROWKEY` in the
+    - When grouping by a single column or expression, the type of `ROWKEY` in the
     resulting stream matches the type of the column or expression.
     - When grouping by multiple columns or expressions the type of `ROWKEY` in the
     resulting stream is a `STRING`.

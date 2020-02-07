@@ -371,7 +371,7 @@ Viewing your data
 
    !!! note
       By default, push queries on streams only output changes that occur
-      after the query is started, i.e. historic data is not included.
+      after the query is started, which means that historic data isn't included.
       Run `set 'auto.offset.reset'='earliest';` to update your session
       properties if you want to see the historic data.
 

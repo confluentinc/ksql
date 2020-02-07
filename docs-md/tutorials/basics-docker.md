@@ -582,7 +582,7 @@ Query terminated
    per 30 second _window_. ksqlDB automatically adds these system columns
    for windowed results.
 
-### 8. View query results using pull query
+### 8. View query results using a pull query
 
 When a CREATE TABLE statement contains a GROUP BY clause, ksqlDB builds an internal
 table containing the results of the aggregation. ksqlDB supports pull queries against

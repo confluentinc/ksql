@@ -350,7 +350,7 @@ Viewing your data
          stream of updates to the table. So it's likely that rows with matching
          `ROWKEY` are output as existing rows in the table are updated.
 
-2. View the data in your pageviews_original stream by issuing the following
+2. View the data in your `pageviews_original` stream by issuing the following
    push query:
    ```sql
    SELECT viewtime, userid, pageid FROM pageviews_original emit changes LIMIT 3;

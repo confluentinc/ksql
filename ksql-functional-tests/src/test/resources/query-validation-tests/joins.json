@@ -1572,11 +1572,26 @@
         "CREATE STREAM OUTPUT as SELECT t.ID FROM test1 t JOIN test2 tt WITHIN 30 seconds ON t.id = CAST(tt.id AS BIGINT);"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": "1", "value": {"id": 1}, "timestamp": 10},
-        {"topic": "right_topic", "key": "1", "value": {"id": 1}, "timestamp": 10}
+        {"topic": "left_topic", "value": {"id": 1}, "timestamp": 10},
+        {"topic": "right_topic", "value": {"id": 1}, "timestamp": 10}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"T_ID": 1}, "timestamp": 10}
+      ]
+    },
+    {
+      "name": "stream stream join - contains CAST double to int",
+      "statements": [
+        "CREATE STREAM L (ID INT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM R (ID DOUBLE) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT L.ID FROM L JOIN R WITHIN 30 seconds ON L.id = CAST(R.id AS INT);"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"id": 1}, "timestamp": 10},
+        {"topic": "right_topic", "value": {"id": 1.0}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1}, "timestamp": 11}
       ]
     },
     {

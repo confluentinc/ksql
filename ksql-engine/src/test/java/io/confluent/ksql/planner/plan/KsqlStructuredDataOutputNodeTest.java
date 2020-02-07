@@ -117,7 +117,7 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.into(any(), any(), any(), any()))
+    when(sourceStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
@@ -189,7 +189,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sourceStream).into(any(), eq(valueFormat), any(), any());
+    verify(sourceStream).into(any(), eq(valueFormat), any(), any(), any());
   }
 
   @Test
@@ -202,7 +202,8 @@ public class KsqlStructuredDataOutputNodeTest {
         eq(SINK_KAFKA_TOPIC_NAME),
         eq(JSON_FORMAT),
         eq(SerdeOption.none()),
-        stackerCaptor.capture()
+        stackerCaptor.capture(),
+        eq(outputNode.getTimestampColumn())
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),

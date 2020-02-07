@@ -8,6 +8,7 @@
   "ksql.schema.registry.url" : "",
   "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
   "ksql.output.topic.name.prefix" : "",
+  "ksql.query.pull.enable.stale.reads" : "false",
   "ksql.streams.auto.offset.reset" : "earliest",
   "ksql.connect.url" : "http://localhost:8083",
   "ksql.service.id" : "some.ksql.service.id",
@@ -25,6 +26,7 @@
   "ksql.streams.topology.optimization" : "all",
   "ksql.execution.plan.enable" : "false",
   "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
+  "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.authorization.cache.max.entries" : "10000",
   "ksql.metrics.tags.custom" : "",
@@ -32,8 +34,8 @@
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
   "ksql.connect.worker.config" : "",
-  "ksql.query.pull.routing.timeout.ms" : "30000",
   "ksql.sink.window.change.log.additional.retention" : "1000000",
+  "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
   "ksql.udf.collect.metrics" : "false",
   "ksql.persistent.prefix" : "query_",
   "ksql.query.persistent.active.limit" : "2147483647"
@@ -50,8 +52,11 @@ Topologies:
       --> Project
       <-- KSTREAM-SOURCE-0000000000
     Processor: Project (stores: [])
-      --> KSTREAM-SINK-0000000003
+      --> KSTREAM-TRANSFORM-0000000003
       <-- KSTREAM-TRANSFORMVALUES-0000000001
-    Sink: KSTREAM-SINK-0000000003 (topic: TS)
+    Processor: KSTREAM-TRANSFORM-0000000003 (stores: [])
+      --> KSTREAM-SINK-0000000004
       <-- Project
+    Sink: KSTREAM-SINK-0000000004 (topic: TS)
+      <-- KSTREAM-TRANSFORM-0000000003
 

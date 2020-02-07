@@ -17,9 +17,12 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
@@ -27,17 +30,21 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
   private final String topicName;
+  private final Optional<TimestampColumn> timestampColumn;
 
   public TableSink(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "topicName", required = true) final String topicName
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "timestampColumn", required = true)
+      final Optional<TimestampColumn> timestampColumn
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
+    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
   }
 
   @Override
@@ -63,6 +70,10 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
     return source;
   }
 
+  public Optional<TimestampColumn> getTimestampColumn() {
+    return timestampColumn;
+  }
+
   @Override
   public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableSink(this);
@@ -80,12 +91,13 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.equals(properties, tableSink.properties)
         && Objects.equals(source, tableSink.source)
         && Objects.equals(formats, tableSink.formats)
-        && Objects.equals(topicName, tableSink.topicName);
+        && Objects.equals(topicName, tableSink.topicName)
+        && Objects.equals(timestampColumn, tableSink.timestampColumn);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, topicName);
+    return Objects.hash(properties, source, formats, topicName, timestampColumn);
   }
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -39,6 +40,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
@@ -99,12 +101,14 @@ public class TableSinkBuilderTest {
     when(kTable.toStream()).thenReturn(kStream);
     when(source.build(any())).thenReturn(
         KTableHolder.unmaterialized(kTable, SCHEMA, keySerdeFactory));
+    doReturn(kStream).when(kStream).transform(any());
 
     sink = new TableSink<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
         io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        TOPIC
+        TOPIC,
+        Optional.empty()
     );
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -122,6 +126,7 @@ public class TableSinkBuilderTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(kTable, kStream);
     inOrder.verify(kTable).toStream();
+    inOrder.verify(kStream).transform(any());
     inOrder.verify(kStream).to(anyString(), any());
     verifyNoMoreInteractions(kStream);
   }

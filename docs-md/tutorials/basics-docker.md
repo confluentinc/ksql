@@ -584,7 +584,7 @@ Query terminated
 
 ### 8. View query results using pull query
 
-When a CREATE TABLE statement contains a GROUP BY clause, ksqlDB is internally building an
+When a CREATE TABLE statement contains a GROUP BY clause, ksqlDB builds an internal
 table containing the results of the aggregation. ksqlDB supports pull queries against
 such aggregation results.
 

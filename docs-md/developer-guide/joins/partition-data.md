@@ -53,7 +53,7 @@ the resulting table is determined as follows:
   copied over from the key of the table(s) in the FROM clause.
 - If the FROM clause contains only tables and has a GROUP BY clause, the
   grouping columns determine the key of the resulting table.
-    - When grouping by a single column or expression the type of `ROWKEY` in the
+    - When grouping by a single column or expression, the type of `ROWKEY` in the
     resulting stream matches the type of the column or expression.
     - When grouping by multiple columns or expressions the type of `ROWKEY` in the
     resulting stream is a `STRING`.

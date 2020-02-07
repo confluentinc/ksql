@@ -593,7 +593,7 @@ pull queries pull a result set and automatically terminate.
 
 Pull queries do not have the `EMIT CHANGES` clause.
 
-View all the windows and user counts available for a specific gender and region using a pull query:
+View all of the windows and user counts that are available for a specific gender and region by using a pull query:
 
 ```sql
 SELECT * FROM pageviews_regions WHERE ROWKEY='OTHER|+|Region_9';

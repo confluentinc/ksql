@@ -347,7 +347,7 @@ Viewing your data
    !!! note
          Push queries on tables output the full history of the table that is stored
          in the {{ site.ak }} changelog topic, which means that it outputs historic data, followed by the
-         stream of updates to the table. It is therefore likely that rows with matching
+         stream of updates to the table. So it's likely that rows with matching
          `ROWKEY` are output as existing rows in the table are updated.
 
 2. View the data in your pageviews_original stream by issuing the following

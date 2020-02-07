@@ -48,11 +48,6 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-codegen</artifactId>
-      <version>${vertx.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
       <version>${vertx.version}</version>
     </dependency>
@@ -104,12 +99,6 @@
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
       <version>6.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-test-util</artifactId>
-      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 

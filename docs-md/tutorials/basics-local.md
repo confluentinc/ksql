@@ -257,7 +257,7 @@ These examples query messages from Kafka topics called `pageviews` and
           to allow joins against the table to use the more
           descriptive `userId` column name, rather than `ROWKEY`. Joining
           on either will yield the same results. If your data does not
-          contain a copy of the key in the value simply join on `ROWKEY`.
+          contain a copy of the key in the value, you can join on `ROWKEY`.
 
     !!! tip
           You can run `DESCRIBE users_original;` to see the schema for the

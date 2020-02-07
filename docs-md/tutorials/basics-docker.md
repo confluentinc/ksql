@@ -416,7 +416,7 @@ Query terminated
   an alias for the table's primary key, `ROWKEY`, in the CREATE TABLE statement.
   `userId` and `ROWKEY` can be used interchangeably as the join criteria for
   the table. However, the data in `userid` on the stream side does not match
-  the stream's key. Hence, ksqlDB will first internally repartition the stream
+  the stream's key. Hence, ksqlDB internally repartitions the stream
   by the `userId` column.
 
 ### 2. Create a persistent query

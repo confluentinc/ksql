@@ -867,7 +867,7 @@ Populate the streams with some sample data by using the INSERT VALUES statement:
 INSERT INTO NEW_ORDERS (ROWKEY, CUSTOMER_NAME, TOTAL_AMOUNT) 
   VALUES (1, 'Bob Smith', 10.50);
   
--- short hand version can be used when inserting values for all columns, (except ROWTIME), in column order:
+-- shorthand version can be used when inserting values for all columns, (except ROWTIME), in column order:
 INSERT INTO NEW_ORDERS  VALUES (2, 3.32, 'Sarah Black');
 INSERT INTO NEW_ORDERS  VALUES (3, 21.00, 'Emma Turner');
 

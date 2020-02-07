@@ -382,7 +382,7 @@ These examples write queries using ksqlDB.
 
 ### 1. Create a query that returns data from a ksqlDB stream
 
-Create query that enriches the pageviews data with the user's gender
+Create a query that enriches the pageviews data with the user's `gender`
 and regionid from the users table. The following query enriches the
 `pageviews_original` STREAM by doing a `LEFT JOIN` with the
 `users_original` TABLE on the userid column.

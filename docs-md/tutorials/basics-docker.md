@@ -321,7 +321,7 @@ Viewing your data
 1. Use `SELECT` to create a query that returns data from a TABLE. This
    query includes the `LIMIT` keyword to limit the number of rows
    returned in the query result, and the `EMIT CHANGES` keywords to
-   indicate we wish to stream results back. This is known as a
+   indicate you that want to stream results back. This is known as a
    [pull query](../concepts/queries/pull.md). See the
    [queries](../concepts/queries/index.md) for an explanation of the
    different query types. Note that exact data output may vary because

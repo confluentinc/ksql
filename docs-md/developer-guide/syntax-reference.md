@@ -487,7 +487,7 @@ CREATE TABLE users_table (ROWKEY INT KEY, username VARCHAR, email VARCHAR)
         VALUE_FORMAT='JSON');
 
 -- Or, if you prefer, you can keep userId in the value of the repartitioned data
--- This would allow you to use the more descriptive `userId` rather than ROWTIME.
+-- This enables using the more descriptive `userId` rather than ROWTIME.
 CREATE STREAM users_with_proper_key_and_user_id
   WITH(KAFKA_TOPIC='users_with_proper_key_and_user_id') AS
   SELECT *

@@ -282,7 +282,7 @@ Your output should resemble:
       in the WITH clause above lets ksqlDB know this. ksqlDB uses this information
       to allow joins against the table to use the more
       descriptive `userId` column name, rather than `ROWKEY`. Joining
-      on either will yield the same results. If your data does not
+      on either yields the same results. If your data doesn't
       contain a copy of the key in the value simply join on `ROWKEY`.
 
 !!! tip

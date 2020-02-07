@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +48,7 @@ public class AggregateExpressionRewriter
       final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
-          new UnqualifiedColumnReferenceExp(node.getLocation(), ColumnRef.of(aggVarName)));
+          new UnqualifiedColumnReferenceExp(node.getLocation(), aggVarName));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {

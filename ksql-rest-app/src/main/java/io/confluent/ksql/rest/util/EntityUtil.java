@@ -52,7 +52,7 @@ public final class EntityUtil {
 
   private static FieldInfo toFieldInfo(final Column column) {
     return SqlTypeWalker.visit(
-        Field.of(column.ref().aliasedFieldName(), column.type()), new Converter());
+        Field.of(column.ref().name(), column.type()), new Converter());
   }
 
   private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {

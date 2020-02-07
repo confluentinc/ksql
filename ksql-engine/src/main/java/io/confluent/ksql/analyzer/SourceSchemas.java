@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -61,7 +61,7 @@ public final class SourceSchemas {
    */
   public Set<SourceName> sourcesWithField(
       final Optional<SourceName> source,
-      final ColumnRef target
+      final ColumnName target
   ) {
     if (!source.isPresent()) {
       return sourceSchemas.entrySet().stream()
@@ -90,11 +90,11 @@ public final class SourceSchemas {
    * @param column the field name to search for. Can be prefixed by source name.
    * @return true if this the supplied {@code column} matches a non-value field
    */
-  boolean matchesNonValueField(final Optional<SourceName> source, final ColumnRef column) {
+  boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->
-              schema.isMetaColumn(column.name()) || schema.isKeyColumn(column.name()));
+              schema.isMetaColumn(column) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -103,6 +103,6 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column.name()) || sourceSchema.isMetaColumn(column.name());
+    return sourceSchema.isKeyColumn(column) || sourceSchema.isMetaColumn(column);
   }
 }

@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -35,6 +36,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -99,8 +101,14 @@ public class QueryAnalyzer {
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
     final QualifiedColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
-    final AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
+
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(
+        aggregateAnalysis,
+        defaultArgument,
+        analysis.getWindowExpression().isPresent(),
+        metaStore
+    );
+
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
 
@@ -120,6 +128,11 @@ public class QueryAnalyzer {
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);
     }
+
+    processWhereExpression(
+        analysis,
+        aggregateAnalyzer
+    );
 
     processGroupByExpression(
         analysis,
@@ -149,6 +162,14 @@ public class QueryAnalyzer {
 
     aggregateAnalysis.setHavingExpression(
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, having));
+  }
+
+  private static void processWhereExpression(
+      final Analysis analysis,
+      final AggregateAnalyzer aggregateAnalyzer
+  ) {
+    analysis.getWhereExpression()
+        .ifPresent(aggregateAnalyzer::processWhere);
   }
 
   private static void processGroupByExpression(
@@ -193,7 +214,7 @@ public class QueryAnalyzer {
           "GROUP BY requires columns using aggregate functions in SELECT clause.");
     }
 
-    final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
+    final Set<Expression> groupByExprs = getGroupByExpressions(analysis);
 
     final List<String> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
         .entrySet()
@@ -229,5 +250,24 @@ public class QueryAnalyzer {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);
     }
+  }
+
+  private static Set<Expression> getGroupByExpressions(final Analysis analysis) {
+    if (!analysis.getWindowExpression().isPresent()) {
+      return ImmutableSet.copyOf(analysis.getGroupByExpressions());
+    }
+
+    // Add in window bounds columns as implicit group by columns:
+    final AliasedDataSource source = Iterables.getOnlyElement(analysis.getFromDataSources());
+
+    final Set<QualifiedColumnReferenceExp> windowBoundColumnRefs =
+        SchemaUtil.windowBoundsColumnNames().stream()
+            .map(cn -> new QualifiedColumnReferenceExp(source.getAlias(), cn))
+            .collect(Collectors.toSet());
+
+    return ImmutableSet.<Expression>builder()
+        .addAll(analysis.getGroupByExpressions())
+        .addAll(windowBoundColumnRefs)
+        .build();
   }
 }

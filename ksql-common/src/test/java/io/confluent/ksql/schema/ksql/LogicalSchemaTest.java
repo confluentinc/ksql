@@ -153,7 +153,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByName() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnRef.of(F0));
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(F0);
 
     // Then:
     assertThat(result, is(Optional.of(
@@ -164,7 +164,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetColumnByNameIfWrongCase() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnRef.of(ColumnName.of("F0")));
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnName.of("F0"));
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -172,12 +172,12 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldNotGetMetaColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.of(ROWTIME_NAME)), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ROWTIME_NAME), is(Optional.empty()));
   }
 
   @Test
   public void shouldNotGetKeyColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.of(K0)), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(K0), is(Optional.empty()));
   }
 
   @Test
@@ -186,7 +186,7 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
 
     // Then:
-    assertThat(schema.findValueColumn(ColumnRef.of(ROWTIME_NAME)),
+    assertThat(schema.findValueColumn(ROWTIME_NAME),
         is(not(Optional.empty())));
   }
 
@@ -196,27 +196,27 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
 
     // Then:
-    assertThat(schema.findValueColumn(ColumnRef.of(K0)),
+    assertThat(schema.findValueColumn(K0),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetMetaFields() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.of(ROWTIME_NAME)), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(ROWTIME_NAME), is(Optional.of(
         Column.of(ROWTIME_NAME, BIGINT, Namespace.META, 0)
     )));
   }
 
   @Test
   public void shouldGetKeyColumns() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.of(K0)), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(K0), is(Optional.of(
         Column.of(K0, BIGINT, Namespace.KEY, 0)
     )));
   }
 
   @Test
   public void shouldGetValueColumns() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.of(F0)), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(F0), is(Optional.of(
         Column.of(F0, STRING, Namespace.VALUE, 0)
     )));
   }
@@ -232,7 +232,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(
-        schema.findColumn(ColumnRef.of(ROWTIME_NAME)).map(Column::namespace),
+        schema.findColumn(ROWTIME_NAME).map(Column::namespace),
         is(Optional.of(Namespace.KEY))
     );
   }
@@ -247,7 +247,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(
-        schema.findColumn(ColumnRef.of(ROWTIME_NAME)).map(Column::namespace),
+        schema.findColumn(ROWTIME_NAME).map(Column::namespace),
         is(Optional.of(Namespace.VALUE))
     );
   }

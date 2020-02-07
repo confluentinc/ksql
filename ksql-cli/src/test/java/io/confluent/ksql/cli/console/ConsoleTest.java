@@ -287,7 +287,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), new QueryId("0"), Optional.of("Foobar")));
+            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar")));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -305,6 +305,7 @@ public class ConsoleTest {
           + "  \"queries\" : [ {\n"
           + "    \"queryString\" : \"select * from t1\",\n"
           + "    \"sinks\" : [ \"Test\" ],\n"
+          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
           + "    \"id\" : \"0\",\n"
           + "    \"state\" : \"Foobar\"\n"
           + "  } ],\n"
@@ -312,10 +313,10 @@ public class ConsoleTest {
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Query ID | Status | Kafka Topic | Query String     \n"
-          + "----------------------------------------------------\n"
-          + " 0        | Foobar | Test        | select * from t1 \n"
-          + "----------------------------------------------------\n"
+          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     \n"
+          + "---------------------------------------------------------------------\n"
+          + " 0        | Foobar | Test      | Test topic       | select * from t1 \n"
+          + "---------------------------------------------------------------------\n"
           + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
     }
   }
@@ -337,10 +338,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -384,12 +385,14 @@ public class ConsoleTest {
           + "    \"readQueries\" : [ {\n"
           + "      \"queryString\" : \"read query\",\n"
           + "      \"sinks\" : [ \"sink1\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
           + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
           + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
@@ -990,10 +993,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1036,12 +1039,14 @@ public class ConsoleTest {
           + "    \"readQueries\" : [ {\n"
           + "      \"queryString\" : \"read query\",\n"
           + "      \"sinks\" : [ \"sink1\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
           + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
           + "      \"state\" : \"Running\"\n"
           + "    } ],\n"

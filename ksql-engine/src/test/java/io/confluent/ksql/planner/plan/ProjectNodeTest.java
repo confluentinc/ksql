@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -84,7 +83,7 @@ public class ProjectNodeTest {
         source,
         SELECTS,
         SCHEMA,
-        Optional.of(ColumnRef.of(ColumnName.of(KEY_FIELD_NAME))));
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)));
   }
 
   @Test(expected = KsqlException.class)
@@ -94,7 +93,7 @@ public class ProjectNodeTest {
         source,
         ImmutableList.of(SELECT_0),
         SCHEMA,
-        Optional.of(ColumnRef.of(ColumnName.of(KEY_FIELD_NAME)))); // <-- not enough expressions
+        Optional.of(ColumnName.of(KEY_FIELD_NAME))); // <-- not enough expressions
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -107,7 +106,7 @@ public class ProjectNodeTest {
             SELECT_1
         ),
         SCHEMA,
-        Optional.of(ColumnRef.of(ColumnName.of(KEY_FIELD_NAME)))
+        Optional.of(ColumnName.of(KEY_FIELD_NAME))
     );
   }
 
@@ -140,7 +139,7 @@ public class ProjectNodeTest {
         source,
         SELECTS,
         SCHEMA,
-        Optional.of(ColumnRef.of(ColumnName.of("Unknown Key Field"))));
+        Optional.of(ColumnName.of("Unknown Key Field")));
   }
 
   @Test
@@ -149,6 +148,6 @@ public class ProjectNodeTest {
     final KeyField keyField = projectNode.getKeyField();
 
     // Then:
-    assertThat(keyField.ref(), is(Optional.of(ColumnRef.of(ColumnName.of(KEY_FIELD_NAME)))));
+    assertThat(keyField.ref(), is(Optional.of(ColumnName.of(KEY_FIELD_NAME))));
   }
 }

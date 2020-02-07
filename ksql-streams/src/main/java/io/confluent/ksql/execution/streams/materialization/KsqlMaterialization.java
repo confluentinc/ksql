@@ -105,7 +105,7 @@ class KsqlMaterialization implements Materialization {
   }
 
   private Optional<GenericRow> filterAndTransform(
-      final Struct key,
+      final Object key,
       final GenericRow value,
       final long rowTime
   ) {
@@ -157,7 +157,7 @@ class KsqlMaterialization implements Materialization {
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
       for (final WindowedRow row : result) {
-        filterAndTransform(key, row.value(), row.rowTime())
+        filterAndTransform(row.windowedKey(), row.value(), row.rowTime())
             .ifPresent(v -> builder.add(row.withValue(v, schema())));
       }
 

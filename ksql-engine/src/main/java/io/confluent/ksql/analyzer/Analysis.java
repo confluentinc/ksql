@@ -17,6 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
@@ -36,7 +37,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -50,17 +50,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
   private final ResultMaterialization resultMaterialization;
+  private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectExpression> selectExpressions = new ArrayList<>();
-  private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
+  private final Set<ColumnName> selectColumnNames = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<Expression> partitionBy = Optional.empty();
@@ -71,7 +73,16 @@ public class Analysis implements ImmutableAnalysis {
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
   public Analysis(final ResultMaterialization resultMaterialization) {
+    this(resultMaterialization, SourceSchemas::new);
+  }
+
+  @VisibleForTesting
+  Analysis(
+      final ResultMaterialization resultMaterialization,
+      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
+  ) {
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
   }
 
   ResultMaterialization getResultMaterialization() {
@@ -82,8 +93,8 @@ public class Analysis implements ImmutableAnalysis {
     selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
-  void addSelectColumnRefs(final Collection<ColumnRef> columnRefs) {
-    selectColumnRefs.addAll(columnRefs);
+  void addSelectColumnRefs(final Collection<ColumnName> columnNames) {
+    selectColumnNames.addAll(columnNames);
   }
 
   @Override
@@ -110,8 +121,8 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Set<ColumnRef> getSelectColumnRefs() {
-    return Collections.unmodifiableSet(selectColumnRefs);
+  public Set<ColumnName> getSelectColumnRefs() {
+    return Collections.unmodifiableSet(selectColumnNames);
   }
 
   @Override
@@ -180,14 +191,14 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
-  public SourceSchemas getFromSourceSchemas() {
+  public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
-            Analysis::buildStreamsSchema
+            ads -> buildStreamsSchema(ads, postAggregate)
         ));
 
-    return new SourceSchemas(schemaBySource);
+    return sourceSchemasFactory.apply(schemaBySource);
   }
 
   void addDataSource(final SourceName alias, final DataSource dataSource) {
@@ -200,7 +211,7 @@ public class Analysis implements ImmutableAnalysis {
 
   QualifiedColumnReferenceExp getDefaultArgument() {
     final SourceName alias = fromDataSources.get(0).getAlias();
-    return new QualifiedColumnReferenceExp(alias, ColumnRef.of(SchemaUtil.ROWTIME_NAME));
+    return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
   }
 
   void setSerdeOptions(final Set<SerdeOption> serdeOptions) {
@@ -230,12 +241,22 @@ public class Analysis implements ImmutableAnalysis {
     return tableFunctions;
   }
 
-  private static LogicalSchema buildStreamsSchema(final AliasedDataSource s) {
-    // Include metadata & key columns in the value schema to match the schema the streams
-    // topology will use.
-    return s.getDataSource()
+  private LogicalSchema buildStreamsSchema(
+      final AliasedDataSource ds,
+      final boolean postAggregate
+  ) {
+    // While the special casing exists to copy WINDOWSTART and WINDOWEND into the value schema
+    // for some query types, a matching hack is required here:
+
+    // For windowed sources:
+    final boolean windowedSource = ds.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
+
+    // Post the GROUP BY the window bounds columns are available:
+    final boolean windowedGroupBy = postAggregate && windowExpression.isPresent();
+
+    return ds.getDataSource()
         .getSchema()
-        .withMetaAndKeyColsInValue(s.getDataSource().getKsqlTopic().getKeyFormat().isWindowed());
+        .withMetaAndKeyColsInValue(windowedSource || windowedGroupBy);
   }
 
   @Immutable

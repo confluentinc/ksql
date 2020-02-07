@@ -57,12 +57,11 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -165,8 +164,8 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
@@ -174,7 +173,7 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -184,15 +183,15 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -205,7 +204,7 @@ public class SqlFormatterTest {
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("TABLE"))),
+        KeyField.of(ColumnName.of("TABLE")),
         Optional.empty(),
         false,
         ksqlTopicItems

@@ -81,14 +81,13 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -155,8 +154,8 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
@@ -174,8 +173,8 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
@@ -183,7 +182,7 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.of(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -543,7 +542,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("ORDERTIME")));
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
+    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.AVRO));
   }
 
   @Test
@@ -558,8 +557,8 @@ public class KsqlParserTest {
     assertThat(Iterables.size(result.getElements()), equalTo(4));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.of(ColumnName.of("USERID")))));
+    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.JSON));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnName.of("USERID"))));
   }
 
   @Test

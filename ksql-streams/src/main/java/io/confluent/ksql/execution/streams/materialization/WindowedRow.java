@@ -24,43 +24,40 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Windowed;
 
 public final class WindowedRow implements TableRow {
 
   private final LogicalSchema schema;
-  private final Window window;
-  private final Struct key;
+  private final Windowed<Struct> key;
   private final GenericRow value;
   private final long rowTime;
   private final Validator validator;
 
   public static WindowedRow of(
       final LogicalSchema schema,
-      final Struct key,
-      final Window window,
+      final Windowed<Struct> key,
       final GenericRow value,
       final long rowTime
   ) {
-    return new WindowedRow(schema, key, window, value, rowTime, TableRowValidation::validate);
+    return new WindowedRow(schema, key, value, rowTime, TableRowValidation::validate);
   }
 
   @VisibleForTesting
   WindowedRow(
       final LogicalSchema schema,
-      final Struct key,
-      final Window window,
+      final Windowed<Struct> key,
       final GenericRow value,
       final long rowTime,
       final Validator validator
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.key = requireNonNull(key, "key");
-    this.window = requireNonNull(window, "window");
     this.value = requireNonNull(value, "value");
     this.rowTime = rowTime;
     this.validator = requireNonNull(validator, "validator");
 
-    validator.validate(schema, key, value);
+    validator.validate(schema, key.key(), value);
   }
 
   @Override
@@ -75,12 +72,19 @@ public final class WindowedRow implements TableRow {
 
   @Override
   public Struct key() {
+    return key.key();
+  }
+
+  public Windowed<Struct> windowedKey() {
     return key;
   }
 
   @Override
   public Optional<Window> window() {
-    return Optional.of(window);
+    return Optional.of(Window.of(
+        key.window().startTime(),
+        key.window().endTime()
+    ));
   }
 
   @Override
@@ -96,7 +100,6 @@ public final class WindowedRow implements TableRow {
     return new WindowedRow(
         newSchema,
         key,
-        window,
         newValue,
         rowTime,
         validator
@@ -114,21 +117,19 @@ public final class WindowedRow implements TableRow {
     final WindowedRow that = (WindowedRow) o;
     return Objects.equals(schema, that.schema)
         && Objects.equals(key, that.key)
-        && Objects.equals(window, that.window)
         && Objects.equals(value, that.value)
         && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, window, value, schema, rowTime);
+    return Objects.hash(key, value, schema, rowTime);
   }
 
   @Override
   public String toString() {
     return "WindowedRow{"
         + "key=" + key
-        + ", window=" + window
         + ", value=" + value
         + ", rowTime=" + rowTime
         + ", schema=" + schema

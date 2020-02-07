@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
@@ -36,6 +35,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.List;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
 
 public class TableRowsEntityFactoryTest {
@@ -87,21 +88,19 @@ public class TableRowsEntityFactoryTest {
   public void shouldAddWindowedRowToValues() {
     // Given:
     final Instant now = Instant.now();
-    final Window window0 = Window.of(now, now.plusMillis(2));
-    final Window window1 = Window.of(now, now.plusMillis(1));
+    final TimeWindow window0 = new TimeWindow(now.toEpochMilli(), now.plusMillis(2).toEpochMilli());
+    final TimeWindow window1 = new TimeWindow(now.toEpochMilli(), now.plusMillis(1).toEpochMilli());
 
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            STRING_KEY_BUILDER.build("x"),
-            window0,
+            new Windowed<>(STRING_KEY_BUILDER.build("x"), window0),
             genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            STRING_KEY_BUILDER.build("y"),
-            window1,
+            new Windowed<>(STRING_KEY_BUILDER.build("y"), window1),
             genericRow(false),
             ROWTIME
         )

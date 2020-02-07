@@ -59,6 +59,6 @@ final class KsqlSerdeFactories implements SerdeFactories {
 
   @VisibleForTesting
   static KsqlSerdeFactory create(final FormatInfo format) {
-    return Format.of(format).getSerdeFactory(format);
+    return FormatFactory.of(format).getSerdeFactory(format);
   }
 }

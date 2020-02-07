@@ -112,7 +112,7 @@ public class StatementRewriteForRowtime {
   }
 
   private static boolean refIsRowtime(final ColumnReferenceExp node) {
-    return node.getReference().name().equals(SchemaUtil.ROWTIME_NAME);
+    return node.getReference().equals(SchemaUtil.ROWTIME_NAME);
   }
 
   private static boolean expressionIsRowtime(final Expression node) {

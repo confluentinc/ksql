@@ -71,7 +71,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -654,7 +653,7 @@ public class ExpressionTreeRewriterTest {
     // Given:
     final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
         SourceName.of("bar"),
-        ColumnRef.of(ColumnName.of("foo"))
+        ColumnName.of("foo")
     );
 
     // When:
@@ -669,7 +668,7 @@ public class ExpressionTreeRewriterTest {
     // Given:
     final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
         SourceName.of("bar"),
-        ColumnRef.of(ColumnName.of("foo"))
+        ColumnName.of("foo")
     );
 
     // When/Then:
@@ -679,8 +678,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteColumnReference() {
     // Given:
-    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
-        ColumnName.of("foo")));
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(
+        ColumnName.of("foo"));
 
     // When:
     final Expression rewritten = expressionRewriter.rewrite(expression, context);
@@ -692,8 +691,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteColumnReferenceUsingPlugin() {
     // Given:
-    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(ColumnRef.of(
-        ColumnName.of("foo")));
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(
+        ColumnName.of("foo"));
 
     // When/Then:
     shouldRewriteUsingPlugin(expression);

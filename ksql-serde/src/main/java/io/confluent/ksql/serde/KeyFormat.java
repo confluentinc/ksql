@@ -58,7 +58,7 @@ public final class KeyFormat {
 
   @JsonIgnore
   public Format getFormat() {
-    return Format.of(format);
+    return FormatFactory.of(format);
   }
 
   public FormatInfo getFormatInfo() {

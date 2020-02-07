@@ -31,9 +31,9 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -68,7 +68,7 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKafkaTopic(), is("foo"));
-    assertThat(properties.getValueFormat(), is(Format.AVRO));
+    assertThat(properties.getValueFormat(), is(FormatFactory.AVRO));
   }
 
   @Test
@@ -98,7 +98,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.of(ColumnName.of("KEY")))));
+    assertThat(properties.getKeyField(), is(Optional.of(ColumnName.of("KEY"))));
   }
 
   @Test
@@ -111,7 +111,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnName.of("TS"))));
   }
 
   @Test
@@ -296,7 +296,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getFormatInfo().getProperties().get(FormatInfo.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getFormatInfo().getProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

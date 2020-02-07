@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;

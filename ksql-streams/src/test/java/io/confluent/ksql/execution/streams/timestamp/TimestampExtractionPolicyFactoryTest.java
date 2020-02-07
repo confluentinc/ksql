@@ -22,7 +22,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -140,7 +139,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of(timestamp.toUpperCase())),
+                    ColumnName.of(timestamp.toUpperCase()),
                     Optional.empty()
                 )
             )
@@ -149,7 +148,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
     assertThat(result.getTimestampField(),
-        equalTo(ColumnRef.of(ColumnName.of(timestamp.toUpperCase()))));
+        equalTo(ColumnName.of(timestamp.toUpperCase())));
   }
 
   @Test
@@ -164,7 +163,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schemaBuilder2.build(),
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of("whateva")),
+                    ColumnName.of("whateva"),
                     Optional.empty()
                 )
             )
@@ -186,7 +185,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of(field.toUpperCase())),
+                    ColumnName.of(field.toUpperCase()),
                     Optional.of("yyyy-MM-DD")
                 )
             )
@@ -195,7 +194,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
     assertThat(result.getTimestampField(),
-        equalTo(ColumnRef.of(ColumnName.of(field.toUpperCase()))));
+        equalTo(ColumnName.of(field.toUpperCase())));
   }
 
   @Test
@@ -216,7 +215,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of(field.toUpperCase())),
+                    ColumnName.of(field.toUpperCase()),
                     Optional.empty()
                 )
             )
@@ -240,7 +239,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of(timestamp.toUpperCase())),
+                    ColumnName.of(timestamp.toUpperCase()),
                     Optional.of("b")
                 )
             )
@@ -264,7 +263,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.of(ColumnName.of(field)),
+                    ColumnName.of(field),
                     Optional.empty()
                 )
             )

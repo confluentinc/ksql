@@ -21,13 +21,16 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -73,7 +76,7 @@ public final class CreateSourceProperties {
   }
 
   public Format getValueFormat() {
-    return Format.of(getFormatInfo());
+    return FormatFactory.of(getFormatInfo());
   }
 
   public String getKafkaTopic() {
@@ -88,7 +91,7 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-  public Optional<ColumnRef> getKeyField() {
+  public Optional<ColumnName> getKeyField() {
     return Optional.ofNullable(props.getString(CreateConfigs.KEY_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }
@@ -117,7 +120,7 @@ public final class CreateSourceProperties {
     }
   }
 
-  public Optional<ColumnRef> getTimestampColumnName() {
+  public Optional<ColumnName> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }
@@ -141,12 +144,12 @@ public final class CreateSourceProperties {
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
     if (schemaName != null) {
-      builder.put(FormatInfo.FULL_SCHEMA_NAME, schemaName);
+      builder.put(AvroFormat.FULL_SCHEMA_NAME, schemaName);
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
     if (delimiter != null) {
-      builder.put(FormatInfo.DELIMITER, delimiter);
+      builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
     return builder.build();

@@ -47,7 +47,6 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -120,7 +119,7 @@ public class SourceBuilderTest {
 
   private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
       new TimestampColumn(
-          ColumnRef.of(ColumnName.of("field2")),
+          ColumnName.of("field2"),
           Optional.empty()
       )
   );

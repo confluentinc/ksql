@@ -24,9 +24,9 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.List;
 import java.util.Objects;
@@ -84,7 +84,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Set<ColumnRef> getSelectColumnRefs() {
+  public Set<ColumnName> getSelectColumnRefs() {
     return original.getSelectColumnRefs().stream()
         .map(UnqualifiedColumnReferenceExp::new)
         .map(r -> ExpressionTreeRewriter.rewriteWith(rewriter, r))
@@ -140,8 +140,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public SourceSchemas getFromSourceSchemas() {
-    return original.getFromSourceSchemas();
+  public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
+    return original.getFromSourceSchemas(postAggregate);
   }
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {

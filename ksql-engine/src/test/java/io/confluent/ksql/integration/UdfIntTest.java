@@ -16,9 +16,9 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.GenericRow.genericRow;
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.DELIMITED;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -32,6 +32,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -104,12 +106,12 @@ public class UdfIntTest {
   }
 
   public UdfIntTest(final Format format) {
-    switch (format) {
-      case AVRO:
+    switch (format.name()) {
+      case AvroFormat.NAME:
         this.testData =
             new TestData(format, AVRO_TOPIC_NAME, AVRO_STREAM_NAME, avroRecordMetadataMap);
         break;
-      case JSON:
+      case JsonFormat.NAME:
         this.testData =
             new TestData(format, JSON_TOPIC_NAME, JSON_STREAM_NAME, jsonRecordMetadataMap);
         break;

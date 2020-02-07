@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 
@@ -52,7 +52,7 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
   @Override
   public void makeAsyncHeartbeatRequest(
       final URI serverEndPoint,
-      final KsqlHost host,
+      final KsqlHostInfo host,
       final long timestamp
   ) {
     throw new UnsupportedOperationException("KSQL client is disabled");

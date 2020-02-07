@@ -15,24 +15,32 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.streams.state.HostInfo;
+import org.apache.kafka.streams.state.StreamsMetadata;
 
 /**
  * Endpoint that reports the view of the cluster that this server has.
@@ -44,15 +52,19 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class ClusterStatusResource {
 
+  private final KsqlEngine engine;
   private final HeartbeatAgent heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
   private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
       new HostStoreLags(ImmutableMap.of(), 0);
 
-  public ClusterStatusResource(final HeartbeatAgent heartbeatAgent,
-                               final Optional<LagReportingAgent> lagReportingAgent) {
-    this.heartbeatAgent = heartbeatAgent;
-    this.lagReportingAgent = lagReportingAgent;
+  public ClusterStatusResource(
+      final KsqlEngine engine,
+      final HeartbeatAgent heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent) {
+    this.engine = requireNonNull(engine, "engine");
+    this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
   }
 
   @GET
@@ -62,24 +74,82 @@ public class ClusterStatusResource {
   }
 
   private ClusterStatusResponse getResponse() {
-    final Map<KsqlHost, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
+    final Map<KsqlHostInfo, HostStatus> allHostStatus = heartbeatAgent.getHostsStatus();
 
-    final Map<KsqlHostEntity, HostStatusEntity> response = allHostStatus
+    final Map<KsqlHostInfoEntity, HostStatusEntity> response = allHostStatus
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> new KsqlHostEntity(entry.getKey().host(), entry.getKey().port()) ,
+            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()) ,
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
+                                          getActiveStandbyInformation(entry.getKey()),
                                           getHostStoreLags(entry.getKey()))
         ));
 
     return new ClusterStatusResponse(response);
   }
 
-  private HostStoreLags getHostStoreLags(final KsqlHost ksqlHost) {
+
+  private HostStoreLags getHostStoreLags(final KsqlHostInfo ksqlHostInfo) {
     return lagReportingAgent
-      .flatMap(agent -> agent.getLagPerHost(ksqlHost))
+        .flatMap(agent -> agent.getLagPerHost(ksqlHostInfo))
         .orElse(EMPTY_HOST_STORE_LAGS);
+  }
+
+  private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(
+      final KsqlHostInfo ksqlHostInfo
+  ) {
+    return engine.getPersistentQueries().stream()
+    .flatMap(persistentQueryMetadata -> persistentQueryMetadata.getAllMetadata()
+        .stream()
+        .map(streamsMetadata -> new QueryIdAndStreamsMetadata(
+            persistentQueryMetadata.getQueryId().toString(), streamsMetadata)))
+        .filter(queryIdAndStreamsMetadata ->
+                    queryIdAndStreamsMetadata.streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(queryIdAndStreamsMetadata ->
+                    queryIdAndStreamsMetadata.streamsMetadata.hostInfo().equals(asHostInfo(
+                        ksqlHostInfo)))
+        .collect(Collectors.toMap(queryIdAndStreamsMetadata ->
+                                      queryIdAndStreamsMetadata.queryId ,
+                                  QueryIdAndStreamsMetadata::toActiveStandbyEntity));
+  }
+
+  private static final class QueryIdAndStreamsMetadata {
+
+    final String queryId;
+    final StreamsMetadata streamsMetadata;
+
+    QueryIdAndStreamsMetadata(
+        final String queryId,
+        final StreamsMetadata streamsMetadata
+    ) {
+      this.queryId = requireNonNull(queryId, "queryId");
+      this.streamsMetadata = requireNonNull(streamsMetadata, "md");
+    }
+
+    public ActiveStandbyEntity toActiveStandbyEntity() {
+      final Set<TopicPartitionEntity> activePartitions = streamsMetadata.topicPartitions()
+          .stream()
+          .map(topicPartition -> new TopicPartitionEntity(
+              topicPartition.topic(), topicPartition.partition()))
+          .collect(Collectors.toSet());
+
+      final Set<TopicPartitionEntity> standByPartitions = streamsMetadata.standbyTopicPartitions()
+          .stream()
+          .map(topicPartition -> new TopicPartitionEntity(
+              topicPartition.topic(), topicPartition.partition()))
+          .collect(Collectors.toSet());
+
+      return new ActiveStandbyEntity(
+          streamsMetadata.stateStoreNames(),
+          activePartitions,
+          streamsMetadata.standbyStateStoreNames(),
+          standByPartitions);
+    }
+  }
+
+  private HostInfo asHostInfo(final KsqlHostInfo ksqlHostInfo) {
+    return new HostInfo(ksqlHostInfo.host(), ksqlHostInfo.port());
   }
 }

@@ -59,14 +59,15 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -124,7 +125,7 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
-        ValueFormat.of(FormatInfo.of(Format.AVRO.name()))
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     );
 
     analyzer = new Analyzer(
@@ -177,11 +178,11 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
     assertThat(
         analysis.getJoin().get().getLeftJoinExpression(),
-        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("COL1"))))
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("COL1")))
     );
     assertThat(
         analysis.getJoin().get().getRightJoinExpression(),
-        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("COL1"))))
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("COL1")))
     );
 
     final List<String> selects = analysis.getSelectExpressions().stream()
@@ -215,13 +216,13 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
     assertThat(
         analysis.getJoin().get().getLeftJoinExpression(),
-        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("COL1")))));
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("COL1"))));
     assertThat(
         analysis.getJoin().get().getRightJoinExpression(),
         is(new FunctionCall(
             FunctionName.of("SUBSTRING"),
             ImmutableList.of(
-                new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("COL1"))),
+                new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("COL1")),
                 new IntegerLiteral(2)
             ))));
 
@@ -253,10 +254,10 @@ public class AnalyzerFunctionalTest {
     assertThat(join.get().getType(), is(JoinType.LEFT));
     assertThat(
         join.get().getLeftJoinExpression(),
-        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnRef.of(ColumnName.of("ROWKEY")))));
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("ROWKEY"))));
     assertThat(
         join.get().getRightJoinExpression(),
-        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnRef.of(ColumnName.of("ROWKEY")))));
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
   }
 
   @Test
@@ -315,7 +316,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "com.custom.schema")))));
+        is(ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema")))));
   }
 
   @Test
@@ -330,7 +332,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
     @Test
@@ -346,8 +348,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap
-              .of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))));
+          is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+              .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
   }
 
   @Test
@@ -358,8 +360,9 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.AVRO.name(), ImmutableMap.of(FormatInfo.FULL_SCHEMA_NAME, "org.ac.s1")))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -388,7 +391,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
   @Test
@@ -404,7 +407,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO.name()))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
   @Test
@@ -445,7 +448,7 @@ public class AnalyzerFunctionalTest {
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
-    givenSinkValueFormat(Format.AVRO);
+    givenSinkValueFormat(FormatFactory.AVRO);
     givenWrapSingleValues(true);
 
     // When:
@@ -454,7 +457,7 @@ public class AnalyzerFunctionalTest {
     // Then:
     verify(serdeOptionsSupplier).build(
         ImmutableList.of("COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList()),
-        Format.AVRO,
+        FormatFactory.AVRO,
         Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
 
@@ -466,7 +469,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     query = parseSingle("Select COL0 from KAFKA_SOURCE GROUP BY COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
+    givenSinkValueFormat(FormatFactory.KAFKA);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -484,7 +487,7 @@ public class AnalyzerFunctionalTest {
         + "WITHIN 1 SECOND ON "
         + "TEST1.COL0 = KAFKA_SOURCE.COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
+    givenSinkValueFormat(FormatFactory.KAFKA);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -505,9 +508,9 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectColumnRefs(), containsInAnyOrder(
-        ColumnRef.of(COL0),
-        ColumnRef.of(COL1),
-        ColumnRef.of(COL2)
+        COL0,
+        COL1,
+        COL2
     ));
   }
 
@@ -523,7 +526,7 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getSelectExpressions(), hasItem(
         SelectExpression.of(
             ROWTIME_NAME,
-            new QualifiedColumnReferenceExp(TEST1, ColumnRef.of(ROWTIME_NAME))
+            new QualifiedColumnReferenceExp(TEST1, ROWTIME_NAME)
         )
     ));
   }
@@ -539,7 +542,7 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(analysis.getSelectExpressions(), not(hasItem(
         SelectExpression.of(
-            ROWTIME_NAME, new QualifiedColumnReferenceExp(TEST1, ColumnRef.of(ROWTIME_NAME)))
+            ROWTIME_NAME, new QualifiedColumnReferenceExp(TEST1, ROWTIME_NAME))
     )));
   }
 
@@ -645,7 +648,7 @@ public class AnalyzerFunctionalTest {
 
   private void buildProps() {
     final Map<String, Literal> props = new HashMap<>();
-    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.toString())));
+    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.name())));
     sinkWrapSingleValues.ifPresent(b -> props.put("WRAP_SINGLE_VALUE", new BooleanLiteral(Boolean.toString(b))));
 
     final CreateSourceAsProperties properties = CreateSourceAsProperties.from(props);
@@ -661,8 +664,8 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.KAFKA.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()))
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(

@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
@@ -48,7 +47,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ExpressionAnalyzerTest {
 
   private static final Expression WINDOW_START_EXP = new UnqualifiedColumnReferenceExp(
-      ColumnRef.of(SchemaUtil.WINDOWSTART_NAME)
+      SchemaUtil.WINDOWSTART_NAME
   );
 
   private static final Expression OTHER_EXP = new StringLiteral("foo");
@@ -68,7 +67,7 @@ public class ExpressionAnalyzerTest {
   @Test
   public void shouldGetSourceForUnqualifiedColumnRef() {
     // Given:
-    final ColumnRef column = ColumnRef.of(ColumnName.of("qualified"));
+    final ColumnName column = ColumnName.of("qualified");
     final Expression expression = new QualifiedColumnReferenceExp(
         SourceName.of("fully"),
         column
@@ -87,7 +86,7 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnMultipleSources() {
     // Given:
     final Expression expression = new UnqualifiedColumnReferenceExp(
-        ColumnRef.of(ColumnName.of("just-name"))
+        ColumnName.of("just-name")
     );
 
     when(sourceSchemas.sourcesWithField(any(), any()))
@@ -107,7 +106,7 @@ public class ExpressionAnalyzerTest {
     // Given:
     final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
         SourceName.of("something"),
-        ColumnRef.of(ColumnName.of("else"))
+        ColumnName.of("else")
     );
 
     when(sourceSchemas.sourcesWithField(any(), any()))
@@ -130,7 +129,7 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnNoSources() {
     // Given:
     final Expression expression = new UnqualifiedColumnReferenceExp(
-        ColumnRef.of(ColumnName.of("just-name"))
+        ColumnName.of("just-name")
     );
 
     when(sourceSchemas.sourcesWithField(any(), any()))

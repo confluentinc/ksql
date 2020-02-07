@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
@@ -53,8 +54,10 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -149,11 +152,13 @@ public class StreamedQueryResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Errors errorsHandler;
+
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
   private PreparedStatement<Query> query;
   private PreparedStatement<PrintTopic> print;
   private KsqlSecurityContext securityContext;
+  private PullQueryExecutor pullQueryExecutor;
 
   @Before
   public void setup() {
@@ -170,6 +175,8 @@ public class StreamedQueryResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
+    pullQueryExecutor = new PullQueryExecutor(
+        mockKsqlEngine, Optional.empty(), new RoutingFilters(ImmutableList.of()));
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -178,7 +185,8 @@ public class StreamedQueryResourceTest {
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        pullQueryExecutor
     );
 
     testResource.configure(VALID_CONFIG);
@@ -204,7 +212,8 @@ public class StreamedQueryResourceTest {
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        pullQueryExecutor
     );
 
     // Then:

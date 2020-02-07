@@ -20,8 +20,8 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -62,7 +62,7 @@ class ExpressionAnalyzer {
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
-      final ColumnRef reference = node.getReference();
+      final ColumnName reference = node.getReference();
       getSource(Optional.empty(), reference).ifPresent(referencedSources::add);
       return null;
     }
@@ -79,23 +79,23 @@ class ExpressionAnalyzer {
 
     private Optional<SourceName> getSource(
         final Optional<SourceName> sourceName,
-        final ColumnRef name
+        final ColumnName name
     ) {
       final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(sourceName, name);
       if (sourcesWithField.isEmpty()) {
         throw new KsqlException("Column '"
-            + sourceName.map(n -> n.name() + KsqlConstants.DOT + name.name().name())
-                .orElse(name.name().name())
+            + sourceName.map(n -> n.name() + KsqlConstants.DOT + name.name())
+                .orElse(name.name())
             + "' cannot be resolved.");
       }
 
       if (sourcesWithField.size() > 1) {
         final String possibilities = sourcesWithField.stream()
-            .map(source -> SchemaUtil.buildAliasedFieldName(source.name(), name.name().name()))
+            .map(source -> SchemaUtil.buildAliasedFieldName(source.name(), name.name()))
             .sorted()
             .collect(Collectors.joining(", "));
 
-        throw new KsqlException("Column '" + name.name().name() + "' is ambiguous. "
+        throw new KsqlException("Column '" + name.name() + "' is ambiguous. "
             + "Could be any of: " + possibilities);
       }
 

@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import javax.annotation.concurrent.ThreadSafe;
@@ -46,7 +46,7 @@ public interface SimpleKsqlClient {
    */
   void makeAsyncHeartbeatRequest(
       URI serverEndPoint,
-      KsqlHost host,
+      KsqlHostInfo host,
       long timestamp
   );
 
@@ -58,7 +58,8 @@ public interface SimpleKsqlClient {
   RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
 
   /**
-   * Send lag information to remote Ksql server.
+   * Send a request to remote Ksql server to inquire to inquire about which state stores the
+   * remote server maintains as an active and standby.
    * @param serverEndPoint the remote destination.
    * @param lagReportingMessage the host lag data
    */

@@ -57,10 +57,10 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -233,7 +233,8 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA.name()), w.getWindowInfo()))
+          .map(w -> KeyFormat.windowed(
+              FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)
@@ -265,7 +266,7 @@ class Analyzer {
 
     private Format getValueFormat(final Sink sink) {
       return sink.getProperties().getValueFormat()
-          .orElseGet(() -> Format.of(getSourceInfo()));
+          .orElseGet(() -> FormatFactory.of(getSourceInfo()));
     }
 
     private FormatInfo getSourceInfo() {
@@ -303,23 +304,20 @@ class Analyzer {
     private void throwOnUnknownColumnReference() {
 
       final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas(true));
 
-      for (final SelectExpression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression.getExpression());
-      }
+      analysis.getWhereExpression()
+          .ifPresent(expressionAnalyzer::analyzeExpression);
 
-      analysis.getWhereExpression().ifPresent(where -> {
-        expressionAnalyzer.analyzeExpression(where);
-      });
+      analysis.getGroupByExpressions()
+          .forEach(expressionAnalyzer::analyzeExpression);
 
-      for (final Expression expression : analysis.getGroupByExpressions()) {
-        expressionAnalyzer.analyzeExpression(expression);
-      }
+      analysis.getHavingExpression()
+          .ifPresent(expressionAnalyzer::analyzeExpression);
 
-      analysis.getHavingExpression().ifPresent(having ->
-          expressionAnalyzer.analyzeExpression(having)
-      );
+      analysis.getSelectExpressions().stream()
+          .map(SelectExpression::getExpression)
+          .forEach(expressionAnalyzer::analyzeExpression);
     }
 
     @Override
@@ -343,7 +341,7 @@ class Analyzer {
       }
 
       final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas(false));
 
       final Set<SourceName> srcsUsedInLeft = expressionAnalyzer
           .analyzeExpression(comparisonExpression.getLeft());
@@ -589,7 +587,7 @@ class Analyzer {
           final QualifiedColumnReferenceExp selectItem = new QualifiedColumnReferenceExp(
               location,
               source.getAlias(),
-              ColumnRef.of(column.name()));
+              column.name());
 
           final String alias = aliasPrefix + column.name().name();
 
@@ -603,7 +601,7 @@ class Analyzer {
       // but are added at the back during processing for performance reasons.
       // Switch them around here:
       final Map<Boolean, List<Column>> partitioned = columns.stream()
-          .collect(Collectors.groupingBy(c -> SchemaUtil.systemColumnNames().contains(c.name())));
+          .collect(Collectors.groupingBy(c -> SchemaUtil.isSystemColumn(c.name())));
 
       final List<Column> all = partitioned.get(true);
       all.addAll(partitioned.get(false));
@@ -613,7 +611,7 @@ class Analyzer {
     public void validate() {
       final String kafkaSources = analysis.getFromDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
-              == Format.KAFKA)
+              == FormatFactory.KAFKA)
           .map(AliasedDataSource::getAlias)
           .map(SourceName::name)
           .collect(Collectors.joining(", "));
@@ -637,20 +635,20 @@ class Analyzer {
 
     private void addSelectItem(final Expression exp, final ColumnName columnName) {
       if (persistent) {
-        if (SchemaUtil.systemColumnNames().contains(columnName)) {
+        if (SchemaUtil.isSystemColumn(columnName)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
         }
       }
 
-      final Set<ColumnRef> columnRefs = new HashSet<>();
+      final Set<ColumnName> columnNames = new HashSet<>();
       final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitColumnReference(
             final UnqualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnRefs.add(node.getReference());
+          columnNames.add(node.getReference());
           return null;
         }
 
@@ -659,7 +657,7 @@ class Analyzer {
             final QualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnRefs.add(node.getReference());
+          columnNames.add(node.getReference());
           return null;
         }
       };
@@ -667,7 +665,7 @@ class Analyzer {
       visitor.process(exp, null);
 
       analysis.addSelectItem(exp, columnName);
-      analysis.addSelectColumnRefs(columnRefs);
+      analysis.addSelectColumnRefs(columnNames);
     }
 
     private void visitTableFunctions(final Expression expression) {

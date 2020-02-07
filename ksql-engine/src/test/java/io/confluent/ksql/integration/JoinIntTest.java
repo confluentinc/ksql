@@ -16,8 +16,8 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.GenericRow.genericRow;
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -217,7 +218,7 @@ public class JoinIntTest {
         orderStreamTopicJson,
         ORDER_STREAM_NAME_JSON,
         ITEM_TABLE_NAME_JSON,
-        Format.JSON);
+        FormatFactory.JSON);
 
   }
 

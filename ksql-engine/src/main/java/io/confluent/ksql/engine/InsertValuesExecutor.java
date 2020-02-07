@@ -35,7 +35,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -44,7 +43,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -357,15 +356,15 @@ public class InsertValuesExecutor {
       final Map<ColumnName, Object> values,
       final KeyField keyField
   ) {
-    final Optional<ColumnRef> keyFieldName = keyField.ref();
+    final Optional<ColumnName> keyFieldName = keyField.ref();
     if (keyFieldName.isPresent()) {
-      final ColumnRef key = keyFieldName.get();
-      final Object keyValue = values.get(key.name());
+      final ColumnName key = keyFieldName.get();
+      final Object keyValue = values.get(key);
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
         if (keyValue == null) {
-          values.put(key.name(), rowKeyValue);
+          values.put(key, rowKeyValue);
         } else {
           values.put(SchemaUtil.ROWKEY_NAME, keyValue);
         }
@@ -379,7 +378,7 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
-        .findColumn(ColumnRef.of(column))
+        .findColumn(column)
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }
@@ -438,7 +437,7 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
+      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

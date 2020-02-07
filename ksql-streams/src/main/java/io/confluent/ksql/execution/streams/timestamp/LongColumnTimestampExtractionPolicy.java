@@ -16,16 +16,16 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Objects;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 public class LongColumnTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
-  private final ColumnRef timestampField;
+  private final ColumnName timestampField;
 
-  public LongColumnTimestampExtractionPolicy(final ColumnRef timestampField) {
+  public LongColumnTimestampExtractionPolicy(final ColumnName timestampField) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
     this.timestampField = timestampField;
   }
@@ -36,7 +36,7 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
   }
 
   @Override
-  public ColumnRef getTimestampField() {
+  public ColumnName getTimestampField() {
     return timestampField;
   }
 

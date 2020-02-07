@@ -32,8 +32,8 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -145,7 +145,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
         + "If this is a join, make sure that the criteria uses the TABLE key "
-        + this.keyField.ref().map(ColumnRef::toString).orElse("ROWKEY") + " instead of "
+        + this.keyField.ref().map(ColumnName::toString).orElse("ROWKEY") + " instead of "
         + keyExpression);
   }
 
@@ -167,8 +167,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
-    final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-    final Optional<ColumnRef> newKeyField = getSchema()
+    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final Optional<ColumnName> newKeyField = getSchema()
         .findValueColumn(aggregateKeyName)
         .map(Column::ref);
 

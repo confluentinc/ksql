@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.serde;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.DELIMITED;
-import static io.confluent.ksql.serde.Format.JSON;
-import static io.confluent.ksql.serde.Format.KAFKA;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;

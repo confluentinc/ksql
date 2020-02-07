@@ -18,25 +18,25 @@ package io.confluent.ksql.execution.timestamp;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public final class TimestampColumn {
-  private final ColumnRef column;
+  private final ColumnName column;
   private final Optional<String> format;
 
   @JsonCreator
   public TimestampColumn(
-      @JsonProperty(value = "column", required = true) final ColumnRef column,
+      @JsonProperty(value = "column", required = true) final ColumnName column,
       @JsonProperty("format") final Optional<String> format
   ) {
     this.column = Objects.requireNonNull(column, "column");
     this.format = Objects.requireNonNull(format, "format");
   }
 
-  public ColumnRef getColumn() {
+  public ColumnName getColumn() {
     return column;
   }
 

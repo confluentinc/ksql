@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -32,7 +31,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -111,7 +109,8 @@ public final class CreateSourceFactory {
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }
@@ -144,7 +143,8 @@ public final class CreateSourceFactory {
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }
@@ -153,13 +153,13 @@ public final class CreateSourceFactory {
       final CreateSource statement,
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
-      final ColumnRef column = statement.getProperties().getKeyField().get();
+      final ColumnName column = statement.getProperties().getKeyField().get();
       schema.findValueColumn(column)
           .orElseThrow(() -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
                   + column.toString(FormatOptions.noEscape()) + "'"
           ));
-      return Optional.of(column.name());
+      return Optional.of(column);
     } else {
       return Optional.empty();
     }
@@ -173,7 +173,7 @@ public final class CreateSourceFactory {
     tableElements.forEach(e -> {
       final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
 
-      if (!isRowKey && SchemaUtil.systemColumnNames().contains(e.getName())) {
+      if (!isRowKey && SchemaUtil.isSystemColumn(e.getName())) {
         throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
       }
 
@@ -208,7 +208,7 @@ public final class CreateSourceFactory {
       final CreateSourceProperties properties,
       final LogicalSchema schema
   ) {
-    final Optional<ColumnRef> timestampName = properties.getTimestampColumnName();
+    final Optional<ColumnName> timestampName = properties.getTimestampColumnName();
     final Optional<TimestampColumn> timestampColumn = timestampName.map(
         n -> new TimestampColumn(n, properties.getTimestampFormat())
     );

@@ -257,6 +257,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
+                ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
                 Optional.of(metadata.getState())
             )),

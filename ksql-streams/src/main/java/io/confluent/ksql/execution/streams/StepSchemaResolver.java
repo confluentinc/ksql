@@ -45,7 +45,7 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.HandlerMaps;
@@ -142,7 +142,8 @@ public final class StepSchemaResolver {
     return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        step.getAggregationFunctions()
+        step.getAggregationFunctions(),
+        false
     );
   }
 
@@ -153,7 +154,8 @@ public final class StepSchemaResolver {
     return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        step.getAggregationFunctions()
+        step.getAggregationFunctions(),
+        true
     );
   }
 
@@ -240,7 +242,8 @@ public final class StepSchemaResolver {
     return buildAggregateSchema(
         schema,
         step.getNonAggregateColumns(),
-        step.getAggregationFunctions()
+        step.getAggregationFunctions(),
+        false
     );
   }
 
@@ -277,14 +280,16 @@ public final class StepSchemaResolver {
 
   private LogicalSchema buildAggregateSchema(
       final LogicalSchema schema,
-      final List<ColumnRef> nonAggregateColumns,
-      final List<FunctionCall> aggregationFunctions
+      final List<ColumnName> nonAggregateColumns,
+      final List<FunctionCall> aggregationFunctions,
+      final boolean windowedAggregation
   ) {
     return new AggregateParamsFactory().create(
         schema,
         nonAggregateColumns,
         functionRegistry,
-        aggregationFunctions
+        aggregationFunctions,
+        windowedAggregation
     ).getSchema();
   }
 

@@ -32,7 +32,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -162,7 +162,7 @@ public class ExplainExecutorTest {
     when(metadata.getStatementString()).thenReturn("sql");
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;

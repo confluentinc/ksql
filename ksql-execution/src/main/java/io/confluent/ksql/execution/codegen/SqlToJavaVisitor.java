@@ -72,10 +72,10 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -152,7 +152,7 @@ public class SqlToJavaVisitor {
 
   private final ExpressionTypeManager expressionTypeManager;
   private final Function<FunctionName, String> funNameToCodeName;
-  private final Function<ColumnRef, String> colRefToCodeName;
+  private final Function<ColumnName, String> colRefToCodeName;
   private final Function<CreateStructExpression, String> structToCodeName;
 
   public static SqlToJavaVisitor of(
@@ -173,7 +173,7 @@ public class SqlToJavaVisitor {
   @VisibleForTesting
   SqlToJavaVisitor(
       final LogicalSchema schema, final FunctionRegistry functionRegistry,
-      final Function<ColumnRef, String> colRefToCodeName,
+      final Function<ColumnName, String> colRefToCodeName,
       final Function<FunctionName, String> funNameToCodeName,
       final Function<CreateStructExpression, String> structToCodeName
   ) {
@@ -308,7 +308,7 @@ public class SqlToJavaVisitor {
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
-      final ColumnRef fieldName = node.getReference();
+      final ColumnName fieldName = node.getReference();
       final Column schemaColumn = schema.findValueColumn(node.getReference())
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getReference()));

@@ -299,6 +299,50 @@
           {"finalMessage":"Limit Reached"}
         ]}
       ]
+    },
+    {
+      "name": "windowed group by - window bounds in SELECT",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT windowstart as wstart, windowend as wend, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10000, 11000, 1]}},
+          {"row":{"columns":[13000, 14000, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed group by - window bounds in WHERE",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE windowstart > 1000 AND windowend < 1000000000 group by ROWKEY EMIT CHANGES LIMIT 1;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "status": 400
+      }
+    },
+    {
+      "name": "windowed group by - window bounds in HAVING",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY having min(windowstart) > 1000 EMIT CHANGES LIMIT 1;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Window bounds column TEST.WINDOWSTART can only be used in the SELECT clause of windowed aggregations",
+        "status": 400
+      }
     }
   ]
 }

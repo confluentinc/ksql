@@ -17,7 +17,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -29,11 +28,10 @@ import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
@@ -91,9 +89,10 @@ public class StreamGroupByBuilderTest {
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       STEP_CTX
   );
-  private static final Formats FORMATS = Formats.of(
-      FormatInfo.of(Format.KAFKA.name()),
-      FormatInfo.of(Format.JSON.name()),
+  private static final io.confluent.ksql.execution.plan.Formats FORMATS = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
 
@@ -291,6 +290,6 @@ public class StreamGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of(column)));
+    return new UnqualifiedColumnReferenceExp(ColumnName.of(column));
   }
 }

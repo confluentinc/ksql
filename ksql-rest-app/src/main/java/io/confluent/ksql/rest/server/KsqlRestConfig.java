@@ -153,7 +153,6 @@ public class KsqlRestConfig extends RestConfig {
       KSQL_CONFIG_PREFIX + "lag.reporting.enable";
   private static final String KSQL_LAG_REPORTING_ENABLE_DOC =
       "Whether lag reporting is enabled or not. It is disabled by default.";
-
   public static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG =
       KSQL_CONFIG_PREFIX + "lag.reporting.send.interval.ms";
   private static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC =

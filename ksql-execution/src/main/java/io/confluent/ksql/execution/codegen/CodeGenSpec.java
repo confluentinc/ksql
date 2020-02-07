@@ -25,8 +25,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -39,13 +39,13 @@ import org.apache.kafka.connect.data.Schema;
 public final class CodeGenSpec {
 
   private final ImmutableList<ArgumentSpec> arguments;
-  private final ImmutableMap<ColumnRef, String> columnToCodeName;
+  private final ImmutableMap<ColumnName, String> columnToCodeName;
   private final ImmutableListMultimap<FunctionName, String> functionToCodeName;
   private final ImmutableMap<CreateStructExpression, String> structToCodeName;
 
   private CodeGenSpec(
       final ImmutableList<ArgumentSpec> arguments,
-      final ImmutableMap<ColumnRef, String> columnToCodeName,
+      final ImmutableMap<ColumnName, String> columnToCodeName,
       final ImmutableListMultimap<FunctionName, String> functionToCodeName,
       final ImmutableMap<CreateStructExpression, String> structToCodeName
   ) {
@@ -67,8 +67,8 @@ public final class CodeGenSpec {
     return arguments;
   }
 
-  public String getCodeName(final ColumnRef columnRef) {
-    return columnToCodeName.get(columnRef);
+  public String getCodeName(final ColumnName columnName) {
+    return columnToCodeName.get(columnName);
   }
 
   public String getUniqueNameForFunction(final FunctionName functionName, final int index) {
@@ -98,7 +98,7 @@ public final class CodeGenSpec {
   static class Builder {
 
     private final ImmutableList.Builder<ArgumentSpec> argumentBuilder = ImmutableList.builder();
-    private final Map<ColumnRef, String> columnRefToName = new HashMap<>();
+    private final Map<ColumnName, String> columnRefToName = new HashMap<>();
     private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
         ImmutableListMultimap.builder();
     private final ImmutableMap.Builder<CreateStructExpression, String> structToSchemaName =
@@ -108,12 +108,12 @@ public final class CodeGenSpec {
     private int structSchemaCount = 0;
 
     void addParameter(
-        final ColumnRef columnRef,
+        final ColumnName columnName,
         final Class<?> type,
         final int colIndex
     ) {
       final String codeName = CodeGenUtil.paramName(argumentCount++);
-      columnRefToName.put(columnRef, codeName);
+      columnRefToName.put(columnName, codeName);
       argumentBuilder.add(new ValueArgumentSpec(codeName, type, colIndex));
     }
 

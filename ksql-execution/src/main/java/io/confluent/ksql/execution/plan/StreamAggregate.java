@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +32,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
-  private final ImmutableList<ColumnRef> nonAggregateColumns; 
+  private final ImmutableList<ColumnName> nonAggregateColumns;
   private final ImmutableList<FunctionCall> aggregationFunctions;
 
   public StreamAggregate(
@@ -42,7 +42,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
       ExecutionStep<KGroupedStreamHolder> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
       @JsonProperty(value = "nonAggregateColumns", required = true) final
-      List<ColumnRef> nonAggregateColumns,
+      List<ColumnName> nonAggregateColumns,
       @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions) {
     this.properties = requireNonNull(properties, "properties");
@@ -73,7 +73,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return internalFormats;
   }
 
-  public List<ColumnRef> getNonAggregateColumns() {
+  public List<ColumnName> getNonAggregateColumns() {
     return nonAggregateColumns;
   }
 

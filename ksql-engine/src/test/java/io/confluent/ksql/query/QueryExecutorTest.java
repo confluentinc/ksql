@@ -40,7 +40,7 @@ import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -93,7 +93,7 @@ public class QueryExecutorTest {
       .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
       SerdeOption.none()

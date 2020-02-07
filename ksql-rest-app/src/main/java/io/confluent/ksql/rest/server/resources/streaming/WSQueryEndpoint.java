@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
@@ -90,7 +91,7 @@ public class WSQueryEndpoint {
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher pushQueryPublisher;
-  private final QueryPublisher pullQueryPublisher;
+  private final IPullQueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
@@ -100,6 +101,7 @@ public class WSQueryEndpoint {
   private final ServerState serverState;
   private final Errors errorHandler;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final PullQueryExecutor pullQueryExecutor;
 
   private WebSocketSubscriber<?> subscriber;
   private KsqlSecurityContext securityContext;
@@ -119,7 +121,8 @@ public class WSQueryEndpoint {
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this(ksqlConfig,
         mapper,
@@ -138,7 +141,9 @@ public class WSQueryEndpoint {
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
         serverState,
-        schemaRegistryClientFactory);
+        schemaRegistryClientFactory,
+        pullQueryExecutor
+    );
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -151,7 +156,7 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher pushQueryPublisher,
-      final QueryPublisher pullQueryPublisher,
+      final IPullQueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
@@ -161,7 +166,8 @@ public class WSQueryEndpoint {
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final ServerState serverState,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -188,6 +194,7 @@ public class WSQueryEndpoint {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
+    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
   }
 
   @SuppressWarnings("unused")
@@ -392,17 +399,24 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    final QueryPublisher queryPublisher = query.isPullQuery()
-        ? pullQueryPublisher
-        : pushQueryPublisher;
-
-    queryPublisher.start(
-        ksqlEngine,
-        info.securityContext.getServiceContext(),
-        exec,
-        configured,
-        streamSubscriber
-    );
+    if (query.isPullQuery()) {
+      pullQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber,
+          pullQueryExecutor
+      );
+    } else {
+      pushQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber
+      );
+    }
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
@@ -453,10 +467,15 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final PullQueryExecutor pullQueryExecutor
+
   ) {
-    new PullQueryPublisher(ksqlEngine, serviceContext, query)
-        .subscribe(streamSubscriber);
+    new PullQueryPublisher(
+        serviceContext,
+        query,
+        pullQueryExecutor
+    ).subscribe(streamSubscriber);
   }
 
   private static void startPrintPublisher(
@@ -480,6 +499,19 @@ public class WSQueryEndpoint {
         WebSocketSubscriber<StreamedRow> subscriber);
 
   }
+
+  interface IPullQueryPublisher {
+
+    void start(
+        KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
+        ListeningScheduledExecutorService exec,
+        ConfiguredStatement<Query> query,
+        WebSocketSubscriber<StreamedRow> subscriber,
+        PullQueryExecutor pullQueryExecutor);
+
+  }
+
 
   interface PrintTopicPublisher {
 

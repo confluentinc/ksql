@@ -29,7 +29,7 @@ import io.confluent.ksql.rest.server.HeartbeatAgent.CheckHeartbeatService;
 import io.confluent.ksql.rest.server.HeartbeatAgent.DiscoverClusterService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
-import io.confluent.ksql.util.KsqlHost;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +59,8 @@ public class HeartbeatAgentTest {
   private HeartbeatAgent heartbeatAgent;
   private HostInfo localHostInfo;
   private HostInfo remoteHostInfo;
-  private KsqlHost localHost;
-  private KsqlHost remoteHost;
+  private KsqlHostInfo localHost;
+  private KsqlHostInfo remoteHost;
   private List<StreamsMetadata> allMetadata0;
   private List<StreamsMetadata> allMetadata1;
   private static final String LOCALHOST_URL = "http://localhost:8088";
@@ -69,8 +69,8 @@ public class HeartbeatAgentTest {
   public void setUp() {
     localHostInfo = new HostInfo("localhost", 8088);
     remoteHostInfo = new HostInfo("localhost", 8089);
-    localHost = new KsqlHost ("localhost", 8088);
-    remoteHost = new KsqlHost("localhost", 8089);
+    localHost = new KsqlHostInfo("localhost", 8088);
+    remoteHost = new KsqlHostInfo("localhost", 8089);
 
     Builder builder = HeartbeatAgent.builder();
     heartbeatAgent = builder
@@ -78,7 +78,7 @@ public class HeartbeatAgentTest {
         .heartbeatMissedThreshold(2)
         .build(ksqlEngine, serviceContext);
     heartbeatAgent.setLocalAddress(LOCALHOST_URL);
-    Map<KsqlHost, HostStatus> hostsStatus = ImmutableMap
+    Map<KsqlHostInfo, HostStatus> hostsStatus = ImmutableMap
         .of(localHost, new HostStatus(true, 0L),
             remoteHost, new HostStatus(true, 0L));
     heartbeatAgent.setHostsStatus(hostsStatus);

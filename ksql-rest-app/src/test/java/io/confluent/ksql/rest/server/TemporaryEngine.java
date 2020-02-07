@@ -37,11 +37,10 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -122,8 +121,8 @@ public class TemporaryEngine extends ExternalResource {
 
     final KsqlTopic topic = new KsqlTopic(
         name,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final DataSource source;
@@ -135,7 +134,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.of(ColumnName.of("val"))),
+                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic
@@ -148,7 +147,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.of(ColumnName.of("val"))),
+                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic

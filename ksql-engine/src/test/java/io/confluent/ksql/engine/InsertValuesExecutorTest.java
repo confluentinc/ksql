@@ -52,11 +52,10 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -856,7 +855,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerdeFactory).create(
-        FormatInfo.of(Format.KAFKA.name()),
+        FormatInfo.of(FormatFactory.KAFKA.name()),
         PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -865,7 +864,7 @@ public class InsertValuesExecutorTest {
     );
 
     verify(valueSerdeFactory).create(
-        FormatInfo.of(Format.JSON.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -918,12 +917,12 @@ public class InsertValuesExecutorTest {
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(Format.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(ColumnRef.of(kf)))
+        .map(kf -> KeyField.of(kf))
         .orElse(KeyField.none());
 
     final DataSource dataSource;

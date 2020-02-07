@@ -32,7 +32,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -46,16 +45,16 @@ public class AggregateAnalyzerTest {
   private static final SourceName ORDERS = SourceName.of("ORDERS");
 
   private static final QualifiedColumnReferenceExp DEFAULT_ARGUMENT =
-      new QualifiedColumnReferenceExp(ORDERS, ColumnRef.of(SchemaUtil.ROWTIME_NAME));
+      new QualifiedColumnReferenceExp(ORDERS, SchemaUtil.ROWTIME_NAME);
 
   private static final UnqualifiedColumnReferenceExp COL0 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL0")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
 
   private static final UnqualifiedColumnReferenceExp COL1 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
 
   private static final UnqualifiedColumnReferenceExp COL2 =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("COL2")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(FunctionName.of("UCASE"),
       ImmutableList.of(COL0));
@@ -73,7 +72,7 @@ public class AggregateAnalyzerTest {
   @Before
   public void init() {
     analysis = new MutableAggregateAnalysis();
-    analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, functionRegistry);
+    analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, false, functionRegistry);
   }
 
   @Test
@@ -293,5 +292,29 @@ public class AggregateAnalyzerTest {
     assertThat(analysis.getAggregateFunctions(), hasSize(1));
     assertThat(analysis.getAggregateFunctions().get(0).getName(), is(emptyFunc.getName()));
     assertThat(analysis.getAggregateFunctions().get(0).getArguments(), contains(DEFAULT_ARGUMENT));
+  }
+
+  @Test
+  public void shouldNotCaptureWindowStartAsRequiredColumn() {
+    // When:
+    analyzer.processSelect(new QualifiedColumnReferenceExp(
+        ORDERS,
+        SchemaUtil.WINDOWSTART_NAME
+    ));
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), is(empty()));
+  }
+
+  @Test
+  public void shouldNotCaptureWindowEndAsRequiredColumn() {
+    // When:
+    analyzer.processSelect(new QualifiedColumnReferenceExp(
+        ORDERS,
+        SchemaUtil.WINDOWEND_NAME
+    ));
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), is(empty()));
   }
 }

@@ -48,8 +48,7 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
@@ -76,22 +75,22 @@ public class QueryAnalyzerFunctionalTest {
   private static final SourceName TEST1 = SourceName.of("TEST1");
 
   private static final QualifiedColumnReferenceExp ITEM_ID =
-      new QualifiedColumnReferenceExp(ORDERS, ColumnRef.of(ColumnName.of("ITEMID")));
+      new QualifiedColumnReferenceExp(ORDERS, ColumnName.of("ITEMID"));
 
   private static final QualifiedColumnReferenceExp ORDER_ID =
       new QualifiedColumnReferenceExp(
           ORDERS,
-          ColumnRef.of(ColumnName.of("ORDERID"))
+          ColumnName.of("ORDERID")
       );
 
   private static final QualifiedColumnReferenceExp ORDER_UNITS =
       new QualifiedColumnReferenceExp(
           ORDERS,
-          ColumnRef.of(ColumnName.of("ORDERUNITS"))
+          ColumnName.of("ORDERUNITS")
       );
 
   private static final QualifiedColumnReferenceExp TEST_COL1 =
-      new QualifiedColumnReferenceExp(TEST1, ColumnRef.of(ColumnName.of("COL1")));
+      new QualifiedColumnReferenceExp(TEST1, ColumnName.of("COL1"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -163,7 +162,7 @@ public class QueryAnalyzerFunctionalTest {
             ColumnName.of("COL1"),
             new QualifiedColumnReferenceExp(
                 SourceName.of("TEST2"),
-                ColumnRef.of(ColumnName.of("COL1"))
+                ColumnName.of("COL1")
             )
         ))
     );
@@ -241,7 +240,7 @@ public class QueryAnalyzerFunctionalTest {
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID), contains(ITEM_ID));
     assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new UnqualifiedColumnReferenceExp(
-        ColumnRef.of(ColumnName.of("KSQL_AGG_VARIABLE_0"))))));
+        ColumnName.of("KSQL_AGG_VARIABLE_0")))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(ORDER_UNITS)));
     assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
   }
@@ -385,7 +384,7 @@ public class QueryAnalyzerFunctionalTest {
     final Expression havingExpression = aggregateAnalysis.getHavingExpression().get();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("KSQL_AGG_VARIABLE_1"))),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("KSQL_AGG_VARIABLE_1")),
         new IntegerLiteral(10))));
   }
 
@@ -525,7 +524,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
-        is(Format.DELIMITED));
+        is(FormatFactory.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

@@ -974,6 +974,26 @@
           {"row":{"columns":["10", "2020-01-29 17:19:45 +0000", "2020-01-29 17:19:46 +0000", 1]}}
         ]}
       ]
+    },
+    {
+      "name": "access window bounds in selection",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWKEY, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, ROWTIME, COUNT FROM AGGREGATE WHERE ROWKEY=10.1 AND WINDOWSTART=1580223282000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580223282123, "key": 11.1, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 1580223282456, "key": 10.1, "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WSTART` STRING, `WEND` STRING, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.1, "2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1580223282456, 1]}}
+        ]}
+      ]
     }
   ]
 }

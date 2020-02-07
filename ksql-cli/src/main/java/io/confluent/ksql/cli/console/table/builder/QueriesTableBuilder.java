@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class QueriesTableBuilder implements TableBuilder<Queries> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Query ID", "Status", "Kafka Topic", "Query String");
+      ImmutableList.of("Query ID", "Status", "Sink Name", "Sink Kafka Topic", "Query String");
 
   @Override
   public Table buildTable(final Queries entity) {
@@ -34,6 +34,7 @@ public class QueriesTableBuilder implements TableBuilder<Queries> {
             r.getId().getId(),
             r.getState().orElse("N/A"),
             String.join(",", r.getSinks()),
+            String.join(",", r.getSinkKafkaTopics()),
             r.getQuerySingleLine()
         ));
 

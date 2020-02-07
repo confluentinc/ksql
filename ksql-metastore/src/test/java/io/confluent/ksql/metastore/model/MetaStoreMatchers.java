@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -113,7 +112,7 @@ public final class MetaStoreMatchers {
           (is(name.map(ColumnName::of)), "field with name", "name") {
         @Override
         protected Optional<ColumnName> featureValueOf(final KeyField actual) {
-          return actual.ref().map(ColumnRef::name);
+          return actual.ref();
         }
       };
     }
@@ -129,7 +128,7 @@ public final class MetaStoreMatchers {
           (is(name), "field with name", "name") {
         @Override
         protected String featureValueOf(final Column actual) {
-          return actual.ref().aliasedFieldName();
+          return actual.ref().name();
         }
       };
     }
@@ -139,7 +138,7 @@ public final class MetaStoreMatchers {
           (is(name), "field with name", "name") {
         @Override
         protected String featureValueOf(final Column actual) {
-          return actual.ref().aliasedFieldName();
+          return actual.ref().name();
         }
       };
     }

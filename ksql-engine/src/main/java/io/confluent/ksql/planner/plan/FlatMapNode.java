@@ -32,7 +32,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -153,7 +152,7 @@ public class FlatMapNode extends PlanNode {
         final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;
         return Optional.of(
-            new UnqualifiedColumnReferenceExp(node.getLocation(), ColumnRef.of(varName))
+            new UnqualifiedColumnReferenceExp(node.getLocation(), varName)
         );
       } else {
         final List<Expression> arguments = new ArrayList<>();

@@ -37,11 +37,10 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
@@ -71,7 +70,7 @@ public class StreamSelectKeyBuilderTest {
       .withMetaAndKeyColsInValue(false);
 
   private static final UnqualifiedColumnReferenceExp KEY =
-      new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("BOI")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
@@ -156,12 +155,12 @@ public class StreamSelectKeyBuilderTest {
 
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
-        FormatInfo.of(Format.JSON.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.JSON.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext);
   }

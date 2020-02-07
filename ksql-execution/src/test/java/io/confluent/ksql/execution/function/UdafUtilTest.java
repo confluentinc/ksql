@@ -30,7 +30,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Before;
@@ -49,7 +48,7 @@ public class UdafUtilTest {
       .build();
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(
       FunctionName.of("AGG"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("BAR"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("BAR")))
   );
 
   @Mock

@@ -10,13 +10,13 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HostStoreLags;
-import io.confluent.ksql.rest.entity.KsqlHostEntity;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.io.IOException;
 import java.util.Comparator;
@@ -64,8 +64,8 @@ public class LagReportingAgentFunctionalTest {
       "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final KsqlHostEntity HOST0 = new KsqlHostEntity("localhost", 8088);
-  private static final KsqlHostEntity HOST1 = new KsqlHostEntity("localhost", 8089);
+  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8088);
+  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8089);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -111,7 +111,7 @@ public class LagReportingAgentFunctionalTest {
   public static void setUpClass() {
     TEST_HARNESS.deleteInternalTopics("KSQL");
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, Format.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,

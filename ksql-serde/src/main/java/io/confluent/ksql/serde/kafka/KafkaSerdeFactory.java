@@ -22,7 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -86,7 +86,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     final List<Field> fields = schema.fields();
     if (fields.size() != 1) {
       final String got = new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST).format(schema);
-      throw new KsqlException("The '" + Format.KAFKA
+      throw new KsqlException("The '" + FormatFactory.KAFKA.name()
           + "' format only supports a single field. Got: " + got);
     }
 
@@ -97,7 +97,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
           ? "DECIMAL"
           : type.toString();
 
-      throw new KsqlException("The '" + Format.KAFKA
+      throw new KsqlException("The '" + FormatFactory.KAFKA.name()
           + "' format does not support type '" + typeString + "'");
     }
 

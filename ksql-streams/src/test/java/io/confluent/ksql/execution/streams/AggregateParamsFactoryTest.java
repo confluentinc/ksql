@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
@@ -21,19 +20,15 @@ import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
-import io.confluent.ksql.execution.transform.KsqlTransformer;
-import io.confluent.ksql.execution.transform.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,27 +45,27 @@ public class AggregateParamsFactoryTest {
       .valueColumn(ColumnName.of("ARGUMENT1"), SqlTypes.DOUBLE)
       .build();
 
-  private static final List<ColumnRef> NON_AGG_COLUMNS = ImmutableList.of(
+  private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
       INPUT_SCHEMA.value().get(0).ref(),
       INPUT_SCHEMA.value().get(2).ref()
   );
 
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final long INITIAL_VALUE0 = 123;
   private static final FunctionCall AGG1 = new FunctionCall(
       FunctionName.of("AGG1"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT1"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT1")))
   );
   private static final FunctionCall TABLE_AGG = new FunctionCall(
       FunctionName.of("TABLE_AGG"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final FunctionCall WINDOW_START = new FunctionCall(
       FunctionName.of("WindowStart"),
-      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnRef.of(ColumnName.of("ARGUMENT0"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("ARGUMENT0")))
   );
   private static final String INITIAL_VALUE1 = "initial";
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
@@ -133,7 +128,8 @@ public class AggregateParamsFactoryTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        false
     );
   }
 
@@ -205,39 +201,6 @@ public class AggregateParamsFactoryTest {
   }
 
   @Test
-  public void shouldReturnCorrectWindowSelectMapperForNonWindowSelections() {
-    // When:
-    final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
-
-    // Then:
-    assertThat(windowSelectMapper.hasSelects(), is(false));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSelectMapperForWindowSelections() {
-    // Given:
-    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
-        INPUT_SCHEMA,
-        NON_AGG_COLUMNS,
-        functionRegistry,
-        ImmutableList.of(WINDOW_START)
-    );
-
-    // When:
-    final KsqlTransformer<Windowed<Object>, GenericRow> windowSelectMapper =
-        aggregateParams
-            .getWindowSelectMapper()
-            .getTransformer();
-
-    // Then:
-    final Windowed<Object> window = new Windowed<>(null, new TimeWindow(10, 20));
-    assertThat(
-        windowSelectMapper.transform(window, genericRow("fiz", "baz", null), ctx),
-        equalTo(genericRow("fiz", "baz", 10L))
-    );
-  }
-
-  @Test
   public void shouldReturnCorrectAggregateSchema() {
     // When:
     final LogicalSchema schema = aggregateParams.getAggregateSchema();
@@ -272,6 +235,37 @@ public class AggregateParamsFactoryTest {
                 .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
                 .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
                 .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .build()
+        )
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectWindowedSchema() {
+    // Given:
+    aggregateParams = new AggregateParamsFactory(udafFactory, undoUdafFactory).create(
+        INPUT_SCHEMA,
+        NON_AGG_COLUMNS,
+        functionRegistry,
+        FUNCTIONS,
+        true
+    );
+
+    // When:
+    final LogicalSchema schema = aggregateParams.getSchema();
+
+    // Then:
+    assertThat(
+        schema,
+        equalTo(
+            LogicalSchema.builder()
+                .keyColumns(INPUT_SCHEMA.key())
+                .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
+                .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
+                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
+                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
+                .valueColumn(SchemaUtil.WINDOWEND_NAME, SchemaUtil.WINDOWBOUND_TYPE)
                 .build()
         )
     );

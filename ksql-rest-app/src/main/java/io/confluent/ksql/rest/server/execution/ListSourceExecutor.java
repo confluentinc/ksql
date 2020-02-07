@@ -222,6 +222,7 @@ public final class ListSourceExecutor {
         .map(q -> new RunningQuery(
             q.getStatementString(),
             ImmutableSet.of(q.getSinkName().name()),
+            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
             Optional.of(q.getState())
         ))

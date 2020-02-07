@@ -109,7 +109,7 @@ For example, you can join a stream of user clicks that's keyed on a `VARCHAR`
 user id with a table of user profiles that's also keyed on a `VARCHAR` user id.
 Records with the exact same user id on both sides will be joined.
 
-If the schema of the columns you wish to join on do not match it may be possible
+If the schema of the columns you wish to join on don't match, it may be possible
 to `CAST` one side to match the other. For example, if one side of the join
 had a `INT` userId column, and the other a `LONG`, then you may choose to cast
 the `INT` side to a `LONG`:

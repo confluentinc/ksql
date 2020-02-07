@@ -385,7 +385,7 @@ These examples write queries using ksqlDB.
 Create a query that enriches the pageviews data with the user's `gender`
 and `regionid` from the `users` table. The following query enriches the
 `pageviews_original` STREAM by doing a `LEFT JOIN` with the
-`users_original` TABLE on the userid column.
+`users_original` TABLE on the `userid` column.
 
 ```sql
 SELECT users_original.userid AS userid, pageid, regionid, gender

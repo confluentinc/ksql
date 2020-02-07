@@ -1576,7 +1576,7 @@
         {"topic": "right_topic", "value": {"id": 1}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"T_ID": 1}, "timestamp": 11}
+        {"topic": "OUTPUT", "key": 1, "value": {"T_ID": 1}, "timestamp": 10}
       ]
     },
     {
@@ -1591,7 +1591,7 @@
         {"topic": "right_topic", "value": {"id": 1.0}, "timestamp": 11}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1}, "timestamp": 10}
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1}, "timestamp": 11}
       ]
     },
     {

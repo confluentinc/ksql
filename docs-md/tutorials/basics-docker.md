@@ -1396,7 +1396,7 @@ key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
 key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
 ```
 
-You can also use `kafkacat` command line tool
+You can also use the `kafkacat` command line tool:
 
 ```bash
 docker run --interactive --rm --network tutorials_default \

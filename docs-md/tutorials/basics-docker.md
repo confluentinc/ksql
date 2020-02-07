@@ -591,7 +591,7 @@ such aggregation results.
 Unlike the push query used in the previous step, which _pushes_ a stream of results to you,
 pull queries pull a result set and automatically terminate.
 
-Push queries do not have the `EMIT CHANGES` clause.
+Pull queries do not have the `EMIT CHANGES` clause.
 
 View all the windows and user counts available for a specific gender and region using a pull query:
 

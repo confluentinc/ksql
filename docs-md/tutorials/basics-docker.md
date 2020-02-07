@@ -179,7 +179,7 @@ PRINT users;
 
 !!! note
    The PRINT statement is one of the few case-sensitive commands in ksqlDB,
-   case-sensitive, even when the topic name is not quoted.
+   even when the topic name is not quoted.
 
 Your output should resemble:
 

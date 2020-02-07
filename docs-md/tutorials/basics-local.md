@@ -127,7 +127,7 @@ Your output should resemble:
 --------------------------------------------------------------
 ```
 
-By default, KSQL hides internal / system topics. Use the SHOW ALL TOPICS
+By default, KSQL hides internal and system topics. Use the SHOW ALL TOPICS
 statement to see the full list of topics in the Kafka cluster:
 
 ```sql

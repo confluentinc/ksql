@@ -417,7 +417,7 @@ Query terminated
   `userId` and `ROWKEY` can be used interchangeably as the join criteria for
   the table. However, the data in `userid` on the stream side does not match
   the stream's key. Hence, ksqlDB internally repartitions the stream
-  by the `userId` column.
+  by the `userId` column before performing the join.
 
 ### 2. Create a persistent query
 

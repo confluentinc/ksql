@@ -283,7 +283,7 @@ These examples query messages from Kafka topics called `pageviews` and
 
 !!! tip
     Notice the `KSQL_PROCESSING_LOG` stream listed in the SHOW STREAMS
-    output? KsqlDB will append messages detailing any issues it
+    output? ksqlDB appends messages that describe any issues it
     encountered while processing your data. If things are not working
     as you expect it can be worth checking the contents of this stream
     to see if ksqlDB is encountering data errors.

@@ -834,7 +834,7 @@ see shipment information alongside the order.
 ### 1. Create two streams
 
 In the ksqlDB CLI create two new streams. Both streams will store their
-order id in ROWKEY:
+order ID in ROWKEY:
 
 ```sql
 CREATE STREAM NEW_ORDERS (ROWKEY INT KEY, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)

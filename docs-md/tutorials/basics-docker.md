@@ -277,7 +277,7 @@ Your output should resemble:
       is a STRING, as is the case here.
 
 !!! note
-      The data generated has the same value in the Kafka record's key
+      The data generated has the same value in the {{ site.ak }} record's key
       as is in the userId field in the value. Specifying `key='userId'`
       in the WITH clause above lets ksqlDB know this. This information
       will be used later allow joins against the table to use the more

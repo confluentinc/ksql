@@ -345,7 +345,7 @@ Viewing your data
    Query terminated
    ```
    !!! note
-         Push queries on tables will output the full history of the table that is stored
+         Push queries on tables output the full history of the table that is stored
          in the Kafka changelog topic, i.e. it will output historic data, followed by the
          stream of updates to the table. It is therefore likely that rows with matching
          `ROWKEY` are output as existing rows in the table are updated.

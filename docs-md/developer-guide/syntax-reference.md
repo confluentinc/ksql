@@ -461,7 +461,7 @@ Example:
 -   Goal: You want to create a table from a topic, which is keyed by
     userid of type INT.
 -   Problem: The required key is present as a field/column (aptly named
-    userid) in the message value but the actual message key in Kafka is
+    `userid`) in the message value, but the actual message key in {{ site.ak }} is
     not set or has some other value or format.
 
 ```sql

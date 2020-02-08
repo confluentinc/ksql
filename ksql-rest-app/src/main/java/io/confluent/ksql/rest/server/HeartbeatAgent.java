@@ -223,6 +223,9 @@ public final class HeartbeatAgent {
           }
           return status;
         });
+        for (HostStatusListener listener : hostStatusListeners) {
+          listener.onHostStatusUpdated(getHostsStatus());
+        }
         return;
       }
 

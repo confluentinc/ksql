@@ -24,23 +24,19 @@ import org.apache.kafka.streams.state.HostInfo;
  */
 public class ActiveHostFilter implements RoutingFilter {
 
-  public ActiveHostFilter() {
+  private final HostInfo activeHost;
+
+  public ActiveHostFilter(final HostInfo activeHost) {
+    this.activeHost = activeHost;
   }
 
   /**
    * Returns true if the host is the active host for a particular state store.
-   * @param activeHost the active host for a particular state store
    * @param host The host for which the status is checked
-   * @param storeName Ignored
-   * @param partition Ignored
-   * @return true if the host is the active, false otherwise
+   * @return true if the host is alive, false otherwise.
    */
   @Override
-  public boolean filter(
-      final HostInfo activeHost,
-      final KsqlHostInfo host,
-      final String storeName,
-      final int partition) {
+  public boolean filter(final KsqlHostInfo host) {
 
     return host.host().equals(activeHost.host()) && host.port() == activeHost.port();
   }

@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +73,10 @@ public final class KsqlTarget {
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(target, localProperties, Optional.of(authHeader));
+  }
+
+  public KsqlTarget properties(final Map<String, ?> properties) {
+    return new KsqlTarget(target, new LocalProperties(properties), authHeader);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {

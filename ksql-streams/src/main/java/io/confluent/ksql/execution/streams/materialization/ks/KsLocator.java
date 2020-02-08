@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.util.KsqlHostInfo;
@@ -48,23 +50,27 @@ final class KsLocator implements Locator {
   private final KafkaStreams kafkaStreams;
   private final Serializer<Struct> keySerializer;
   private final URL localHost;
+  private String applicationId;
 
   KsLocator(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final Serializer<Struct> keySerializer,
-      final URL localHost
+      final URL localHost,
+      final String applicationId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
+    this.applicationId = requireNonNull(applicationId, "applicationId");;
   }
 
   @Override
   public List<KsqlNode> locate(
       final Struct key,
-      final RoutingFilter routingFilters
+      final RoutingOptions routingOptions,
+      final RoutingFilterFactory routingFilterFactory
   ) {
     final KeyQueryMetadata metadata = kafkaStreams
         .queryMetadataForKey(stateStoreName, key, keySerializer);
@@ -81,18 +87,17 @@ final class KsLocator implements Locator {
     final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
     LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
 
-    final Stream<KsqlHostInfo> active = Stream.of(asKsqlHost(activeHost));
-    final Stream<KsqlHostInfo> standby = standByHosts
-        .stream()
-        .map(this::asKsqlHost);
-    final Stream<KsqlHostInfo> hostStream = Stream.concat(active, standby);
+    final List<KsqlHostInfo> allHosts = Stream.concat(Stream.of(activeHost), standByHosts.stream())
+        .map(this::asKsqlHost)
+        .collect(Collectors.toList());
+    final RoutingFilter routingFilter = routingFilterFactory.createRoutingFilter(routingOptions,
+        allHosts, activeHost, applicationId, stateStoreName, metadata.getPartition());
 
     // Filter out hosts based on active and liveness filters.
     // The list is ordered by routing preference: active node is first, then standby nodes.
     // If heartbeat is not enabled, all hosts are considered alive.
-    final List<KsqlNode> filteredHosts = hostStream
-        .filter(hostInfo -> routingFilters.filter(
-              activeHost, hostInfo, stateStoreName, metadata.getPartition()))
+    final List<KsqlNode> filteredHosts = allHosts.stream()
+        .filter(routingFilter::filter)
         .map(this::asNode)
         .collect(Collectors.toList());
 

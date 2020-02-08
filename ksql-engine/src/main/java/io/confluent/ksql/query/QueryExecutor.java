@@ -221,7 +221,8 @@ public final class QueryExecutor {
             built.kafkaStreams,
             querySchema,
             sinkDataSource.getKsqlTopic().getKeyFormat(),
-            streamsProperties
+            streamsProperties,
+            applicationId
         ));
     return new PersistentQueryMetadata(
         statementText,
@@ -345,7 +346,8 @@ public final class QueryExecutor {
       final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
       final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> streamsProperties,
+      final String applicationId
   ) {
     final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
         keyFormat.getFormatInfo(),
@@ -364,7 +366,8 @@ public final class QueryExecutor {
             keySerializer,
             keyFormat.getWindowInfo(),
             streamsProperties,
-            ksqlConfig
+            ksqlConfig,
+            applicationId
         );
 
     return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory

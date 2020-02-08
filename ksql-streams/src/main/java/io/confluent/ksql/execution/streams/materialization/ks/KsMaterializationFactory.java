@@ -76,7 +76,8 @@ public final class KsMaterializationFactory {
       final Serializer<Struct> keySerializer,
       final Optional<WindowInfo> windowInfo,
       final Map<String, ?> streamsProperties,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final String applicationId
   ) {
     final Object appServer = streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     if (appServer == null) {
@@ -89,7 +90,8 @@ public final class KsMaterializationFactory {
         stateStoreName,
         kafkaStreams,
         keySerializer,
-        localHost
+        localHost,
+        applicationId
     );
 
     final KsStateStore stateStore = storeFactory.create(
@@ -127,7 +129,8 @@ public final class KsMaterializationFactory {
         String stateStoreName,
         KafkaStreams kafkaStreams,
         Serializer<Struct> keySerializer,
-        URL localHost
+        URL localHost,
+        String applicationId
     );
   }
 

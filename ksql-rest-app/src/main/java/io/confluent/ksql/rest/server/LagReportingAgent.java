@@ -164,12 +164,8 @@ public final class LagReportingAgent implements HostStatusListener {
    * @param partition The partition of that state
    * @return A map which is keyed by host and contains lag information
    */
-  public Optional<LagInfoEntity> getHostsPartitionLagInfo(
+  public Optional<LagInfoEntity> getLagInfoForHost(
       final KsqlHostInfo host, final QueryStateStoreId queryStateStoreId, final int partition) {
-    final Set<KsqlHostInfo> aliveHosts = aliveHostsRef.get();
-    if (!aliveHosts.contains(host)) {
-      return Optional.empty();
-    }
     return getLagPerHost(host)
         .flatMap(hostStoreLags -> hostStoreLags.getStateStoreLags(queryStateStoreId))
         .flatMap(stateStoreLags -> stateStoreLags.getLagByPartition(partition));

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -131,6 +132,10 @@ public class StreamedQueryResourceTest {
   private static final String PULL_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
 
+  private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
+      (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
+          new RoutingFilters(ImmutableList.of());
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -176,7 +181,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, Optional.empty(), new RoutingFilters(ImmutableList.of()));
+        mockKsqlEngine, Optional.empty(), ROUTING_FILTER_FACTORY);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,

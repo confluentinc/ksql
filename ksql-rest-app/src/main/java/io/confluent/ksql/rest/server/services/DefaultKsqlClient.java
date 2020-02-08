@@ -35,6 +35,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
@@ -76,10 +77,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<List<StreamedRow>> makeQueryRequest(
       final URI serverEndPoint,
-      final String sql
+      final String sql,
+      final Map<String, ?> properties
   ) {
     final KsqlTarget target = sharedClient
-        .target(serverEndPoint);
+        .target(serverEndPoint)
+        .properties(properties);
 
     final RestResponse<QueryStream> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, Optional.empty());

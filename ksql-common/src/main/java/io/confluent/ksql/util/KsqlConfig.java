@@ -186,7 +186,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG =
       "ksql.query.pull.max.allowed.offset.lag";
-  public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = 0L;
+  public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = Long.MAX_VALUE;
   private static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
       "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
           + "hosts storing it, both active and standbys included. This can be overridden per query "

@@ -245,6 +245,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.right, 3);
+    sendLagReportingMessages(clusterFormation.standBy, clusterFormation.active);
     sendHeartbeartsForWindowLength(
         clusterFormation.standBy.right, clusterFormation.active.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -265,6 +266,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.active);
     sendHeartbeartsForWindowLength(
         clusterFormation.router.right, clusterFormation.active.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -290,6 +292,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
     sendHeartbeartsForWindowLength(
         clusterFormation.router.right, clusterFormation.standBy.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -306,14 +309,12 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 600000)
   public void shouldFilterLaggyServers() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
-    sendLagReportingRequest(clusterFormation.router.right,
-        makeLagMessage(clusterFormation.standBy.left, createLagMap(HOST_CURRENT_OFFSET,
-            HOST_END_OFFSET, HOST_LAG)));
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
     sendHeartbeartsForWindowLength(
         clusterFormation.router.right, clusterFormation.standBy.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -336,6 +337,17 @@ public class PullQueryRoutingFunctionalTest {
         .contains("All nodes are dead or exceed max allowed lag"));
   }
 
+  private void sendLagReportingMessages(
+      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> to,
+      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> from) {
+    LagReportingMessage lagReportingMessage =
+        new LagReportingMessage(from.left,
+            new HostStoreLags(createLagMap(HOST_CURRENT_OFFSET, HOST_END_OFFSET, HOST_LAG), 100));
+    sendLagReportingRequest(to.right, lagReportingMessage);
+    // Send them to itself as well
+    sendLagReportingRequest(from.right, lagReportingMessage);
+  }
+
   private List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
@@ -350,13 +362,6 @@ public class PullQueryRoutingFunctionalTest {
   private List<KsqlEntity> makeAdminRequestWithResponse(
       TestKsqlRestApp restApp, final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static LagReportingMessage makeLagMessage(
-      final KsqlHostInfoEntity hostInfo,
-      final Map<QueryStateStoreId, StateStoreLags> lagMap
-  ) {
-    return new LagReportingMessage(hostInfo, new HostStoreLags(lagMap, 100));
   }
 
   private static List<StreamedRow> makePullQueryRequest(
@@ -377,8 +382,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   private Map<QueryStateStoreId, StateStoreLags> createLagMap(long current, long end, long lag) {
-    final String queryId
-        = "_confluent-ksql-default_query_CTAS_" + output + "_0";
+    final String queryId = "_confluent-ksql-default_query_" + QUERY_ID;
     final QueryStateStoreId queryStateStoreId =
         QueryStateStoreId.of(queryId, STATE_STORE);
     return ImmutableMap.<QueryStateStoreId, StateStoreLags>builder()

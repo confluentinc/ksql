@@ -309,7 +309,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
   }
 
-  @Test(timeout = 600000)
+  @Test
   public void shouldFilterLaggyServers() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);

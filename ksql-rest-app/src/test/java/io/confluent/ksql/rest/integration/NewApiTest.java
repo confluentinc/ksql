@@ -59,6 +59,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -77,6 +78,7 @@ public class NewApiTest {
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
+  private static final String AN_AGG_KEY = "USER_1";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -197,13 +199,13 @@ public class NewApiTest {
       .add("BIGINT").add("STRING").add("STRING");
 
   @Test
-  public void shouldExecutePushQueryWithLimit() throws Exception {
+  public void shouldExecutePushQueryWithLimit() {
 
     // Given:
     String sql = "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + 2 + ";";
 
     // When:
-    QueryResponse response = executePushQuery(sql);
+    QueryResponse response = executeQuery(sql);
 
     // Then:
     assertThat(response.rows, hasSize(2));
@@ -213,7 +215,7 @@ public class NewApiTest {
   }
 
   @Test
-  public void shouldFailWithInvalidSql() throws Exception {
+  public void shouldFailPushQueryWithInvalidSql() {
 
     // Given:
     String sql = "SLECTT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
@@ -223,7 +225,7 @@ public class NewApiTest {
   }
 
   @Test
-  public void shouldFailWithMoreThanOneStatement() throws Exception {
+  public void shouldFailPushQueryWithMoreThanOneStatement() {
 
     // Given:
     String sql = "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;" +
@@ -234,7 +236,7 @@ public class NewApiTest {
   }
 
   @Test
-  public void shouldFailWithNonQuery() throws Exception {
+  public void shouldFailPushWithNonQuery() {
 
     // Given:
     String sql =
@@ -300,9 +302,79 @@ public class NewApiTest {
     assertThatEventually(engine::numberOfLiveQueries, is(1));
   }
 
-  private void shouldFail(final String sql, final String message) throws Exception {
+  @Test
+  public void shouldExecutePullQuery() {
+
+    // Given:
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+
     // When:
-    QueryResponse response = executePushQuery(sql);
+    // Maybe need to retry as populating agg table is async
+    AtomicReference<QueryResponse> atomicReference = new AtomicReference<>();
+    assertThatEventually(() -> {
+      QueryResponse queryResponse = executeQuery(sql);
+      atomicReference.set(queryResponse);
+      return queryResponse.rows;
+    }, hasSize(1));
+
+    QueryResponse response = atomicReference.get();
+
+    // Then:
+    JsonArray expectedColumnNames = new JsonArray().add("ROWKEY").add("ROWTIME").add("COUNT");
+    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT").add("BIGINT");
+    assertThat(response.rows, hasSize(1));
+    assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
+    assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
+    assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
+    assertThat(response.rows.get(0).getString(0), is("USER_1"));  // rowkey
+    assertThat(response.rows.get(0).getLong(1), is(notNullValue()));  // rowtime - non deterministic
+    assertThat(response.rows.get(0).getLong(2), is(1L)); // count
+  }
+
+  @Test
+  public void shouldFailPullQueryWithInvalidSql() {
+
+    // Given:
+    String sql = "SLLLECET * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+
+    // Then:
+    shouldFail(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
+  }
+
+  @Test
+  public void shouldFailPullQueryWithMoreThanOneStatement() {
+
+    // Given:
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';" +
+        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
+
+    // Then:
+    shouldFail(sql, "Expected exactly one KSQL statement; found 2 instead");
+  }
+
+  @Test
+  public void shouldFailPullQueryWithNoWhereClause() {
+
+    // Given:
+    String sql = "SELECT * from " + AGG_TABLE + ";";
+
+    // Then:
+    shouldFail(sql, "Missing WHERE clause.");
+  }
+
+  @Test
+  public void shouldFailPullQueryWithNonKeyLookup() {
+
+    // Given:
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWTIME=12345;";
+
+    // Then:
+    shouldFail(sql, "WHERE clause on unsupported field: ROWTIME.");
+  }
+
+  private void shouldFail(final String sql, final String message) {
+    // When:
+    QueryResponse response = executeQuery(sql);
 
     // Then:
     assertThat(response.rows, hasSize(0));
@@ -312,7 +384,7 @@ public class NewApiTest {
         startsWith(message));
   }
 
-  private QueryResponse executePushQuery(final String sql) throws Exception {
+  private QueryResponse executeQuery(final String sql) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
         .put("sql", sql).put("properties", properties);
@@ -329,19 +401,21 @@ public class NewApiTest {
     return WebClient.create(vertx, options);
   }
 
-  private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
-      throws Exception {
+  private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody) {
     return sendRequest(client, uri, requestBody);
   }
 
   private HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
-      final Buffer requestBody)
-      throws Exception {
+      final Buffer requestBody) {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(8089, "localhost", uri)
         .sendBuffer(requestBody, requestFuture);
-    return requestFuture.get();
+    try {
+      return requestFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static void makeKsqlRequest(final String sql) {

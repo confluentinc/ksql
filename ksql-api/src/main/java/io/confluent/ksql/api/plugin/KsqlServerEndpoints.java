@@ -16,11 +16,12 @@
 package io.confluent.ksql.api.plugin;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.impl.Utils;
-import io.confluent.ksql.api.server.BaseServerEndpoints;
+import io.confluent.ksql.api.server.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.PushQueryHandler;
+import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
+import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -47,53 +48,69 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.reactivestreams.Subscriber;
 
-public class KsqlServerEndpoints extends BaseServerEndpoints {
+public class KsqlServerEndpoints implements Endpoints {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final KsqlSecurityExtension securityExtension;
   private final ServiceContextFactory theServiceContextFactory;
-
-  public interface ServiceContextFactory {
-
-    ServiceContext create(
-        KsqlConfig ksqlConfig,
-        Optional<String> authHeader,
-        KafkaClientSupplier kafkaClientSupplier,
-        Supplier<SchemaRegistryClient> srClientFactory
-    );
-  }
+  private final PullQueryApiExecutor pullQueryApiExecutor;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory theServiceContextFactory) {
+      final ServiceContextFactory theServiceContextFactory,
+      final PullQueryApiExecutor pullQueryApiExecutor) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.securityExtension = Objects.requireNonNull(securityExtension);
     this.theServiceContextFactory = Objects.requireNonNull(theServiceContextFactory);
+    this.pullQueryApiExecutor = Objects.requireNonNull(pullQueryApiExecutor);
   }
 
-  @Override
-  protected PushQueryHandler createQuery(final String sql, final JsonObject properties,
-      final Context context, final WorkerExecutor workerExecutor,
-      final Consumer<GenericRow> rowConsumer) {
+  public QueryPublisher createQueryPublisher(
+      final String sql, final JsonObject properties,
+      final Context context,
+      final WorkerExecutor workerExecutor) {
+
     // Must be run on worker as all this stuff is slow
     Utils.checkIsWorker();
 
     final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
+    if (statement.getStatement().isPullQuery()) {
+      return createPullQueryPublisher(context, serviceContext, statement);
+    } else {
+      return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
+    }
+  }
+
+  private QueryPublisher createPushQueryPublisher(final Context context,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement, final WorkerExecutor workerExecutor) {
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context,
+        workerExecutor);
     final QueryMetadata queryMetadata = ksqlEngine
-        .executeQuery(serviceContext, statement, rowConsumer);
-    return new KsqlQueryHandle(queryMetadata, statement.getStatement().getLimit());
+        .executeQuery(serviceContext, statement, publisher);
+    final KsqlQueryHandle queryHandle = new KsqlQueryHandle(queryMetadata,
+        statement.getStatement().getLimit());
+    publisher.setQueryHandle(queryHandle);
+    return publisher;
+  }
+
+  private QueryPublisher createPullQueryPublisher(final Context context,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement) {
+    final TableRows tableRows = pullQueryApiExecutor.execute(statement, serviceContext);
+    return new PullQueryPublisher(context, tableRows, colNamesFromSchema(tableRows.getSchema()),
+        colTypesFromSchema(tableRows.getSchema()));
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,
@@ -101,7 +118,8 @@ public class KsqlServerEndpoints extends BaseServerEndpoints {
     final List<ParsedStatement> statements = ksqlEngine.parse(queryString);
     if ((statements.size() != 1)) {
       throw new KsqlStatementException(
-          String.format("Expected exactly one KSQL statement; found %d instead", statements.size()),
+          String
+              .format("Expected exactly one KSQL statement; found %d instead", statements.size()),
           queryString);
     }
     final PreparedStatement<?> ps = ksqlEngine.prepare(statements.get(0));
@@ -150,9 +168,36 @@ public class KsqlServerEndpoints extends BaseServerEndpoints {
   }
 
   @Override
-  public InsertsSubscriber createInsertsSubscriber(final String target, final JsonObject properties,
+  public InsertsSubscriber createInsertsSubscriber(final String target,
+      final JsonObject properties,
       final Subscriber<JsonObject> acksSubscriber) {
     return null;
+  }
+
+  private static List<String> colTypesFromSchema(final LogicalSchema logicalSchema) {
+    final List<Column> key = logicalSchema.key();
+    final List<Column> val = logicalSchema.value();
+    final List<String> colTypes = new ArrayList<>(key.size() + val.size());
+    for (Column col : key) {
+      colTypes.add(col.type().toString(FormatOptions.none()));
+    }
+    for (Column col : val) {
+      colTypes.add(col.type().toString(FormatOptions.none()));
+    }
+    return colTypes;
+  }
+
+  private static List<String> colNamesFromSchema(final LogicalSchema logicalSchema) {
+    final List<Column> key = logicalSchema.key();
+    final List<Column> val = logicalSchema.value();
+    final List<String> colNames = new ArrayList<>(key.size() + val.size());
+    for (Column col : key) {
+      colNames.add(col.name().name());
+    }
+    for (Column col : val) {
+      colNames.add(col.name().name());
+    }
+    return colNames;
   }
 
   private static class KsqlQueryHandle implements PushQueryHandler {
@@ -188,24 +233,6 @@ public class KsqlServerEndpoints extends BaseServerEndpoints {
     @Override
     public void stop() {
       queryMetadata.close();
-    }
-
-    private static List<String> colTypesFromSchema(final LogicalSchema logicalSchema) {
-      final List<Column> cols = logicalSchema.value();
-      final List<String> colTypes = new ArrayList<>(cols.size());
-      for (Column col : cols) {
-        colTypes.add(col.type().toString(FormatOptions.none()));
-      }
-      return colTypes;
-    }
-
-    private static List<String> colNamesFromSchema(final LogicalSchema logicalSchema) {
-      final List<Column> cols = logicalSchema.value();
-      final List<String> colNames = new ArrayList<>(cols.size());
-      for (Column col : cols) {
-        colNames.add(col.name().name());
-      }
-      return colNames;
     }
   }
 }

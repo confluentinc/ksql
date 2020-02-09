@@ -59,6 +59,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorDelegate;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -171,6 +172,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
+  private final RoutingFilterFactory routingFilterFactory;
+  private final PullQueryExecutor pullQueryExecutor;
 
   // We embed this in here for now
   private Vertx vertx = null;
@@ -229,6 +232,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
+
+    this.routingFilterFactory = initializeRoutingFilterFactory(
+        ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+    this.pullQueryExecutor = new PullQueryExecutor(
+        ksqlEngine, heartbeatAgent, routingFilterFactory);
   }
 
   @Override
@@ -281,7 +289,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlEngine,
         ksqlConfigWithPort,
         securityExtension,
-        RestServiceContextFactory::create
+        RestServiceContextFactory::create,
+        new PullQueryExecutorDelegate(pullQueryExecutor)
     );
     final ApiServerConfig config = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, config, endpoints);
@@ -511,11 +520,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
           ErrorMessages.class
       ));
-
-      final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(
-          ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
-      final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          ksqlEngine, heartbeatAgent, routingFilterFactory);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder

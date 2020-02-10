@@ -447,10 +447,13 @@
         },
         "topicName" : {
           "type" : "string"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "streamSinkV1",
-      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
+      "required" : [ "@type", "properties", "source", "formats", "topicName", "timestampColumn" ]
     },
     "StreamSource" : {
       "type" : "object",
@@ -803,10 +806,13 @@
         },
         "topicName" : {
           "type" : "string"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "tableSinkV1",
-      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
+      "required" : [ "@type", "properties", "source", "formats", "topicName", "timestampColumn" ]
     },
     "TableTableJoin" : {
       "type" : "object",

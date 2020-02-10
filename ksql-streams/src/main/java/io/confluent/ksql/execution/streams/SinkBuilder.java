@@ -115,9 +115,11 @@ public final class SinkBuilder {
                 row,
                 To.all().withTimestamp((long) row.get(timestampColumnIndex))
             );
+
+            return null;
           }
 
-          return null;
+          return KeyValue.pair(key, row);
         }
 
 

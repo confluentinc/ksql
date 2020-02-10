@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -79,7 +80,10 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final KsqlException e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+      throw new KsqlStatementException(
+          ErrorMessageUtil.buildErrorMessage(e), 
+          statement.getStatementText(), 
+          e.getCause());
     }
   }
 

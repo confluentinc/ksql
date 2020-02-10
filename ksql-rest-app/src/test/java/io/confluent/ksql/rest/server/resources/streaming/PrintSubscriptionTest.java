@@ -38,8 +38,8 @@ public class PrintSubscriptionTest {
   public void setup() {
     final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> new Bytes(("key" + i).getBytes(Charsets.UTF_8)),
-        i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
+        i -> new Bytes(("key-" + i).getBytes(Charsets.UTF_8)),
+        i -> new Bytes(("value-" + i).getBytes(Charsets.UTF_8)));
 
     final Iterator<ConsumerRecords<Bytes, Bytes>> partitioned =
         StreamingTestUtils.partition(records, 3);
@@ -65,9 +65,9 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key: key0, value: value0"),
-        containsString("key: key1, value: value1"),
-        containsString("key: key2, value: value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-1, value: value-1"),
+        containsString("key: key-2, value: value-2"))
     ));
   }
 
@@ -89,8 +89,8 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0, value: value0"),
-        containsString("key1, value: value1"))
+        containsString("key-0, value: value-0"),
+        containsString("key-1, value: value-1"))
     ));
     assertThat(results2, empty());
   }
@@ -113,13 +113,13 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key: key0, value: value0"),
-        containsString("key: key1, value: value1"),
-        containsString("key: key2, value: value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-1, value: value-1"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(Lists.newArrayList(
-        containsString("key: key3, value: value3"),
-        containsString("key: key4, value: value4"))
+        containsString("key: key-3, value: value-3"),
+        containsString("key: key-4, value: value-4"))
     ));
   }
 
@@ -141,11 +141,11 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key: key0, value: value0"),
-        containsString("key: key2, value: value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(
-        containsString("key: key4, value: value4")
+        containsString("key: key-4, value: value-4")
     ));
   }
 
@@ -169,17 +169,16 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key: key0, value: value0"),
-        containsString("key: key2, value: value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(
-        containsString("key: key4, value: value4")
+        containsString("key: key-4, value: value-4")
     ));
     assertThat(results3, contains(
-        containsString("key: key6, value: value6")
+        containsString("key: key-6, value: value-6")
     ));
     assertThat(results4, empty());
   }
-
 }
 

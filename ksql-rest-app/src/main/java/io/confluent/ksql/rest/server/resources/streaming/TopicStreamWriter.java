@@ -109,8 +109,8 @@ public class TopicStreamWriter implements StreamingOutput {
         for (final Supplier<String> value : values) {
           if (printFormat) {
             printFormat = false;
-            out.write(("Key-Format: " + formatter.getKeyFormat() + "\n").getBytes(UTF_8));
-            out.write(("Value-Format: " + formatter.getValueFormat() + "\n").getBytes(UTF_8));
+            out.write(("Key format: " + formatter.getKeyFormat() + "\n").getBytes(UTF_8));
+            out.write(("Value format: " + formatter.getValueFormat() + "\n").getBytes(UTF_8));
           }
 
           if (messagesPolled++ % interval == 0) {

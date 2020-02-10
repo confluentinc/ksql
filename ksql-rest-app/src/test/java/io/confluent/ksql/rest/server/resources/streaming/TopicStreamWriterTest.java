@@ -52,8 +52,8 @@ public class TopicStreamWriterTest {
   public void setup() {
     final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> new Bytes(("key" + i).getBytes(Charsets.UTF_8)),
-        i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
+        i -> new Bytes(("key-" + i).getBytes(Charsets.UTF_8)),
+        i -> new Bytes(("value-" + i).getBytes(Charsets.UTF_8)));
 
     when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
@@ -78,16 +78,15 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key-Format: STRING",
-        "Value-Format: STRING",
-        "rowtime: N/A, key: key0, value: value0",
+        "Key format: KAFKA (STRING)",
+        "Value format: KAFKA (STRING)",
+        "rowtime: N/A, key: key-0, value: value-0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key1, value: value1",
+        "rowtime: N/A, key: key-1, value: value-1",
         System.lineSeparator()
     );
     out.assertWrites(expected);
   }
-
 
   @Test
   public void shouldIntervalTwoAndLimitTwo() {
@@ -107,11 +106,11 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key-Format: STRING",
-        "Value-Format: STRING",
-        "rowtime: N/A, key: key0, value: value0",
+        "Key format: KAFKA (STRING)",
+        "Value format: KAFKA (STRING)",
+        "rowtime: N/A, key: key-0, value: value-0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key2, value: value2",
+        "rowtime: N/A, key: key-2, value: value-2",
         System.lineSeparator()
     );
     out.assertWrites(expected);
@@ -149,3 +148,5 @@ public class TopicStreamWriterTest {
     }
   }
 }
+
+// Todo(ac): Doccs - call out limitations DOUBLE/BIGINT, 4 char, 8 char STRINGS.

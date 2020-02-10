@@ -78,8 +78,8 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key-Format:STRING",
-        "Value-Format:STRING",
+        "Key-Format: STRING",
+        "Value-Format: STRING",
         "rowtime: N/A, key: key0, value: value0",
         System.lineSeparator(),
         "rowtime: N/A, key: key1, value: value1",
@@ -107,8 +107,8 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key-Format:STRING",
-        "Value-Format:STRING",
+        "Key-Format: STRING",
+        "Value-Format: STRING",
         "rowtime: N/A, key: key0, value: value0",
         System.lineSeparator(),
         "rowtime: N/A, key: key2, value: value2",

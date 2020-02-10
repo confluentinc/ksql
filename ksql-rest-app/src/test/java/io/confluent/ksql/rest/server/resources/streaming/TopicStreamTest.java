@@ -51,6 +51,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.DoubleSerializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
+import org.apache.kafka.common.serialization.LongDeserializer;
+import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +71,6 @@ public class TopicStreamTest {
 
   private static final String TOPIC_NAME = "some-topic";
 
-  private static final String STRING_KEY = "key";
   private static final String JSON_OBJECT = "{\"a\":1}";
   private static final String JSON_ARRAY = "[10,22,44]";
   private static final Schema AVRO_SCHEMA = parseAvroSchema("{" +
@@ -77,9 +81,15 @@ public class TopicStreamTest {
       "    ]" +
       "}");
   private static final byte[] SERIALIZED_AVRO_RECORD = serializedAvroRecord();
+  private static final int KAFKA_INT = 24;
+  private static final byte[] SERIZALIZED_KAFKA_INT = serialize(KAFKA_INT, new IntegerSerializer());
+  private static final long KAFKA_BIGINT = 199L;
+  private static final byte[] SERIZALIZED_KAFKA_BIGINT = serialize(KAFKA_BIGINT, new LongSerializer());
+  private static final double KAFKA_DOUBLE = 24.199d;
+  private static final byte[] SERIZALIZED_KAFKA_DOUBLE = serialize(KAFKA_DOUBLE, new DoubleSerializer());
+
   private static final String DELIMITED_VALUE = "De,lim,it,ed";
   private static final byte[] RANDOM_BYTES = new byte[]{23, 45, 63, 23, 1, 0, 1, 99, 101};
-  private static final byte[][] NO_ADDITIONAL_ITEMS = new byte[0][];
   private static final List<Bytes> NULL_VARIANTS;
 
   private static final DateFormat UTC_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000");
@@ -98,20 +108,20 @@ public class TopicStreamTest {
   private long timestamp = 1581366404000L;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME, UTC_FORMAT);
-
-    when(schemaRegistryClient.getSchemaById(anyInt()))
-        .thenReturn(new AvroSchema(AVRO_SCHEMA));
   }
 
   @Test
   public void shouldDetectAvroKey() {
+    // Given:
+    givenAvroSchemaRegistered();
+
     // When:
     formatSingle(SERIALIZED_AVRO_RECORD, NULL);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.AVRO));
+    assertThat(formatter.getKeyFormat(), is(Format.AVRO.toString()));
   }
 
   @Test
@@ -120,7 +130,7 @@ public class TopicStreamTest {
     formatSingle(JSON_OBJECT.getBytes(UTF_8), SERIALIZED_AVRO_RECORD);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+    assertThat(formatter.getKeyFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -129,7 +139,7 @@ public class TopicStreamTest {
     formatSingle(SERIALIZED_AVRO_RECORD, JSON_OBJECT.getBytes(UTF_8));
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.JSON));
+    assertThat(formatter.getValueFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -138,7 +148,7 @@ public class TopicStreamTest {
     formatSingle(JSON_ARRAY.getBytes(UTF_8), NULL);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+    assertThat(formatter.getKeyFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -147,7 +157,7 @@ public class TopicStreamTest {
     formatSingle(NULL, JSON_ARRAY.getBytes(UTF_8));
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.JSON));
+    assertThat(formatter.getValueFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -163,7 +173,7 @@ public class TopicStreamTest {
     formatSingle(SERIALIZED_AVRO_RECORD, notJson.getBytes(UTF_8));
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.STRING));
+    assertThat(formatter.getValueFormat(), is("KAFKA (STRING)"));
   }
 
   @Test
@@ -172,7 +182,7 @@ public class TopicStreamTest {
     formatSingle(DELIMITED_VALUE.getBytes(UTF_8), NULL);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.STRING));
+    assertThat(formatter.getKeyFormat(), is("KAFKA (STRING)"));
   }
 
   @Test
@@ -181,7 +191,7 @@ public class TopicStreamTest {
     formatSingle(NULL, DELIMITED_VALUE.getBytes(UTF_8));
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.STRING));
+    assertThat(formatter.getValueFormat(), is("KAFKA (STRING)"));
   }
 
   @Test
@@ -190,7 +200,7 @@ public class TopicStreamTest {
     formatSingle(RANDOM_BYTES, NULL);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.STRING));
+    assertThat(formatter.getKeyFormat(), is("KAFKA (STRING)"));
   }
 
   @Test
@@ -199,7 +209,34 @@ public class TopicStreamTest {
     formatSingle(NULL, RANDOM_BYTES);
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.STRING));
+    assertThat(formatter.getValueFormat(), is("KAFKA (STRING)"));
+  }
+
+  @Test
+  public void shouldDetectKafkaIntKey() {
+    // When:
+    formatSingle(SERIZALIZED_KAFKA_INT, NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is("KAFKA (INTEGER)"));
+  }
+
+  @Test
+  public void shouldDetectKafkaBigIntKey() {
+    // When:
+    formatSingle(SERIZALIZED_KAFKA_BIGINT, NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is("KAFKA (BIGINT or DOUBLE)"));
+  }
+
+  @Test
+  public void shouldDetectKafkaDoubleKey() {
+    // When:
+    formatSingle(SERIZALIZED_KAFKA_DOUBLE, NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is("KAFKA (BIGINT or DOUBLE)"));
   }
 
   @Test
@@ -212,7 +249,7 @@ public class TopicStreamTest {
     );
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.MIXED));
+    assertThat(formatter.getKeyFormat(), is(Format.MIXED.toString()));
   }
 
   @Test
@@ -225,7 +262,7 @@ public class TopicStreamTest {
     );
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.MIXED));
+    assertThat(formatter.getValueFormat(), is(Format.MIXED.toString()));
   }
 
   @Test
@@ -234,8 +271,8 @@ public class TopicStreamTest {
     format(NULL_VARIANTS, NULL_VARIANTS);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.UNDEFINED));
-    assertThat(formatter.getValueFormat(), is(Format.UNDEFINED));
+    assertThat(formatter.getKeyFormat(), is(Format.UNDEFINED.toString()));
+    assertThat(formatter.getValueFormat(), is(Format.UNDEFINED.toString()));
   }
 
   @Test
@@ -247,7 +284,7 @@ public class TopicStreamTest {
     formatKeys(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
 
     // Then:
-    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+    assertThat(formatter.getKeyFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -259,7 +296,7 @@ public class TopicStreamTest {
     formatValues(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.JSON));
+    assertThat(formatter.getValueFormat(), is(Format.JSON.toString()));
   }
 
   @Test
@@ -285,6 +322,9 @@ public class TopicStreamTest {
 
   @Test
   public void shouldFormatAvroKey() {
+    // Given:
+    givenAvroSchemaRegistered();
+
     // When:
     final String formatted = formatSingle(SERIALIZED_AVRO_RECORD, NULL);
 
@@ -294,6 +334,9 @@ public class TopicStreamTest {
 
   @Test
   public void shouldFormatAvroValue() {
+    // Given:
+    givenAvroSchemaRegistered();
+
     // When:
     final String formatted = formatSingle(NULL, SERIALIZED_AVRO_RECORD);
 
@@ -361,7 +404,7 @@ public class TopicStreamTest {
     final String formatted = formatSingle(RANDOM_BYTES, NULL);
 
     // Then:
-    assertThat(formatted, containsString(", key: " + Bytes.wrap(RANDOM_BYTES).toString() + ", "));
+    assertThat(formatted, containsString(", key: " + new String(RANDOM_BYTES, UTF_8) + ", "));
   }
 
   @Test
@@ -370,7 +413,34 @@ public class TopicStreamTest {
     final String formatted = formatSingle(NULL, RANDOM_BYTES);
 
     // Then:
-    assertThat(formatted, containsString(", value: " + Bytes.wrap(RANDOM_BYTES).toString()));
+    assertThat(formatted, containsString(", value: " + new String(RANDOM_BYTES, UTF_8)));
+  }
+
+  @Test
+  public void shouldFormatKafkaIntKey() {
+    // When:
+    final String formatted = formatSingle(SERIZALIZED_KAFKA_INT, NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + KAFKA_INT + ", "));
+  }
+
+  @Test
+  public void shouldFormatKafkaBigIntKey() {
+    // When:
+    final String formatted = formatSingle(SERIZALIZED_KAFKA_BIGINT, NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + KAFKA_BIGINT + ", "));
+  }
+
+  @Test
+  public void shouldFormatKafkaDoubleKey() {
+    // When:
+    final String formatted = formatSingle(SERIZALIZED_KAFKA_DOUBLE, NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + longEquiv(KAFKA_DOUBLE) + ", "));
   }
 
   @Test
@@ -386,7 +456,7 @@ public class TopicStreamTest {
     assertThat(results, contains(
         containsString(", value: " + JSON_OBJECT),
         containsString(", value: " + DELIMITED_VALUE),
-        containsString(", value: " + Bytes.wrap(SERIALIZED_AVRO_RECORD).toString())
+        containsString(", value: " + new String(SERIALIZED_AVRO_RECORD, UTF_8))
     ));
   }
 
@@ -469,8 +539,30 @@ public class TopicStreamTest {
         .collect(Collectors.toList());
   }
 
+  private void givenAvroSchemaRegistered() {
+    try {
+      when(schemaRegistryClient.getSchemaById(anyInt()))
+          .thenReturn(new AvroSchema(AVRO_SCHEMA));
+    } catch (final Exception e) {
+      // meh.
+    }
+  }
+
+  /*
+  No way to tell between a double and a long once serialized.
+  KSQL defaults to long. So doubles are output as longs:
+   */
+  private static long longEquiv(final double kafkaDouble) {
+    final byte[] bytes = new DoubleSerializer().serialize("foo", kafkaDouble);
+    return new LongDeserializer().deserialize("foo", bytes);
+  }
+
   private static Bytes toBytes(final byte[] key) {
     return key == NULL ? null : Bytes.wrap(key);
+  }
+
+  private static <T> byte[] serialize(final T value, final Serializer<T> serializer) {
+    return serializer.serialize("topic", value);
   }
 
   @SuppressWarnings("SameParameterValue")

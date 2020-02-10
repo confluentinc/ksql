@@ -25,6 +25,8 @@ import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -40,6 +42,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,16 +131,16 @@ public final class TopicStream {
     // Todo(ac): Detect windwowed key?
     // Todo(ac): Look in SR
 
-    public Format getKeyFormat() {
+    public String getKeyFormat() {
       return keyFormatter
           .map(Formatter::getFormat)
-          .orElse(Format.UNDEFINED);
+          .orElse(Format.UNDEFINED.toString());
     }
 
-    public Format getValueFormat() {
+    public String getValueFormat() {
       return valueFormatter
           .map(Formatter::getFormat)
-          .orElse(Format.UNDEFINED);
+          .orElse(Format.UNDEFINED.toString());
     }
 
     private Optional<Formatter> getKeyFormatter(
@@ -173,7 +178,7 @@ public final class TopicStream {
           .map(this::findFormatter)
           .collect(Collectors.toList());
 
-      final Set<Format> formats = formatters.stream()
+      final Set<String> formats = formatters.stream()
           .map(Formatter::getFormat)
           .collect(Collectors.toSet());
 
@@ -206,7 +211,7 @@ public final class TopicStream {
 
     String print(Bytes data) throws IOException;
 
-    Format getFormat();
+    String getFormat();
   }
 
   enum Format {
@@ -248,8 +253,8 @@ public final class TopicStream {
           }
 
           @Override
-          public Format getFormat() {
-            return AVRO;
+          public String getFormat() {
+            return AVRO.toString();
           }
         };
       }
@@ -288,21 +293,64 @@ public final class TopicStream {
           }
 
           @Override
-          public Format getFormat() {
-            return JSON;
+          public String getFormat() {
+            return JSON.toString();
           }
         };
       }
     },
-    STRING {
+    KAFKA {
       @Override
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
           final Bytes data,
           final KafkaAvroDeserializer avroDeserializer
       ) {
-        // STRING always returns a formatter:
-        return Optional.of(createStringFormatter(STRING));
+        return KafkaSerdeFactory.SQL_SERDE.entrySet().stream()
+            .map(e -> trySerde(e.getKey(), e.getValue(), topicName, data))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .findFirst();
+      }
+
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      private Optional<Formatter> trySerde(
+          final SqlBaseType type,
+          final Serde<?> serde,
+          final String topicName,
+          final Bytes data
+      ) {
+        try {
+          final Deserializer<Object> deserializer = (Deserializer) serde.deserializer();
+          deserializer.deserialize(topicName, data.get());
+
+          return Optional.of(createFormatter(deserializer, topicName, type));
+
+        } catch (final Exception e) {
+          return Optional.empty();
+        }
+      }
+
+      private Formatter createFormatter(
+          final Deserializer<Object> deserializer,
+          final String topicName,
+          final SqlBaseType type
+      ) {
+        final String subType = type == SqlBaseType.BIGINT || type == SqlBaseType.DOUBLE
+            ? "BIGINT or DOUBLE" // Not possible to tell between them from bytes only.
+            : type.toString();
+
+        return new Formatter() {
+          @Override
+          public String print(final Bytes data) {
+            return deserializer.deserialize(topicName, data.get()).toString();
+          }
+
+          @Override
+          public String getFormat() {
+            return KAFKA + " (" + subType + ")";
+          }
+        };
       }
     },
     MIXED {
@@ -313,7 +361,7 @@ public final class TopicStream {
           final KafkaAvroDeserializer avroDeserializer
       ) {
         // Mixed mode defaults to string values:
-        return Optional.of(createStringFormatter(MIXED));
+        return Optional.of(createStringFormatter(MIXED.toString()));
       }
     };
 
@@ -323,16 +371,17 @@ public final class TopicStream {
         KafkaAvroDeserializer avroDeserializer
     );
 
-    private static Formatter createStringFormatter(final Format format) {
+    private static Formatter createStringFormatter(final String format) {
+      final StringDeserializer deserializer = new StringDeserializer();
       return new Formatter() {
 
         @Override
         public String print(final Bytes data) {
-          return data.toString();
+          return deserializer.deserialize("", data.get());
         }
 
         @Override
-        public Format getFormat() {
+        public String getFormat() {
           return format;
         }
       };

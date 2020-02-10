@@ -994,6 +994,27 @@
           {"row":{"columns":[10.1, "2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1580223282456, 1]}}
         ]}
       ]
+    },
+    {
+      "name": "system columns in projection",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWTIME, ROWKEY, WINDOWSTART, WINDOWEND FROM AGGREGATE WHERE ROWKEY=10.1 AND WindowStart=12000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": 10.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY"}},
+          {"row":{"columns":[12345, 10.1, 12000, 13000]}}
+        ]}
+      ]
     }
   ]
 }

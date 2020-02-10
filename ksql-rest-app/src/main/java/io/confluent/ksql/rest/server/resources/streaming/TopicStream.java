@@ -32,10 +32,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.utils.Bytes;
@@ -55,6 +57,7 @@ public final class TopicStream {
     private final String topicName;
     private final DateFormat dateFormat;
 
+    private Optional<Formatter> keyFormatter = Optional.empty();
     private Optional<Formatter> valueFormatter = Optional.empty();
 
     public RecordFormatter(
@@ -79,8 +82,11 @@ public final class TopicStream {
       this.dateFormat = requireNonNull(dateFormat, "dateFormat");
     }
 
-    // Todo(ac): String type of key
-    public List<Supplier<String>> format(final Iterable<ConsumerRecord<String, Bytes>> records) {
+    public List<Supplier<String>> format(final Iterable<ConsumerRecord<Bytes, Bytes>> records) {
+      if (!keyFormatter.isPresent()) {
+        keyFormatter = getKeyFormatter(records);
+      }
+
       if (!valueFormatter.isPresent()) {
         valueFormatter = getValueFormatter(records);
       }
@@ -91,14 +97,16 @@ public final class TopicStream {
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent") // will not be empty if needed
-    private Supplier<String> delayedFormat(final ConsumerRecord<String, Bytes> record) {
+    private Supplier<String> delayedFormat(final ConsumerRecord<Bytes, Bytes> record) {
       return () -> {
         try {
           final String rowTime = record.timestamp() == ConsumerRecord.NO_TIMESTAMP
               ? "N/A"
               : dateFormat.format(new Date(record.timestamp()));
 
-          final String rowKey = record.key() == null ? "<null>" : record.key();
+          final String rowKey = record.key() == null || record.key().get() == null
+              ? "<null>"
+              : keyFormatter.get().print(record.key());
 
           final String value = record.value() == null || record.value().get() == null
               ? "<null>"
@@ -118,24 +126,51 @@ public final class TopicStream {
     // Todo(ac): Detect windwowed key?
     // Todo(ac): Look in SR
 
+    public Format getKeyFormat() {
+      return keyFormatter
+          .map(Formatter::getFormat)
+          .orElse(Format.UNDEFINED);
+    }
+
     public Format getValueFormat() {
       return valueFormatter
           .map(Formatter::getFormat)
           .orElse(Format.UNDEFINED);
     }
 
-    private Optional<Formatter> getValueFormatter(
-        final Iterable<ConsumerRecord<String, Bytes>> records
+    private Optional<Formatter> getKeyFormatter(
+        final Iterable<ConsumerRecord<Bytes, Bytes>> records
     ) {
       if (Iterables.isEmpty(records)) {
         return Optional.empty();
       }
 
-      final List<Formatter> formatters = StreamSupport
+      final Stream<Bytes> valueStream = StreamSupport
           .stream(records.spliterator(), false)
-          .filter(r -> r.value() != null)
-          .filter(r -> r.value().get() != null)
-          .map(this::getValueFormatter)
+          .map(ConsumerRecord::key);
+
+      return findFormatter(valueStream);
+    }
+
+    private Optional<Formatter> getValueFormatter(
+        final Iterable<ConsumerRecord<Bytes, Bytes>> records
+    ) {
+      if (Iterables.isEmpty(records)) {
+        return Optional.empty();
+      }
+
+      final Stream<Bytes> valueStream = StreamSupport
+          .stream(records.spliterator(), false)
+          .map(ConsumerRecord::value);
+
+      return findFormatter(valueStream);
+    }
+
+    private Optional<Formatter> findFormatter(final Stream<Bytes> dataStream) {
+      final List<Formatter> formatters = dataStream
+          .filter(Objects::nonNull)
+          .filter(d -> d.get() != null)
+          .map(this::findFormatter)
           .collect(Collectors.toList());
 
       final Set<Format> formats = formatters.stream()
@@ -157,9 +192,9 @@ public final class TopicStream {
       }
     }
 
-    private Formatter getValueFormatter(final ConsumerRecord<String, Bytes> record) {
+    private Formatter findFormatter(final Bytes data) {
       return Arrays.stream(Format.values())
-          .map(f -> f.maybeGetFormatter(topicName, record.value(), avroDeserializer))
+          .map(f -> f.maybeGetFormatter(topicName, data, avroDeserializer))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst()

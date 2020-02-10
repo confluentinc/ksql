@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -31,7 +33,6 @@ import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -56,15 +57,15 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
       final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic) {
-    this.exec = exec;
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.consumerProperties = Objects.requireNonNull(consumerProperties, "consumerProperties");
-    this.printTopic = Objects.requireNonNull(printTopic, "printTopic");
+    this.exec = requireNonNull(exec, "exec");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.consumerProperties = requireNonNull(consumerProperties, "consumerProperties");
+    this.printTopic = requireNonNull(printTopic, "printTopic");
   }
 
   @Override
   public void subscribe(final Flow.Subscriber<Collection<String>> subscriber) {
-    final KafkaConsumer<String, Bytes> topicConsumer =
+    final KafkaConsumer<Bytes, Bytes> topicConsumer =
         PrintTopicUtil.createTopicConsumer(serviceContext, consumerProperties, printTopic);
 
     subscriber.onSubscribe(
@@ -84,7 +85,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
   static class PrintSubscription extends PollingSubscription<Collection<String>> {
 
     private final PrintTopic printTopic;
-    private final KafkaConsumer<String, Bytes> topicConsumer;
+    private final KafkaConsumer<Bytes, Bytes> topicConsumer;
     private final RecordFormatter formatter;
     private boolean closed = false;
 
@@ -95,19 +96,19 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
         final ListeningScheduledExecutorService exec,
         final PrintTopic printTopic,
         final Subscriber<Collection<String>> subscriber,
-        final KafkaConsumer<String, Bytes> topicConsumer,
+        final KafkaConsumer<Bytes, Bytes> topicConsumer,
         final RecordFormatter formatter
     ) {
       super(exec, subscriber, null);
-      this.printTopic = Objects.requireNonNull(printTopic, "printTopic");
-      this.topicConsumer = Objects.requireNonNull(topicConsumer, "topicConsumer");
-      this.formatter = Objects.requireNonNull(formatter, "formatter");
+      this.printTopic = requireNonNull(printTopic, "printTopic");
+      this.topicConsumer = requireNonNull(topicConsumer, "topicConsumer");
+      this.formatter = requireNonNull(formatter, "formatter");
     }
 
     @Override
     public Collection<String> poll() {
       try {
-        final ConsumerRecords<String, Bytes> records = topicConsumer.poll(Duration.ZERO);
+        final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(Duration.ZERO);
         if (records.isEmpty()) {
           return null;
         }
@@ -163,7 +164,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
       Preconditions.checkArgument(interval > 0, "interval must be greater than 0");
       Preconditions.checkArgument(start >= 0, "start must be greater than or equal to 0");
       Preconditions.checkArgument(limit >= 0, "limit must be greater than or equal to 0");
-      Objects.requireNonNull(source, "source");
+      requireNonNull(source, "source");
 
       this.source = Iterables.skip(source, start);
       this.size = Math.min(

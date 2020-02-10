@@ -403,9 +403,9 @@ public class CliTest {
 
     // Then:
     assertThatEventually(() -> terminal.getOutputString(), containsString("Value-Format:JSON"));
-    // Todo(ac): assertThat(terminal.getOutputString(), containsString("Key-Format:KAFKA (BIGINT)"));
+    assertThat(terminal.getOutputString(), containsString("Key-Format:STRING")); // Todo(ac): Kafka BIGINT
     assertThat(terminal.getOutputString(), containsString(","
-        + " key: \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001, " // Todo(ac):
+        + " key: \\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01, " // Todo(ac):
         + "value: {"
         + "\"ORDERTIME\":1,"
         + "\"ORDERID\":" + "\"ORDER_1\","
@@ -424,7 +424,7 @@ public class CliTest {
 
     // Then:
     assertThatEventually(() -> terminal.getOutputString(), containsString("Value-Format:STRING"));
-    // Todo(ac): assertThat(terminal.getOutputString(), containsString("Key-Format:KAFKA (STRING)"));
+    assertThat(terminal.getOutputString(), containsString("Key-Format:STRING")); // Todo(ac): Kafka STRING
     assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
     assertThat(terminal.getOutputString(), containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
   }

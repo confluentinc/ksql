@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -27,7 +28,6 @@ import java.io.OutputStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 import javax.ws.rs.core.StreamingOutput;
@@ -40,9 +40,9 @@ import org.slf4j.LoggerFactory;
 public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
-  private final Long interval;
+  private final long interval;
   private final Duration disconnectCheckInterval;
-  private final KafkaConsumer<String, Bytes> topicConsumer;
+  private final KafkaConsumer<Bytes, Bytes> topicConsumer;
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
   private final OptionalInt limit;
@@ -70,21 +70,25 @@ public class TopicStreamWriter implements StreamingOutput {
 
   TopicStreamWriter(
       final SchemaRegistryClient schemaRegistryClient,
-      final KafkaConsumer<String, Bytes> topicConsumer,
+      final KafkaConsumer<Bytes, Bytes> topicConsumer,
       final String topicName,
       final long interval,
       final Duration disconnectCheckInterval,
       final OptionalInt limit
   ) {
-    this.topicConsumer = topicConsumer;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.topicName = topicName;
+    this.topicConsumer = requireNonNull(topicConsumer, "topicConsumer");
+    this.schemaRegistryClient = requireNonNull(schemaRegistryClient, "schemaRegistryClient");
+    this.topicName = requireNonNull(topicName, "topicName");
     this.interval = interval;
-    this.limit = limit;
-    this.disconnectCheckInterval = Objects
-        .requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
+    this.limit = requireNonNull(limit, "limit");
+    this.disconnectCheckInterval =
+        requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.messagesWritten = 0;
     this.messagesPolled = 0;
+
+    if (interval < 1) {
+      throw new IllegalArgumentException("INTERVAL must be greater than one, but was: " + interval);
+    }
   }
 
   @Override
@@ -94,7 +98,7 @@ public class TopicStreamWriter implements StreamingOutput {
 
       boolean printFormat = true;
       while (true) {
-        final ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
+        final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
           out.write("\n".getBytes(UTF_8));
           out.flush();
@@ -105,7 +109,7 @@ public class TopicStreamWriter implements StreamingOutput {
         for (final Supplier<String> value : values) {
           if (printFormat) {
             printFormat = false;
-            // Todo(ac): Key-Format
+            out.write(("Key-Format:" + formatter.getKeyFormat().name() + "\n").getBytes(UTF_8));
             out.write(("Value-Format:" + formatter.getValueFormat().name() + "\n").getBytes(UTF_8));
           }
 

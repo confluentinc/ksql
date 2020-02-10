@@ -31,17 +31,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PrintSubscriptionTest {
 
-  @Mock public KafkaConsumer<String, Bytes> kafkaConsumer;
+  @Mock public KafkaConsumer<Bytes, Bytes> kafkaConsumer;
   @Mock public SchemaRegistryClient schemaRegistry;
 
   @Before
   public void setup() {
-    final Iterator<ConsumerRecords<String, Bytes>> records = StreamingTestUtils.generate(
+    final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> "key" + i,
+        i -> new Bytes(("key" + i).getBytes(Charsets.UTF_8)),
         i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
 
-    final Iterator<ConsumerRecords<String, Bytes>> partitioned =
+    final Iterator<ConsumerRecords<Bytes, Bytes>> partitioned =
         StreamingTestUtils.partition(records, 3);
 
     when(kafkaConsumer.poll(any(Duration.class)))

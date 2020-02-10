@@ -39,27 +39,28 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
 
+@SuppressWarnings("UnstableApiUsage")
 final class StreamingTestUtils {
 
   private StreamingTestUtils() { /* private constructor for utility class */ }
 
-  static Iterator<ConsumerRecords<String, Bytes>> generate(
+  static Iterator<ConsumerRecords<Bytes, Bytes>> generate(
       final String topic,
-      final Function<Integer, String> keyMapper,
+      final Function<Integer, Bytes> keyMapper,
       final Function<Integer, Bytes> valueMapper) {
     return IntStream.iterate(0, i -> i + 1)
         .mapToObj(
             i -> new ConsumerRecord<>(topic, 0, i, keyMapper.apply(i), valueMapper.apply(i)))
         .map(Lists::newArrayList)
-        .map(crs -> (List<ConsumerRecord<String, Bytes>>) crs)
+        .map(crs -> (List<ConsumerRecord<Bytes, Bytes>>) crs)
         .map(crs -> ImmutableMap.of(new TopicPartition("topic", 0), crs))
-        .map(map -> (Map<TopicPartition, List<ConsumerRecord<String, Bytes>>>) map)
+        .map(map -> (Map<TopicPartition, List<ConsumerRecord<Bytes, Bytes>>>) map)
         .map(ConsumerRecords::new)
         .iterator();
   }
 
-  static Iterator<ConsumerRecords<String, Bytes>> partition(
-      final Iterator<ConsumerRecords<String, Bytes>> source,
+  static Iterator<ConsumerRecords<Bytes, Bytes>> partition(
+      final Iterator<ConsumerRecords<Bytes, Bytes>> source,
       final int partitions) {
     return Streams.stream(Iterators.partition(source, partitions))
         .map(StreamingTestUtils::combine)

@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -105,27 +106,45 @@ public class TopicStreamTest {
   }
 
   @Test
-  public void shouldDetectAvro() {
+  public void shouldDetectAvroKey() {
     // When:
-    format(SERIALIZED_AVRO_RECORD);
+    formatSingle(SERIALIZED_AVRO_RECORD, NULL);
 
     // Then:
-    assertThat(formatter.getValueFormat(), is(Format.AVRO));
+    assertThat(formatter.getKeyFormat(), is(Format.AVRO));
   }
 
   @Test
-  public void shouldDetectJsonObject() {
+  public void shouldDetectJsonObjectKey() {
     // When:
-    format(JSON_OBJECT.getBytes(UTF_8));
+    formatSingle(JSON_OBJECT.getBytes(UTF_8), SERIALIZED_AVRO_RECORD);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+  }
+
+  @Test
+  public void shouldDetectJsonObjectValue() {
+    // When:
+    formatSingle(SERIALIZED_AVRO_RECORD, JSON_OBJECT.getBytes(UTF_8));
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.JSON));
   }
 
   @Test
-  public void shouldDetectJsonArray() {
+  public void shouldDetectJsonArrayKey() {
     // When:
-    format(JSON_ARRAY.getBytes(UTF_8));
+    formatSingle(JSON_ARRAY.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+  }
+
+  @Test
+  public void shouldDetectJsonArrayValue() {
+    // When:
+    formatSingle(NULL, JSON_ARRAY.getBytes(UTF_8));
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.JSON));
@@ -141,34 +160,65 @@ public class TopicStreamTest {
         "}";
 
     // When:
-    format(notJson.getBytes(UTF_8));
+    formatSingle(SERIALIZED_AVRO_RECORD, notJson.getBytes(UTF_8));
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.STRING));
   }
 
   @Test
-  public void shouldDetectDelimitedAsString() {
+  public void shouldDetectDelimitedAsStringKey() {
     // When:
-    format(DELIMITED_VALUE.getBytes(UTF_8));
+    formatSingle(DELIMITED_VALUE.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.STRING));
+  }
+
+  @Test
+  public void shouldDetectDelimitedAsStringValue() {
+    // When:
+    formatSingle(NULL, DELIMITED_VALUE.getBytes(UTF_8));
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.STRING));
   }
 
   @Test
-  public void shouldDetectRandomBytesAsString() {
+  public void shouldDetectRandomBytesAsStringKey() {
     // When:
-    format(RANDOM_BYTES);
+    formatSingle(RANDOM_BYTES, NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.STRING));
+  }
+
+  @Test
+  public void shouldDetectRandomBytesAsStringValue() {
+    // When:
+    formatSingle(NULL, RANDOM_BYTES);
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.STRING));
   }
 
   @Test
-  public void shouldDetectMixedMode() {
+  public void shouldDetectMixedModeKey() {
     // When:
-    format(
+    formatKeys(
+        JSON_OBJECT.getBytes(UTF_8),
+        DELIMITED_VALUE.getBytes(UTF_8),
+        SERIALIZED_AVRO_RECORD
+    );
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.MIXED));
+  }
+
+  @Test
+  public void shouldDetectMixedModeValue() {
+    // When:
+    formatValues(
         JSON_OBJECT.getBytes(UTF_8),
         DELIMITED_VALUE.getBytes(UTF_8),
         SERIALIZED_AVRO_RECORD
@@ -181,19 +231,32 @@ public class TopicStreamTest {
   @Test
   public void shouldDeferFormatDetectionOnNulls() {
     // When:
-    format(NULL_VARIANTS);
+    format(NULL_VARIANTS, NULL_VARIANTS);
 
     // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.UNDEFINED));
     assertThat(formatter.getValueFormat(), is(Format.UNDEFINED));
   }
 
   @Test
-  public void shouldDetermineFormatsOnSecondCallIfNoViableRecordsInFirst() {
+  public void shouldDetermineKeyFormatsOnSecondCallIfNoViableRecordsInFirst() {
     // Given:
-    format(NULL);
+    formatSingle(NULL, NULL);
 
     // When:
-    format(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
+    formatKeys(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatter.getKeyFormat(), is(Format.JSON));
+  }
+
+  @Test
+  public void shouldDetermineValueFormatsOnSecondCallIfNoViableRecordsInFirst() {
+    // Given:
+    formatSingle(NULL, NULL);
+
+    // When:
+    formatValues(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
 
     // Then:
     assertThat(formatter.getValueFormat(), is(Format.JSON));
@@ -202,7 +265,7 @@ public class TopicStreamTest {
   @Test
   public void shouldOutputRowTime() {
     // When:
-    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+    final String formatted = formatSingle(NULL, NULL);
 
     // Then:
     assertThat(formatted, containsString("rowtime: 02/10/2020 20:26:44 +0000, "));
@@ -214,61 +277,97 @@ public class TopicStreamTest {
     timestamp = ConsumerRecord.NO_TIMESTAMP;
 
     // When:
-    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+    final String formatted = formatSingle(NULL, NULL);
 
     // Then:
     assertThat(formatted, containsString("rowtime: N/A, "));
   }
 
   @Test
-  public void shouldOutputStringKey() {
+  public void shouldFormatAvroKey() {
     // When:
-    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+    final String formatted = formatSingle(SERIALIZED_AVRO_RECORD, NULL);
 
     // Then:
-    assertThat(formatted, containsString(", key: " + STRING_KEY + ", "));
+    assertThat(formatted, containsString(", key: {\"str1\": \"My first string\"}, "));
   }
 
   @Test
-  public void shouldFormatAvro() {
+  public void shouldFormatAvroValue() {
     // When:
-    final String formatted = format(SERIALIZED_AVRO_RECORD);
+    final String formatted = formatSingle(NULL, SERIALIZED_AVRO_RECORD);
 
     // Then:
     assertThat(formatted, endsWith(", value: {\"str1\": \"My first string\"}"));
   }
 
   @Test
-  public void shouldFormatJsonDocument() {
+  public void shouldFormatJsonObjectKey() {
     // When:
-    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+    final String formatted = formatSingle(JSON_OBJECT.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + JSON_OBJECT + ", "));
+  }
+
+  @Test
+  public void shouldFormatJsonObjectValue() {
+    // When:
+    final String formatted = formatSingle(NULL, JSON_OBJECT.getBytes(UTF_8));
 
     // Then:
     assertThat(formatted, containsString(", value: " + JSON_OBJECT));
   }
 
   @Test
-  public void shouldFormatJsonArray() {
+  public void shouldFormatJsonArrayKey() {
     // When:
-    final String formatted = format(JSON_ARRAY.getBytes(UTF_8));
+    final String formatted = formatSingle(JSON_ARRAY.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + JSON_ARRAY + ", "));
+  }
+
+  @Test
+  public void shouldFormatJsonArrayValue() {
+    // When:
+    final String formatted = formatSingle(NULL, JSON_ARRAY.getBytes(UTF_8));
 
     // Then:
     assertThat(formatted, containsString(", value: " + JSON_ARRAY));
   }
 
   @Test
-  public void shouldFormatDelimitedAsString() {
+  public void shouldFormatDelimitedAsStringKey() {
     // When:
-    final String formatted = format(DELIMITED_VALUE.getBytes(UTF_8));
+    final String formatted = formatSingle(DELIMITED_VALUE.getBytes(UTF_8), NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + DELIMITED_VALUE + ", "));
+  }
+
+  @Test
+  public void shouldFormatDelimitedAsStringValue() {
+    // When:
+    final String formatted = formatSingle(NULL, DELIMITED_VALUE.getBytes(UTF_8));
 
     // Then:
     assertThat(formatted, containsString(", value: " + DELIMITED_VALUE));
   }
 
   @Test
-  public void shouldFormatRandomBytesAsString() {
+  public void shouldFormatRandomBytesAsStringKey() {
     // When:
-    final String formatted = format(RANDOM_BYTES);
+    final String formatted = formatSingle(RANDOM_BYTES, NULL);
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + Bytes.wrap(RANDOM_BYTES).toString() + ", "));
+  }
+
+  @Test
+  public void shouldFormatRandomBytesAsStringValue() {
+    // When:
+    final String formatted = formatSingle(NULL, RANDOM_BYTES);
 
     // Then:
     assertThat(formatted, containsString(", value: " + Bytes.wrap(RANDOM_BYTES).toString()));
@@ -277,7 +376,7 @@ public class TopicStreamTest {
   @Test
   public void shouldDefaultToStringFormattingInMixedMode() {
     // When:
-    final List<String> results = format(
+    final List<String> results = formatValues(
         JSON_OBJECT.getBytes(UTF_8),
         DELIMITED_VALUE.getBytes(UTF_8),
         SERIALIZED_AVRO_RECORD
@@ -294,7 +393,7 @@ public class TopicStreamTest {
   @Test
   public void shouldFormatNulls() {
     // When:
-    final List<String> formatted = format(NULL_VARIANTS);
+    final List<String> formatted = format(NULL_VARIANTS, NULL_VARIANTS);
 
     // Then:
     assertThat(formatted, contains(
@@ -306,45 +405,72 @@ public class TopicStreamTest {
   @Test
   public void shouldFormatNullJsonRecord() {
     // Given:
-    format(JSON_OBJECT.getBytes(UTF_8));
+    formatSingle(NULL, JSON_OBJECT.getBytes(UTF_8));
 
     // When:
-    final String formatted = format("null".getBytes(UTF_8));
+    final String formatted = formatSingle(NULL, "null".getBytes(UTF_8));
 
     // Then:
     assertThat(formatted, containsString(", value: null"));
   }
 
-  private String format(final byte[] only) {
-    final List<String> formatted = format(only, NO_ADDITIONAL_ITEMS);
+  private String formatSingle(final byte[] key, final byte[] value) {
+    final List<String> formatted = format(
+        Collections.singletonList(toBytes(key)),
+        Collections.singletonList(toBytes(value))
+    );
     assertThat("Only expect one line", formatted, hasSize(1));
 
     return formatted.get(0);
   }
 
-  private List<String> format(final byte[] first, final byte[]... others) {
+  private List<String> formatKeys(final byte[] first, final byte[]... others) {
+
+    final List<Bytes> keys = Streams
+        .concat(Stream.of(first), Arrays.stream(others))
+        .map(TopicStreamTest::toBytes)
+        .collect(Collectors.toList());
+
+    final List<Bytes> values = IntStream.range(0, keys.size())
+        .mapToObj(idx -> (Bytes)null)
+        .collect(Collectors.toList());
+
+    return format(keys, values);
+  }
+
+ private List<String> formatValues(final byte[] first, final byte[]... others) {
 
     final List<Bytes> values = Streams
         .concat(Stream.of(first), Arrays.stream(others))
-        .map(data -> data == NULL ? null : Bytes.wrap(data))
+        .map(TopicStreamTest::toBytes)
         .collect(Collectors.toList());
 
-    return format(values);
+    final List<Bytes> keys = IntStream.range(0, values.size())
+        .mapToObj(idx -> (Bytes)null)
+        .collect(Collectors.toList());
+
+    return format(keys, values);
   }
 
-  private List<String> format(final List<Bytes> values) {
+  private List<String> format(final List<Bytes> keys, final List<Bytes> values) {
+    assertThat("invalid test", keys, hasSize(values.size()));
 
-    final List<ConsumerRecord<String, Bytes>> recs = values.stream()
-        .map(data -> new ConsumerRecord<>(TOPIC_NAME, 1, 1, timestamp,
-            TimestampType.CREATE_TIME, 123, 1, 1, STRING_KEY, data))
+    final List<ConsumerRecord<Bytes, Bytes>> recs = IntStream.range(0, keys.size())
+        .mapToObj(idx -> new ConsumerRecord<>(TOPIC_NAME, 1, 1, timestamp,
+            TimestampType.CREATE_TIME, 123, 1, 1,
+            keys.get(idx), values.get(idx)))
         .collect(Collectors.toList());
 
-    final ConsumerRecords<String, Bytes> records =
+    final ConsumerRecords<Bytes, Bytes> records =
         new ConsumerRecords<>(ImmutableMap.of(new TopicPartition(TOPIC_NAME, 1), recs));
 
     return formatter.format(records).stream()
         .map(Supplier::get)
         .collect(Collectors.toList());
+  }
+
+  private static Bytes toBytes(final byte[] key) {
+    return key == NULL ? null : Bytes.wrap(key);
   }
 
   @SuppressWarnings("SameParameterValue")

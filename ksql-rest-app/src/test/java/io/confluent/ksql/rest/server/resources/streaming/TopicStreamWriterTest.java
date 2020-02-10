@@ -43,16 +43,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TopicStreamWriterTest {
 
   @Mock
-  public KafkaConsumer<String, Bytes> kafkaConsumer;
+  public KafkaConsumer<Bytes, Bytes> kafkaConsumer;
   @Mock
   public SchemaRegistryClient schemaRegistry;
   private ValidatingOutputStream out;
 
   @Before
   public void setup() {
-    final Iterator<ConsumerRecords<String, Bytes>> records = StreamingTestUtils.generate(
+    final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> "key" + i,
+        i -> new Bytes(("key" + i).getBytes(Charsets.UTF_8)),
         i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
 
     when(kafkaConsumer.poll(any(Duration.class)))
@@ -78,6 +78,7 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
+        "Key-Format:STRING",
         "Value-Format:STRING",
         "rowtime: N/A, key: key0, value: value0",
         System.lineSeparator(),
@@ -106,6 +107,7 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
+        "Key-Format:STRING",
         "Value-Format:STRING",
         "rowtime: N/A, key: key0, value: value0",
         System.lineSeparator(),
@@ -131,13 +133,19 @@ public class TopicStreamWriterTest {
     }
 
     void assertWrites(final List<String> expected) {
-      assertThat(recordedWrites, hasSize(expected.size()));
+
       for (int i = 0; i < recordedWrites.size(); i++) {
         final byte[] bytes = recordedWrites.get(i);
+        if (expected.size() <= i) {
+          break;
+        }
+
         assertThat(
             new String(bytes, Charsets.UTF_8),
             containsString(expected.get(i)));
       }
+
+      assertThat(recordedWrites, hasSize(expected.size()));
     }
   }
 }

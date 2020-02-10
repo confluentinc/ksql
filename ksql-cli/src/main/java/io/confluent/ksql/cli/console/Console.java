@@ -16,7 +16,6 @@
 package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -322,7 +321,7 @@ public class Console implements Closeable {
 
   public void printError(final String shortMsg, final String fullMsg) {
     log.error(fullMsg);
-    writer().println(shortMsg);
+    terminal.printError(shortMsg);
   }
 
   public void printStreamedRow(final StreamedRow row) {

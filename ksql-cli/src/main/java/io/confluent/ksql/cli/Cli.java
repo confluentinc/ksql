@@ -16,7 +16,6 @@
 package io.confluent.ksql.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
@@ -175,7 +174,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         eof = true;
       } catch (final Exception exception) {
         LOGGER.error("", exception);
-        terminal.writer().println(ErrorMessageUtil.buildErrorMessage(exception));
+        terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+            exception.toString());
       }
       terminal.flush();
     }

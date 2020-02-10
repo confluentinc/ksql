@@ -153,6 +153,13 @@ class JLineTerminal implements KsqlTerminal {
     return () -> updateStatusBar(DEFAULT_STATUS_MSG);
   }
 
+  @Override
+  public void printError(final String message) {
+    writer().println(
+        new AttributedString(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+            .toAnsi());
+  }
+
   @VisibleForTesting
   Terminal getTerminal() {
     return terminal;

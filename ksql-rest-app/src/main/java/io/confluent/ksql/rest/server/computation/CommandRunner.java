@@ -145,7 +145,6 @@ public class CommandRunner implements Closeable {
       Thread.currentThread().interrupt();
     }
     commandRunnerStatusMetric.close();
-    commandStore.close();
   }
 
   /**
@@ -284,6 +283,8 @@ public class CommandRunner implements Closeable {
         if (!closed) {
           throw wue;
         }
+      } finally {
+        commandStore.close();
       }
     }
   }

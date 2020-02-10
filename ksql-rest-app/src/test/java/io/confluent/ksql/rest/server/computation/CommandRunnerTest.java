@@ -49,6 +49,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -85,6 +87,8 @@ public class CommandRunnerTest {
   private QueuedCommand queuedCommand3;
   @Mock
   private ExecutorService executor;
+  @Captor
+  private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
 
   @Before
@@ -141,9 +145,11 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(serverState).setTerminating();
-    verify(commandStore).close();
-    verify(clusterTerminator).terminateCluster(anyList());
+    final InOrder inOrder = inOrder(serverState, commandStore, clusterTerminator, statementExecutor);
+    inOrder.verify(serverState).setTerminating();
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(clusterTerminator).terminateCluster(anyList());
+
     verify(statementExecutor, never()).handleRestore(any());
   }
 
@@ -295,6 +301,9 @@ public class CommandRunnerTest {
 
   @Test
   public void shouldCloseTheCommandRunnerCorrectly() throws Exception {
+    // Given:
+    commandRunner.start();
+
     // When:
     commandRunner.close();
 
@@ -302,16 +311,17 @@ public class CommandRunnerTest {
     final InOrder inOrder = inOrder(executor, commandStore);
     inOrder.verify(commandStore).wakeup();
     inOrder.verify(executor).awaitTermination(anyLong(), any());
-    inOrder.verify(commandStore).close();
+    inOrder.verify(commandStore, never()).close(); // commandStore must be closed by runner thread
+
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    verify(commandStore).close();
   }
 
-  @Test(expected = RuntimeException.class)
-  public void shouldThrowExceptionIfCannotCloseCommandStore() {
-    // Given:
-    doThrow(RuntimeException.class).when(commandStore).close();
-
-    // When:
-    commandRunner.close();
+  private Runnable getThreadTask() {
+    verify(executor).execute(threadTaskCaptor.capture());
+    return threadTaskCaptor.getValue();
   }
 
   private void givenQueuedCommands(final QueuedCommand... cmds) {

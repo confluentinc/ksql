@@ -94,7 +94,7 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertFalse(filter.filter(HOST1));
+    assertTrue(filter.filter(HOST1));
   }
 
   @Test

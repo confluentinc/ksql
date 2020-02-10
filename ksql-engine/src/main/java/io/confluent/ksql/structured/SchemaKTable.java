@@ -139,7 +139,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(final Expression keyExpression,
       final Stacker contextStacker) {
-    if (!needsRepartition(keyExpression)) {
+    if (repartitionNotNeeded(keyExpression)) {
       return (SchemaKStream<Struct>) this;
     }
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -24,28 +25,33 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
-public class StatementRewriteForRowtime {
+public class StatementRewriteForMagicPseudoTimestamp {
+
+  private static final Set<ColumnName> SUPPORTED_COLUMNS = ImmutableSet.<ColumnName>builder()
+      .addAll(SchemaUtil.windowBoundsColumnNames())
+      .add(SchemaUtil.ROWTIME_NAME)
+      .build();
+
 
   private final PartialStringToTimestampParser parser;
 
-  public StatementRewriteForRowtime() {
+  public StatementRewriteForMagicPseudoTimestamp() {
     this(new PartialStringToTimestampParser());
   }
 
   @VisibleForTesting
-  StatementRewriteForRowtime(final PartialStringToTimestampParser parser) {
+  StatementRewriteForMagicPseudoTimestamp(final PartialStringToTimestampParser parser) {
     this.parser = Objects.requireNonNull(parser, "parser");
   }
 
-  public Expression rewriteForRowtime(final Expression expression) {
-    if (noRewriteRequired(expression)) {
-      return expression;
-    }
+  public Expression rewrite(final Expression expression) {
     return new ExpressionTreeRewriter<>(new OperatorPlugin()::process)
         .rewrite(expression, null);
   }
@@ -66,7 +72,13 @@ public class StatementRewriteForRowtime {
         final BetweenPredicate node,
         final Context<Void> context
     ) {
-      if (noRewriteRequired(node.getValue())) {
+      if (!supportedColumnRef(node.getValue())) {
+        return Optional.empty();
+      }
+
+      final Optional<Expression> min = maybeRewriteTimestamp(node.getMin());
+      final Optional<Expression> max = maybeRewriteTimestamp(node.getMax());
+      if (!min.isPresent() && !max.isPresent()) {
         return Optional.empty();
       }
 
@@ -74,8 +86,8 @@ public class StatementRewriteForRowtime {
           new BetweenPredicate(
               node.getLocation(),
               node.getValue(),
-              rewriteTimestamp(((StringLiteral) node.getMin()).getValue()),
-              rewriteTimestamp(((StringLiteral) node.getMax()).getValue())
+              min.orElse(node.getMin()),
+              max.orElse(node.getMax())
           )
       );
     }
@@ -85,42 +97,45 @@ public class StatementRewriteForRowtime {
         final ComparisonExpression node,
         final Context<Void> context
     ) {
-      if (expressionIsRowtime(node.getLeft()) && node.getRight() instanceof StringLiteral) {
-        return Optional.of(
-            new ComparisonExpression(
-                node.getLocation(),
-                node.getType(),
-                node.getLeft(),
-                rewriteTimestamp(((StringLiteral) node.getRight()).getValue())
-            )
-        );
+      if (supportedColumnRef(node.getLeft())) {
+        final Optional<Expression> right = maybeRewriteTimestamp(node.getRight());
+        return right.map(r -> new ComparisonExpression(
+            node.getLocation(),
+            node.getType(),
+            node.getLeft(),
+            r
+        ));
       }
 
-      if (expressionIsRowtime(node.getRight()) && node.getLeft() instanceof StringLiteral) {
-        return Optional.of(
-            new ComparisonExpression(
-                node.getLocation(),
-                node.getType(),
-                rewriteTimestamp(((StringLiteral) node.getLeft()).getValue()),
-                node.getRight()
-            )
-        );
+      if (supportedColumnRef(node.getRight())) {
+        final Optional<Expression> left = maybeRewriteTimestamp(node.getLeft());
+        return left.map(l -> new ComparisonExpression(
+            node.getLocation(),
+            node.getType(),
+            l,
+            node.getRight()
+        ));
       }
 
       return Optional.empty();
     }
   }
 
-  private static boolean refIsRowtime(final ColumnReferenceExp node) {
-    return node.getReference().equals(SchemaUtil.ROWTIME_NAME);
+  private Optional<Expression> maybeRewriteTimestamp(final Expression maybeTimestamp) {
+    if (!(maybeTimestamp instanceof StringLiteral)) {
+      return Optional.empty();
+    }
+
+    final String text = ((StringLiteral) maybeTimestamp).getValue();
+
+    return Optional.of(new LongLiteral(parser.parse(text)));
   }
 
-  private static boolean expressionIsRowtime(final Expression node) {
-    return (node instanceof ColumnReferenceExp)
-        && refIsRowtime((ColumnReferenceExp) node);
-  }
+  private static boolean supportedColumnRef(final Expression maybeColumnRef) {
+    if (!(maybeColumnRef instanceof ColumnReferenceExp)) {
+      return false;
+    }
 
-  private LongLiteral rewriteTimestamp(final String timestamp) {
-    return new LongLiteral(parser.parse(timestamp));
+    return SUPPORTED_COLUMNS.contains(((ColumnReferenceExp) maybeColumnRef).getReference());
   }
 }

@@ -17,7 +17,7 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
+import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -136,8 +136,7 @@ public class SchemaKStream<K> {
   }
 
   static Expression rewriteTimeComparisonForFilter(final Expression expression) {
-    return new StatementRewriteForRowtime()
-        .rewriteForRowtime(expression);
+    return new StatementRewriteForMagicPseudoTimestamp().rewrite(expression);
   }
 
   public SchemaKStream<K> select(
@@ -325,7 +324,7 @@ public class SchemaKStream<K> {
       final Expression keyExpression,
       final QueryContext.Stacker contextStacker
   ) {
-    if (!needsRepartition(keyExpression)) {
+    if (repartitionNotNeeded(keyExpression)) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -360,9 +359,9 @@ public class SchemaKStream<K> {
     return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
-  protected boolean needsRepartition(final Expression expression) {
+  protected boolean repartitionNotNeeded(final Expression expression) {
     if (!(expression instanceof UnqualifiedColumnReferenceExp)) {
-      return true;
+      return false;
     }
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getReference();
@@ -379,7 +378,7 @@ public class SchemaKStream<K> {
         .map(kf -> kf.ref().equals(proposedKey.ref()))
         .orElse(false);
 
-    return !namesMatch && !isRowKey(columnName);
+    return namesMatch || isRowKey(columnName);
   }
 
   private boolean isRowKey(final ColumnName fieldName) {
@@ -453,7 +452,7 @@ public class SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private SchemaKGroupedStream groupByKey(
       final KeyFormat rekeyedKeyFormat,
       final ValueFormat valueFormat,
@@ -534,7 +533,7 @@ public class SchemaKStream<K> {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
   }
 
-  LogicalSchema resolveSchema(final ExecutionStep<?> step, final SchemaKStream right) {
+  LogicalSchema resolveSchema(final ExecutionStep<?> step, final SchemaKStream<?> right) {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(
         step,
         schema,

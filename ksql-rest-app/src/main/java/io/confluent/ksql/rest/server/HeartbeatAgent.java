@@ -223,9 +223,7 @@ public final class HeartbeatAgent {
           }
           return status;
         });
-        for (HostStatusListener listener : hostStatusListeners) {
-          listener.onHostStatusUpdated(getHostsStatus());
-        }
+        notifyListeners();
         return;
       }
 
@@ -256,8 +254,16 @@ public final class HeartbeatAgent {
               .withHostAlive(isAlive).withLastStatusUpdateMs(windowEnd));
         }
       }
+      notifyListeners();
+    }
+
+    private void notifyListeners() {
       for (HostStatusListener listener : hostStatusListeners) {
-        listener.onHostStatusUpdated(getHostsStatus());
+        try {
+          listener.onHostStatusUpdated(getHostsStatus());
+        } catch (Throwable t) {
+          LOG.error("Error while notifying listener", t);
+        }
       }
     }
 

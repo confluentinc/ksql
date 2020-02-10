@@ -42,8 +42,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicStreamWriterTest {
 
-  @Mock public KafkaConsumer<String, Bytes> kafkaConsumer;
-  @Mock public SchemaRegistryClient schemaRegistry;
+  @Mock
+  public KafkaConsumer<String, Bytes> kafkaConsumer;
+  @Mock
+  public SchemaRegistryClient schemaRegistry;
   private ValidatingOutputStream out;
 
   @Before
@@ -52,13 +54,15 @@ public class TopicStreamWriterTest {
         "topic",
         i -> "key" + i,
         i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
+
     when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
+
     out = new ValidatingOutputStream();
   }
 
   @Test
-  public void testIntervalOneAndLimitTwo() {
+  public void shouldIntervalOneAndLimitTwo() {
     // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
@@ -74,15 +78,18 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Format:STRING",
-        "key0 , value0",
-        "key1 , value1"
+        "Value-Format:STRING",
+        "rowtime: N/A, key: key0, value: value0",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key1, value: value1",
+        System.lineSeparator()
     );
     out.assertWrites(expected);
   }
 
+
   @Test
-  public void testIntervalTwoAndLimitTwo() {
+  public void shouldIntervalTwoAndLimitTwo() {
     // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
@@ -99,9 +106,11 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Format:STRING",
-        "key0 , value0",
-        "key2 , value2"
+        "Value-Format:STRING",
+        "rowtime: N/A, key: key0, value: value0",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key2, value: value2",
+        System.lineSeparator()
     );
     out.assertWrites(expected);
   }
@@ -117,8 +126,8 @@ public class TopicStreamWriterTest {
     @Override public void write(final int b) { /* not called*/ }
 
     @Override
-    public void write(final byte[] b) {
-      recordedWrites.add(b);
+    public void write(final byte[] bytes) {
+      recordedWrites.add(bytes);
     }
 
     void assertWrites(final List<String> expected) {
@@ -131,5 +140,4 @@ public class TopicStreamWriterTest {
       }
     }
   }
-
 }

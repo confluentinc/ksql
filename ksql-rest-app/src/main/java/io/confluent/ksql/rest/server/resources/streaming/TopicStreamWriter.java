@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
@@ -22,12 +24,12 @@ import io.confluent.ksql.services.ServiceContext;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -60,7 +62,7 @@ public class TopicStreamWriter implements StreamingOutput {
             serviceContext,
             consumerProperties,
             printTopic),
-        printTopic.getTopic().toString(),
+        printTopic.getTopic(),
         printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getLimit());
@@ -81,7 +83,6 @@ public class TopicStreamWriter implements StreamingOutput {
     this.limit = limit;
     this.disconnectCheckInterval = Objects
         .requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
-
     this.messagesWritten = 0;
     this.messagesPolled = 0;
   }
@@ -90,29 +91,33 @@ public class TopicStreamWriter implements StreamingOutput {
   public void write(final OutputStream out) {
     try {
       final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
+
       boolean printFormat = true;
       while (true) {
         final ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
-          out.write("\n".getBytes(StandardCharsets.UTF_8));
+          out.write("\n".getBytes(UTF_8));
           out.flush();
-        } else {
-          final List<String> values = formatter.format(records);
-          for (final String value : values) {
-            if (printFormat) {
-              printFormat = false;
-              out.write(("Format:" + formatter.getFormat().name() + "\n")
-                            .getBytes(StandardCharsets.UTF_8));
-            }
-            if (messagesPolled++ % interval == 0) {
-              messagesWritten++;
-              out.write(value.getBytes(StandardCharsets.UTF_8));
-              out.flush();
-            }
+          continue;
+        }
 
-            if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
-              return;
-            }
+        final List<Supplier<String>> values = formatter.format(records.records(topicName));
+        for (final Supplier<String> value : values) {
+          if (printFormat) {
+            printFormat = false;
+            // Todo(ac): Key-Format
+            out.write(("Value-Format:" + formatter.getValueFormat().name() + "\n").getBytes(UTF_8));
+          }
+
+          if (messagesPolled++ % interval == 0) {
+            messagesWritten++;
+            out.write(value.get().getBytes(UTF_8));
+            out.write(System.lineSeparator().getBytes(UTF_8));
+            out.flush();
+          }
+
+          if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
+            return;
           }
         }
       }
@@ -126,10 +131,10 @@ public class TopicStreamWriter implements StreamingOutput {
     }
   }
 
-  private void outputException(final OutputStream out, final Exception exception) {
+  private static void outputException(final OutputStream out, final Exception exception) {
     try {
-      out.write(exception.getMessage().getBytes(StandardCharsets.UTF_8));
-      out.write("\n".getBytes(StandardCharsets.UTF_8));
+      out.write(exception.getMessage().getBytes(UTF_8));
+      out.write("\n".getBytes(UTF_8));
       out.flush();
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");

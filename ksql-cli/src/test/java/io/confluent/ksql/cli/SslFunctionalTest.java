@@ -103,7 +103,7 @@ public class SslFunctionalTest {
   @BeforeClass
   public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    TEST_HARNESS.getKafkaCluster().createTopic(TOPIC_NAME);
+    TEST_HARNESS.getKafkaCluster().createTopics(TOPIC_NAME);
     TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, JSON);
   }
 

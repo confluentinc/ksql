@@ -32,6 +32,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -39,6 +41,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("UnstableApiUsage")
 public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 
   private static final Logger log = LoggerFactory.getLogger(PrintPublisher.class);
@@ -72,7 +75,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
             topicConsumer,
             new RecordFormatter(
                 serviceContext.getSchemaRegistryClient(),
-                printTopic.getTopic().toString()
+                printTopic.getTopic()
             )
         )
     );
@@ -109,8 +112,8 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
           return null;
         }
 
-        final Collection<String> formatted = formatter.format(records);
-        final Collection<String> limited = new LimitIntervalCollection<>(
+        final Collection<Supplier<String>> formatted = formatter.format(records);
+        final Collection<Supplier<String>> limited = new LimitIntervalCollection<>(
             formatted,
             printTopic.getLimit().orElse(Integer.MAX_VALUE) - numWritten,
             printTopic.getIntervalValue(),
@@ -125,7 +128,9 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
           setDone();
         }
 
-        return limited;
+        return limited.stream()
+            .map(Supplier::get)
+            .collect(Collectors.toList());
       } catch (final Exception e) {
         setError(e);
         return null;

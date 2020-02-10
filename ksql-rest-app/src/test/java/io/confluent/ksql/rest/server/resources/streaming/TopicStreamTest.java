@@ -15,223 +15,336 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static org.easymock.EasyMock.anyInt;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import io.confluent.kafka.schemaregistry.ParsedSchema;
+import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.Format;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings({"UnstableApiUsage", "unchecked"})
+@RunWith(MockitoJUnitRunner.class)
 public class TopicStreamTest {
+
+  private static final byte[] NULL = "null-marker".getBytes(UTF_8);
 
   private static final String TOPIC_NAME = "some-topic";
 
+  private static final String STRING_KEY = "key";
+  private static final String JSON_OBJECT = "{\"a\":1}";
+  private static final String JSON_ARRAY = "[10,22,44]";
+  private static final Schema AVRO_SCHEMA = parseAvroSchema("{" +
+      "    \"type\": \"record\"," +
+      "    \"name\": \"myrecord\"," +
+      "    \"fields\": [" +
+      "        { \"name\": \"str1\", \"type\": \"string\" }" +
+      "    ]" +
+      "}");
+  private static final byte[] SERIALIZED_AVRO_RECORD = serializedAvroRecord();
+  private static final String DELIMITED_VALUE = "De,lim,it,ed";
+  private static final byte[] RANDOM_BYTES = new byte[]{23, 45, 63, 23, 1, 0, 1, 99, 101};
+  private static final byte[][] NO_ADDITIONAL_ITEMS = new byte[0][];
+  private static final List<Bytes> NULL_VARIANTS;
+
+  private static final DateFormat UTC_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000");
+
+  static {
+    final List<Bytes> nullVariants = new ArrayList<>();
+    nullVariants.add(new Bytes(null));
+    nullVariants.add(null);
+    NULL_VARIANTS = Collections.unmodifiableList(nullVariants);
+  }
+
+  @Mock
   private SchemaRegistryClient schemaRegistryClient;
+
   private RecordFormatter formatter;
+  private long timestamp = 1581366404000L;
 
   @Before
-  public void setUp() {
-    schemaRegistryClient = mock(SchemaRegistryClient.class);
-    formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
+  public void setUp() throws Exception {
+    formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME, UTC_FORMAT);
+
+    when(schemaRegistryClient.getSchemaById(anyInt()))
+        .thenReturn(new AvroSchema(AVRO_SCHEMA));
   }
 
   @Test
-  public void shouldMatchAvroFormatter() throws Exception {
-    // Given:
-    final Schema schema = parseAvroSchema(
-        "{\n" +
-        "    \"fields\": [\n" +
-        "        { \"name\": \"str1\", \"type\": \"string\" }\n" +
-        "    ],\n" +
-        "    \"name\": \"myrecord\",\n" +
-        "    \"type\": \"record\"\n" +
-        "}");
-
-    final GenericData.Record avroRecord = new GenericData.Record(schema);
-    avroRecord.put("str1", "My first string");
-
-    expect(schemaRegistryClient.register(anyString(), anyObject(ParsedSchema.class))).andReturn(1);
-    expect(schemaRegistryClient.getSchemaById(anyInt())).andReturn(new AvroSchema(schema)).times(2);
-
-    replay(schemaRegistryClient);
-
-    final byte[] avroData = serializeAvroRecord(avroRecord);
-
+  public void shouldDetectAvro() {
     // When:
-    final Result result = getFormattedResult(avroData);
+    format(SERIALIZED_AVRO_RECORD);
 
     // Then:
-    assertThat(result.format, is(Format.AVRO));
-    assertThat(result.formatted, endsWith(", key, {\"str1\": \"My first string\"}\n"));
+    assertThat(formatter.getValueFormat(), is(Format.AVRO));
   }
 
   @Test
-  public void shouldNotMatchAvroFormatter() {
-    // Given:
-    replay(schemaRegistryClient);
-    final String notAvro = "test-data";
-
+  public void shouldDetectJsonObject() {
     // When:
-    final Result result = getFormattedResult(notAvro);
+    format(JSON_OBJECT.getBytes(UTF_8));
 
     // Then:
-    assertThat(result.format, is(not(Format.AVRO)));
+    assertThat(formatter.getValueFormat(), is(Format.JSON));
   }
 
   @Test
-  public void shouldFormatJson() {
-    // Given:
-    replay(schemaRegistryClient);
+  public void shouldDetectJsonArray() {
+    // When:
+    format(JSON_ARRAY.getBytes(UTF_8));
 
-    final String json =
-        "{    \"name\": \"myrecord\"," +
-        "    \"aDecimal\": 1.1234512345123451234" +
+    // Then:
+    assertThat(formatter.getValueFormat(), is(Format.JSON));
+  }
+
+  @Test
+  public void shouldDetectBadJsonAsString() {
+    // Given:
+    final String notJson = "{"
+        + "BAD DATA"
+        + "\"name\": \"myrecord\"," +
+        "  \"type\": \"record\"" +
         "}";
 
     // When:
-    final Result result = getFormattedResult(json);
+    format(notJson.getBytes(UTF_8));
 
     // Then:
-    assertThat(result.format, is(Format.JSON));
-    assertThat(result.formatted,
-               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"aDecimal\":1.1234512345123451234}\n"));
+    assertThat(formatter.getValueFormat(), is(Format.STRING));
   }
 
   @Test
-  public void shouldNotMatchJsonFormatter() {
-    // Given:
-    replay(schemaRegistryClient);
+  public void shouldDetectDelimitedAsString() {
+    // When:
+    format(DELIMITED_VALUE.getBytes(UTF_8));
 
-    final String notJson =
-        "{  BAD DATA  \"name\": \"myrecord\"," +
-        "    \"type\": \"record\"" +
-        "}";
+    // Then:
+    assertThat(formatter.getValueFormat(), is(Format.STRING));
+  }
+
+  @Test
+  public void shouldDetectRandomBytesAsString() {
+    // When:
+    format(RANDOM_BYTES);
+
+    // Then:
+    assertThat(formatter.getValueFormat(), is(Format.STRING));
+  }
+
+  @Test
+  public void shouldDetectMixedMode() {
+    // When:
+    format(
+        JSON_OBJECT.getBytes(UTF_8),
+        DELIMITED_VALUE.getBytes(UTF_8),
+        SERIALIZED_AVRO_RECORD
+    );
+
+    // Then:
+    assertThat(formatter.getValueFormat(), is(Format.MIXED));
+  }
+
+  @Test
+  public void shouldDeferFormatDetectionOnNulls() {
+    // When:
+    format(NULL_VARIANTS);
+
+    // Then:
+    assertThat(formatter.getValueFormat(), is(Format.UNDEFINED));
+  }
+
+  @Test
+  public void shouldDetermineFormatsOnSecondCallIfNoViableRecordsInFirst() {
+    // Given:
+    format(NULL);
 
     // When:
-    final Result result = getFormattedResult(notJson);
+    format(NULL, JSON_OBJECT.getBytes(UTF_8), NULL);
 
     // Then:
-    assertThat(result.format, is(not(Format.JSON)));
+    assertThat(formatter.getValueFormat(), is(Format.JSON));
   }
 
   @Test
-  public void shouldMatchStringFormatWithOneColumnValues() {
-    // Given:
-    replay(schemaRegistryClient);
+  public void shouldOutputRowTime() {
+    // When:
+    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
 
-    final String stringValue = "v1";
+    // Then:
+    assertThat(formatted, containsString("rowtime: 02/10/2020 20:26:44 +0000, "));
+  }
+
+  @Test
+  public void shouldOutputRowTimeAsNaIfNa() {
+    // Given:
+    timestamp = ConsumerRecord.NO_TIMESTAMP;
 
     // When:
-    final Result result = getFormattedResult(stringValue);
+    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
 
     // Then:
-    assertThat(result.format, is(Format.STRING));
+    assertThat(formatted, containsString("rowtime: N/A, "));
   }
 
   @Test
-  public void shouldFilterNullValues() {
+  public void shouldOutputStringKey() {
+    // When:
+    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+
+    // Then:
+    assertThat(formatted, containsString(", key: " + STRING_KEY + ", "));
+  }
+
+  @Test
+  public void shouldFormatAvro() {
+    // When:
+    final String formatted = format(SERIALIZED_AVRO_RECORD);
+
+    // Then:
+    assertThat(formatted, endsWith(", value: {\"str1\": \"My first string\"}"));
+  }
+
+  @Test
+  public void shouldFormatJsonDocument() {
+    // When:
+    final String formatted = format(JSON_OBJECT.getBytes(UTF_8));
+
+    // Then:
+    assertThat(formatted, containsString(", value: " + JSON_OBJECT));
+  }
+
+  @Test
+  public void shouldFormatJsonArray() {
+    // When:
+    final String formatted = format(JSON_ARRAY.getBytes(UTF_8));
+
+    // Then:
+    assertThat(formatted, containsString(", value: " + JSON_ARRAY));
+  }
+
+  @Test
+  public void shouldFormatDelimitedAsString() {
+    // When:
+    final String formatted = format(DELIMITED_VALUE.getBytes(UTF_8));
+
+    // Then:
+    assertThat(formatted, containsString(", value: " + DELIMITED_VALUE));
+  }
+
+  @Test
+  public void shouldFormatRandomBytesAsString() {
+    // When:
+    final String formatted = format(RANDOM_BYTES);
+
+    // Then:
+    assertThat(formatted, containsString(", value: " + Bytes.wrap(RANDOM_BYTES).toString()));
+  }
+
+  @Test
+  public void shouldDefaultToStringFormattingInMixedMode() {
+    // When:
+    final List<String> results = format(
+        JSON_OBJECT.getBytes(UTF_8),
+        DELIMITED_VALUE.getBytes(UTF_8),
+        SERIALIZED_AVRO_RECORD
+    );
+
+    // Then:
+    assertThat(results, contains(
+        containsString(", value: " + JSON_OBJECT),
+        containsString(", value: " + DELIMITED_VALUE),
+        containsString(", value: " + Bytes.wrap(SERIALIZED_AVRO_RECORD).toString())
+    ));
+  }
+
+  @Test
+  public void shouldFormatNulls() {
+    // When:
+    final List<String> formatted = format(NULL_VARIANTS);
+
+    // Then:
+    assertThat(formatted, contains(
+        containsString(", value: <null>"),
+        containsString(", value: <null>")
+    ));
+  }
+
+  @Test
+  public void shouldFormatNullJsonRecord() {
     // Given:
-    replay(schemaRegistryClient);
+    format(JSON_OBJECT.getBytes(UTF_8));
 
     // When:
-    final List<String> formatted = getFormattedRecord(null);
+    final String formatted = format("null".getBytes(UTF_8));
 
     // Then:
-    assertThat(formatted, empty());
+    assertThat(formatted, containsString(", value: null"));
   }
 
-  @Test
-  public void shouldFilterNullBytesValues() {
-    // Given:
-    replay(schemaRegistryClient);
-
-    // When:
-    final List<String> formatted = getFormattedRecord(new Bytes(null));
-
-    // Then:
-    assertThat(formatted, empty());
-  }
-
-  @Test
-  public void shouldFilterEmptyValues() {
-    // Given:
-    replay(schemaRegistryClient);
-
-    // When:
-    final List<String> formatted = getFormattedRecord(new Bytes(Bytes.EMPTY));
-
-    // Then:
-    assertThat(formatted, empty());
-  }
-
-  @Test
-  public void shouldHandleNullValuesFromSTRINGPrint() throws IOException {
-    final DateFormat dateFormat =
-        SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
-
-    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        TOPIC_NAME, 1, 1, "key", null);
-
-    final String formatted =
-        Format.STRING.maybeGetFormatter(
-            TOPIC_NAME, record, null, dateFormat).get().print(record);
-
-    assertThat(formatted, endsWith(", key , NULL\n"));
-  }
-
-  private Result getFormattedResult(final String data) {
-    return getFormattedResult(data.getBytes(StandardCharsets.UTF_8));
-  }
-
-  private Result getFormattedResult(final byte[] data) {
-    final List<String> formatted = getFormattedRecord(new Bytes(data));
+  private String format(final byte[] only) {
+    final List<String> formatted = format(only, NO_ADDITIONAL_ITEMS);
     assertThat("Only expect one line", formatted, hasSize(1));
 
-    return new Result(formatter.getFormat(), formatted.get(0));
+    return formatted.get(0);
   }
 
-  private List<String> getFormattedRecord(final Bytes data) {
-    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        TOPIC_NAME, 1, 1, "key", data);
+  private List<String> format(final byte[] first, final byte[]... others) {
 
-    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
-        ImmutableMap.of(new TopicPartition(TOPIC_NAME, 1),
-            ImmutableList.of(record)));
+    final List<Bytes> values = Streams
+        .concat(Stream.of(first), Arrays.stream(others))
+        .map(data -> data == NULL ? null : Bytes.wrap(data))
+        .collect(Collectors.toList());
 
-    return formatter.format(records);
+    return format(values);
+  }
+
+  private List<String> format(final List<Bytes> values) {
+
+    final List<ConsumerRecord<String, Bytes>> recs = values.stream()
+        .map(data -> new ConsumerRecord<>(TOPIC_NAME, 1, 1, timestamp,
+            TimestampType.CREATE_TIME, 123, 1, 1, STRING_KEY, data))
+        .collect(Collectors.toList());
+
+    final ConsumerRecords<String, Bytes> records =
+        new ConsumerRecords<>(ImmutableMap.of(new TopicPartition(TOPIC_NAME, 1), recs));
+
+    return formatter.format(records).stream()
+        .map(Supplier::get)
+        .collect(Collectors.toList());
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -240,23 +353,19 @@ public class TopicStreamTest {
     return parser.parse(avroSchema);
   }
 
-  private byte[] serializeAvroRecord(final GenericData.Record avroRecord) {
+  private static byte[] serializedAvroRecord() {
+    final GenericData.Record avroRecord = new GenericData.Record(AVRO_SCHEMA);
+    avroRecord.put("str1", "My first string");
+
     final Map<String, String> props = new HashMap<>();
     props.put("schema.registry.url", "localhost:9092");
 
+    final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     final KafkaAvroSerializer avroSerializer = new KafkaAvroSerializer(schemaRegistryClient, props);
 
     return avroSerializer.serialize("topic", avroRecord);
   }
-
-  private static final class Result {
-
-    private final Format format;
-    private final String formatted;
-
-    private Result(final Format format, final String formatted) {
-      this.format = format;
-      this.formatted = formatted;
-    }
-  }
 }
+
+// Todo(ac): Could output _possible_ formats, e.g. "23" could be JSON number, or delimited.
+// Todo(ac): over multiple lines, it could narrow this down.

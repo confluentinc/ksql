@@ -66,6 +66,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -115,8 +116,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @Category(IntegrationTest.class)
 public class CliTest {
 
+  private static final OrderDataProvider ORDER_DATA_PROVIDER = new OrderDataProvider();
+
   private static final String SERVER_OVERRIDE = "SERVER";
   private static final String SESSION_OVERRIDE = "SESSION";
+
+  private static final String JSON_TOPIC = ORDER_DATA_PROVIDER.topicName();
+  private static final String DELIMITED_TOPIC = "Delimited_Topic";
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
 
@@ -156,7 +162,7 @@ public class CliTest {
   private static final List<List<String>> EMPTY_RESULT = ImmutableList.of();
 
   private static KsqlRestClient restClient;
-  private static OrderDataProvider orderDataProvider;
+
 
   private Console console;
   private TestTerminal terminal;
@@ -176,20 +182,24 @@ public class CliTest {
         Optional.empty()
     );
 
-    orderDataProvider = new OrderDataProvider();
-    TEST_HARNESS.getKafkaCluster().createTopic(orderDataProvider.topicName());
+    TEST_HARNESS.getKafkaCluster().createTopics(
+        JSON_TOPIC,
+        DELIMITED_TOPIC
+    );
 
-    TEST_HARNESS.produceRows(orderDataProvider.topicName(), orderDataProvider, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRecord(DELIMITED_TOPIC, null, null);
+    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.DELIMITED);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
-      createKStream(orderDataProvider, cli);
+      createKStream(ORDER_DATA_PROVIDER, cli);
     }
   }
 
   @Before
   public void setUp() {
     REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(orderDataProvider.kstreamName());
+    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.kstreamName());
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -360,7 +370,7 @@ public class CliTest {
     assertRunListCommand(
         "topics",
         hasRow(
-            equalTo(orderDataProvider.topicName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
             equalTo("1"),
             equalTo("1")
         )
@@ -369,7 +379,7 @@ public class CliTest {
     assertRunListCommand(
         "topics extended",
         hasRow(
-            equalTo(orderDataProvider.topicName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
             equalTo("1"),
             equalTo("1"),
             any(String.class),
@@ -379,7 +389,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
+        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "JSON")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));
@@ -387,22 +397,36 @@ public class CliTest {
   }
 
   @Test
-  public void testPrint() {
-    final Thread thread =
-        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", localCli));
-    thread.start();
+  public void shouldPrintTopicWithJsonValue() {
+    // When:
+    run("print " + JSON_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 1;", localCli);
 
-    try {
-      assertThatEventually(() -> terminal.getOutputString(), containsString("Format:JSON"));
-    } finally {
-      thread.interrupt();
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(), containsString("Value-Format:JSON"));
+    // Todo(ac): assertThat(terminal.getOutputString(), containsString("Key-Format:KAFKA (BIGINT)"));
+    assertThat(terminal.getOutputString(), containsString(","
+        + " key: \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001, " // Todo(ac):
+        + "value: {"
+        + "\"ORDERTIME\":1,"
+        + "\"ORDERID\":" + "\"ORDER_1\","
+        + "\"ITEMID\":" + "\"ITEM_1\","
+        + "\"ORDERUNITS\":10.0,"
+        + "\"TIMESTAMP\":\"2018-01-01\","
+        + "\"PRICEARRAY\":[100.0,110.99,90.0],"
+        + "\"KEYVALUEMAP\":{\"key1\":1.0,\"key2\":2.0,\"key3\":3.0}"
+        + "}"));
+  }
 
-      try {
-        thread.join(0);
-      } catch (final InterruptedException e) {
-        //
-      }
-    }
+  @Test
+  public void shouldPrintTopicWithDelimitedValue() {
+    // When:
+    run("print " + DELIMITED_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(), containsString("Value-Format:STRING"));
+    // Todo(ac): assertThat(terminal.getOutputString(), containsString("Key-Format:KAFKA (STRING)"));
+    assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
+    assertThat(terminal.getOutputString(), containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
   }
 
   @Test
@@ -461,7 +485,7 @@ public class CliTest {
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
-        "describe " + orderDataProvider.kstreamName() + ";",
+        "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         containsRows(
             row("ROWTIME", "BIGINT           (system)"),
             row("ROWKEY", "BIGINT           (system)"),
@@ -478,9 +502,9 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + ";",
-        orderDataProvider.schema(),
-        orderDataProvider.data()
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        ORDER_DATA_PROVIDER.schema(),
+        ORDER_DATA_PROVIDER.data()
     );
   }
 
@@ -529,7 +553,7 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .keyColumns(orderDataProvider.schema().logicalSchema().key())
+            .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
@@ -538,7 +562,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName() + ";",
+        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -561,21 +585,21 @@ public class CliTest {
         mapField));
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
-        orderDataProvider.schema(),
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
+        ORDER_DATA_PROVIDER.schema(),
         expectedResults
     );
   }
 
   @Test
   public void testTransientSelect() {
-    final Map<Long, GenericRow> streamData = orderDataProvider.data();
+    final Map<Long, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
     final List<Object> row1 = streamData.get(1L).values();
     final List<Object> row2 = streamData.get(2L).values();
     final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
+        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(row1.get(1).toString(), row1.get(2).toString()),
@@ -588,7 +612,7 @@ public class CliTest {
   public void shouldHandlePullQuery() {
     // Given:
     run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
-            + "FROM " + orderDataProvider.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -614,7 +638,7 @@ public class CliTest {
   public void shouldOutputPullQueryHeader() {
     // Given:
     run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
-            + "FROM " + orderDataProvider.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -632,13 +656,13 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Map<Long, GenericRow> streamData = orderDataProvider.data();
+    final Map<Long, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
     final List<Object> row1 = streamData.get(1L).values();
     final List<Object> row2 = streamData.get(2L).values();
     final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(prependWithRowTimeAndKey(row1)),
@@ -650,7 +674,7 @@ public class CliTest {
   @Test
   public void shouldOutputPushQueryHeader() {
     // When:
-    run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
+    run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ROWTIME"));
@@ -673,12 +697,12 @@ public class CliTest {
             + "PRICEARRAY[2]>1000 AS Col4 "
             + "FROM %s "
             + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
-        orderDataProvider.kstreamName()
+        ORDER_DATA_PROVIDER.kstreamName()
     );
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .keyColumns(orderDataProvider.schema().logicalSchema().key())
+            .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
@@ -697,7 +721,7 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT ITEMID, COUNT(*) FROM " + orderDataProvider.kstreamName() +
+        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(
@@ -899,7 +923,7 @@ public class CliTest {
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "
-        + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";");
+        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";");
 
     final String queryId = extractQueryId(terminal.getOutputString());
 
@@ -941,7 +965,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -1201,7 +1225,7 @@ public class CliTest {
   }
 
   @SafeVarargs
-  @SuppressWarnings({"varargs", "unchecked"})
+  @SuppressWarnings({"varargs", "unchecked", "rawtypes"})
   private static Matcher<Iterable<? extends Iterable<? extends String>>> hasRows(
       final Matcher<Iterable<? extends String>>... rows
   ) {

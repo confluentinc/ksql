@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class PrintSubscriptionTest {
 
@@ -64,9 +65,9 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"),
-        containsString("key2 , value2"))
+        containsString("key: key0, value: value0"),
+        containsString("key: key1, value: value1"),
+        containsString("key: key2, value: value2"))
     ));
   }
 
@@ -88,8 +89,8 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"))
+        containsString("key0, value: value0"),
+        containsString("key1, value: value1"))
     ));
     assertThat(results2, empty());
   }
@@ -112,13 +113,13 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"),
-        containsString("key2 , value2"))
+        containsString("key: key0, value: value0"),
+        containsString("key: key1, value: value1"),
+        containsString("key: key2, value: value2"))
     ));
     assertThat(results2, contains(Lists.newArrayList(
-        containsString("key3 , value3"),
-        containsString("key4 , value4"))
+        containsString("key: key3, value: value3"),
+        containsString("key: key4, value: value4"))
     ));
   }
 
@@ -140,11 +141,11 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key2 , value2"))
+        containsString("key: key0, value: value0"),
+        containsString("key: key2, value: value2"))
     ));
     assertThat(results2, contains(
-        containsString("key4 , value4")
+        containsString("key: key4, value: value4")
     ));
   }
 
@@ -168,14 +169,14 @@ public class PrintSubscriptionTest {
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key2 , value2"))
+        containsString("key: key0, value: value0"),
+        containsString("key: key2, value: value2"))
     ));
     assertThat(results2, contains(
-        containsString("key4 , value4")
+        containsString("key: key4, value: value4")
     ));
     assertThat(results3, contains(
-        containsString("key6 , value6")
+        containsString("key: key6, value: value6")
     ));
     assertThat(results4, empty());
   }

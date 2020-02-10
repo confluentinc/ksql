@@ -263,17 +263,17 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Create a Kafka topic with 1 partition and a replication factor of 1.
    *
-   * @param topic The name of the topic.
+   * @param topics The name of the topics to create.
    */
-  public void createTopic(final String topic) {
-    broker.createTopic(topic, 1, 1);
+  public void createTopics(final String... topics) {
+    Arrays.stream(topics).forEach(topic -> broker.createTopic(topic, 1, 1));
   }
 
   /**
    * Create a Kafka topic with the given parameters.
    *
-   * @param topic       The name of the topic.
-   * @param partitions  The number of partitions for this topic.
+   * @param topic The name of the topic.
+   * @param partitions The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
   public void createTopic(final String topic, final int partitions, final int replication) {
@@ -283,16 +283,17 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Create a Kafka topic with the given parameters.
    *
-   * @param topic       The name of the topic.
-   * @param partitions  The number of partitions for this topic.
+   * @param topic The name of the topic.
+   * @param partitions The number of partitions for this topic.
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
   public void createTopic(
       final String topic,
-                          final int partitions,
-                          final int replication,
-                          final Map<String, String> topicConfig) {
+      final int partitions,
+      final int replication,
+      final Map<String, String> topicConfig
+  ) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 

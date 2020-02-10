@@ -15,28 +15,29 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,91 +53,163 @@ public final class TopicStream {
 
     private final KafkaAvroDeserializer avroDeserializer;
     private final String topicName;
-    private final DateFormat dateFormat =
-        SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
+    private final DateFormat dateFormat;
 
-    private Formatter formatter;
+    private Optional<Formatter> valueFormatter = Optional.empty();
 
-    public RecordFormatter(final SchemaRegistryClient schemaRegistryClient,
-                           final String topicName) {
-      this.topicName = Objects.requireNonNull(topicName, "topicName");
-      this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+    public RecordFormatter(
+        final SchemaRegistryClient schemaRegistryClient,
+        final String topicName
+    ) {
+      this(
+          schemaRegistryClient,
+          topicName,
+          SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault())
+      );
     }
 
-    public List<String> format(final ConsumerRecords<String, Bytes> records) {
-      return StreamSupport
-          .stream(records.records(topicName).spliterator(), false)
-          .filter(Objects::nonNull)
-          .filter(r -> r.value() != null)
-          .filter(r -> r.value().get() != null)
-          .filter(r -> r.value().get().length != 0)
-          .map((record) -> {
-            if (formatter == null) {
-              formatter = getFormatter(record);
-            }
-            try {
-              return formatter.print(record);
-            } catch (IOException e) {
-              log.warn("Exception formatting record", e);
-              return null;
-            }
-          })
-          .filter(Objects::nonNull)
+    @VisibleForTesting
+    RecordFormatter(
+        final SchemaRegistryClient schemaRegistryClient,
+        final String topicName,
+        final DateFormat dateFormat
+    ) {
+      this.topicName = requireNonNull(topicName, "topicName");
+      this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+      this.dateFormat = requireNonNull(dateFormat, "dateFormat");
+    }
+
+    // Todo(ac): String type of key
+    public List<Supplier<String>> format(final Iterable<ConsumerRecord<String, Bytes>> records) {
+      if (!valueFormatter.isPresent()) {
+        valueFormatter = getValueFormatter(records);
+      }
+
+      return StreamSupport.stream(records.spliterator(), false)
+          .map(this::delayedFormat)
           .collect(Collectors.toList());
     }
 
-    public Format getFormat() {
-      return formatter == null ? Format.UNDEFINED : formatter.getFormat();
+    @SuppressWarnings("OptionalGetWithoutIsPresent") // will not be empty if needed
+    private Supplier<String> delayedFormat(final ConsumerRecord<String, Bytes> record) {
+      return () -> {
+        try {
+          final String rowTime = record.timestamp() == ConsumerRecord.NO_TIMESTAMP
+              ? "N/A"
+              : dateFormat.format(new Date(record.timestamp()));
+
+          final String rowKey = record.key() == null ? "<null>" : record.key();
+
+          final String value = record.value() == null || record.value().get() == null
+              ? "<null>"
+              : valueFormatter.get().print(record.value());
+
+          return "rowtime: " + rowTime
+              + ", " + "key: " + rowKey
+              + ", value: " + value;
+        } catch (IOException e) {
+          // Todo(ac): If this throws... try other formats? Output format at start of row?
+          log.warn("Exception formatting record", e);
+          return "Failed to parse row";
+        }
+      };
     }
 
-    private Formatter getFormatter(final ConsumerRecord<String, Bytes> record) {
+    // Todo(ac): Detect windwowed key?
+    // Todo(ac): Look in SR
+
+    public Format getValueFormat() {
+      return valueFormatter
+          .map(Formatter::getFormat)
+          .orElse(Format.UNDEFINED);
+    }
+
+    private Optional<Formatter> getValueFormatter(
+        final Iterable<ConsumerRecord<String, Bytes>> records
+    ) {
+      if (Iterables.isEmpty(records)) {
+        return Optional.empty();
+      }
+
+      final List<Formatter> formatters = StreamSupport
+          .stream(records.spliterator(), false)
+          .filter(r -> r.value() != null)
+          .filter(r -> r.value().get() != null)
+          .map(this::getValueFormatter)
+          .collect(Collectors.toList());
+
+      final Set<Format> formats = formatters.stream()
+          .map(Formatter::getFormat)
+          .collect(Collectors.toSet());
+
+      switch (formats.size()) {
+        case 0:
+          // No viable records (will try again with next batch):
+          return Optional.empty();
+
+        case 1:
+          // Single format:
+          return Optional.of(formatters.get(0));
+
+        default:
+          // Mixed format topic:
+          return Format.MIXED.maybeGetFormatter(topicName, null, avroDeserializer);
+      }
+    }
+
+    private Formatter getValueFormatter(final ConsumerRecord<String, Bytes> record) {
       return Arrays.stream(Format.values())
-          .map(f -> f.maybeGetFormatter(topicName, record, avroDeserializer, dateFormat))
+          .map(f -> f.maybeGetFormatter(topicName, record.value(), avroDeserializer))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst()
-          .orElseThrow(() -> new RuntimeException("Unexpected"));
+          .orElseThrow(() -> new IllegalStateException("Unexpected"));
     }
   }
 
   interface Formatter {
 
-    String print(ConsumerRecord<String, Bytes> consumerRecord) throws IOException;
+    String print(Bytes data) throws IOException;
 
     Format getFormat();
   }
 
   enum Format {
     UNDEFINED {
+      @Override
+      public Optional<Formatter> maybeGetFormatter(
+          final String topicName,
+          final Bytes data,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
+        return Optional.empty();
+      }
     },
     AVRO {
       @Override
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
-          final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer avroDeserializer,
-          final DateFormat dateFormat) {
+          final Bytes data,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
         try {
-          avroDeserializer.deserialize(topicName, record.value().get());
-          return Optional.of(createFormatter(topicName, avroDeserializer, dateFormat));
-        } catch (final Throwable t) {
+          // Todo(ac): Include details that schema is registered?
+          avroDeserializer.deserialize(topicName, data.get());
+          return Optional.of(createFormatter(topicName, avroDeserializer));
+        } catch (final Exception t) {
           return Optional.empty();
         }
       }
 
-      private Formatter createFormatter(final String topicName,
-                                        final KafkaAvroDeserializer avroDeserializer,
-                                        final DateFormat dateFormat) {
+      private Formatter createFormatter(
+          final String topicName,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
         return new Formatter() {
           @Override
-          public String print(final ConsumerRecord<String, Bytes> consumerRecord) {
-            final String time = dateFormat.format(new Date(consumerRecord.timestamp()));
-
-            final GenericRecord record = (GenericRecord) avroDeserializer.deserialize(
-                topicName, consumerRecord.value().get());
-
-            final String key = consumerRecord.key() != null ? consumerRecord.key() : "null";
-            return time + ", " + key + ", " + record.toString() + "\n";
+          public String print(final Bytes data) {
+            return avroDeserializer.deserialize(topicName, data.get())
+                .toString();
           }
 
           @Override
@@ -150,20 +223,20 @@ public final class TopicStream {
       @Override
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
-          final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer avroDeserializer,
-          final DateFormat dateFormat) {
+          final Bytes data,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
         try {
-          final JsonNode jsonNode = JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
+          final JsonNode jsonNode = JsonMapper.INSTANCE.mapper.readTree(data.toString());
 
-          // If the JsonNode is not structured like 'key:value', then do not use JSON to print
-          // this value
-          if (!(jsonNode instanceof ObjectNode)) {
+          if (!(jsonNode instanceof ObjectNode) && !(jsonNode instanceof ArrayNode)) {
+            // Other valid JSON types, e.g. NumericNode, BooleanNode, etc
+            // are indistinguishable from single column delimited format:
             return Optional.empty();
           }
 
           return Optional.of(createFormatter());
-        } catch (final Throwable t) {
+        } catch (final Exception t) {
           return Optional.empty();
         }
       }
@@ -171,21 +244,12 @@ public final class TopicStream {
       private Formatter createFormatter() {
         return new Formatter() {
           @Override
-          public String print(final ConsumerRecord<String, Bytes> record)
-              throws IOException {
+          public String print(final Bytes data) throws IOException {
+            // Ensure deserializes to validate JSON:
+            JsonMapper.INSTANCE.mapper.readTree(data.get());
 
-            final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-            final JsonNode jsonNode = objectMapper.readTree(record.value().toString());
-            final ObjectNode objectNode = objectMapper.createObjectNode();
-            final String key = (record.key() != null) ? record.key() : "null";
-
-            objectNode.put(SchemaUtil.ROWTIME_NAME.name(), record.timestamp());
-            objectNode.put(SchemaUtil.ROWKEY_NAME.name(), key);
-            objectNode.setAll((ObjectNode) jsonNode);
-
-            final StringWriter stringWriter = new StringWriter();
-            objectMapper.writeValue(stringWriter, objectNode);
-            return stringWriter.toString() + "\n";
+            // Return data as string:
+            return data.toString();
           }
 
           @Override
@@ -199,38 +263,44 @@ public final class TopicStream {
       @Override
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
-          final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer avroDeserializer,
-          final DateFormat dateFormat) {
-        // STRING always returns a formatter because its last in the enum list
-        return Optional.of(createFormatter(dateFormat));
+          final Bytes data,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
+        // STRING always returns a formatter:
+        return Optional.of(createStringFormatter(STRING));
       }
-
-      private Formatter createFormatter(final DateFormat dateFormat) {
-        return new Formatter() {
-
-          @Override
-          public String print(final ConsumerRecord<String, Bytes> record) {
-            final String key = record.key() != null ? record.key() : "NULL";
-            final String value = record.value() != null ? record.value().toString() : "NULL";
-            return dateFormat.format(new Date(record.timestamp())) + " , " + key
-                   + " , " + value + "\n";
-          }
-
-          @Override
-          public Format getFormat() {
-            return STRING;
-          }
-        };
+    },
+    MIXED {
+      @Override
+      public Optional<Formatter> maybeGetFormatter(
+          final String topicName,
+          final Bytes data,
+          final KafkaAvroDeserializer avroDeserializer
+      ) {
+        // Mixed mode defaults to string values:
+        return Optional.of(createStringFormatter(MIXED));
       }
     };
 
-    Optional<Formatter> maybeGetFormatter(
-        final String topicName,
-        final ConsumerRecord<String, Bytes> record,
-        final KafkaAvroDeserializer avroDeserializer,
-        final DateFormat dateFormat) {
-      return Optional.empty();
+    abstract Optional<Formatter> maybeGetFormatter(
+        String topicName,
+        Bytes data,
+        KafkaAvroDeserializer avroDeserializer
+    );
+
+    private static Formatter createStringFormatter(final Format format) {
+      return new Formatter() {
+
+        @Override
+        public String print(final Bytes data) {
+          return data.toString();
+        }
+
+        @Override
+        public Format getFormat() {
+          return format;
+        }
+      };
     }
   }
 }

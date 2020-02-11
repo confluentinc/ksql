@@ -30,6 +30,8 @@ import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -100,19 +102,24 @@ public class ClusterStatusResource {
   private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(
       final KsqlHostInfo ksqlHostInfo
   ) {
-    return engine.getPersistentQueries().stream()
-    .flatMap(persistentQueryMetadata -> persistentQueryMetadata.getAllMetadata()
-        .stream()
-        .map(streamsMetadata -> new QueryIdAndStreamsMetadata(
-            persistentQueryMetadata.getQueryId().toString(), streamsMetadata)))
-        .filter(queryIdAndStreamsMetadata ->
-                    queryIdAndStreamsMetadata.streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
-        .filter(queryIdAndStreamsMetadata ->
-                    queryIdAndStreamsMetadata.streamsMetadata.hostInfo().equals(asHostInfo(
-                        ksqlHostInfo)))
-        .collect(Collectors.toMap(queryIdAndStreamsMetadata ->
-                                      queryIdAndStreamsMetadata.queryId ,
-                                  QueryIdAndStreamsMetadata::toActiveStandbyEntity));
+    Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
+    for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
+      for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
+        if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE
+            || streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
+          continue;
+        }
+        QueryIdAndStreamsMetadata queryIdAndStreamsMetadata = new QueryIdAndStreamsMetadata(
+            persistentQueryMetadata.getQueryId().toString(),
+            streamsMetadata
+        );
+        perQueryMap.putIfAbsent(
+            queryIdAndStreamsMetadata.queryId,
+            queryIdAndStreamsMetadata.toActiveStandbyEntity()
+        );
+      }
+    }
+    return perQueryMap;
   }
 
   private static final class QueryIdAndStreamsMetadata {

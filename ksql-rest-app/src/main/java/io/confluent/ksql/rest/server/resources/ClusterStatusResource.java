@@ -106,7 +106,7 @@ public class ClusterStatusResource {
     for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
       for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
         if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE
-            || streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
+            || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
           continue;
         }
         QueryIdAndStreamsMetadata queryIdAndStreamsMetadata = new QueryIdAndStreamsMetadata(

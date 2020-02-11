@@ -39,13 +39,14 @@ The following statement shows how to print all of the records in a topic named
 PRINT ksql__commands FROM BEGINNING;
 ```
 
-ksqlDB will attempt to determine the format of the data in the topic and wil output what its thinks is
+ksqlDB attempts to determine the format of the data in the topic and outputs what it thinks are
 the key and value formats at the top of the output.
 
 !!! note
    Attempting to determine a data format from only the serialized bytes is not an exact science!
-   For example, it is not possible to distinguish between serialized `BIGINT` and `DOUBLE`s, as
-   they both occupy 8 bytes. Short strings can also be mistaken for serialized numbers.
+   For example, it is not possible to distinguish between serialized `BIGINT` and `DOUBLE` values,
+   because they both occupy eight bytes. Short strings can also be mistaken for serialized numbers.
+   Where it appears different records are using different formats ksqlDB will state the format is `MIXED`.
 
 Your output should resemble:
 

@@ -282,13 +282,14 @@ PRINT pageviews_intro;
 Your output should resemble:
 
 ```
-Format:STRING
-10/30/18 10:15:51 PM UTC , 294851 , 1540937751186,User_8,Page_12
-10/30/18 10:15:55 PM UTC , 295051 , 1540937755255,User_1,Page_15
-10/30/18 10:15:57 PM UTC , 295111 , 1540937757265,User_8,Page_10
-10/30/18 10:15:59 PM UTC , 295221 , 1540937759330,User_4,Page_15
-10/30/18 10:15:59 PM UTC , 295231 , 1540937759699,User_1,Page_12
-10/30/18 10:15:59 PM UTC , 295241 , 1540937759990,User_6,Page_15
+Key format: KAFKA (BIGINT or DOUBLE)
+Value format: KAFKA (STRING)
+rowtime: 10/30/18 10:15:51 PM GMT, key: 294851, value: 1540937751186,User_8,Page_12
+rowtime: 10/30/18 10:15:55 PM GMT, key: 295051, value: 1540937755255,User_1,Page_15
+rowtime: 10/30/18 10:15:57 PM GMT, key: 295111, value: 1540937757265,User_8,Page_10
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295221, value: 1540937759330,User_4,Page_15
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295231, value: 1540937759699,User_1,Page_12
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295241, value: 1540937759990,User_6,Page_15
 ^CTopic printing ceased
 ```
 

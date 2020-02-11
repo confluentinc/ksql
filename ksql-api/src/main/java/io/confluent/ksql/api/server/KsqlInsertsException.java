@@ -13,16 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.spi;
+package io.confluent.ksql.api.server;
 
-import io.vertx.core.json.JsonObject;
-import org.reactivestreams.Subscriber;
+import io.confluent.ksql.util.KsqlException;
 
-/**
- * Represents a subscriber of inserts. An implementation of this is provided by the back-end for
- * each inserts stream and it subscribes to a publisher from the API implementation. The publisher
- * then streams inserts to the back-end with back-pressure.
- */
-public interface InsertsSubscriber extends Subscriber<JsonObject> {
+public class KsqlInsertsException extends KsqlException {
 
+  public KsqlInsertsException(final Throwable cause) {
+    super(cause);
+  }
+
+  public KsqlInsertsException(final String message) {
+    super(message);
+  }
+
+  public KsqlInsertsException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
 }

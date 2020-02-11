@@ -28,7 +28,10 @@ public final class ErrorCodes {
   public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 3;
   public static final int ERROR_CODE_MALFORMED_REQUEST = 4;
   public static final int ERROR_CODE_INVALID_QUERY = 5;
-  public static final int ERROR_CODE_INTERNAL_ERROR = 6;
+  public static final int ERROR_CODE_MISSING_KEY_FIELD = 6;
+
+
+  public static final int ERROR_CODE_INTERNAL_ERROR = 100;
 
 
 }

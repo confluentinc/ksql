@@ -35,10 +35,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
+import io.confluent.ksql.api.server.ErrorCodes;
+import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -59,6 +62,8 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
@@ -156,7 +161,6 @@ public class NewApiTest {
       .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 
-
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
@@ -221,7 +225,7 @@ public class NewApiTest {
     String sql = "SLECTT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFail(sql, "line 1:1: mismatched input 'SLECTT' expecting");
+    shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLECTT' expecting");
   }
 
   @Test
@@ -232,7 +236,7 @@ public class NewApiTest {
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFail(sql, "Expected exactly one KSQL statement; found 2 instead");
+    shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
   }
 
   @Test
@@ -243,7 +247,7 @@ public class NewApiTest {
         "CREATE STREAM SOME_STREAM AS SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFail(sql, "Not a query");
+    shouldFailToExecuteQuery(sql, "Not a query");
   }
 
   @Test
@@ -338,7 +342,7 @@ public class NewApiTest {
     String sql = "SLLLECET * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
 
     // Then:
-    shouldFail(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
+    shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
   }
 
   @Test
@@ -349,7 +353,7 @@ public class NewApiTest {
         "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';";
 
     // Then:
-    shouldFail(sql, "Expected exactly one KSQL statement; found 2 instead");
+    shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
   }
 
   @Test
@@ -359,7 +363,7 @@ public class NewApiTest {
     String sql = "SELECT * from " + AGG_TABLE + ";";
 
     // Then:
-    shouldFail(sql, "Missing WHERE clause.");
+    shouldFailToExecuteQuery(sql, "Missing WHERE clause.");
   }
 
   @Test
@@ -369,17 +373,109 @@ public class NewApiTest {
     String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWTIME=12345;";
 
     // Then:
-    shouldFail(sql, "WHERE clause on unsupported field: ROWTIME.");
+    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported field: ROWTIME.");
   }
 
-  private void shouldFail(final String sql, final String message) {
+  @Test
+  public void shouldExecuteInserts() {
+
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    int numRows = 10;
+
+    for (int i = 0; i < numRows; i++) {
+      JsonObject row = new JsonObject();
+      row.put("ROWKEY", 10 + i);
+      row.put("VIEWTIME", 1000 + i);
+      row.put("USERID", "User" + i % 3);
+      row.put("PAGEID", "PAGE" + (numRows - i));
+      bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(numRows));
+    assertThat(insertsResponse.error, is(nullValue()));
+
+    Set<Long> sequences = new HashSet<>();
+    for (JsonObject ack : insertsResponse.acks) {
+      sequences.add(ack.getLong("seq"));
+    }
+    assertThat(sequences, hasSize(numRows));
+    for (long l = 0; l < numRows; l++) {
+      assertThat(sequences.contains(l), is(true));
+    }
+  }
+
+  @Test
+  public void shouldFailToInsertWithNullKey() {
+
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    JsonObject row = new JsonObject();
+    row.put("VIEWTIME", 1000);
+    row.put("USERID", "User123");
+    row.put("PAGEID", "PAGE23");
+    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(0));
+    assertThat(insertsResponse.error, is(notNullValue()));
+    assertThat(insertsResponse.error.getString("status"), is("error"));
+    assertThat(insertsResponse.error.getInteger("errorCode"), is(
+        ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD));
+    assertThat(insertsResponse.error.getString("message"),
+        startsWith("Key field must be specified: ROWKEY"));
+  }
+
+  @Test
+  public void shouldInsertWithMissingValueField() {
+
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    JsonObject row = new JsonObject();
+    row.put("ROWKEY", 10);
+    row.put("VIEWTIME", 1000);
+    row.put("USERID", "User123");
+    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(1));
+    assertThat(insertsResponse.error, is(nullValue()));
+  }
+
+  private void shouldFailToExecuteQuery(final String sql, final String message) {
     // When:
     QueryResponse response = executeQuery(sql);
 
     // Then:
     assertThat(response.rows, hasSize(0));
     assertThat(response.responseObject.getString("status"), is("error"));
-    assertThat(response.responseObject.getInteger("errorCode"), is(5));
+    assertThat(response.responseObject.getInteger("errorCode"),
+        is(ErrorCodes.ERROR_CODE_INVALID_QUERY));
     assertThat(response.responseObject.getString("message"),
         startsWith(message));
   }
@@ -421,5 +517,6 @@ public class NewApiTest {
   private static void makeKsqlRequest(final String sql) {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
+
 
 }

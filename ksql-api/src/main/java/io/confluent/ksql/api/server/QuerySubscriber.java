@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * This is a reactive streams subscriber which receives a stream of results from a publisher which
  * is implemented by the back-end. The results are then written to the HTTP2 response.
  */
-public class QuerySubscriber extends ReactiveSubscriber<GenericRow> {
+public class QuerySubscriber extends BaseSubscriber<GenericRow> {
 
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 1000;

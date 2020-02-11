@@ -20,7 +20,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.api.server.ReactiveSubscriber;
+import io.confluent.ksql.api.server.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.concurrent.CountDownLatch;
@@ -55,7 +55,7 @@ public class ReactiveSubscriberTest {
     AtomicBoolean wrongContext = new AtomicBoolean();
     AtomicBoolean afterSubScribeCalled = new AtomicBoolean();
     AtomicBoolean handleValueCalled = new AtomicBoolean();
-    ReactiveSubscriber<String> subscriber = new ReactiveSubscriber<String>(context) {
+    BaseSubscriber<String> subscriber = new BaseSubscriber<String>(context) {
       @Override
       protected void afterSubscribe(final Subscription subscription) {
         checkCorrectContext(wrongContext, context);
@@ -96,7 +96,7 @@ public class ReactiveSubscriberTest {
   public void shouldBeCalledOnContextOnError() throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
     AtomicBoolean wrongContext = new AtomicBoolean();
-    ReactiveSubscriber<String> subscriber = new ReactiveSubscriber<String>(context) {
+    BaseSubscriber<String> subscriber = new BaseSubscriber<String>(context) {
 
       @Override
       protected void handleError(final Throwable t) {
@@ -166,7 +166,7 @@ public class ReactiveSubscriberTest {
     }
   }
 
-  private static class TestReactiveSubscriber extends ReactiveSubscriber<String> {
+  private static class TestReactiveSubscriber extends BaseSubscriber<String> {
 
     private boolean handleValueCalled;
     private boolean handleCompleteCalled;

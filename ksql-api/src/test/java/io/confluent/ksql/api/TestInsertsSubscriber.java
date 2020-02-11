@@ -15,24 +15,29 @@
 
 package io.confluent.ksql.api;
 
-import io.confluent.ksql.api.server.ReactiveSubscriber;
-import io.confluent.ksql.api.spi.InsertsSubscriber;
+import io.confluent.ksql.api.server.BaseSubscriber;
+import io.confluent.ksql.api.server.BufferedPublisher;
+import io.confluent.ksql.api.server.InsertResult;
 import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import org.reactivestreams.Subscription;
 
-public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implements
-    InsertsSubscriber {
+public class TestInsertsSubscriber extends BaseSubscriber<JsonObject> {
 
-  private final TestAcksPublisher acksPublisher;
+  private final BufferedPublisher<InsertResult> acksPublisher;
   private final List<JsonObject> rowsInserted = new ArrayList<>();
+  private final int acksBeforePublisherError;
   private boolean completed;
+  private long seq;
 
-  public TestInsertsSubscriber(final Context context, final TestAcksPublisher acksPublisher) {
+  public TestInsertsSubscriber(final Context context,
+      final BufferedPublisher<InsertResult> acksPublisher,
+      final int acksBeforePublisherError) {
     super(context);
     this.acksPublisher = acksPublisher;
+    this.acksBeforePublisherError = acksBeforePublisherError;
   }
 
   @Override
@@ -44,10 +49,14 @@ public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implem
   public synchronized void handleValue(final JsonObject row) {
     makeRequest(1);
     rowsInserted.add(row);
-    if (acksPublisher != null) {
-      // Now forward to acks publisher
-      acksPublisher.accept(row);
+    if (acksBeforePublisherError != -1 && seq == acksBeforePublisherError) {
+      // We inject an exception after a certain number of rows
+      acksPublisher
+          .accept(InsertResult.failedInsert(seq, new RuntimeException("Failure in processing")));
+    } else {
+      acksPublisher.accept(InsertResult.succeededInsert(seq));
     }
+    seq++;
   }
 
   @Override

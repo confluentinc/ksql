@@ -285,6 +285,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   void startApiServer(final KsqlConfig ksqlConfigWithPort) {
     vertx = Vertx.vertx();
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
     final Endpoints endpoints = new KsqlServerEndpoints(
         ksqlEngine,
         ksqlConfigWithPort,

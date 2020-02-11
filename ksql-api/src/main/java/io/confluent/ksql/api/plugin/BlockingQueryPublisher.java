@@ -13,10 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.plugin;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.BasePublisher;
+import io.confluent.ksql.api.server.PushQueryHandler;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;

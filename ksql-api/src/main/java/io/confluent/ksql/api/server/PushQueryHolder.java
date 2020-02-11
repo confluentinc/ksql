@@ -31,15 +31,13 @@ public class PushQueryHolder {
 
   private final Server server;
   private final PushQueryId id;
-  private final QuerySubscriber querySubscriber;
   private final QueryPublisher queryPublisher;
   private final Consumer<PushQueryHolder> closeHandler;
 
-  PushQueryHolder(final Server server, final QuerySubscriber querySubscriber,
+  PushQueryHolder(final Server server,
       final QueryPublisher queryPublisher,
       final Consumer<PushQueryHolder> closeHandler) {
     this.server = Objects.requireNonNull(server);
-    this.querySubscriber = Objects.requireNonNull(querySubscriber);
     this.queryPublisher = Objects.requireNonNull(queryPublisher);
     this.closeHandler = Objects.requireNonNull(closeHandler);
     this.id = new PushQueryId(UUID.randomUUID().toString());

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.impl.Utils;
 import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 import java.util.Objects;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -24,16 +24,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A reactive streams subscriber which handles much of the plumbing for you. Override {@link
- * #afterSubscribe}, {@link #handleValue}, {@link #handleComplete} and {@link #handleError} to
- * create your specific implementation. The state for this subscriber will always be accessed on the
- * same Vert.x context so does not require synchronization
+ * A reactive streams subscriber which handles much of the plumbing for you and executes the onXXX
+ * methods asynchronous on the context after being called from the publisher.
+ *
+ * <p>Override {@link #afterSubscribe}, {@link #handleValue}, {@link #handleComplete} and
+ * {@link #handleError} to create your specific implementation.
+ *
+ * <p>The state for this subscriber will always be accessed on the
+ * same Vert.x context so does not require synchronization.
  *
  * @param <T> The type of the value
  */
-public class ReactiveSubscriber<T> implements Subscriber<T> {
+public class BaseSubscriber<T> implements Subscriber<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(ReactiveSubscriber.class);
+  private static final Logger log = LoggerFactory.getLogger(BaseSubscriber.class);
 
   protected final Context context;
   private Subscription subscription;
@@ -47,26 +51,26 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
    *                be executed on this context. This ensures the code is never executed
    *                concurrently by more than one thread.
    */
-  public ReactiveSubscriber(final Context context) {
+  public BaseSubscriber(final Context context) {
     this.context = context;
   }
 
   @Override
   public final void onSubscribe(final Subscription s) {
     Objects.requireNonNull(s);
-    context.runOnContext(v -> doOnSubscribe(s));
+    runOnRightContext(() -> doOnSubscribe(s));
   }
 
   @Override
   public final void onNext(final T t) {
     Objects.requireNonNull(t);
-    context.runOnContext(v -> doOnNext(t));
+    runOnRightContext(() -> doOnNext(t));
   }
 
   @Override
   public final void onError(final Throwable t) {
     Objects.requireNonNull(t);
-    context.runOnContext(v -> doOnError(t));
+    runOnRightContext(() -> doOnError(t));
   }
 
   public void cancel() {
@@ -79,7 +83,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   @Override
   public final void onComplete() {
-    context.runOnContext(v -> doOnComplete());
+    runOnRightContext(this::doOnComplete);
   }
 
   /**
@@ -140,8 +144,15 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
   }
 
   protected final void checkContext() {
-    if (Vertx.currentContext() != context) {
-      throw new IllegalStateException("On wrong context");
+    Utils.checkContext(context);
+  }
+
+  private void runOnRightContext(final Runnable runnable) {
+    if (Utils.isEventLoopAndSameContext(context)) {
+      // Execute directly
+      runnable.run();
+    } else {
+      context.runOnContext(v -> runnable.run());
     }
   }
 

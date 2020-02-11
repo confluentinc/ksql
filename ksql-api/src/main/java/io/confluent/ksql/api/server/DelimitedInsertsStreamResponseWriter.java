@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.InsertAck;
+import io.confluent.ksql.api.server.protocol.InsertError;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
@@ -45,13 +46,13 @@ public class DelimitedInsertsStreamResponseWriter implements InsertsStreamRespon
   }
 
   @Override
-  public InsertsStreamResponseWriter writeInsertResponse() {
-    response.write(ACK_RESPONSE_LINE);
+  public InsertsStreamResponseWriter writeInsertResponse(final InsertAck insertAck) {
+    response.write(insertAck.toBuffer().appendString("\n"));
     return this;
   }
 
   @Override
-  public InsertsStreamResponseWriter writeError(final ErrorResponse error) {
+  public InsertsStreamResponseWriter writeError(final InsertError error) {
     response.write(error.toBuffer().appendString("\n"));
     return this;
   }

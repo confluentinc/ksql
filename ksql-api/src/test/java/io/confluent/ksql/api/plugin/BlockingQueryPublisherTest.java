@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api;
+package io.confluent.ksql.api.plugin;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.BlockingQueryPublisher;
+import io.confluent.ksql.api.PublisherTestBase;
 import io.confluent.ksql.api.server.PushQueryHandler;
 import io.confluent.ksql.api.utils.AsyncAssert;
 import io.vertx.core.WorkerExecutor;

@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.api;
 
+import io.confluent.ksql.api.server.BufferedPublisher;
+import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.vertx.core.Context;
@@ -30,7 +31,6 @@ import org.reactivestreams.Subscriber;
 
 public class TestEndpoints implements Endpoints {
 
-  private final Vertx vertx;
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
   private String lastSql;
@@ -40,10 +40,6 @@ public class TestEndpoints implements Endpoints {
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
-
-  public TestEndpoints(final Vertx vertx) {
-    this.vertx = vertx;
-  }
 
   @Override
   public synchronized QueryPublisher createQueryPublisher(final String sql,
@@ -64,19 +60,16 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public synchronized InsertsSubscriber createInsertsSubscriber(final String target,
+  public synchronized Subscriber<JsonObject> createInsertsSubscriber(final String target,
       final JsonObject properties,
-      final Subscriber<JsonObject> acksSubscriber) {
+      final Subscriber<InsertResult> acksSubscriber,
+      final Context context) {
     this.lastTarget = target;
     this.lastProperties = properties;
-    if (acksSubscriber != null) {
-      TestAcksPublisher acksPublisher = new TestAcksPublisher(Vertx.currentContext(),
-          acksBeforePublisherError);
-      acksPublisher.subscribe(acksSubscriber);
-      this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher);
-    } else {
-      this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), null);
-    }
+    BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(Vertx.currentContext());
+    acksPublisher.subscribe(acksSubscriber);
+    this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher,
+        acksBeforePublisherError);
     return insertsSubscriber;
   }
 

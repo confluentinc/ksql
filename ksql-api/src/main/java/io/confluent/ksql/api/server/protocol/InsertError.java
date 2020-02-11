@@ -15,33 +15,34 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.vertx.core.json.JsonObject;
-import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents the arguments to an insert stream request
+ * Represents an error on an insert stream
  */
 @Immutable
-public class InsertsStreamArgs {
+public class InsertError extends SerializableObject {
 
-  public final String target;
-  public final JsonObject properties;
+  public final long seq;
+  public final String status;
+  public final int errorCode;
+  public final String message;
 
-  public InsertsStreamArgs(final @JsonProperty(value = "target", required = true) String target,
-      final @JsonProperty(value = "properties")
-          Map<String, Object> properties) {
-    this.target = Objects.requireNonNull(target);
-    this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
+  public InsertError(final long seq, final int errorCode, final String message) {
+    this.seq = seq;
+    this.status = "error";
+    this.errorCode = errorCode;
+    this.message = Objects.requireNonNull(message);
   }
 
   @Override
   public String toString() {
-    return "InsertsStreamArgs{"
-        + "target='" + target + '\''
-        + ", properties=" + properties
+    return "ErrorResponse{"
+        + "seq=" + seq
+        + "status='" + status + '\''
+        + ", errorCode=" + errorCode
+        + ", message='" + message + '\''
         + '}';
   }
 }

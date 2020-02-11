@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.impl.Utils;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.Objects;
@@ -50,7 +51,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
     Objects.requireNonNull(subscriber);
-    if (Vertx.currentContext() == ctx) {
+    if (Vertx.currentContext() == ctx && !Utils.isWorkerThread()) {
       doSubscribe(subscriber);
     } else {
       ctx.runOnContext(v -> doSubscribe(subscriber));
@@ -62,9 +63,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   }
 
   protected void checkContext() {
-    if (Vertx.currentContext() != ctx) {
-      throw new IllegalStateException("On wrong context");
-    }
+    Utils.checkContext(ctx);
   }
 
   protected final void sendError(final Exception e) {

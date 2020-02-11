@@ -28,14 +28,14 @@ public abstract class TestDataProvider<K> {
   private final Map<K, GenericRow> data;
   private final String kstreamName;
 
-  TestDataProvider(
+  public TestDataProvider(
       final String namePrefix,
       final String key,
       final PhysicalSchema schema,
       final Map<K, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
-    this.kstreamName =  namePrefix + "_KSTREAM";
+    this.kstreamName = namePrefix + "_KSTREAM";
     this.key = Objects.requireNonNull(key, "key");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.data = Objects.requireNonNull(data, "data");

@@ -15,16 +15,17 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.InsertAck;
+import io.confluent.ksql.api.server.protocol.InsertError;
 
 /**
  * Represents something that knows how to write out an inserts response
  */
 public interface InsertsStreamResponseWriter {
 
-  InsertsStreamResponseWriter writeInsertResponse();
+  InsertsStreamResponseWriter writeInsertResponse(InsertAck insertAck);
 
-  InsertsStreamResponseWriter writeError(ErrorResponse error);
+  InsertsStreamResponseWriter writeError(InsertError error);
 
   void end();
 }

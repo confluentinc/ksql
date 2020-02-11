@@ -18,12 +18,13 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_TYPE;
 import static io.confluent.ksql.api.server.ServerUtils.deserialiseObject;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.impl.VertxCompletableFuture;
+import io.confluent.ksql.api.server.protocol.InsertError;
 import io.confluent.ksql.api.server.protocol.InsertsStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
@@ -31,6 +32,11 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class handles the parsing of the request body for a stream of inserts. The user can send a
@@ -43,12 +49,17 @@ import java.util.Optional;
  */
 public class InsertsStreamHandler implements Handler<RoutingContext> {
 
+  private static final Logger log = LoggerFactory.getLogger(InsertsStreamHandler.class);
+
   private final Context ctx;
   private final Endpoints endpoints;
+  private final WorkerExecutor workerExecutor;
 
-  public InsertsStreamHandler(final Context ctx, final Endpoints endpoints) {
+  public InsertsStreamHandler(final Context ctx, final Endpoints endpoints,
+      final WorkerExecutor workerExecutor) {
     this.ctx = Objects.requireNonNull(ctx);
     this.endpoints = Objects.requireNonNull(endpoints);
+    this.workerExecutor = Objects.requireNonNull(workerExecutor);
   }
 
   @Override
@@ -70,6 +81,9 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     private BufferedPublisher<JsonObject> publisher;
     private long rowsReceived;
     private AcksSubscriber acksSubscriber;
+    private boolean paused;
+    private boolean responseEnded;
+    private long sendSequence;
 
     RequestHandler(final RoutingContext routingContext,
         final RecordParser recordParser) {
@@ -87,6 +101,11 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     }
 
     public void handleBodyBuffer(final Buffer buff) {
+      if (responseEnded) {
+        // Ignore further buffers from request if response has been written (most probably due
+        // to error)
+        return;
+      }
       if (!hasReadArguments) {
         handleArgs(buff);
       } else if (publisher != null) {
@@ -103,30 +122,51 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
         return;
       }
 
-      acksSubscriber =
-          insertsStreamArgs.get().requiresAcks ? new AcksSubscriber(ctx, routingContext.response(),
-              insertsStreamResponseWriter) : null;
-      final InsertsSubscriber insertsSubscriber = endpoints
-          .createInsertsSubscriber(insertsStreamArgs.get().target,
-              insertsStreamArgs.get().properties,
-              acksSubscriber);
-      publisher = new BufferedPublisher<>(ctx);
+      routingContext.response().endHandler(v -> handleResponseEnd());
 
-      // This forces response headers to be written so we know we send a 200 OK
-      // This is important if we subsequently find an error in the stream
-      routingContext.response().write("");
+      acksSubscriber = new AcksSubscriber(ctx, routingContext.response(),
+          insertsStreamResponseWriter);
 
-      publisher.subscribe(insertsSubscriber);
+      recordParser.pause();
+      createInsertsSubscriberAsync(insertsStreamArgs.get().target,
+          insertsStreamArgs.get().properties,
+          acksSubscriber, ctx)
+          .thenAccept(insertsSubscriber -> {
+            publisher = new BufferedPublisher<>(ctx);
 
+            // This forces response headers to be written so we know we send a 200 OK
+            // This is important if we subsequently find an error in the stream
+            routingContext.response().write("");
+
+            publisher.subscribe(insertsSubscriber);
+
+            recordParser.resume();
+          })
+          .exceptionally(t -> handleInsertSubscriberException(t, routingContext));
+    }
+
+    private Void handleInsertSubscriberException(final Throwable t,
+        final RoutingContext routingContext) {
+      Throwable toLog = t;
+      if (t instanceof CompletionException) {
+        toLog = t.getCause();
+      }
+      log.error("Failed to execute inserts", toLog);
+      // We don't expose internal error message via public API
+      ServerUtils.handleError(routingContext.response(), 500, ErrorCodes.ERROR_CODE_INTERNAL_ERROR,
+          "The server encountered an internal error when processing inserts."
+              + " Please consult the server logs for more information.");
+      return null;
     }
 
     private void handleRow(final Buffer buff) {
-
+      final long seq = sendSequence++;
       final JsonObject row;
       try {
         row = new JsonObject(buff);
       } catch (DecodeException e) {
-        final ErrorResponse errorResponse = new ErrorResponse(
+        final InsertError errorResponse = new InsertError(
+            seq,
             ErrorCodes.ERROR_CODE_MALFORMED_REQUEST,
             "Invalid JSON in inserts stream");
         insertsStreamResponseWriter.writeError(errorResponse).end();
@@ -135,11 +175,17 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
 
       final boolean bufferFull = publisher.accept(row);
-      if (bufferFull) {
+      if (bufferFull && !paused) {
         recordParser.pause();
-        publisher.drainHandler(recordParser::resume);
+        publisher.drainHandler(this::publisherReceptive);
+        paused = true;
       }
       rowsReceived++;
+    }
+
+    private void publisherReceptive() {
+      paused = false;
+      recordParser.resume();
     }
 
     public void handleBodyEnd(final Void v) {
@@ -153,6 +199,24 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
         }
       }
     }
+
+    private void handleResponseEnd() {
+      responseEnded = true;
+    }
+
+  }
+
+  private CompletableFuture<Subscriber<JsonObject>> createInsertsSubscriberAsync(
+      final String target,
+      final JsonObject properties, final Subscriber<InsertResult> acksSubscriber,
+      final Context context) {
+    final VertxCompletableFuture<Subscriber<JsonObject>> vcf = new VertxCompletableFuture<>();
+    workerExecutor.executeBlocking(
+        p -> p.complete(
+            endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context)),
+        false,
+        vcf);
+    return vcf;
   }
 
 

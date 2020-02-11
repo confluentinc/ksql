@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PullQueryPublisher extends BufferedPublisher<GenericRow> implements QueryPublisher {
@@ -26,17 +27,21 @@ public class PullQueryPublisher extends BufferedPublisher<GenericRow> implements
   private final List<String> columnNames;
   private final List<String> columnTypes;
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public PullQueryPublisher(final Context ctx, final TableRows tableRows,
       final List<String> columnNames, final List<String> columnTypes) {
-    super(ctx);
-    for (List row : tableRows.getRows()) {
-      final GenericRow genericRow = GenericRow.fromList(row);
-      accept(genericRow);
-    }
-    complete();
+    super(ctx, toGenericRows(tableRows));
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static List<GenericRow> toGenericRows(final TableRows tableRows) {
+    final List<GenericRow> genericRows = new ArrayList<>(tableRows.getRows().size());
+    for (List row : tableRows.getRows()) {
+      final GenericRow genericRow = GenericRow.fromList(row);
+      genericRows.add(genericRow);
+    }
+    return genericRows;
   }
 
   @Override

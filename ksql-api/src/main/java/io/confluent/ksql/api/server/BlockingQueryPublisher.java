@@ -87,11 +87,7 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     }
     closed = true;
     // Run async as it can block
-    workerExecutor.executeBlocking(p -> queryHandle.stop(), ar -> {
-      if (ar.failed()) {
-        log.error("Failed to close query", ar.cause());
-      }
-    });
+    executeOnWorker(queryHandle::stop);
     super.close();
   }
 
@@ -128,7 +124,16 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
 
   @Override
   protected void afterSubscribe() {
-    queryHandle.start();
+    // Run async as it can block
+    executeOnWorker(queryHandle::start);
+  }
+
+  private void executeOnWorker(final Runnable runnable) {
+    workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
+      if (ar.failed()) {
+        log.error("Failed to close query", ar.cause());
+      }
+    });
   }
 
   private boolean hasReachedLimit() {

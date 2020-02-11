@@ -1,0 +1,552 @@
+[2020-02-11 09:54:46,154] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_query_CTAS_MINI_AGG_0
+	application.server = http://10.200.7.94:8088
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	built.in.metrics.version = latest
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /tmp/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2020-02-11 09:54:46,164] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e] Kafka Streams version: 6.0.0-ccs-SNAPSHOT (org.apache.kafka.streams.KafkaStreams:694)
+[2020-02-11 09:54:46,164] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e] Kafka Streams commit ID: 370f27bffd8d04b6 (org.apache.kafka.streams.KafkaStreams:695)
+[2020-02-11 09:54:46,233] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,247] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-1] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,254] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,263] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,263] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-2] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,264] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,265] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,266] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-3] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,266] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,268] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,269] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-4] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,270] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-11213535-6ba9-456b-ae84-31ca66d86c4e-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,562] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_query_CTAS_MINI_AGG_0
+	application.server = http://10.200.7.94:8088
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	built.in.metrics.version = latest
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /tmp/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2020-02-11 09:54:46,563] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6] Kafka Streams version: 6.0.0-ccs-SNAPSHOT (org.apache.kafka.streams.KafkaStreams:694)
+[2020-02-11 09:54:46,563] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6] Kafka Streams commit ID: 370f27bffd8d04b6 (org.apache.kafka.streams.KafkaStreams:695)
+[2020-02-11 09:54:46,564] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,564] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-1] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,565] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,567] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,567] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-2] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,568] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,569] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,570] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-3] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,570] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,571] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,572] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-4] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,572] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-d661986d-3a56-4269-9d23-cb7eb27dfce6-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,646] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_query_CTAS_MINI_AGG_0
+	application.server = http://10.200.7.94:8088
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	built.in.metrics.version = latest
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /tmp/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2020-02-11 09:54:46,646] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] Kafka Streams version: 6.0.0-ccs-SNAPSHOT (org.apache.kafka.streams.KafkaStreams:694)
+[2020-02-11 09:54:46,647] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] Kafka Streams commit ID: 370f27bffd8d04b6 (org.apache.kafka.streams.KafkaStreams:695)
+[2020-02-11 09:54:46,650] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,656] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,663] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,673] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 09:54:46,695] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,699] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,704] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,708] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 09:54:46,713] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,718] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,744] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,748] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 09:54:46,755] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 09:54:46,761] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 09:54:46,767] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 09:54:46,770] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 09:54:46,777] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:46,778] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,859] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4-consumer] Assigned tasks to clients as 
+1fd371cd-705d-4b53-acf1-40d7f19338ec=[activeTasks: ([0_0, 1_0]) standbyTasks: ([]) assignedTasks: ([0_0, 1_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) prevOwnedPartitionsByConsumerId: ([]) capacity: 4]. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:611)
+[2020-02-11 09:54:47,879] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Handle new assignment with:
+	New active tasks: [1_0]
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:47,880] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Handle new assignment with:
+	New active tasks: [0_0]
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:47,880] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:47,879] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:47,880] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,880] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,890] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,894] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,900] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,900] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,910] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] task [0_0] Initialized (org.apache.kafka.streams.processor.internals.StreamTask:197)
+[2020-02-11 09:54:47,916] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] task [0_0] Restored and ready to run (org.apache.kafka.streams.processor.internals.StreamTask:210)
+[2020-02-11 09:54:47,916] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:47,919] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Setting topic 'default_ksql_processing_log' to consume from latest offset (org.apache.kafka.streams.processor.internals.StreamThread:956)
+[2020-02-11 09:54:48,064] INFO Opening store Aggregate-Aggregate-Materialize in regular mode (org.apache.kafka.streams.state.internals.RocksDBTimestampedStore:100)
+[2020-02-11 09:54:48,071] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] task [1_0] State store Aggregate-Aggregate-Materialize did not find checkpoint offset, hence would default to the starting offset at changelog _confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-Aggregate-Materialize-changelog-0 (org.apache.kafka.streams.processor.internals.ProcessorStateManager:211)
+[2020-02-11 09:54:48,071] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] task [1_0] Initialized (org.apache.kafka.streams.processor.internals.StreamTask:197)
+[2020-02-11 09:54:48,071] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] No custom setting defined for topic '_confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-GroupBy-repartition' using original config 'earliest' for offset reset (org.apache.kafka.streams.processor.internals.StreamThread:956)
+[2020-02-11 09:54:48,178] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Finished restoring changelog _confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-Aggregate-Materialize-changelog-0 to store Aggregate-Aggregate-Materialize with a total number of 0 records (org.apache.kafka.streams.processor.internals.StoreChangelogReader:509)
+[2020-02-11 09:54:48,184] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] task [1_0] Restored and ready to run (org.apache.kafka.streams.processor.internals.StreamTask:210)
+[2020-02-11 09:54:48,184] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:48,184] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from REBALANCING to RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 09:54:50,902] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4-consumer] Assigned tasks to clients as 
+1fd371cd-705d-4b53-acf1-40d7f19338ec=[activeTasks: ([0_0, 1_0]) standbyTasks: ([]) assignedTasks: ([0_0, 1_0]) prevActiveTasks: ([0_0, 1_0]) prevStandbyTasks: ([]) prevAssignedTasks: ([0_0, 1_0]) prevOwnedPartitionsByConsumerId: ([default_ksql_processing_log-0, _confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-GroupBy-repartition-0]) capacity: 4]. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:611)
+[2020-02-11 09:54:50,905] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:50,905] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Handle new assignment with:
+	New active tasks: [1_0]
+	New standby tasks: []
+	Existing active tasks: [1_0]
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:50,905] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from RUNNING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,905] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:50,905] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from RUNNING to REBALANCING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 09:54:50,906] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Handle new assignment with:
+	New active tasks: [0_0]
+	New standby tasks: []
+	Existing active tasks: [0_0]
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 09:54:50,906] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from RUNNING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,906] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from RUNNING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,906] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from RUNNING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,915] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,934] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,935] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,964] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 09:54:50,964] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from REBALANCING to RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 10:13:13,185] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 10:13:13,186] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,191] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 10:13:13,200] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,200] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 10:13:13,236] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 10:13:13,252] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] task [1_0] Closed clean (org.apache.kafka.streams.processor.internals.StreamTask:362)
+[2020-02-11 10:13:13,261] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,261] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 10:13:13,276] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 10:13:13,276] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 10:13:13,281] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] task [0_0] Closed clean (org.apache.kafka.streams.processor.internals.StreamTask:362)
+[2020-02-11 10:13:13,295] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,295] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 10:13:13,297] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 10:13:13,297] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 10:13:13,299] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 10:13:13,299] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:968)
+[2020-02-11 10:13:13,299] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] Already in the pending shutdown state, wait to complete shutdown (org.apache.kafka.streams.KafkaStreams:916)
+[2020-02-11 10:13:13,299] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-1fd371cd-705d-4b53-acf1-40d7f19338ec] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:968)
+[2020-02-11 10:13:13,300] INFO stream-thread [Thread-1] Deleting state directory 1_0 for task 1_0 as user calling cleanup. (org.apache.kafka.streams.processor.internals.StateDirectory:295)
+[2020-02-11 10:13:13,308] INFO stream-thread [Thread-1] Deleting state directory 0_0 for task 0_0 as user calling cleanup. (org.apache.kafka.streams.processor.internals.StateDirectory:295)
+[2020-02-11 11:12:33,687] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_query_CTAS_MINI_AGG_0
+	application.server = http://10.200.7.94:8088
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	built.in.metrics.version = latest
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /tmp/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2020-02-11 11:12:33,699] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] Kafka Streams version: 6.0.0-ccs-SNAPSHOT (org.apache.kafka.streams.KafkaStreams:694)
+[2020-02-11 11:12:33,699] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] Kafka Streams commit ID: 370f27bffd8d04b6 (org.apache.kafka.streams.KafkaStreams:695)
+[2020-02-11 11:12:33,749] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:12:33,763] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:12:33,777] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:12:33,790] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:12:33,814] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:12:33,819] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:12:33,825] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:12:33,828] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:12:33,832] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:12:33,838] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:12:33,844] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:12:33,847] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:12:33,851] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:12:33,855] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:12:33,866] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:12:33,869] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:12:33,884] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:12:33,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:12:33,885] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:33,885] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:33,972] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2-consumer] Assigned tasks to clients as 
+be6ada99-7a69-4150-a6e1-052126ae455b=[activeTasks: ([0_0, 1_0]) standbyTasks: ([]) assignedTasks: ([0_0, 1_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) prevOwnedPartitionsByConsumerId: ([]) capacity: 4]. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:611)
+[2020-02-11 11:12:33,995] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:12:33,995] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Handle new assignment with:
+	New active tasks: [0_0]
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:12:33,995] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:12:33,999] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:33,996] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Handle new assignment with:
+	New active tasks: [1_0]
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:12:34,000] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,034] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,034] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,043] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] No custom setting defined for topic '_confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-GroupBy-repartition' using original config 'earliest' for offset reset (org.apache.kafka.streams.processor.internals.StreamThread:956)
+[2020-02-11 11:12:34,043] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Setting topic 'default_ksql_processing_log' to consume from latest offset (org.apache.kafka.streams.processor.internals.StreamThread:956)
+[2020-02-11 11:12:34,044] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] task [0_0] Initialized (org.apache.kafka.streams.processor.internals.StreamTask:197)
+[2020-02-11 11:12:34,054] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] task [0_0] Restored and ready to run (org.apache.kafka.streams.processor.internals.StreamTask:210)
+[2020-02-11 11:12:34,054] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,099] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,100] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,181] INFO Opening store Aggregate-Aggregate-Materialize in regular mode (org.apache.kafka.streams.state.internals.RocksDBTimestampedStore:100)
+[2020-02-11 11:12:34,190] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] task [1_0] State store Aggregate-Aggregate-Materialize did not find checkpoint offset, hence would default to the starting offset at changelog _confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-Aggregate-Materialize-changelog-0 (org.apache.kafka.streams.processor.internals.ProcessorStateManager:211)
+[2020-02-11 11:12:34,190] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] task [1_0] Initialized (org.apache.kafka.streams.processor.internals.StreamTask:197)
+[2020-02-11 11:12:34,304] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Finished restoring changelog _confluent-ksql-default_query_CTAS_MINI_AGG_0-Aggregate-Aggregate-Materialize-changelog-0 to store Aggregate-Aggregate-Materialize with a total number of 0 records (org.apache.kafka.streams.processor.internals.StoreChangelogReader:509)
+[2020-02-11 11:12:34,311] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] task [1_0] Restored and ready to run (org.apache.kafka.streams.processor.internals.StreamTask:210)
+[2020-02-11 11:12:34,311] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:12:34,311] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] State transition from REBALANCING to RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:13:42,164] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_transient_3924769793484484653_1581448422164
+	application.server = http://10.200.7.94:8088
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	built.in.metrics.version = latest
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /tmp/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2020-02-11 11:13:42,165] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] Kafka Streams version: 6.0.0-ccs-SNAPSHOT (org.apache.kafka.streams.KafkaStreams:694)
+[2020-02-11 11:13:42,165] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] Kafka Streams commit ID: 370f27bffd8d04b6 (org.apache.kafka.streams.KafkaStreams:695)
+[2020-02-11 11:13:42,172] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:13:42,180] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:13:42,186] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:13:42,188] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:13:42,193] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:13:42,198] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:13:42,204] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:13:42,208] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:13:42,212] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:13:42,217] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:13:42,223] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:13:42,225] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:13:42,230] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:544)
+[2020-02-11 11:13:42,235] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Creating thread producer client (org.apache.kafka.streams.processor.internals.StreamThread:342)
+[2020-02-11 11:13:42,241] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:582)
+[2020-02-11 11:13:42,244] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4-consumer] Cooperative rebalancing enabled now (org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration:200)
+[2020-02-11 11:13:42,254] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:712)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,254] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,283] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1-consumer] Assigned tasks to clients as 
+e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) prevOwnedPartitionsByConsumerId: ([]) capacity: 4]. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:611)
+[2020-02-11 11:13:42,287] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:13:42,288] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,288] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Handle new assignment with:
+	New active tasks: [0_0]
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:13:42,288] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:13:42,288] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,289] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Handle new assignment with:
+	New active tasks: []
+	New standby tasks: []
+	Existing active tasks: []
+	Existing standby tasks: [] (org.apache.kafka.streams.processor.internals.TaskManager:128)
+[2020-02-11 11:13:42,290] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,290] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] State transition from STARTING to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,292] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Setting topic 'MINI_AGG' to consume from earliest offset (org.apache.kafka.streams.processor.internals.StreamThread:956)
+[2020-02-11 11:13:42,317] INFO Opening store KsqlTopic-Reduce in regular mode (org.apache.kafka.streams.state.internals.RocksDBTimestampedStore:100)
+[2020-02-11 11:13:42,318] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] task [0_0] State store KsqlTopic-Reduce did not find checkpoint offset, hence would default to the starting offset at changelog MINI_AGG-0 (org.apache.kafka.streams.processor.internals.ProcessorStateManager:211)
+[2020-02-11 11:13:42,318] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] task [0_0] Initialized (org.apache.kafka.streams.processor.internals.StreamTask:197)
+[2020-02-11 11:13:42,360] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,360] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,360] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,427] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Finished restoring changelog MINI_AGG-0 to store KsqlTopic-Reduce with a total number of 0 records (org.apache.kafka.streams.processor.internals.StoreChangelogReader:509)
+[2020-02-11 11:13:42,429] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] task [0_0] Restored and ready to run (org.apache.kafka.streams.processor.internals.StreamTask:210)
+[2020-02-11 11:13:42,429] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:42,429] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] State transition from REBALANCING to RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:13:44,555] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] task [0_0] Committed (org.apache.kafka.streams.processor.internals.StreamTask:302)
+[2020-02-11 11:13:49,547] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 11:13:49,549] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,556] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 11:13:49,556] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 11:13:49,556] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 11:13:49,577] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,577] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 11:13:49,582] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,582] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 11:13:49,583] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,583] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 11:13:49,603] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 11:13:49,610] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] task [0_0] Closed clean (org.apache.kafka.streams.processor.internals.StreamTask:362)
+[2020-02-11 11:13:49,615] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 11:13:49,616] INFO stream-thread [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 11:13:49,617] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 11:13:49,617] INFO stream-client [_confluent-ksql-default_transient_3924769793484484653_1581448422164-e7a8a1db-09b5-42d4-a2b9-4df5d54fb35b] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:968)
+[2020-02-11 11:13:49,618] INFO stream-thread [qtp769530879-36] Deleting state directory 0_0 for task 0_0 as user calling cleanup. (org.apache.kafka.streams.processor.internals.StateDirectory:295)
+[2020-02-11 11:32:33,894] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-CleanupThread] Deleting obsolete state directory 0_0 for task 0_0 as 600893ms has elapsed (cleanup delay is 600000ms). (org.apache.kafka.streams.processor.internals.StateDirectory:287)
+[2020-02-11 12:33:32,847] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1064)
+[2020-02-11 12:33:32,848] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,872] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 12:33:32,884] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] task [1_0] Closed clean (org.apache.kafka.streams.processor.internals.StreamTask:362)
+[2020-02-11 12:33:32,898] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,898] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 12:33:32,911] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 12:33:32,911] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 12:33:32,911] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1078)
+[2020-02-11 12:33:32,921] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] task [0_0] Closed clean (org.apache.kafka.streams.processor.internals.StreamTask:362)
+[2020-02-11 12:33:32,954] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,955] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 12:33:32,957] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,957] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 12:33:32,958] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:218)
+[2020-02-11 12:33:32,958] INFO stream-thread [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1103)
+[2020-02-11 12:33:32,960] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:283)
+[2020-02-11 12:33:32,960] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:968)
+[2020-02-11 12:33:32,961] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] Already in the pending shutdown state, wait to complete shutdown (org.apache.kafka.streams.KafkaStreams:916)
+[2020-02-11 12:33:32,961] INFO stream-client [_confluent-ksql-default_query_CTAS_MINI_AGG_0-be6ada99-7a69-4150-a6e1-052126ae455b] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:968)
+[2020-02-11 12:33:32,962] INFO stream-thread [main] Deleting state directory 1_0 for task 1_0 as user calling cleanup. (org.apache.kafka.streams.processor.internals.StateDirectory:295)

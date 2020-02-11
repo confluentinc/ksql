@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.api;
 
-import io.confluent.ksql.api.TestQueryPublisher.RowGenerator;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.api.utils.RowGenerator;
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,27 +33,32 @@ public class TestEndpoints implements Endpoints {
   private final Vertx vertx;
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
-  private TestAcksPublisher acksPublisher;
   private String lastSql;
-  private boolean push;
   private JsonObject lastProperties;
   private String lastTarget;
   private Set<TestQueryPublisher> queryPublishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
+  private RuntimeException createQueryPublisherException;
 
   public TestEndpoints(final Vertx vertx) {
     this.vertx = vertx;
   }
 
   @Override
-  public synchronized QueryPublisher createQueryPublisher(final String sql, final boolean push,
-      final JsonObject properties) {
+  public synchronized QueryPublisher createQueryPublisher(final String sql,
+      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor) {
+    if (createQueryPublisherException != null) {
+      createQueryPublisherException.fillInStackTrace();
+      throw createQueryPublisherException;
+    }
     this.lastSql = sql;
-    this.push = push;
     this.lastProperties = properties;
-    TestQueryPublisher queryPublisher = new TestQueryPublisher(vertx, rowGeneratorFactory.get(),
-        rowsBeforePublisherError, push);
+    boolean push = sql.toLowerCase().contains("emit changes");
+    TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
+        rowGeneratorFactory.get(),
+        rowsBeforePublisherError,
+        push);
     queryPublishers.add(queryPublisher);
     return queryPublisher;
   }
@@ -63,7 +70,8 @@ public class TestEndpoints implements Endpoints {
     this.lastTarget = target;
     this.lastProperties = properties;
     if (acksSubscriber != null) {
-      acksPublisher = new TestAcksPublisher(Vertx.currentContext(), acksBeforePublisherError);
+      TestAcksPublisher acksPublisher = new TestAcksPublisher(Vertx.currentContext(),
+          acksBeforePublisherError);
       acksPublisher.subscribe(acksSubscriber);
       this.insertsSubscriber = new TestInsertsSubscriber(Vertx.currentContext(), acksPublisher);
     } else {
@@ -89,10 +97,6 @@ public class TestEndpoints implements Endpoints {
     return lastProperties;
   }
 
-  public synchronized boolean getLastPush() {
-    return push;
-  }
-
   public synchronized Set<TestQueryPublisher> getQueryPublishers() {
     return queryPublishers;
   }
@@ -107,6 +111,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized void setRowsBeforePublisherError(final int rowsBeforePublisherError) {
     this.rowsBeforePublisherError = rowsBeforePublisherError;
+  }
+
+  public synchronized void setCreateQueryPublisherException(final RuntimeException exception) {
+    this.createQueryPublisherException = exception;
   }
 }
 

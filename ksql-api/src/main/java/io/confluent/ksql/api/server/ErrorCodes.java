@@ -23,11 +23,12 @@ public final class ErrorCodes {
   private ErrorCodes() {
   }
 
-  public static final int ERROR_CODE_MISSING_PARAM = 50001;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 50002;
-  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 50003;
-  public static final int ERROR_CODE_MALFORMED_REQUEST = 5004;
-  public static final int ERROR_CODE_INTERNAL_ERROR = 50005;
+  public static final int ERROR_CODE_MISSING_PARAM = 1;
+  public static final int ERROR_CODE_UNKNOWN_PARAM = 2;
+  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 3;
+  public static final int ERROR_CODE_MALFORMED_REQUEST = 4;
+  public static final int ERROR_CODE_INVALID_QUERY = 5;
+  public static final int ERROR_CODE_INTERNAL_ERROR = 6;
 
 
 }

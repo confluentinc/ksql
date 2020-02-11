@@ -17,6 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.impl.VertxThread;
 
 /**
  * General purpose utils (not limited to the server, could be used by client too) for the API
@@ -43,6 +44,25 @@ public final class Utils {
         promise.fail(ar.cause());
       }
     });
+  }
+
+  public static void checkIsWorker() {
+    checkThread(true);
+  }
+
+  public static void checkIsNotWorker() {
+    checkThread(false);
+  }
+
+  private static void checkThread(final boolean worker) {
+    final Thread thread = Thread.currentThread();
+    if (!(thread instanceof VertxThread)) {
+      throw new IllegalStateException("Not a Vert.x thread " + thread);
+    }
+    final VertxThread vertxThread = (VertxThread) thread;
+    if (vertxThread.isWorker() != worker) {
+      throw new IllegalStateException("Not a " + (worker ? "worker" : "event loop") + " thread");
+    }
   }
 
 }

@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.server.protocol;
 
 import com.google.errorprone.annotations.Immutable;
-import io.vertx.core.json.JsonArray;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -26,25 +26,14 @@ import java.util.Objects;
 public class QueryResponseMetadata extends SerializableObject {
 
   public final String queryId;
-  public final JsonArray columnNames;
-  public final JsonArray columnTypes;
-  public final Integer rowCount;
+  public final List<String> columnNames;
+  public final List<String> columnTypes;
 
-  public QueryResponseMetadata(final String queryId, final JsonArray columnNames,
-      final JsonArray columnTypes, final Integer rowCount) {
+  public QueryResponseMetadata(final String queryId, final List<String> columnNames,
+      final List<String> columnTypes) {
     this.queryId = Objects.requireNonNull(queryId);
     this.columnNames = Objects.requireNonNull(columnNames);
     this.columnTypes = Objects.requireNonNull(columnTypes);
-    this.rowCount = rowCount;
   }
 
-  @Override
-  public String toString() {
-    return "QueryResponseMetadata{"
-        + "queryId='" + queryId + '\''
-        + ", columnNames=" + columnNames
-        + ", columnTypes=" + columnTypes
-        + ", rowcount=" + rowCount
-        + '}';
-  }
 }

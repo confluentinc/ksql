@@ -30,30 +30,35 @@ public class ApiServerConfig extends AbstractConfig {
 
   private static final String PROPERTY_PREFIX = "apiserver.";
 
-  public static final String VERTICLE_INSTANCES = propertyName("verticle-instances");
+  public static final String VERTICLE_INSTANCES = propertyName("verticle.instances");
   public static final int DEFAULT_VERTICLE_INSTANCES =
       2 * Runtime.getRuntime().availableProcessors();
   public static final String VERTICLE_INSTANCES_DOC =
       "The number of server verticle instances to start. Usually you want at least many instances"
           + " as there are cores you want to use, as each instance is single threaded.";
 
-  public static final String LISTEN_HOST = propertyName("listen-host");
+  public static final String LISTEN_HOST = propertyName("listen.host");
   public static final String DEFAULT_LISTEN_HOST = "0.0.0.0";
   public static final String LISTEN_HOST_DOC =
       "The hostname to listen on";
 
-  public static final String LISTEN_PORT = propertyName("listen-port");
+  public static final String LISTEN_PORT = propertyName("listen.port");
   public static final int DEFAULT_LISTEN_PORT = 8089;
   public static final String LISTEN_PORT_DOC =
       "The port to listen on";
 
-  public static final String KEY_PATH = propertyName("key-path");
+  public static final String KEY_PATH = propertyName("key.path");
   public static final String KEY_PATH_DOC =
       "Path to key file";
 
-  public static final String CERT_PATH = propertyName("cert-path");
+  public static final String CERT_PATH = propertyName("cert.path");
   public static final String CERT_PATH_DOC =
       "Path to cert file";
+
+  public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
+  public static final String WORKER_POOL_DOC =
+      "Max number of worker threads for executing blocking code";
+  public static final int DEFAULT_WORKER_POOL_SIZE = 100;
 
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
@@ -89,7 +94,13 @@ public class ApiServerConfig extends AbstractConfig {
           Type.STRING,
           null,
           Importance.MEDIUM,
-          CERT_PATH_DOC);
+          CERT_PATH_DOC)
+      .define(
+          WORKER_POOL_SIZE,
+          Type.INT,
+          DEFAULT_WORKER_POOL_SIZE,
+          Importance.MEDIUM,
+          WORKER_POOL_DOC);
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);

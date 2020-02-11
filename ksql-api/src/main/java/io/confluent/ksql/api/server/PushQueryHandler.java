@@ -15,21 +15,21 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import java.util.List;
+import java.util.OptionalInt;
 
 /**
- * Represents something that knows how to write out a query response
+ * Handle to a push query running in the engine
  */
-public interface QueryStreamResponseWriter {
+public interface PushQueryHandler {
 
-  QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
+  List<String> getColumnNames();
 
-  QueryStreamResponseWriter writeRow(GenericRow row);
+  List<String> getColumnTypes();
 
-  QueryStreamResponseWriter writeError(ErrorResponse error);
+  OptionalInt getLimit();
 
-  void end();
+  void start();
 
+  void stop();
 }

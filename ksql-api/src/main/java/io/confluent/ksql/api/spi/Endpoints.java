@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.spi;
 
+import io.vertx.core.Context;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import org.reactivestreams.Subscriber;
 
@@ -30,11 +32,11 @@ public interface Endpoints {
    * the API server and the subscriber will write the results to the HTTP response
    *
    * @param sql        The sql of the query
-   * @param push       If true then push query otherwise pull query
    * @param properties Optional properties for the query
    * @return The publisher
    */
-  QueryPublisher createQueryPublisher(String sql, boolean push, JsonObject properties);
+  QueryPublisher createQueryPublisher(String sql, JsonObject properties,
+      Context context, WorkerExecutor workerExecutor);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process

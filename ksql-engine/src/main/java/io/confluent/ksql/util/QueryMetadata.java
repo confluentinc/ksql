@@ -56,7 +56,7 @@ public class QueryMetadata {
   private boolean everStarted = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  protected QueryMetadata(
+  public QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,

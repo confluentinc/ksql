@@ -20,6 +20,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -39,14 +40,16 @@ public class ServerVerticle extends AbstractVerticle {
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
+  private final WorkerExecutor workerExecutor;
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
-      final Server server) {
+      final Server server, final WorkerExecutor workerExecutor) {
     this.endpoints = endpoints;
     this.httpServerOptions = httpServerOptions;
     this.server = server;
+    this.workerExecutor = workerExecutor;
   }
 
   @Override
@@ -75,7 +78,8 @@ public class ServerVerticle extends AbstractVerticle {
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
         .handler(BodyHandler.create())
-        .handler(new QueryStreamHandler(endpoints, connectionQueryManager));
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context,
+            workerExecutor));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")

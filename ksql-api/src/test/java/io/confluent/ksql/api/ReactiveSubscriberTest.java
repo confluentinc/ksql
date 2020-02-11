@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.api.TestUtils.awaitLatch;
+import static io.confluent.ksql.api.utils.TestUtils.awaitLatch;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -23,6 +24,7 @@ import io.confluent.ksql.api.server.ReactiveSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,26 +52,56 @@ public class ReactiveSubscriberTest {
   @Test
   public void shouldBeCalledOnContext() throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
+    AtomicBoolean wrongContext = new AtomicBoolean();
+    AtomicBoolean afterSubScribeCalled = new AtomicBoolean();
+    AtomicBoolean handleValueCalled = new AtomicBoolean();
     ReactiveSubscriber<String> subscriber = new ReactiveSubscriber<String>(context) {
       @Override
       protected void afterSubscribe(final Subscription subscription) {
-        checkContext();
+        checkCorrectContext(wrongContext, context);
+        afterSubScribeCalled.set(true);
       }
 
       @Override
       protected void handleValue(final String record) {
-        checkContext();
+        checkCorrectContext(wrongContext, context);
+        handleValueCalled.set(true);
       }
 
       @Override
       protected void handleComplete() {
-        checkContext();
+        checkCorrectContext(wrongContext, context);
         latch.countDown();
       }
 
+    };
+    subscriber.onSubscribe(new Subscription() {
+      @Override
+      public void request(final long n) {
+      }
+
+      @Override
+      public void cancel() {
+      }
+    });
+    assertThatEventually(afterSubScribeCalled::get, is(true));
+    subscriber.onNext("record0");
+    subscriber.onComplete();
+    awaitLatch(latch);
+    assertThat(wrongContext.get(), is(false));
+    assertThat(handleValueCalled.get(), is(true));
+  }
+
+  @Test
+  public void shouldBeCalledOnContextOnError() throws Exception {
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicBoolean wrongContext = new AtomicBoolean();
+    ReactiveSubscriber<String> subscriber = new ReactiveSubscriber<String>(context) {
+
       @Override
       protected void handleError(final Throwable t) {
-        checkContext();
+        checkCorrectContext(wrongContext, context);
+        latch.countDown();
       }
     };
     subscriber.onSubscribe(new Subscription() {
@@ -82,9 +114,8 @@ public class ReactiveSubscriberTest {
       }
     });
     subscriber.onError(new IllegalStateException("foo"));
-    subscriber.onNext("record0");
-    subscriber.onComplete();
     awaitLatch(latch);
+    assertThat(wrongContext.get(), is(false));
   }
 
   @Test
@@ -109,6 +140,12 @@ public class ReactiveSubscriberTest {
     assertThat(subscriber.isHandleValueCalled(), is(false));
     assertThat(subscriber.isHandleCompleteCalled(), is(false));
     assertThat(subscriber.isHandleErrorCalled(), is(false));
+  }
+
+  private void checkCorrectContext(AtomicBoolean wrongContext, Context context) {
+    if (Vertx.currentContext() != context) {
+      wrongContext.set(true);
+    }
   }
 
   private static class TestSubscription implements Subscription {

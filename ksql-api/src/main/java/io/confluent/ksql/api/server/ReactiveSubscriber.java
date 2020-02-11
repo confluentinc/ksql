@@ -199,7 +199,7 @@ public class ReactiveSubscriber<T> implements Subscriber<T> {
 
   private void doOnComplete() {
     checkContext();
-    if (cancelled) {
+    if (cancelled || complete) {
       return;
     }
     if (subscription == null) {

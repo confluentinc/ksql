@@ -13,23 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.api.utils;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
-import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
+import java.util.List;
 
-/**
- * Represents something that knows how to write out a query response
- */
-public interface QueryStreamResponseWriter {
+public interface RowGenerator {
 
-  QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
+  List<String> getColumnNames();
 
-  QueryStreamResponseWriter writeRow(GenericRow row);
+  List<String> getColumnTypes();
 
-  QueryStreamResponseWriter writeError(ErrorResponse error);
-
-  void end();
-
+  GenericRow getNext();
 }

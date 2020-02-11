@@ -18,23 +18,28 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.kafka.connect.data.Schema;
 
 /**
  * A {@code Format} is a serialization specification of a Kafka topic
  * in ksqlDB. The builtin formats are specified in the {@link FormatFactory}
  * class.
+ *
+ * @apiNote implementations are expected to be Thread Safe
  */
+@ThreadSafe
 public interface Format {
 
   /**
    * The name of the {@code Format} specification. If this format supports
    * Confluent Schema Registry integration (either builtin or custom via the
    * {@code ParsedSchema} plugin support), this should match the value returned
-   * by {@link io.confluent.kafka.schemaregistry.ParsedSchema#name()}. Note that
-   * this value is <i>case-sensitive</i>.
+   * by {@link ParsedSchema#name()}. Note that this value is <i>case-sensitive</i>.
    *
    * @return the name of this Format
    * @see #supportsSchemaInference()
@@ -58,14 +63,32 @@ public interface Format {
    * omit the table elements and instead determine the schema from a Confluent
    * Schema Registry query. If this method returns {@code true}, it is expected
    * that the {@link #name()} corresponds with the schema format name returned
-   * by {@link io.confluent.kafka.schemaregistry.ParsedSchema#name()} for this
-   * format.
+   * by {@link ParsedSchema#name()} for this format.
    *
    * @return {@code true} if this {@code Format} supports schema inference
    *         through Confluent Schema Registry
    */
   default boolean supportsSchemaInference() {
     return false;
+  }
+
+  /**
+   * Converts the {@link ParsedSchema} returned by Confluent Schema Registry
+   * into a Connect Schema, which ksqlDB can use to infer the stream or table
+   * schema.
+   *
+   * <p>If this Format {@link #supportsSchemaInference()}, it is expected that
+   * this method will be implemented.</p>
+   *
+   * @param schema the {@code ParsedSchema} returned from Schema Registry
+   * @return the corresponding Kafka Connect schema for the {@code schema} param
+   */
+  default Schema toConnectSchema(ParsedSchema schema) {
+    throw new KsqlException("Format does not implement Schema Registry support: " + name());
+  }
+
+  default ParsedSchema toParsedSchema(Schema schema) {
+    throw new KsqlException("Format does not implement Schema Registry support: " + name());
   }
 
   /**

@@ -18,19 +18,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutor;
-import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
@@ -233,17 +230,4 @@ final class EndToEndEngineTestUtil {
     return fileName + " - " + testName + pf;
   }
 
-  static Optional<org.apache.avro.Schema> buildAvroSchema(final JsonNode schema) {
-    if (schema instanceof NullNode) {
-      return Optional.empty();
-    }
-
-    try {
-      final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
-      final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-      return Optional.of(parser.parse(schemaString));
-    } catch (final Exception e) {
-      throw new InvalidFieldException("schema", "failed to parse", e);
-    }
-  }
 }

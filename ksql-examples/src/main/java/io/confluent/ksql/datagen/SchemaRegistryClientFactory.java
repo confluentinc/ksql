@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,8 +45,9 @@ final class SchemaRegistryClientFactory {
     }
 
     return Optional.of(new CachedSchemaRegistryClient(
-        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
+        ImmutableList.of(ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
         100,
+        ImmutableList.of(new AvroSchemaProvider(), new ProtobufSchemaProvider()),
         ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX)
     ));
   }

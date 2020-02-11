@@ -15,7 +15,12 @@
 
 package io.confluent.ksql.test.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.model.WindowType;
@@ -26,12 +31,15 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
+import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
@@ -44,6 +52,8 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class SerdeUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private SerdeUtil() {
   }
 
@@ -52,17 +62,37 @@ public final class SerdeUtil {
       final LogicalSchema schema
   ) {
     switch (format.name()) {
-      case AvroFormat.NAME:
-        return new ValueSpecAvroSerdeSupplier();
-      case JsonFormat.NAME:
-        return new ValueSpecJsonSerdeSupplier();
-      case DelimitedFormat.NAME:
-        return new StringSerdeSupplier();
-      case KafkaFormat.NAME:
-        return new KafkaSerdeSupplier(schema);
+      case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
+      case ProtobufFormat.NAME:   return new ValueSpecProtobufSerdeSupplier();
+      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier();
+      case DelimitedFormat.NAME:  return new StringSerdeSupplier();
+      case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
     }
+  }
+
+  public static Optional<ParsedSchema> buildSchema(final JsonNode schema, final String format) {
+    if (schema instanceof NullNode) {
+      return Optional.empty();
+    }
+
+    // format == null is the legacy case
+    if (format == null || format.equalsIgnoreCase(AvroFormat.NAME)) {
+      try {
+        final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
+        final org.apache.avro.Schema avroSchema =
+            new org.apache.avro.Schema.Parser().parse(schemaString);
+        return Optional.of(
+            new AvroFormat()
+                .toParsedSchema(new AvroData(1).toConnectSchema(avroSchema))
+        );
+      } catch (final Exception e) {
+        throw new InvalidFieldException("schema", "failed to parse", e);
+      }
+    }
+
+    throw new InvalidFieldException("schema", "not supported with format: " + format);
   }
 
   @SuppressWarnings("unchecked")

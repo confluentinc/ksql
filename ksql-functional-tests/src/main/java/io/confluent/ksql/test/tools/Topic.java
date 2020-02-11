@@ -17,24 +17,24 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import java.util.Optional;
-import org.apache.avro.Schema;
 
 public class Topic {
 
   private final String name;
   private final int numPartitions;
   private final short replicas;
-  private final Optional<Schema> avroSchema;
+  private final Optional<ParsedSchema> schema;
 
   public Topic(
       final String name,
       final int numPartitions,
       final int replicas,
-      final Optional<Schema> avroSchema
+      final Optional<ParsedSchema> schema
   ) {
     this.name = requireNonNull(name, "name");
-    this.avroSchema = requireNonNull(avroSchema, "schema");
+    this.schema = requireNonNull(schema, "schema");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
   }
@@ -43,8 +43,8 @@ public class Topic {
     return name;
   }
 
-  public Optional<Schema> getAvroSchema() {
-    return avroSchema;
+  public Optional<ParsedSchema> getSchema() {
+    return schema;
   }
 
   public int getNumPartitions() {

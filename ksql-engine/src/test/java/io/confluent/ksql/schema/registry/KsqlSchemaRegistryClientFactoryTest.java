@@ -66,7 +66,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
   @Before
   public void setUp() {
-    when(srClientFactory.create(any(), anyInt(), any(), any()))
+    when(srClientFactory.create(any(), anyInt(), any(), any(), any()))
         .thenReturn(mock(CachedSchemaRegistryClient.class));
 
     when(restServiceSupplier.get()).thenReturn(restService);
@@ -166,7 +166,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // Then:
     verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
-    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs), any());
+    srClientFactory.create(same(restService), anyInt(), any(), eq(expectedConfigs), any());
   }
 
   private static Map<String, Object> defaultConfigs() {

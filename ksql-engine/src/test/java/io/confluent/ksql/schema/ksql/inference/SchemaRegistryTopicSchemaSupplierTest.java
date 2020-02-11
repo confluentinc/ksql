@@ -30,6 +30,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Optional;
@@ -57,26 +58,22 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Mock
   private SchemaRegistryClient srClient;
   @Mock
-  private Function<String, org.apache.avro.Schema> toAvroTranslator;
-  @Mock
-  private Function<org.apache.avro.Schema, Schema> toConnectTranslator;
-  @Mock
   private Function<Schema, Schema> toKsqlTranslator;
-  @Mock
-  private org.apache.avro.Schema avroSchema;
   @Mock
   private ParsedSchema parsedSchema;
   @Mock
   private Schema connectSchema;
   @Mock
   private Schema ksqlSchema;
+  @Mock
+  private Format format;
 
   private SchemaRegistryTopicSchemaSupplier supplier;
 
   @Before
   public void setUp() throws Exception {
     supplier = new SchemaRegistryTopicSchemaSupplier(
-        srClient, toAvroTranslator, toConnectTranslator, toKsqlTranslator);
+        srClient, toKsqlTranslator, f -> format);
 
     when(srClient.getLatestSchemaMetadata(any()))
         .thenReturn(new SchemaMetadata(SCHEMA_ID, -1, AVRO_SCHEMA));
@@ -88,11 +85,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
-    when(toAvroTranslator.apply(any()))
-        .thenReturn(avroSchema);
-
-    when(toConnectTranslator.apply(any()))
-        .thenReturn(connectSchema);
+    when(format.toConnectSchema(parsedSchema)).thenReturn(connectSchema);
 
     when(toKsqlTranslator.apply(any()))
         .thenReturn(ksqlSchema);
@@ -227,27 +220,9 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   }
 
   @Test
-  public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToAvroSchema() {
-    // Given:
-    when(toAvroTranslator.apply(any()))
-        .thenThrow(new RuntimeException("it went boom"));
-
-    // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.empty());
-
-    // Then:
-    assertThat(result.schemaAndId, is(Optional.empty()));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Unable to verify if the schema for topic some-topic is compatible with KSQL."));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "it went boom"));
-    assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
-  }
-
-  @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(toConnectTranslator.apply(any()))
+    when(format.toConnectSchema(any()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -299,21 +274,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   }
 
   @Test
-  public void shouldPassWriteSchemaToAvroTranslator() {
+  public void shouldPassWriteSchemaToFormat() {
     // When:
     supplier.getValueSchema(TOPIC_NAME, Optional.empty());
 
     // Then:
-    verify(toAvroTranslator).apply(AVRO_SCHEMA);
-  }
-
-  @Test
-  public void shouldPassWriteSchemaToConnectTranslator() {
-    // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
-
-    // Then:
-    verify(toConnectTranslator).apply(avroSchema);
+    verify(format).toConnectSchema(parsedSchema);
   }
 
   @Test

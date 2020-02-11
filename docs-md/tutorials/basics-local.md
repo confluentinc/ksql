@@ -164,10 +164,10 @@ Your output should resemble:
 ```json
 Key format: KAFKA (STRING)
 Value format: AVRO
-rowtime: 10/30/18 10:15:51 PM GMT, key: User_1, value: {registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
-rowtime: 10/30/18 10:15:51 PM GMT, key: User_3, value: {registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
-rowtime: 10/30/18 10:15:53 PM GMT, key: User_7, value: {registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
-^Crowtime: 10/30/18 10:15:59 PM GMT, key: User_4, value: {registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
+rowtime: 10/30/18 10:15:51 PM GMT, key: User_1, value: {"registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
+rowtime: 10/30/18 10:15:51 PM GMT, key: User_3, value: {"registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
+rowtime: 10/30/18 10:15:53 PM GMT, key: User_7, value: {"registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
+^Crowtime: 10/30/18 10:15:59 PM GMT, key: User_4, value: {"registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
 Topic printing ceased
 ```
 

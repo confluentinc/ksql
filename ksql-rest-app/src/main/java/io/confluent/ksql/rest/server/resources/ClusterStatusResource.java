@@ -102,14 +102,14 @@ public class ClusterStatusResource {
   private Map<String, ActiveStandbyEntity> getActiveStandbyInformation(
       final KsqlHostInfo ksqlHostInfo
   ) {
-    Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
+    final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
     for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
       for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
         if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE
             || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
           continue;
         }
-        QueryIdAndStreamsMetadata queryIdAndStreamsMetadata = new QueryIdAndStreamsMetadata(
+        final QueryIdAndStreamsMetadata queryIdAndStreamsMetadata = new QueryIdAndStreamsMetadata(
             persistentQueryMetadata.getQueryId().toString(),
             streamsMetadata
         );

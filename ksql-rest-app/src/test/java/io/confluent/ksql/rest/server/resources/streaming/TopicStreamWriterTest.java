@@ -148,5 +148,3 @@ public class TopicStreamWriterTest {
     }
   }
 }
-
-// Todo(ac): Doccs - call out limitations DOUBLE/BIGINT, 4 char, 8 char STRINGS.

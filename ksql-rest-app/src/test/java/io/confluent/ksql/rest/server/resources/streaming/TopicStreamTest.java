@@ -584,6 +584,3 @@ public class TopicStreamTest {
     return avroSerializer.serialize("topic", avroRecord);
   }
 }
-
-// Todo(ac): Could output _possible_ formats, e.g. "23" could be JSON number, or delimited.
-// Todo(ac): over multiple lines, it could narrow this down.

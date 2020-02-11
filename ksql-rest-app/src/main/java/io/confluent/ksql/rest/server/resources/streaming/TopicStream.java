@@ -121,15 +121,11 @@ public final class TopicStream {
               + ", " + "key: " + rowKey
               + ", value: " + value;
         } catch (IOException e) {
-          // Todo(ac): If this throws... try other formats? Output format at start of row?
           log.warn("Exception formatting record", e);
           return "Failed to parse row";
         }
       };
     }
-
-    // Todo(ac): Detect windwowed key?
-    // Todo(ac): Look in SR
 
     public String getKeyFormat() {
       return keyFormatter
@@ -233,7 +229,6 @@ public final class TopicStream {
           final KafkaAvroDeserializer avroDeserializer
       ) {
         try {
-          // Todo(ac): Include details that schema is registered?
           avroDeserializer.deserialize(topicName, data.get());
           return Optional.of(createFormatter(topicName, avroDeserializer));
         } catch (final Exception t) {

@@ -71,7 +71,7 @@ public class KafkaTopicClientImplIntegrationTest {
   @Before
   public void setUp() {
     testTopic = UUID.randomUUID().toString();
-    KAFKA.createTopic(testTopic);
+    KAFKA.createTopics(testTopic);
 
     adminClient = AdminClient.create(ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));

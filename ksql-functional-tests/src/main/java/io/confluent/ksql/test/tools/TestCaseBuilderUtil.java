@@ -19,7 +19,7 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
-import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -146,25 +145,27 @@ public final class TestCaseBuilderUtil {
       final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
 
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
-      final Optional<org.apache.avro.Schema> avroSchema;
-      if (valueFormat.getFormat() == FormatFactory.AVRO) {
+      final Optional<ParsedSchema> schema;
+      if (valueFormat.getFormat().supportsSchemaInference()) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
             e.getName().name(),
             SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
-        avroSchema = Optional.of(new AvroData(1)
-            .fromConnectSchema(addNames(schemaBuilder.build())));
+
+        schema = Optional.of(
+            valueFormat.getFormat().toParsedSchema(addNames(schemaBuilder.build()))
+        );
       } else {
-        avroSchema = Optional.empty();
+        schema = Optional.empty();
       }
 
       return new Topic(
           ksqlTopic.getKafkaTopicName(),
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
-          avroSchema
+          schema
       );
     };
 

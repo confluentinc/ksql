@@ -2,6 +2,7 @@
   "tests": [
     {
       "name": "basic avro schema",
+      "format": "AVRO",
       "schema": {
         "type": "record",
         "name": "test_input_schema",

@@ -24,7 +24,7 @@
     },
     {
       "name": "select delimited value_format into another format",
-      "format": ["JSON", "AVRO"],
+      "format": ["JSON", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=',');",
         "CREATE STREAM S2 WITH(value_format='{FORMAT}') as SELECT id, name, value FROM test;"

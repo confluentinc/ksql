@@ -13,27 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.avro;
+package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.connect.protobuf.ProtobufData;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.util.KsqlConstants;
-import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
 
-public final class AvroFormat implements Format {
+public class ProtobufFormat implements Format {
 
-  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
-  public static final String NAME = AvroSchema.TYPE;
+  public static final String NAME = ProtobufSchema.TYPE;
 
-  private final AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
+  private final ProtobufData protobufData =
+      new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
 
   @Override
   public String name() {
@@ -47,30 +44,16 @@ public final class AvroFormat implements Format {
 
   @Override
   public Schema toConnectSchema(final ParsedSchema schema) {
-    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
+    return protobufData.toConnectSchema((ProtobufSchema) schema);
   }
 
   @Override
   public ParsedSchema toParsedSchema(final Schema schema) {
-    return new AvroSchema(avroData.fromConnectSchema(schema));
-  }
-
-  @Override
-  public Set<String> getSupportedProperties() {
-    return ImmutableSet.of(FULL_SCHEMA_NAME);
-  }
-
-  @Override
-  public Set<String> getInheritableProperties() {
-    return ImmutableSet.of();
+    return protobufData.fromConnectSchema(schema);
   }
 
   @Override
   public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    final String schemaFullName = info
-        .getProperties()
-        .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
-    return new KsqlAvroSerdeFactory(schemaFullName);
+    return new ProtobufSerdeFactory();
   }
 }

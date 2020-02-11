@@ -18,11 +18,11 @@ package io.confluent.ksql.test.tools;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import java.util.List;
 import java.util.Optional;
-import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -35,7 +35,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StubKafkaServiceTest {
 
   @Mock
-  private Schema avroSchema;
+  private ParsedSchema avroSchema;
   @Mock
   private ProducerRecord<?, ?> producerRecord;
   @Mock

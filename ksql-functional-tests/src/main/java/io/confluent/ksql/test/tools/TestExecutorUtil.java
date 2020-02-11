@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.not;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -42,7 +43,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -62,7 +62,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.avro.Schema;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
@@ -152,14 +151,13 @@ public final class TestExecutorUtil {
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
 
-    final Optional<org.apache.avro.Schema> avroSchema =
-        getAvroSchema(sinkDataSource, schemaRegistryClient);
+    final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
 
     final Topic sinkTopic = new Topic(
         kafkaTopicName,
         KsqlConstants.legacyDefaultSinkPartitionCount,
         KsqlConstants.legacyDefaultSinkReplicaCount,
-        avroSchema
+        schema
     );
 
     if (stubKafkaService.topicExists(sinkTopic)) {
@@ -170,14 +168,18 @@ public final class TestExecutorUtil {
     return sinkTopic;
   }
 
-  private static Optional<Schema> getAvroSchema(
+  private static Optional<ParsedSchema> getSchema(
       final DataSource dataSource,
       final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO) {
+    if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
       try {
-        final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
-            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-        return Optional.of(new org.apache.avro.Schema.Parser().parse(schemaMetadata.getSchema()));
+        final String subject =
+            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+        final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
+        return Optional.of(
+            schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
+        );
       } catch (final Exception e) {
         // do nothing
       }
@@ -232,10 +234,9 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
-      topic.getAvroSchema().ifPresent(schema -> {
+      topic.getSchema().ifPresent(schema -> {
         try {
-          srClient
-              .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+          srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }

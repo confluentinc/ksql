@@ -16,10 +16,15 @@
 package io.confluent.ksql.schema.registry;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
@@ -41,6 +46,7 @@ public class KsqlSchemaRegistryClientFactory {
   interface SchemaRegistryClientFactory {
     CachedSchemaRegistryClient create(RestService service,
                                       int identityMapCapacity,
+                                      List<SchemaProvider> providers,
                                       Map<String, Object> clientConfigs,
                                       Map<String, String> httpHeaders);
   }
@@ -113,6 +119,7 @@ public class KsqlSchemaRegistryClientFactory {
     return schemaRegistryClientFactory.create(
         restService,
         1000,
+        ImmutableList.of(new AvroSchemaProvider(), new ProtobufSchemaProvider()),
         schemaRegistryClientConfigs,
         httpHeaders
     );

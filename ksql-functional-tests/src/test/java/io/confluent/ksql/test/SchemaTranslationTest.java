@@ -2,7 +2,6 @@ package io.confluent.ksql.test;
 
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToJson;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildAvroSchema;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildTestName;
 import static java.util.Objects.requireNonNull;
 
@@ -11,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.tools.Record;
@@ -18,7 +19,9 @@ import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.VersionBounds;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -133,15 +136,25 @@ public class SchemaTranslationTest {
   static class SttCaseNode {
 
     private final String name;
-    private final Schema schema;
+    private final AvroSchema schema;
 
     SttCaseNode(
         @JsonProperty("name") final String name,
+        @JsonProperty("format") final String format,
         @JsonProperty("schema") final JsonNode schema
     ) {
+      if (!format.equalsIgnoreCase(AvroFormat.NAME)) {
+        throw new InvalidFieldException(
+            "format",
+            "unsupported format for schema translation test: " + format
+        );
+      }
+
       this.name = name == null ? "" : name;
-      this.schema = buildAvroSchema(requireNonNull(schema, "schema"))
-          .orElseThrow(() -> new MissingFieldException("schema"));
+      this.schema = (AvroSchema)
+          SerdeUtil
+              .buildSchema(requireNonNull(schema, "schema"), format)
+              .orElseThrow(() -> new MissingFieldException("schema"));
 
       if (this.name.isEmpty()) {
         throw new MissingFieldException("name");
@@ -160,10 +173,10 @@ public class SchemaTranslationTest {
             Optional.of(schema)
         );
 
-        final List<Record> inputRecords = generateInputRecords(srcTopic, schema);
+        final List<Record> inputRecords = generateInputRecords(srcTopic, schema.rawSchema());
         final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords);
 
-        final String csasStatement = schema.getFields()
+        final String csasStatement = schema.rawSchema().getFields()
             .stream()
             .map(Schema.Field::name)
             .collect(

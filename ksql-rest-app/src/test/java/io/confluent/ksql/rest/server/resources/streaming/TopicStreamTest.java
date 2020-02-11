@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -544,7 +545,7 @@ public class TopicStreamTest {
       when(schemaRegistryClient.getSchemaById(anyInt()))
           .thenReturn(new AvroSchema(AVRO_SCHEMA));
     } catch (final Exception e) {
-      // meh.
+      fail("invalid test");
     }
   }
 

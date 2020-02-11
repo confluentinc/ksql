@@ -191,7 +191,7 @@ public class KsqlConfig extends AbstractConfig {
       "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
           + "hosts storing it, both active and standbys included. This can be overridden per query "
           + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
-          + "By default, no lag is is allowed.";
+          + "By default, any amount of lag is is allowed.";
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
       "ksql.query.pull.streamsstore.rebalancing.timeout.ms";

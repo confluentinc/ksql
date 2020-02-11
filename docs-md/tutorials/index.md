@@ -8,12 +8,11 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 
 - [Quickstart](ksqldb-quickstart.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](basics-docker.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](basics-local.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB and {{ site.c3 }}](basics-control-center.md)
 - [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](clickstream-docker.md)
 - [ksqlDB with Embedded Connect](embedded-connect.md)
 - [Integrating with PostgreSQL](connect-integration.md)
 - [ksqlDB Examples](examples.md)
+- Blog post: [Building a Materialized Cache with ksqlDB](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)
 
 ksqlDB Basics
 -------------

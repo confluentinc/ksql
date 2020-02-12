@@ -28,7 +28,7 @@ differs from the join column. In these cases, ksqlDB internally repartitions
 the stream, which implicitly defines a key for it.
 
 ksqlDB requires keys to use the `KAFKA` format. For more information, see
-[Serialization Formats](serialization.md#serialization-formats). If internally
+[Serialization Formats](../serialization.md#serialization-formats). If internally
 repartitioning, ksqlDB uses the correct format.
 
 Because you can only use the primary key of a table as a joining column, it's

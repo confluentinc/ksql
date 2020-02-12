@@ -159,10 +159,10 @@ Project Object Model (POM) file for the Maven build, and name it
     <properties>
         <exec.mainClass>my.company.ksql.udfdemo.thisisignored</exec.mainClass>
         <java.version>1.8</java.version>
-        <kafka.version>5.4.0-ccs</kafka.version>
-        <kafka.scala.version>2.12</kafka.scala.version>
+        <kafka.version>{{ site.kafkarelease }}</kafka.version>
+        <kafka.scala.version>{{ site.scalaversion }}</kafka.scala.version>
         <scala.version>${kafka.scala.version}.8</scala.version>
-        <confluent.version>6.0.0-SNAPSHOT</confluent.version>
+        <confluent.version>{{ site.release }}</confluent.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

@@ -103,27 +103,23 @@ package my.company.ksql.udfdemo;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
 public class Multiply {
 
   @Udf(description = "multiply two non-nullable INTs.")
-  public long multiply(final int v1, final int v2) {
+  public long multiply(@UdfParameter(value = "v1") final int v1, @UdfParameter(value="v2") final int v2) {
     return v1 * v2;
   }
 
   @Udf(description = "multiply two non-nullable BIGINTs.")
-  public long multiply(final long v1, final long v2) {
+  public long multiply(@UdfParameter(value="v1") final long v1, @UdfParameter(value="v2") final long v2) {
     return v1 * v2;
   }
 
-  @Udf(description = "multiply two nullable BIGINTs. If either param is null, null is returned.")
-  public Long multiply(final Long v1, final Long v2) {
-    return v1 == null || v2 == null ? null : v1 * v2;
-  }
-
   @Udf(description = "multiply two non-nullable DOUBLEs.")
-  public double multiply(final double v1, double v2) {
+  public double multiply(@UdfParameter(value="v1") final double v1, @UdfParameter(value="v2") double v2) {
     return v1 * v2;
   }
 }
@@ -166,7 +162,7 @@ Project Object Model (POM) file for the Maven build, and name it
         <kafka.version>{{ site.kafkarelease }}</kafka.version>
         <kafka.scala.version>{{ site.scalaversion }}</kafka.scala.version>
         <scala.version>${kafka.scala.version}.8</scala.version>
-        <confluent.version>{{ site.release }}</confluent.version>
+        <confluent.version>{{ site.cprelease }}</confluent.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -184,13 +180,17 @@ Project Object Model (POM) file for the Maven build, and name it
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                </configuration>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.7.0</version>
+              <configuration>
+                <source>8</source>
+                <target>8</target>
+                <encoding>UTF-8</encoding>
+                <compilerArgs>
+                  <arg>-parameters</arg>
+                </compilerArgs>
+              </configuration>
             </plugin>
 
             <!-- Package all dependencies as one jar -->

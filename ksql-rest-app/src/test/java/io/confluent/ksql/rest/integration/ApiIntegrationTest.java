@@ -61,7 +61,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
-public class NewApiTest {
+public class ApiIntegrationTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
@@ -310,6 +310,7 @@ public class NewApiTest {
   @Test
   public void shouldExecuteInserts() {
 
+    // Given:
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
         .put("target", PAGE_VIEW_STREAM).put("properties", properties);
@@ -319,16 +320,18 @@ public class NewApiTest {
     int numRows = 10;
 
     for (int i = 0; i < numRows; i++) {
-      JsonObject row = new JsonObject();
-      row.put("ROWKEY", 10 + i);
-      row.put("VIEWTIME", 1000 + i);
-      row.put("USERID", "User" + i % 3);
-      row.put("PAGEID", "PAGE" + (numRows - i));
+      JsonObject row = new JsonObject()
+          .put("ROWKEY", 10 + i)
+          .put("VIEWTIME", 1000 + i)
+          .put("USERID", "User" + i % 3)
+          .put("PAGEID", "PAGE" + (numRows - i));
       bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
     }
 
+    // When:
     HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
 
+    // Then:
     assertThat(response.statusCode(), is(200));
 
     InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
@@ -346,56 +349,60 @@ public class NewApiTest {
   }
 
   @Test
-  public void shouldFailToInsertWithNullKey() {
+  public void shouldFailToInsertWithMissingKey() {
 
-    JsonObject properties = new JsonObject();
-    JsonObject requestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
-    Buffer bodyBuffer = requestBody.toBuffer();
-    bodyBuffer.appendString("\n");
+    // Given:
+    JsonObject row = new JsonObject()
+        .put("VIEWTIME", 1000)
+        .put("USERID", "User123")
+        .put("PAGEID", "PAGE23");
 
-    JsonObject row = new JsonObject();
-    row.put("VIEWTIME", 1000);
-    row.put("USERID", "User123");
-    row.put("PAGEID", "PAGE23");
-    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+    // Then:
+    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD,
+        "Key field must be specified: ROWKEY");
+  }
 
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+  @Test
+  public void shouldFailToInsertWithNonMatchingKeyType() {
 
-    assertThat(response.statusCode(), is(200));
+    // Given:
+    JsonObject row = new JsonObject()
+        .put("ROWKEY", true)
+        .put("VIEWTIME", 1000)
+        .put("USERID", "User123")
+        .put("PAGEID", "PAGE23");
 
-    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
-    assertThat(insertsResponse.acks, hasSize(0));
-    assertThat(insertsResponse.error, is(notNullValue()));
-    assertThat(insertsResponse.error.getString("status"), is("error"));
-    assertThat(insertsResponse.error.getInteger("errorCode"), is(
-        ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD));
-    assertThat(insertsResponse.error.getString("message"),
-        startsWith("Key field must be specified: ROWKEY"));
+    // Then:
+    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
+        "Can't coerce a field of type class java.lang.Boolean (true) into type BIGINT");
+  }
+
+  @Test
+  public void shouldFailToInsertWithNonMatchingValueType() {
+
+    // Given:
+    JsonObject row = new JsonObject()
+        .put("ROWKEY", 10)
+        .put("VIEWTIME", 1000)
+        .put("USERID", 123)
+        .put("PAGEID", "PAGE23");
+
+    // Then:
+    shouldFailToInsert(row, ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD,
+        "Can't coerce a field of type class java.lang.Integer (123) into type STRING");
   }
 
   @Test
   public void shouldInsertWithMissingValueField() {
 
-    JsonObject properties = new JsonObject();
-    JsonObject requestBody = new JsonObject()
-        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
-    Buffer bodyBuffer = requestBody.toBuffer();
-    bodyBuffer.appendString("\n");
-
+    // Given:
     JsonObject row = new JsonObject();
     row.put("ROWKEY", 10);
     row.put("VIEWTIME", 1000);
     row.put("USERID", "User123");
-    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
 
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
-
-    assertThat(response.statusCode(), is(200));
-
-    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
-    assertThat(insertsResponse.acks, hasSize(1));
-    assertThat(insertsResponse.error, is(nullValue()));
+    // Then:
+    shouldInsert(row);
   }
 
   private void shouldFailToExecuteQuery(final String sql, final String message) {
@@ -417,6 +424,47 @@ public class NewApiTest {
         .put("sql", sql).put("properties", properties);
     HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
     return new QueryResponse(response.bodyAsString());
+  }
+
+
+  private void shouldFailToInsert(final JsonObject row, final int errorCode, final String message) {
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(0));
+    assertThat(insertsResponse.error, is(notNullValue()));
+    assertThat(insertsResponse.error.getString("status"), is("error"));
+    assertThat(insertsResponse.error.getInteger("errorCode"), is(errorCode));
+    assertThat(insertsResponse.error.getString("message"),
+        startsWith(message));
+  }
+
+  private void shouldInsert(final JsonObject row) {
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("target", PAGE_VIEW_STREAM).put("properties", properties);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    assertThat(response.statusCode(), is(200));
+
+    InsertsResponse insertsResponse = new InsertsResponse(response.bodyAsString());
+    assertThat(insertsResponse.acks, hasSize(1));
+    assertThat(insertsResponse.error, is(nullValue()));
   }
 
   private WebClient createClient() {

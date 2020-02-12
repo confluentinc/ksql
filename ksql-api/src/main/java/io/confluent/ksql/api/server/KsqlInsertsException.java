@@ -19,15 +19,14 @@ import io.confluent.ksql.util.KsqlException;
 
 public class KsqlInsertsException extends KsqlException {
 
-  public KsqlInsertsException(final Throwable cause) {
-    super(cause);
-  }
+  private final int errorCode;
 
-  public KsqlInsertsException(final String message) {
+  public KsqlInsertsException(final String message, final int errorCode) {
     super(message);
+    this.errorCode = errorCode;
   }
 
-  public KsqlInsertsException(final String message, final Throwable cause) {
-    super(message, cause);
+  public int getErrorCode() {
+    return errorCode;
   }
 }

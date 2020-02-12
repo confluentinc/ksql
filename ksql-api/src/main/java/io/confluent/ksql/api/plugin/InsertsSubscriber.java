@@ -59,7 +59,7 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
   private final BufferedPublisher<InsertResult> acksPublisher;
   private int outstandingTokens;
   private boolean drainHandlerSet;
-  private long seq;
+  private long sequence;
 
   public static InsertsSubscriber createInsertsSubscriber(final ServiceContext serviceContext,
       final JsonObject properties, final DataSource dataSource, final KsqlConfig ksqlConfig,
@@ -100,7 +100,7 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
         valueSerde.serializer(), acksPublisher);
   }
 
-  protected InsertsSubscriber(final Context context,
+  private InsertsSubscriber(final Context context,
       final Producer<byte[], byte[]> producer, final DataSource dataSource,
       final Serializer<Struct> keySerializer,
       final Serializer<GenericRow> valueSerializer,
@@ -138,12 +138,12 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
       );
 
       outstandingTokens--;
-      producer.send(record, new SendCallback(seq));
+      producer.send(record, new SendCallback(sequence));
     } catch (Exception e) {
       // We send the error to the acks publisher
-      acksPublisher.accept(InsertResult.failedInsert(seq, e));
+      acksPublisher.accept(InsertResult.failedInsert(sequence, e));
     }
-    seq++;
+    sequence++;
   }
 
   private void handleResult(final InsertResult result) {

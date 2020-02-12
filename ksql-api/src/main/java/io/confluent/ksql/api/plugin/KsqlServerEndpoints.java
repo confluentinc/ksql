@@ -63,19 +63,19 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final KsqlSecurityExtension securityExtension;
-  private final ServiceContextFactory theServiceContextFactory;
+  private final ServiceContextFactory serviceContextFactory;
   private final PullQueryApiExecutor pullQueryApiExecutor;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory theServiceContextFactory,
+      final ServiceContextFactory serviceContextFactory,
       final PullQueryApiExecutor pullQueryApiExecutor) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.securityExtension = Objects.requireNonNull(securityExtension);
-    this.theServiceContextFactory = Objects.requireNonNull(theServiceContextFactory);
+    this.serviceContextFactory = Objects.requireNonNull(serviceContextFactory);
     this.pullQueryApiExecutor = Objects.requireNonNull(pullQueryApiExecutor);
   }
 
@@ -161,7 +161,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    return theServiceContextFactory.create(ksqlConfig,
+    return serviceContextFactory.create(ksqlConfig,
         Optional.empty(),
         kafkaClientSupplier, srClientFactory);
   }
@@ -196,12 +196,12 @@ public class KsqlServerEndpoints implements Endpoints {
   ) {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
-      throw new KsqlException("Cannot insert values into an unknown stream/table: "
+      throw new KsqlException("Cannot insert values into an unknown stream: "
           + sourceName);
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
-      throw new KsqlException("Cannot insert values into windowed stream/table!");
+      throw new KsqlException("Cannot insert values into windowed stream");
     }
 
     final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);

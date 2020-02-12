@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.plugin;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.ErrorCodes;
 import io.confluent.ksql.api.server.KsqlInsertsException;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -23,7 +24,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -43,7 +43,8 @@ public final class KeyValueExtractor {
     for (final Field field : key.schema().fields()) {
       final Object value = values.getValue(field.name());
       if (value == null) {
-        throw new KsqlInsertsException("Key field must be specified: " + field.name());
+        throw new KsqlInsertsException("Key field must be specified: " + field.name(),
+            ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD);
       }
       final Object coercedValue = coerceObject(value,
           SchemaConverters.connectToSqlConverter().toSqlType(field.schema()),
@@ -84,8 +85,10 @@ public final class KeyValueExtractor {
       }
     }
     return sqlValueCoercer.coerce(value, sqlType)
-        .orElseThrow(() -> new KsqlException(
-            "Can't coerce a value of type " + value.getClass() + " into " + sqlType));
+        .orElseThrow(() -> new KsqlInsertsException(
+            String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
+                value, sqlType),
+            ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD));
   }
 
 }

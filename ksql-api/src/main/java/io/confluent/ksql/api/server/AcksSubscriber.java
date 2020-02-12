@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
-import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD;
 
 import io.confluent.ksql.api.server.protocol.InsertAck;
 import io.confluent.ksql.api.server.protocol.InsertError;
@@ -82,7 +81,8 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
       final InsertError insertError;
       final Exception exception = result.exception();
       if (exception instanceof KsqlInsertsException) {
-        insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_MISSING_KEY_FIELD,
+        insertError = new InsertError(result.sequenceNumber(),
+            ((KsqlInsertsException) exception).getErrorCode(),
             exception.getMessage());
       } else {
         insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_INTERNAL_ERROR,

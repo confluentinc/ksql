@@ -58,7 +58,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.3.2
+    image: confluentinc/cp-zookeeper:latest
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -68,7 +68,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.3.2
+    image: confluentinc/cp-enterprise-kafka:latest
     hostname: broker
     container_name: broker
     depends_on:
@@ -84,7 +84,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.6.0
+    image: confluentinc/ksqldb-server:0.7.0
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -97,12 +97,24 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
+      KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
+      KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_CONNECT_KEY_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
+      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
+      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
+      KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
     volumes:
       - ./confluentinc-kafka-connect-jdbc-5.3.2:/usr/share/kafka/plugins/jdbc
-      - ./connect.properties:/connect/connect.properties
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.6.0
+    image: confluentinc/ksqldb-cli:0.7.0
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -128,33 +140,7 @@ to your local working directory. Next, unzip the downloaded archive:
 unzip confluentinc-kafka-connect-jdbc-5.3.2.zip
 ```
 
-3. Configure Connect
---------------------
-
-In order to tell ksqlDB to run Connect in embedded mode, we must point ksqlDB
-to a separate Connect configuration file. In our docker-compose file, this is
-done via the `KSQL_KSQL_CONNECT_WORKER_CONFIG` environment variable. From
-within your local working directory, run this command to generate the Connect
-configuration file:
-
-```bash
-cat << EOF > ./connect.properties
-bootstrap.servers=broker:9092
-plugin.path=/usr/share/kafka/plugins
-group.id=ksql-connect-cluster
-key.converter=org.apache.kafka.connect.json.JsonConverter
-value.converter=org.apache.kafka.connect.json.JsonConverter
-value.converter.schemas.enable=false
-config.storage.topic=ksql-connect-configs
-offset.storage.topic=ksql-connect-offsets
-status.storage.topic=ksql-connect-statuses
-config.storage.replication.factor=1
-offset.storage.replication.factor=1
-status.storage.replication.factor=1
-EOF
-```
-
-4. Start ksqlDB and PostgreSQL
+3. Start ksqlDB and PostgreSQL
 ------------------------------
 
 In the directory containing the `docker-compose.yml` file you created in the
@@ -165,7 +151,7 @@ order.
 docker-compose up
 ```
 
-5. Connect to PostgreSQL
+4. Connect to PostgreSQL
 ------------------------
 
 Run the following command to establish an interactive session with PostgreSQL.
@@ -174,7 +160,7 @@ Run the following command to establish an interactive session with PostgreSQL.
 docker exec -it postgres psql -U postgres
 ```
 
-6. Populate PostgreSQL with vehicle/driver data
+5. Populate PostgreSQL with vehicle/driver data
 -----------------------------------------------
 
 In the PostgreSQL session, run the following SQL statements to set up the
@@ -197,7 +183,7 @@ INSERT INTO driver_profiles (driver_id, make, model, year, license_plate, rating
   (3, 'Toyota', 'Camry',   2018, 'ILVKSQL', 4.85);
 ```
 
-7. Start ksqlDB's interactive CLI
+6. Start ksqlDB's interactive CLI
 ---------------------------------
 
 ksqlDB runs as a server which clients connect to in order to issue queries.
@@ -209,7 +195,7 @@ interactive command-line interface (CLI) session.
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
-8. Create source connector
+7. Create source connector
 --------------------------
 
 Make your PostgreSQL data accessible to ksqlDB by creating a *source*
@@ -225,7 +211,8 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
   'mode'                     = 'incrementing',
   'numeric.mapping'          = 'best_fit',
   'incrementing.column.name' = 'driver_id',
-  'key'                      = 'driver_id');
+  'key'                      = 'driver_id',
+  'key.converter'            = 'org.apache.kafka.connect.converters.IntegerConverter');
 ```
 
 When the source connector is created, it imports any PostgreSQL tables matching
@@ -233,7 +220,7 @@ the specified `table.whitelist`. Tables are imported via {{ site.ak }} topics,
 with one topic per imported table. Once these topics are created, you can
 interact with them just like any other {{ site.ak }} topic used by ksqlDB.
 
-9. View imported topic
+8. View imported topic
 ----------------------
 
 In the ksqlDB CLI session, run the following command to verify that the
@@ -244,7 +231,7 @@ prefix, you should see a `jdbc_user_profiles` topic in the output.
 SHOW TOPICS;
 ```
 
-10. Create drivers table in ksqlDB
+9. Create drivers table in ksqlDB
 ----------------------------------
 
 The driver data is now integrated as a {{ site.ak }} topic, but you need to
@@ -255,6 +242,7 @@ columns.
 
 ```sql
 CREATE TABLE driverProfiles (
+  rowkey INTEGER KEY,
   driver_id INTEGER,
   make STRING,
   model STRING,
@@ -278,7 +266,7 @@ In practice, you would normally use Avro, since this supports the retention
 of schemas, ensuring compatibility between producers and consumers. This means
 that you don't have to enter it each time you want to use the data in ksqlDB.
 
-11. Create streams for driver locations and rider locations
+10. Create streams for driver locations and rider locations
 -----------------------------------------------------
 
 In this step, you create streams over new topics to encapsulate location pings that are sent
@@ -303,7 +291,7 @@ CREATE STREAM riderLocations (
 WITH (kafka_topic='rider_locations', value_format='json', partitions=1, key='driver_id');
 ```
 
-12. Enrich driverLocations stream by joining with PostgreSQL data
+11. Enrich driverLocations stream by joining with PostgreSQL data
 -----------------------------------------------------------------
 
 The `driverLocations` stream has a relatively compact schema, and it doesn’t
@@ -333,7 +321,7 @@ CREATE STREAM enrichedDriverLocations AS
   EMIT CHANGES;
 ```
 
-13. Create the rendezvous stream
+12. Create the rendezvous stream
 ----------------------------
 
 To put all of this together, create a final stream that the ridesharing app can
@@ -362,7 +350,7 @@ CREATE STREAM rendezvous AS
   EMIT CHANGES;
 ```
 
-14. Start two ksqlDB CLI sessions
+13. Start two ksqlDB CLI sessions
 ---------------------------------
 
 Run the following command twice to open two separate ksqlDB CLI sessions. If
@@ -373,7 +361,7 @@ session.
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
-15. Run a continuous query
+14. Run a continuous query
 --------------------------
 
 In this step, you run a continuous query over the rendezvous stream.
@@ -388,7 +376,7 @@ into ksqlDB.
 SELECT * FROM rendezvous EMIT CHANGES;
 ```
 
-16. Write data to input streams
+15. Write data to input streams
 -------------------------------
 
 Your continuous query reads from the `rendezvous` stream, which takes its input

@@ -10,6 +10,7 @@ Table Functions
 ===============
 
 - [EXPLODE](#explode)
+- [CUBE](#cube)
 - More to come
 
 ksqlDB Table Functions
@@ -105,4 +106,16 @@ EXPLODE
 Array
 
 This function takes an Array and outputs one value for each of the elements
-of the array. The output values have the same type as the  array elements.                                                    
+of the array. The output values have the same type as the  array elements.
+
+CUBE
+-------
+
+`cube_explode(array[col1, ..., colN])`
+
+Array
+
+Takes as argument an array of columns and outputs all possible combinations of them.
+It produces `2^d` new rows where `d` is the number of columns given as parameter.
+Duplicate entries for columns with null value are skipped.
+                                                    

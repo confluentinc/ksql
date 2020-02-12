@@ -17,6 +17,7 @@ package io.confluent.ksql.api;
 
 import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
@@ -60,10 +61,11 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public synchronized Subscriber<JsonObject> createInsertsSubscriber(final String target,
+  public synchronized InsertsStreamSubscriber createInsertsSubscriber(final String target,
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber,
-      final Context context) {
+      final Context context,
+      final WorkerExecutor workerExecutor) {
     this.lastTarget = target;
     this.lastProperties = properties;
     BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(Vertx.currentContext());

@@ -18,19 +18,22 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.server.BaseSubscriber;
 import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import org.reactivestreams.Subscription;
 
-public class TestInsertsSubscriber extends BaseSubscriber<JsonObject> {
+public class TestInsertsSubscriber extends BaseSubscriber<JsonObject> implements
+    InsertsStreamSubscriber {
 
   private final BufferedPublisher<InsertResult> acksPublisher;
   private final List<JsonObject> rowsInserted = new ArrayList<>();
   private final int acksBeforePublisherError;
   private boolean completed;
   private long seq;
+  private boolean closed;
 
   public TestInsertsSubscriber(final Context context,
       final BufferedPublisher<InsertResult> acksPublisher,
@@ -68,12 +71,21 @@ public class TestInsertsSubscriber extends BaseSubscriber<JsonObject> {
   public void handleError(final Throwable t) {
   }
 
+  @Override
+  public synchronized void close() {
+    closed = true;
+  }
+
   public synchronized List<JsonObject> getRowsInserted() {
     return new ArrayList<>(rowsInserted);
   }
 
   public synchronized boolean isCompleted() {
     return completed;
+  }
+
+  public synchronized boolean isClosed() {
+    return closed;
   }
 
 }

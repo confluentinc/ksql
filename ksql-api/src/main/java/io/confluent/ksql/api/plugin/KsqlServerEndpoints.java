@@ -18,6 +18,7 @@ package io.confluent.ksql.api.plugin;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandler;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
@@ -175,9 +176,10 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public Subscriber<JsonObject> createInsertsSubscriber(final String target,
+  public InsertsStreamSubscriber createInsertsSubscriber(final String target,
       final JsonObject properties,
-      final Subscriber<InsertResult> acksSubscriber, final Context context) {
+      final Subscriber<InsertResult> acksSubscriber, final Context context,
+      final WorkerExecutor workerExecutor) {
     Utils.checkIsWorker();
     final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
     final DataSource dataSource = getDataSource(ksqlConfig, ksqlEngine.getMetaStore(),
@@ -186,7 +188,7 @@ public class KsqlServerEndpoints implements Endpoints {
       throw new KsqlException("Cannot insert into a table");
     }
     return InsertsSubscriber.createInsertsSubscriber(serviceContext, properties, dataSource,
-        ksqlConfig, context, acksSubscriber);
+        ksqlConfig, context, acksSubscriber, workerExecutor);
   }
 
   private DataSource getDataSource(

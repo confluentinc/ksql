@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -52,7 +53,7 @@ public interface Endpoints {
    * @param context        The Vert.x context
    * @return The inserts subscriber
    */
-  Subscriber<JsonObject> createInsertsSubscriber(String target, JsonObject properties,
-      Subscriber<InsertResult> acksSubscriber, Context context);
+  InsertsStreamSubscriber createInsertsSubscriber(String target, JsonObject properties,
+      Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor);
 
 }

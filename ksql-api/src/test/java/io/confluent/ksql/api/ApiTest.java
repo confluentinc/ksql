@@ -481,6 +481,7 @@ public class ApiTest {
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+    assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(true));
   }
 
   @Test

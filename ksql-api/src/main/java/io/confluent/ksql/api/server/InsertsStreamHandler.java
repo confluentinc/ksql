@@ -141,9 +141,13 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
             publisher.subscribe(insertsSubscriber);
 
             recordParser.resume();
+
+            this.insertsSubscriber = insertsSubscriber;
           })
           .exceptionally(t -> handleInsertSubscriberException(t, routingContext));
     }
+
+    private InsertsStreamSubscriber insertsSubscriber;
 
     private Void handleInsertSubscriberException(final Throwable t,
         final RoutingContext routingContext) {
@@ -202,18 +206,22 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
     private void handleResponseEnd() {
       responseEnded = true;
+      if (insertsSubscriber != null) {
+        insertsSubscriber.close();
+      }
     }
 
   }
 
-  private CompletableFuture<Subscriber<JsonObject>> createInsertsSubscriberAsync(
+  private CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriberAsync(
       final String target,
       final JsonObject properties, final Subscriber<InsertResult> acksSubscriber,
       final Context context) {
-    final VertxCompletableFuture<Subscriber<JsonObject>> vcf = new VertxCompletableFuture<>();
+    final VertxCompletableFuture<InsertsStreamSubscriber> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(
         p -> p.complete(
-            endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context)),
+            endpoints.createInsertsSubscriber(target, properties, acksSubscriber, context,
+                workerExecutor)),
         false,
         vcf);
     return vcf;

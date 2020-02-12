@@ -20,6 +20,7 @@ import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.server.BaseSubscriber;
 import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -32,6 +33,7 @@ import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.Context;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.Callback;
@@ -46,7 +48,8 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
+public class InsertsSubscriber extends BaseSubscriber<JsonObject> implements
+    InsertsStreamSubscriber {
 
   private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 1000;
@@ -57,13 +60,15 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
   private final Serializer<Struct> keySerializer;
   private final Serializer<GenericRow> valueSerializer;
   private final BufferedPublisher<InsertResult> acksPublisher;
+  private final WorkerExecutor workerExecutor;
   private int outstandingTokens;
   private boolean drainHandlerSet;
   private long sequence;
 
   public static InsertsSubscriber createInsertsSubscriber(final ServiceContext serviceContext,
       final JsonObject properties, final DataSource dataSource, final KsqlConfig ksqlConfig,
-      final Context context, final Subscriber<InsertResult> acksSubscriber) {
+      final Context context, final Subscriber<InsertResult> acksSubscriber,
+      final WorkerExecutor workerExecutor) {
     final KsqlConfig configCopy = ksqlConfig.cloneWithPropertyOverwrite(properties.getMap());
     final Producer<byte[], byte[]> producer = serviceContext
         .getKafkaClientSupplier()
@@ -97,20 +102,28 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
     final BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(context);
     acksPublisher.subscribe(acksSubscriber);
     return new InsertsSubscriber(context, producer, dataSource, keySerde.serializer(),
-        valueSerde.serializer(), acksPublisher);
+        valueSerde.serializer(), acksPublisher, workerExecutor);
   }
 
   private InsertsSubscriber(final Context context,
       final Producer<byte[], byte[]> producer, final DataSource dataSource,
       final Serializer<Struct> keySerializer,
       final Serializer<GenericRow> valueSerializer,
-      final BufferedPublisher<InsertResult> acksPublisher) {
+      final BufferedPublisher<InsertResult> acksPublisher,
+      final WorkerExecutor workerExecutor) {
     super(context);
     this.producer = Objects.requireNonNull(producer);
     this.dataSource = Objects.requireNonNull(dataSource);
     this.keySerializer = Objects.requireNonNull(keySerializer);
     this.valueSerializer = Objects.requireNonNull(valueSerializer);
     this.acksPublisher = Objects.requireNonNull(acksPublisher);
+    this.workerExecutor = Objects.requireNonNull(workerExecutor);
+  }
+
+  @Override
+  public void close() {
+    // Run async as it can block
+    executeOnWorker(producer::close);
   }
 
   @Override
@@ -178,6 +191,14 @@ public class InsertsSubscriber extends BaseSubscriber<JsonObject> {
 
   private GenericRow extractValues(final JsonObject values) {
     return KeyValueExtractor.extractValues(values, dataSource.getSchema(), SQL_VALUE_COERCER);
+  }
+
+  private void executeOnWorker(final Runnable runnable) {
+    workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
+      if (ar.failed()) {
+        log.error("Failed to close query", ar.cause());
+      }
+    });
   }
 
   private class SendCallback implements Callback {

@@ -88,12 +88,13 @@ The request method will be a POST.
 Requests will be made to a specific URL, e.g. "/query-stream" (this can be configurable)
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
-operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
+operation (newlines have been added here for the sake of clarity but the real JSON must not contain
+ unescaped newlines)
 
 ````
 {
-"query": "select * from foo", <----- the SQL of the query to execute
-"properties": {               <----- Optional properties for the query
+"sql": "select * from foo", <----- the SQL of the query to execute
+"properties": {             <----- Optional properties for the query
     "prop1": "val1",
     "prop2": "val2"
    }
@@ -105,9 +106,9 @@ In the case of a successful query
 
 ````
 {
-"query-id", "xyz123",                          <---- unique ID of the query, used when terminating the query
-"columns":["col", "col2", "col3"],             <---- the names of the columns
-"column_types":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
+"queryId", "xyz123",                          <---- unique ID of the query, used when terminating the query
+"columnNames":["col", "col2", "col3"],        <---- the names of the columns
+"columnTypes":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
 }
 ````
 
@@ -131,14 +132,14 @@ Push queries can be explicitly terminated by the client by making a request to t
 
 The request method will be a POST.
 
-Requests will be made to a specific URL, e.g. "/query-terminate" (this can be configurable)
+Requests will be made to a specific URL, e.g. "/query-close" (this can be configurable)
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
 operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
 
 ````
 {
-"query-id": "xyz123", <----- the ID of the query to terminate
+"queryId": "xyz123", <----- the ID of the query to terminate
 }
 
 ````
@@ -155,8 +156,7 @@ operation (newlines have been added for clarity, the real JSON must not contain 
 
 ````
 {
-"stream": "my-stream" <----- The name of the KSQL stream to insert into
-"requiresAcks": true  <----- If true then a stream of acks will be returned in the response
+"target": "my-stream" <----- The name of the KSQL stream to insert into
 }
 
 ````
@@ -174,16 +174,25 @@ Each JSON object will be separated by a new line.
 
 To terminate the insert stream the client should end the request.
 
-If acks are requested then the response will be written to the response when each row has been
+Acks will be written to the response when each row has been
 successfully committed to the underlying topic. Rows are committed in the order they are provided.
-Each ack in the response is just an empty JSON object, separated by newlines:
+Each ack in the response is a JSON object, separated by newlines:
 
 ````
-{}
-{}
-{}
-{}
+{"status":"ok","seq":0}
+{"status":"ok","seq":2}
+{"status":"ok","seq":1}
+{"status":"ok","seq":3}
 ````
+
+A successful ack will contain a field `status` with value `ok`.
+
+All ack responses also contain a field `seq` with a 64 bit signed integer value. This number
+corresponds to the sequence of the send on the request. The first send has sequence `0`, the second
+`1`, the third `3`, etc. It allows the client to correlate the ack to the corresponding send.
+
+In case of error, an error response (see below) will be sent. For an error response for a send, the
+`seq` field will also be included. 
 
 #### Errors
 
@@ -191,6 +200,7 @@ Apropriate status codes will be returned from failed requests. The response will
 with further information on the error:
 
 {
+    "status": "error"
     "error_code": <Error code>
     "message": <Error Message>
 }

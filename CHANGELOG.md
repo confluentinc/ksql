@@ -1,5 +1,7 @@
 # Change Log
 
+See [here](./docs-md/operate-and-deploy/installation/upgrading.md) for upgrade notes.
+
 ## [0.7.0](https://github.com/confluentinc/ksql/releases/tag/v0.7.0-ksqldb) (2020-02-11)
 
 ### Features

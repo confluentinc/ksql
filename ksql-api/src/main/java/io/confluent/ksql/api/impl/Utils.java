@@ -64,18 +64,6 @@ public final class Utils {
     return isWorkerThread(true);
   }
 
-  public static boolean isEventLoopAndSameContext(final Context context) {
-    final Thread thread = Thread.currentThread();
-    if (!(thread instanceof VertxThread)) {
-      return false;
-    }
-    final VertxThread vertxThread = (VertxThread) thread;
-    if (vertxThread.isWorker()) {
-      return false;
-    }
-    return context == Vertx.currentContext();
-  }
-
   private static boolean isWorkerThread(final boolean worker) {
     final Thread thread = Thread.currentThread();
     if (!(thread instanceof VertxThread)) {
@@ -96,6 +84,18 @@ public final class Utils {
     if (context != Vertx.currentContext()) {
       throw new IllegalStateException("On wrong context");
     }
+  }
+
+  public static boolean isEventLoopAndSameContext(final Context context) {
+    final Thread thread = Thread.currentThread();
+    if (!(thread instanceof VertxThread)) {
+      return false;
+    }
+    final VertxThread vertxThread = (VertxThread) thread;
+    if (vertxThread.isWorker()) {
+      return false;
+    }
+    return context == Vertx.currentContext();
   }
 
 }

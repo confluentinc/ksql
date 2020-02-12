@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -37,25 +37,24 @@ public class ItemDataProvider extends TestDataProvider {
       .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-  private static final Map<String, GenericRow> data = new ItemDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public ItemDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
+  private static Map<String, GenericRow> buildData() {
 
-    final Map<String, GenericRow> dataMap = new HashMap<>();
-    dataMap.put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")));
-    dataMap.put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2",  "clock radio")));
-    dataMap.put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3",  "road bike")));
-    dataMap.put("ITEM_4", new GenericRow(Arrays.asList("ITEM_4",  "mountain bike")));
-    dataMap.put("ITEM_5", new GenericRow(Arrays.asList("ITEM_5",  "snowboard")));
-    dataMap.put("ITEM_6", new GenericRow(Arrays.asList("ITEM_6",  "iphone 10")));
-    dataMap.put("ITEM_7", new GenericRow(Arrays.asList("ITEM_7",  "gopro")));
-    dataMap.put("ITEM_8", new GenericRow(Arrays.asList("ITEM_8",  "cat")));
-
-    return dataMap;
+    return ImmutableMap.<String, GenericRow>builder()
+        .put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")))
+        .put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2",  "clock radio")))
+        .put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3",  "road bike")))
+        .put("ITEM_4", new GenericRow(Arrays.asList("ITEM_4",  "mountain bike")))
+        .put("ITEM_5", new GenericRow(Arrays.asList("ITEM_5",  "snowboard")))
+        .put("ITEM_6", new GenericRow(Arrays.asList("ITEM_6",  "iphone 10")))
+        .put("ITEM_7", new GenericRow(Arrays.asList("ITEM_7",  "gopro")))
+        .put("ITEM_8", new GenericRow(Arrays.asList("ITEM_8",  "cat")))
+        .build();
   }
 
 }

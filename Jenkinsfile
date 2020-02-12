@@ -28,9 +28,6 @@ def defaultParams = [
     string(name: 'KSQLDB_VERSION',
         defaultValue: '',
         description: 'KSQLDB version to promote to production.'),
-    string(name: 'IMAGE_REVISION',
-        defaultValue: '1',
-        description: 'Revision for Docker images. This is used with PROMOTE_TO_PRODUCTION only'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
         description: 'Should the latest tag on docker hub be updated to point at this new image version.')
@@ -126,11 +123,11 @@ def job = {
                 withDockerServer([uri: dockerHost()]) {
                     config.dockerRepos.each { dockerRepo ->
                         sh "docker login --username $DOCKER_USERNAME --password \'$DOCKER_PASSWORD\'"
-                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
-                        sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION}"
+                        sh "docker tag ${config.dockerRegistry}${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:${params.KSQLDB_VERSION}"
+                        sh "docker push ${dockerRepo}:${params.KSQLDB_VERSION}"
 
                         if (params.UPDATE_LATEST_TAG) {
-                            sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION}-${params.IMAGE_REVISION} ${dockerRepo}:latest"
+                            sh "docker tag ${dockerRepo}:${params.KSQLDB_VERSION} ${dockerRepo}:latest"
                             sh "docker push ${dockerRepo}:latest"
                         }
                     }

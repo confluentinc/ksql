@@ -314,6 +314,29 @@ statements.
     `ksql.persistence.ensure.value.is.struct` setting, because it has no
     concept of an outer record or structure.
 
+### ksql.query.pull.enable.standby.reads
+
+Config to enable/disable forwarding pull queries to standby hosts when the active is dead. This means that stale values may be returned 
+for these queries since standby hosts receive updates from the changelog topic (to which the active writes to) asynchronously.
+Turning on this configuration, effectively sacrifices consistency for higher availability. 
+
+Setting to `true` guarantees high availability for pull queries. If set to `false`, pull queries will fail when the active is dead and 
+until a new active is elected. Default value is `false`. 
+
+For using this functionality, the server must be configured with `ksql.streams.num.standby.replicas` >= `1`, so standbys are actually enabled for the 
+underlying Kafka Streams topologies. We also recommend `ksql.heartbeat.enable=true`, to ensure pull queries quickly route around dead/failed servers, 
+without wastefully attempting to open connections to it (which can be slow & resource in-efficient). 
+
+### ksql.query.pull.max.allowed.offset.lag
+
+Config to control the maximum lag tolerated by a pull query against a table, expressed as the number of messages a given table-partition is behind, compared to the 
+changelog topic. This is applied to all servers, both active and standbys included. This can be overridden per query, from the CLI (using `SET` command) or 
+the pull query REST endpoint (by including it in the request e.g: `"streamsProperties": {"ksql.query.pull.max.allowed.offset.lag": "100"}`). 
+
+By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
+`ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag. 
+
+
 ksqlDB Server Settings
 ----------------------
 

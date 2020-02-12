@@ -45,7 +45,7 @@ public final class KeyValueExtractor {
       if (value == null) {
         throw new KsqlInsertsException("Key field must be specified: " + field.name());
       }
-      final Object coercedValue = coerceValue(value,
+      final Object coercedValue = coerceObject(value,
           SchemaConverters.connectToSqlConverter().toSqlType(field.schema()),
           sqlValueCoercer);
       key.put(field, coercedValue);
@@ -61,14 +61,13 @@ public final class KeyValueExtractor {
       final String colName = column.name().name();
       final Object val = values.getValue(colName);
       final Object coercedValue =
-          val == null ? null : coerceValue(val, column.type(), sqlValueCoercer);
+          val == null ? null : coerceObject(val, column.type(), sqlValueCoercer);
       vals.add(coercedValue);
     }
     return GenericRow.fromList(vals);
   }
 
-  @SuppressWarnings("unchecked")
-  private static Object coerceValue(final Object value, final SqlType sqlType,
+  private static Object coerceObject(final Object value, final SqlType sqlType,
       final SqlValueCoercer sqlValueCoercer) {
     if (sqlType instanceof SqlDecimal) {
       // We have to handle this manually as SqlValueCoercer doesn't seem to do it
@@ -82,17 +81,11 @@ public final class KeyValueExtractor {
         return new BigDecimal((Integer) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
       } else if (value instanceof Long) {
         return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else {
-        throw createCoerceFailedException(value.getClass(), sqlType);
       }
     }
     return sqlValueCoercer.coerce(value, sqlType)
-        .orElseThrow(() -> createCoerceFailedException(value.getClass(), sqlType));
+        .orElseThrow(() -> new KsqlException(
+            "Can't coerce a value of type " + value.getClass() + " into " + sqlType));
   }
 
-  private static KsqlException createCoerceFailedException(final Class<?> clazz,
-      final SqlType sqlType) {
-    throw new KsqlException(
-        "Can't coerce a value of type " + clazz + " into " + sqlType);
-  }
 }

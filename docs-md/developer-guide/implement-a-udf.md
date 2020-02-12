@@ -162,7 +162,7 @@ Project Object Model (POM) file for the Maven build, and name it
         <kafka.version>{{ site.kafkarelease }}</kafka.version>
         <kafka.scala.version>{{ site.scalaversion }}</kafka.scala.version>
         <scala.version>${kafka.scala.version}.8</scala.version>
-        <confluent.version>{{ site.release }}</confluent.version>
+        <confluent.version>{{ site.cprelease }}</confluent.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

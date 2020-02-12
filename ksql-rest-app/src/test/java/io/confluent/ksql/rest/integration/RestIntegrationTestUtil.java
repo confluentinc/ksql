@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +41,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -52,6 +55,7 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.glassfish.jersey.internal.util.Base64;
 
 final class RestIntegrationTestUtil {
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
 
   private RestIntegrationTestUtil() {
   }
@@ -258,5 +262,14 @@ final class RestIntegrationTestUtil {
         .escape("{"
             + " \"ksql\": \"" + sql + "\""
             + "}");
+  }
+
+  // After creating a stream or table, pass the output to this method to extract the query id
+  public static String extractQueryId(final String outputString) {
+    final Matcher matcher = QUERY_ID_PATTERN.matcher(outputString);
+    Preconditions.checkState(matcher.find(), "Could not find query id in: " + outputString);
+    String match =  matcher.group(1);
+    // Remove the comma
+    return match.substring(0, match.length() - 1);
   }
 }

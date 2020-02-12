@@ -188,11 +188,13 @@ Each ack in the response is a JSON object, separated by newlines:
 A successful ack will contain a field `status` with value `ok`.
 
 All ack responses also contain a field `seq` with a 64 bit signed integer value. This number
-corresponds to the sequence of the send on the request. The first send has sequence `0`, the second
+corresponds to the sequence of the insert on the request. The first send has sequence `0`, the second
 `1`, the third `3`, etc. It allows the client to correlate the ack to the corresponding send.
 
 In case of error, an error response (see below) will be sent. For an error response for a send, the
 `seq` field will also be included. 
+
+Please note that acks can be returned in a different sequence to which the inserts were submitted. 
 
 #### Errors
 

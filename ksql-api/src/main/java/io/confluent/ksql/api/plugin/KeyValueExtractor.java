@@ -29,7 +29,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
@@ -84,22 +83,16 @@ public final class KeyValueExtractor {
       } else if (value instanceof Long) {
         return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
       } else {
-        throw new KsqlException(
-            "Can't coerce a value of type " + value.getClass() + " into " + sqlType);
+        throw createCoerceFailedException(value.getClass(), sqlType);
       }
     }
-    final Object coercedValue = sqlValueCoercer.coerce(value, sqlType);
-    // This is really ugly. Is there a better way?
-    if (coercedValue instanceof Optional) {
-      final Optional<Object> opt = (Optional<Object>) coercedValue;
-      if (opt.isPresent()) {
-        return opt.get();
-      } else {
-        return null;
-      }
-    } else {
-      return coercedValue;
-    }
+    return sqlValueCoercer.coerce(value, sqlType)
+        .orElseThrow(() -> createCoerceFailedException(value.getClass(), sqlType));
   }
 
+  private static KsqlException createCoerceFailedException(final Class<?> clazz,
+      final SqlType sqlType) {
+    throw new KsqlException(
+        "Can't coerce a value of type " + clazz + " into " + sqlType);
+  }
 }

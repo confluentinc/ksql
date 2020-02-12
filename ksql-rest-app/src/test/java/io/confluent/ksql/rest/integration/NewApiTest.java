@@ -17,20 +17,7 @@ package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.api.utils.TestUtils.findFilePath;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static org.apache.kafka.common.acl.AclOperation.ALL;
-import static org.apache.kafka.common.acl.AclOperation.CREATE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
-import static org.apache.kafka.common.acl.AclOperation.WRITE;
-import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
-import static org.apache.kafka.common.resource.ResourceType.GROUP;
-import static org.apache.kafka.common.resource.ResourceType.TOPIC;
-import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -81,7 +68,6 @@ public class NewApiTest {
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
 
   private static final String AGG_TABLE = "AGG_TABLE";
-  private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final String AN_AGG_KEY = "USER_1";
 
@@ -90,62 +76,7 @@ public class NewApiTest {
           EmbeddedSingleNodeKafkaCluster.newBuilder()
               .withoutPlainListeners()
               .withSaslSslListeners()
-              .withAclsEnabled(SUPER_USER.username)
-              .withAcl(
-                  NORMAL_USER,
-                  resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS, CREATE)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  prefixedResource(TOPIC, "_confluent-ksql-default_"),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  resource(TOPIC, PAGE_VIEW_TOPIC),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  prefixedResource(GROUP, "_confluent-ksql-default_transient_"),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  prefixedResource(GROUP, "_confluent-ksql-default_query"),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  resource(TOPIC, "X"),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  resource(TOPIC, "AGG_TABLE"),
-                  ops(ALL)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  resource(TRANSACTIONAL_ID, "default_"),
-                  ops(WRITE)
-              )
-              .withAcl(
-                  NORMAL_USER,
-                  resource(TRANSACTIONAL_ID, "default_"),
-                  ops(DESCRIBE)
-              ).withAcl(
-              NORMAL_USER,
-              resource(TOPIC, "__consumer_offsets"),
-              ops(DESCRIBE)
-          ).withAcl(
-              NORMAL_USER,
-              resource(TOPIC, "__transaction_state"),
-              ops(DESCRIBE)
-          )
-      )
-      .build();
+      ).build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)

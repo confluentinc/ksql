@@ -1,8 +1,10 @@
 # Change Log
 
-See [here](./docs-md/operate-and-deploy/installation/upgrading.md) for upgrade notes.
-
 ## [0.7.0](https://github.com/confluentinc/ksql/releases/tag/v0.7.0-ksqldb) (2020-02-11)
+
+### Upgrading
+
+Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlDB 0.6.0 (see the 'Breaking changes' section below for details). Please make sure to read and follow these [upgrade instructions](./docs-md/operate-and-deploy/installation/upgrading.md) if you are upgrading from a previous ksqlDB version.
 
 ### Features
 

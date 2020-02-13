@@ -162,7 +162,7 @@ PRINT users;
 Your output should resemble:
 
 ```json
-Key format: KAFKA (STRING)
+Key format: KAFKA_STRING
 Value format: AVRO
 rowtime: 10/30/18 10:15:51 PM GMT, key: User_1, value: {"registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
 rowtime: 10/30/18 10:15:51 PM GMT, key: User_3, value: {"registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
@@ -182,8 +182,8 @@ PRINT pageviews;
 Your output should resemble:
 
 ```
-Key format: KAFKA (INTEGER)
-Format: KAFKA (STRING)
+Key format: KAFKA_BIGINT or KAFKA_DOUBLE
+Format: KAFKA_STRING
 rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243183, value: 1540254243183,User_9,Page_20
 rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243617, value: 1540254243617,User_7,Page_47
 rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243888, value: 1540254243888,User_4,Page_27
@@ -192,6 +192,13 @@ Topic printing ceased
 ```
 
 Press Ctrl+C to stop printing messages.
+
+!!! note
+    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
+    KsqlDB has not narrowed it further because it is not possible to rule out
+    either format just by inspecting the key's serialized bytes. In this case we know the key is
+    a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
+    of the data.
 
 For more information, see [KSQL Syntax Reference](../developer-guide/syntax-reference.md).
 

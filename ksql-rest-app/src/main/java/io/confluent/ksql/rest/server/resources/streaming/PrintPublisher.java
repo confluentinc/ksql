@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import java.math.RoundingMode;
 import java.time.Duration;

@@ -218,7 +218,7 @@ PRINT users_female;
 Your output should resemble:
 
 ```
-Key format: KAFKA (STRING)
+Key format: KAFKA_STRING
 Value format: JSON
 rowTime: 12/21/18 23:58:42 PM PSD, key: User_5, value: {"USERID":"User_5","GENDER":"FEMALE","REGIONID":"Region_4"}
 rowTime: 12/21/18 23:58:42 PM PSD, key: User_2, value: {"USERID":"User_2","GENDER":"FEMALE","REGIONID":"Region_7"}

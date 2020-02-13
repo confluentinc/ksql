@@ -22,7 +22,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
@@ -44,18 +43,12 @@ import org.apache.kafka.connect.data.Struct;
 @Immutable
 public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
+  // Note: If supporting new types here, add new type of PRINT TOPIC support too
   private static final ImmutableMap<Type, Serde<?>> SERDE = ImmutableMap.of(
       Type.INT32, Serdes.Integer(),
       Type.INT64, Serdes.Long(),
       Type.FLOAT64, Serdes.Double(),
       Type.STRING, Serdes.String()
-  );
-
-  public static final ImmutableMap<SqlBaseType, Serde<?>> SQL_SERDE = ImmutableMap.of(
-      SqlBaseType.INTEGER, Serdes.Integer(),
-      SqlBaseType.BIGINT, Serdes.Long(),
-      SqlBaseType.DOUBLE, Serdes.Double(),
-      SqlBaseType.STRING, Serdes.String()
   );
 
   @Override

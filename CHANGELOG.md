@@ -26,22 +26,19 @@ Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlD
 
     @rmoff has written an introductory blog about primitive keys: https://rmoff.net/2020/02/07/primitive-keys-in-ksqldb/
 * add a new default SchemaRegistryClient and remove default for SR url ([#4325](https://github.com/confluentinc/ksql/pull/4325)) ([e045f7c](https://github.com/confluentinc/ksql/commit/e045f7c))
-* Adds a new RoutingFilter, MaximumLagFilter that looks at offset lags ([#4468](https://github.com/confluentinc/ksql/pull/4468)) ([fd7c1a5](https://github.com/confluentinc/ksql/commit/fd7c1a5))
 * Adds lag reporting and API for use in lag aware routing as described in KLIP 12 ([#4392](https://github.com/confluentinc/ksql/pull/4392)) ([cb9ae29](https://github.com/confluentinc/ksql/commit/cb9ae29))
 * better error message when transaction to command topic fails to initialize by timeout ([#4486](https://github.com/confluentinc/ksql/pull/4486)) ([a5fed3b](https://github.com/confluentinc/ksql/commit/a5fed3b))
 * expression support in JOINs ([#4278](https://github.com/confluentinc/ksql/pull/4278)) ([2d0bfe8](https://github.com/confluentinc/ksql/commit/2d0bfe8))
 * hide internal/system topics from SHOW TOPICS ([#4322](https://github.com/confluentinc/ksql/pull/4322)) ([075fed3](https://github.com/confluentinc/ksql/commit/075fed3))
 * Implement pull query routing to standbys if active is down ([#4398](https://github.com/confluentinc/ksql/pull/4398)) ([ace23b1](https://github.com/confluentinc/ksql/commit/ace23b1))
 * Implementation of heartbeat mechanism as part of KLIP-12 ([#4173](https://github.com/confluentinc/ksql/pull/4173)) ([37c1eaa](https://github.com/confluentinc/ksql/commit/37c1eaa))
-* improve the semantics around decimal/floating point literals ([#4335](https://github.com/confluentinc/ksql/pull/4335)) ([d15026f](https://github.com/confluentinc/ksql/commit/d15026f))
 * native map/array constructors ([#4232](https://github.com/confluentinc/ksql/pull/4232)) ([3ecfaad](https://github.com/confluentinc/ksql/commit/3ecfaad))
 * remove WindowStart() and WindowEnd() UDAFs ([#4459](https://github.com/confluentinc/ksql/pull/4459)) ([eda2e34](https://github.com/confluentinc/ksql/commit/eda2e34))
 * support implicit casting in UDFs ([#4406](https://github.com/confluentinc/ksql/pull/4406)) ([6fc4f72](https://github.com/confluentinc/ksql/commit/6fc4f72))
 * Support JSON format for responses and other refactorings ([#4376](https://github.com/confluentinc/ksql/pull/4376)) ([1ecaeee](https://github.com/confluentinc/ksql/commit/1ecaeee))
 * support Protobuf in ksqlDB ([#4469](https://github.com/confluentinc/ksql/pull/4469)) ([a77cebe](https://github.com/confluentinc/ksql/commit/a77cebe))
 * ask for password if -p is not provided ([#4153](https://github.com/confluentinc/ksql/pull/4153)) ([7a83bbf](https://github.com/confluentinc/ksql/commit/7a83bbf))
-* add a KSQL cache for Kafka authorization validator ([#4186](https://github.com/confluentinc/ksql/pull/4186)) ([58ed39c](https://github.com/confluentinc/ksql/commit/58ed39c))
-* add config to make error messages configurable ([#4121](https://github.com/confluentinc/ksql/pull/4121)) ([cedf47e](https://github.com/confluentinc/ksql/commit/cedf47e))
+* make (certain types of) server error messages configurable ([#4121](https://github.com/confluentinc/ksql/pull/4121)) ([cedf47e](https://github.com/confluentinc/ksql/commit/cedf47e))
 * add COUNT_DISTINCT and allow generics in UDAFs ([#4150](https://github.com/confluentinc/ksql/pull/4150)) ([2d5e680](https://github.com/confluentinc/ksql/commit/2d5e680))
 * add source statement to SourceDescription ([#4134](https://github.com/confluentinc/ksql/pull/4134)) ([1146aa5](https://github.com/confluentinc/ksql/commit/1146aa5))
 * add support for inline struct creation ([#4120](https://github.com/confluentinc/ksql/pull/4120)) ([6e558da](https://github.com/confluentinc/ksql/commit/6e558da))
@@ -55,9 +52,7 @@ Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlD
 * add support to terminate all running queries ([#3944](https://github.com/confluentinc/ksql/pull/3944)) ([abbce84](https://github.com/confluentinc/ksql/commit/abbce84))
 * expose execution plans from the ksql engine API ([#3482](https://github.com/confluentinc/ksql/pull/3482)) ([067139c](https://github.com/confluentinc/ksql/commit/067139c))
 * expression support for PARTITION BY ([#4032](https://github.com/confluentinc/ksql/pull/4032)) ([0f31f8e](https://github.com/confluentinc/ksql/commit/0f31f8e))
-* never skip command in CommandRunner thread ([#3962](https://github.com/confluentinc/ksql/pull/3962)) ([89e059b](https://github.com/confluentinc/ksql/commit/89e059b))
 * remove unnecessary changelog for topics ([#3987](https://github.com/confluentinc/ksql/pull/3987)) ([6e0d00e](https://github.com/confluentinc/ksql/commit/6e0d00e))
-* support writing plans to command topic ([#4106](https://github.com/confluentinc/ksql/pull/4106)) ([858e4dc](https://github.com/confluentinc/ksql/commit/858e4dc))
 
 
 

@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -24,6 +25,8 @@ import static org.junit.Assert.fail;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -232,6 +235,80 @@ public class JsonSerdeUtilsTest {
                 .build())
             .build()
     ));
+  }
+
+  @Test
+  public void shouldRemoveMagicByteAndSchemaId() {
+    // Given:
+    byte[] json = new byte[]{/* magic */ 0x00, /* id */ 0x00, 0x00, 0x00, 0x01, /* data */ 0x01};
+
+    // When:
+    final byte[] bytes = JsonSerdeUtils.removeMagicAndSchemaId(json);
+
+    // Then:
+    assertThat(bytes, is(new byte[]{0x01}));
+  }
+
+  @Test
+  public void shouldNotRemoveMagicByteAndSchemaIdForValidJson() {
+    // Given:
+    byte[] json = new byte[]{0x01};
+
+    // When:
+    final byte[] bytes = JsonSerdeUtils.removeMagicAndSchemaId(json);
+
+    // Then:
+    assertThat(bytes, is(new byte[]{0x01}));
+  }
+
+  @Test
+  public void shouldIdentifyMagicByte() {
+    // Given:
+    byte[] json = new byte[]{0x00};
+
+    // Then:
+    assertThat(JsonSerdeUtils.hasMagicByte(json), is(true));
+  }
+
+  @Test
+  public void shouldIdentifyNoMagicByte() {
+    // Given:
+    byte[] json = new byte[]{0x01};
+
+    // Then:
+    assertThat(JsonSerdeUtils.hasMagicByte(json), is(false));
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void shouldIdentifyNoMagicByteNull() {
+    assertThat(JsonSerdeUtils.hasMagicByte(null), is(false));
+  }
+
+  @Test
+  public void shouldSetCorrectOffsetInInputStreamWithMagicByte() throws IOException {
+    // Given:
+    byte[] json = new byte[]{/* magic */ 0x00, /* id */ 0x00, 0x00, 0x00, 0x01, /* data */ 0x01};
+
+    // When:
+    final InputStream inputStream = JsonSerdeUtils.asInputStream(json);
+    final int read = inputStream.read();
+
+    // Then:
+    assertThat(read, is(0x01));
+  }
+
+  @Test
+  public void shouldSetCorrectOffsetInInputStreamWithNoMagicByte() throws IOException {
+    // Given:
+    byte[] json = new byte[]{0x01};
+
+    // When:
+    final InputStream inputStream = JsonSerdeUtils.asInputStream(json);
+    final int read = inputStream.read();
+
+    // Then:
+    assertThat(read, is(0x01));
   }
 
   private static PersistenceSchema persistenceSchema(final Schema schema) {

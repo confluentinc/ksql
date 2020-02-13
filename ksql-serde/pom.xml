@@ -62,7 +62,17 @@
 
         <dependency>
             <groupId>io.confluent</groupId>
+            <artifactId>kafka-json-schema-provider</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-protobuf-converter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-json-schema-converter</artifactId>
         </dependency>
 
         <dependency>

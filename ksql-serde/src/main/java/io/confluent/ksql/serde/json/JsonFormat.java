@@ -15,17 +15,52 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.json.JsonSchemaConverter;
+import io.confluent.connect.protobuf.ProtobufConverterConfig;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import org.apache.kafka.connect.data.Schema;
 
 public class JsonFormat implements Format {
 
-  public static final String NAME = "JSON";
+  public static final String NAME = JsonSchema.TYPE;
+
+  private JsonSchemaConverter converter;
+
+  public JsonFormat() {
+    // we don't actually use schema registry at all in this
+    // class - when schema registry
+    final ImmutableMap<String, String> config = ImmutableMap.of(
+        ProtobufConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        "foo"
+    );
+
+    this.converter = new JsonSchemaConverter();
+    this.converter.configure(config, false);
+  }
 
   @Override
   public String name() {
     return NAME;
+  }
+
+  @Override
+  public boolean supportsSchemaInference() {
+    return true;
+  }
+
+  @Override
+  public Schema toConnectSchema(final ParsedSchema schema) {
+    return converter.toConnectSchema((JsonSchema) schema);
+  }
+
+  @Override
+  public ParsedSchema toParsedSchema(final Schema schema) {
+    return converter.fromConnectSchema(schema);
   }
 
   @Override

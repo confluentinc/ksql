@@ -37,16 +37,11 @@ import java.util.List;
 import java.util.Optional;
 
 public final class PlannedTestUtils {
-  // this is temporary
-  private static final List<String> WHITELIST = ImmutableList.of(
-      "average - calculate average in select"
-  );
-
   private PlannedTestUtils() {
   }
 
   public static boolean isPlannedTestCase(final TestCase testCase) {
-    return !testCase.expectedException().isPresent() && WHITELIST.contains(testCase.getName());
+    return !testCase.expectedException().isPresent();
   }
 
   public static boolean isSamePlan(

@@ -188,19 +188,6 @@ public class ValidatedCommandFactoryTest {
     assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(plan, overrides, config))));
   }
 
-  @Test
-  public void shouldCreateCommandWithoutPlanForPlannedQueryIfFeatureOff() {
-    // Given:
-    givenPlannedQuery();
-    when(config.getBoolean(KsqlConfig.KSQL_EXECUTION_PLANS_ENABLE)).thenReturn(false);
-
-    // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
-
-    // Then:
-    assertThat(command, is(Command.of(configuredStatement)));
-  }
-
   private void givenTerminate() {
     configuredStatement = configuredStatement("TERMINATE FOO", terminateQuery);
     when(terminateQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
@@ -217,7 +204,6 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
     when(executionContext.plan(any(), any())).thenReturn(plan);
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
-    when(config.getBoolean(KsqlConfig.KSQL_EXECUTION_PLANS_ENABLE)).thenReturn(true);
   }
 
   private <T extends Statement> ConfiguredStatement<T> configuredStatement(

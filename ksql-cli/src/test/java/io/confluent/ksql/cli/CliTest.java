@@ -124,7 +124,7 @@ public class CliTest {
   private static final String JSON_TOPIC = ORDER_DATA_PROVIDER.topicName();
   private static final String DELIMITED_TOPIC = "Delimited_Topic";
 
-  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
 
   private static final Pattern WRITE_QUERIES = Pattern
       .compile(".*The following queries write into this source: \\[(.+)].*", Pattern.DOTALL);
@@ -272,7 +272,7 @@ public class CliTest {
     assertRunCommand(
         queryString,
         anyOf(
-            isRow(containsString("Stream " + streamName.toUpperCase() + " created and running")),
+            isRow(containsString("Created query with ID CSAS_" + streamName)),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
@@ -727,7 +727,7 @@ public class CliTest {
     assertRunCommand(
         queryString,
         anyOf(
-            isRow(containsString("Table " + tableName.toUpperCase() + " created and running")),
+            isRow(containsString("Created query with ID CTAS_" + tableName.toUpperCase())),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
@@ -977,7 +977,7 @@ public class CliTest {
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Stream SHOULDRUNSCRIPT created and running"));
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
   }
 
   @Test

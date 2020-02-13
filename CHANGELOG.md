@@ -56,6 +56,14 @@ Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlD
 
 
 
+### Performance Improvements
+
+* Avoids logging INFO for rest-util requests, since it hurts pull query performance ([#4302](https://github.com/confluentinc/ksql/pull/4302)) ([50b4c1c](https://github.com/confluentinc/ksql/commit/50b4c1c))
+* Improves pull query performance by making the default schema service a singleton ([#4216](https://github.com/confluentinc/ksql/pull/4216)) ([f991752](https://github.com/confluentinc/ksql/commit/f991752))
+
+
+
+
 ### Bug Fixes
 
 * add ksql-test-runner deps to ksql package lib ([#4272](https://github.com/confluentinc/ksql/pull/4272)) ([6e28cc4](https://github.com/confluentinc/ksql/commit/6e28cc4))
@@ -109,14 +117,6 @@ Note that ksqlDB 0.7.0 has a number of breaking changes when compared with ksqlD
 * UncaughtExceptionHandler not being set for Persistent Queries ([#4087](https://github.com/confluentinc/ksql/pull/4087)) ([e193a2a](https://github.com/confluentinc/ksql/commit/e193a2a))
 * unify behavior for PARTITION BY and GROUP BY ([#3982](https://github.com/confluentinc/ksql/pull/3982)) ([67d3f8c](https://github.com/confluentinc/ksql/commit/67d3f8c))
 * wrong source type in pull query error message ([#3885](https://github.com/confluentinc/ksql/pull/3885)) ([65523c7](https://github.com/confluentinc/ksql/commit/65523c7)), closes [#3523](https://github.com/confluentinc/ksql/issues/3523)
-
-
-
-### Performance Improvements
-
-* Avoids logging INFO for rest-util requests, since it hurts pull query performance ([#4302](https://github.com/confluentinc/ksql/pull/4302)) ([50b4c1c](https://github.com/confluentinc/ksql/commit/50b4c1c))
-* Improves pull query performance by making the default schema service a singleton ([#4216](https://github.com/confluentinc/ksql/pull/4216)) ([f991752](https://github.com/confluentinc/ksql/commit/f991752))
-
 
 
 
@@ -402,6 +402,14 @@ these udfs would always return Double.
 
 
 
+### Performance Improvements
+
+* do not spam the logs with config defs ([#3044](https://github.com/confluentinc/ksql/pull/3044)) ([94904a3](https://github.com/confluentinc/ksql/commit/94904a3))
+* Only look up index of new key field once, not per row processed ([#3020](https://github.com/confluentinc/ksql/pull/3020)) ([fda1c7f](https://github.com/confluentinc/ksql/commit/fda1c7f))
+* Remove parsing of integer literals ([#3019](https://github.com/confluentinc/ksql/pull/3019)) ([6195b76](https://github.com/confluentinc/ksql/commit/6195b76))
+
+
+
 ### Bug Fixes
 
 * `/query` rest endpoint should return valid JSON ([#3819](https://github.com/confluentinc/ksql/pull/3819)) ([b278e83](https://github.com/confluentinc/ksql/commit/b278e83))
@@ -488,14 +496,6 @@ these udfs would always return Double.
 * remove any rowtime or rowkey columns from query schema (MINOR) (Fixes 3039) ([#3043](https://github.com/confluentinc/ksql/pull/3043)) ([0346933](https://github.com/confluentinc/ksql/commit/0346933))
 * remove last of registered topics stuff from api / cli (MINOR) ([#3068](https://github.com/confluentinc/ksql/pull/3068)) ([24d874c](https://github.com/confluentinc/ksql/commit/24d874c))
 * sqlformatter to correctly handle describe ([#3074](https://github.com/confluentinc/ksql/pull/3074)) ([8de57bd](https://github.com/confluentinc/ksql/commit/8de57bd))
-
-
-
-### Performance Improvements
-
-* do not spam the logs with config defs ([#3044](https://github.com/confluentinc/ksql/pull/3044)) ([94904a3](https://github.com/confluentinc/ksql/commit/94904a3))
-* Only look up index of new key field once, not per row processed ([#3020](https://github.com/confluentinc/ksql/pull/3020)) ([fda1c7f](https://github.com/confluentinc/ksql/commit/fda1c7f))
-* Remove parsing of integer literals ([#3019](https://github.com/confluentinc/ksql/pull/3019)) ([6195b76](https://github.com/confluentinc/ksql/commit/6195b76))
 
 
 

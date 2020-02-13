@@ -48,7 +48,7 @@ the resulting table is determined as follows:
     - When grouping by a single column or expression, the type of `ROWKEY` in the
     resulting stream matches the type of the column or expression.
     - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
-    resulting stream is a `STRING`.
+    resulting stream is an [SQL `STRING`](../../concepts/schemas).
 - If the FROM clause contains only tables and no GROUP BY clause, the key is
   copied over from the key of the table(s) in the FROM clause.
 - If the FROM clause contains only tables and has a GROUP BY clause, the
@@ -56,7 +56,7 @@ the resulting table is determined as follows:
     - When grouping by a single column or expression, the type of `ROWKEY` in the
     resulting stream matches the type of the column or expression.
     - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
-    resulting stream is a `STRING`.
+    resulting stream is an [SQL `STRING`](../../concepts/schemas).
 
 The following example shows a `users` table joined with a `clicks` stream
 on the `userId` column. The `users` table has the correct primary key
@@ -105,8 +105,8 @@ processing.
 
 For a join to work, the keys from both sides must have the same SQL type.
 
-For example, you can join a stream of user clicks that's keyed on a `VARCHAR`
-user id with a table of user profiles that's also keyed on a `VARCHAR` user id.
+For example, you can join a stream of user clicks that's keyed on a `STRING`
+user id with a table of user profiles that's also keyed on a `STRING` user id.
 Records with the exact same user id on both sides will be joined.
 
 If the schema of the columns you wish to join on don't match, it may be possible

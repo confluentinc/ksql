@@ -118,7 +118,6 @@ nav:
           - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
           - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
           # - Install ksqlDB locally: installation/installing.md # leave in docs.confluent.io
-          # - Upgrade ksqlDB: installation/upgrading.md # possibly unnecessary in a Dockerized world
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
@@ -126,6 +125,7 @@ nav:
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               # - Integrate ksqlDB with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md # leave in docs.confluent.io
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
+          - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md

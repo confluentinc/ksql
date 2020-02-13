@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;

@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

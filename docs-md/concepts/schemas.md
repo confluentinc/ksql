@@ -186,4 +186,5 @@ TODO:
 
 - schema evolution with ksqlDB and Avro
 
+
 Page last revised on: {{ git_revision_date }}

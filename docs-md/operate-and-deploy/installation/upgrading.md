@@ -6,7 +6,8 @@ description: Learn how to upgrade your on-premises ksqlDB deployments.
 keywords: ksqldb, install, upgrade
 ---
 
-**IMPORTANT**: Do not upgrade existing ksqlDB installations in-place
+!!! warning
+    Do not upgrade existing ksqlDB installations in-place.
 
 ## Why does ksqlDB not currently support in-place upgrades?
 
@@ -22,7 +23,7 @@ The data models and binary formats used within ksqlDB are in flux. This means da
 ksqlDB node and stored centrally within internal Kafka topics may not be compatible with the new
 version you are trying to deploy.
 
-### Should I upgrade?
+## Should I upgrade?
 
 It's great that you're interested in trying out the new features and fixes that new versions of
 ksqlDB bring. However, before rushing off to upgrade all your ksqlDB clusters ask yourself the
@@ -37,7 +38,7 @@ need, or until ksqlDB reaches version 1.0 and therefore promises backwards compa
 Upgrading a cluster involves leaving the old cluster running on the old version, bringing up a new
 cluster on the new version, porting across your database schema and finally thinking about your data.
 
-### Porting the database schema
+### Port the database schema
 
 To port your database schema from one cluster to another you need to recreate all the streams,
 tables and types in the source cluster.  This is currently a manual process, until support is added
@@ -75,7 +76,7 @@ command to capture the output of the commands you run in the CLI to a file.**
    (https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-reference/run-script.md)
    command, which takes a SQL file as an input.
 
-### Rebuilding state
+### Rebuild state
 
 Porting the database schema to the new cluster will cause ksqlDB to start processing data. As this
 is a new cluster it will start processing all data from the start, i.e. it will likely be
@@ -100,11 +101,12 @@ Once you're happy with your new cluster you can destroy the old one using the
 [terminate endpoint](https://github.com/confluentinc/ksql/blob/master/docs-md/developer-guide/ksqldb-rest-api/terminate-endpoint.md).
 This will stop all processing and delete any internal topics in Kafka.
 
-# Upgrade notes
+## Upgrade notes
 
-## Upgrading from ksqlDB 0.6.0 to 0.7.0
+### Upgrading from ksqlDB 0.6.0 to 0.7.0
 
-**IMPORTANT**: ksqlDB 0.7.0 is not backwards compatible. Do not upgrade in-place.
+!!! important
+    ksqlDB 0.7.0 is not backward compatible. Do not upgrade in-place.
 
 The following changes in SQL syntax and functionality may mean SQL statements that previously ran not longer run:
 

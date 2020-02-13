@@ -285,6 +285,9 @@ queries issued before 5.0 will no longer cascade query terminiation.
 * abs, ceil and floor will now return types aligned with
 other databases systems (i.e. the same type as the input). Previously
 these udfs would always return Double.
+* Statements in the command topic will be retried until they succeed. For example, if the source topic has been deleted for a create stream/table statement, the server may fail to start since command runner will be stuck processing the statement. This ensures that the same set of streams/tables are created when restarting the server. You can check to see if the command runner is stuck by:
+    1. Looking in the server logs to see if a statement is being retried.
+    2. The JMX metric `_confluent-ksql-<service-id>ksql-rest-app-command-runner` will be in an `ERROR` state
 
 
 

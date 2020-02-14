@@ -132,7 +132,7 @@ Push queries can be explicitly terminated by the client by making a request to t
 
 The request method will be a POST.
 
-Requests will be made to a specific URL, e.g. "/query-close" (this can be configurable)
+Requests will be made to a specific URL, e.g. "/close-query"
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
 operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
@@ -189,7 +189,7 @@ A successful ack will contain a field `status` with value `ok`.
 
 All ack responses also contain a field `seq` with a 64 bit signed integer value. This number
 corresponds to the sequence of the insert on the request. The first send has sequence `0`, the second
-`1`, the third `3`, etc. It allows the client to correlate the ack to the corresponding send.
+`1`, the third `2`, etc. It allows the client to correlate the ack to the corresponding send.
 
 In case of error, an error response (see below) will be sent. For an error response for a send, the
 `seq` field will also be included. 

@@ -182,6 +182,63 @@ public final class QueryExecutor {
     );
   }
 
+  public QueryMetadata buildTransientQuery(
+      final String statementText,
+      final QueryId queryId,
+      final Set<SourceName> sources,
+      final ExecutionStep<?> physicalPlan,
+      final String planSummary,
+      final LogicalSchema schema,
+      final Consumer<GenericRow> rowConsumer
+  ) {
+    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
+    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
+    final Object buildResult = physicalPlan.build(planBuilder);
+    final KStream<?, GenericRow> kstream;
+    if (buildResult instanceof KStreamHolder<?>) {
+      kstream = ((KStreamHolder<?>) buildResult).getStream();
+    } else if (buildResult instanceof KTableHolder<?>) {
+      final KTable<?, GenericRow> ktable = ((KTableHolder<?>) buildResult).getTable();
+      kstream = ktable.toStream();
+    } else {
+      throw new IllegalStateException("Unexpected type built from exection plan");
+    }
+
+    kstream.foreach((k, row) -> {
+      if (row == null) {
+        return;
+      }
+      rowConsumer.accept(row);
+    });
+
+    final String applicationId = addTimeSuffix(getQueryApplicationId(
+        getServiceId(),
+        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
+        queryId
+    ));
+
+    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+
+    final BuildResult built =
+        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+
+    final LogicalSchema transientSchema = buildTransientQuerySchema(schema);
+
+    return new QueryMetadata(
+        statementText,
+        built.kafkaStreams,
+        transientSchema,
+        sources,
+        planSummary,
+        applicationId,
+        built.topology,
+        streamsProperties,
+        overrides,
+        queryCloseCallback,
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+    );
+  }
+
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
     if (result instanceof KTableHolder) {
       return ((KTableHolder<?>) result).getMaterializationBuilder().map(Builder::build);
@@ -221,7 +278,8 @@ public final class QueryExecutor {
             built.kafkaStreams,
             querySchema,
             sinkDataSource.getKsqlTopic().getKeyFormat(),
-            streamsProperties
+            streamsProperties,
+            applicationId
         ));
     return new PersistentQueryMetadata(
         statementText,
@@ -345,7 +403,8 @@ public final class QueryExecutor {
       final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
       final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> streamsProperties,
+      final String applicationId
   ) {
     final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
         keyFormat.getFormatInfo(),
@@ -364,7 +423,8 @@ public final class QueryExecutor {
             keySerializer,
             keyFormat.getWindowInfo(),
             streamsProperties,
-            ksqlConfig
+            ksqlConfig,
+            applicationId
         );
 
     return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory

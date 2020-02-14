@@ -10,8 +10,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
-import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
@@ -45,24 +43,10 @@ public class LagReportingAgentTest {
   private static KsqlHostInfo HOST2 = new KsqlHostInfo("host2", 1234);
   private static KsqlHostInfoEntity HOST_ENTITY1 = new KsqlHostInfoEntity("host1", 1234);
   private static KsqlHostInfoEntity HOST_ENTITY2 = new KsqlHostInfoEntity("host2", 1234);
-  private static KsqlHostInfo HI1 = new KsqlHostInfo("host1", 1234);
-  private static KsqlHostInfo HI2 = new KsqlHostInfo("host2", 1234);
-  private static final HostStoreLags EMPTY_HOST_STORE_LAGS =
-      new HostStoreLags(ImmutableMap.of(), 0);
-  private static final ImmutableMap<String, ActiveStandbyEntity> EMPTY_ACTIVE_STANDBY_PER_QUERY =
-      ImmutableMap.of();
   private static HostStatus HOST1_STATUS_ALIVE = new HostStatus(true, 0L);
   private static HostStatus HOST2_STATUS_ALIVE = new HostStatus(true, 0L);
   private static HostStatus HOST1_STATUS_DEAD = new HostStatus(false, 0L);
   private static HostStatus HOST2_STATUS_DEAD = new HostStatus(false, 0L);
-  private static HostStatusEntity HOST1_STATUS_ALIVE_ENTITY = new HostStatusEntity(
-      true, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
-  private static HostStatusEntity HOST2_STATUS_ALIVE_ENTITY = new HostStatusEntity(
-      true, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
-  private static HostStatusEntity HOST1_STATUS_DEAD_ENTITY = new HostStatusEntity(
-      false, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
-  private static HostStatusEntity HOST2_STATUS_DEAD_ENTITY = new HostStatusEntity(
-      false, 0L, EMPTY_ACTIVE_STANDBY_PER_QUERY, EMPTY_HOST_STORE_LAGS);
 
 
   private static ImmutableMap<KsqlHostInfo, HostStatus> HOSTS_ALIVE
@@ -170,51 +154,31 @@ public class LagReportingAgentTest {
 
     // Then:
     Optional<LagInfoEntity> lagInfo
-        = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 1);
+        = lagReportingAgent.getLagInfoForHost(HOST1, QUERY_STORE_A, 1);
     assertTrue(lagInfo.isPresent());
     assertEquals(M1_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
     assertEquals(M1_A1_END, lagInfo.get().getEndOffsetPosition());
     assertEquals(M1_A1_LAG, lagInfo.get().getOffsetLag());
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST2, QUERY_STORE_A, 1);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST2, QUERY_STORE_A, 1);
     assertTrue(lagInfo.isPresent());
     assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
     assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
     assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
 
     // Partition where just one of the hosts has lag data
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 3);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST1, QUERY_STORE_A, 3);
     assertTrue(lagInfo.isPresent());
     assertEquals(M1_A3_CUR, lagInfo.get().getCurrentOffsetPosition());
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST2, QUERY_STORE_A, 3);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST2, QUERY_STORE_A, 3);
     assertFalse(lagInfo.isPresent());
 
     // Second partition where they both have lag data
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_B, 4);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST1, QUERY_STORE_B, 4);
     assertTrue(lagInfo.isPresent());
     assertEquals(M1_B4_CUR, lagInfo.get().getCurrentOffsetPosition());
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST2, QUERY_STORE_B, 4);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST2, QUERY_STORE_B, 4);
     assertTrue(lagInfo.isPresent());
     assertEquals(M2_B4_CUR, lagInfo.get().getCurrentOffsetPosition());
-
-    // Host 1 is dead
-    lagReportingAgent.onHostStatusUpdated(HOSTS_HOST1_DEAD);
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 1);
-    assertFalse(lagInfo.isPresent());
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST2, QUERY_STORE_A, 1);
-    assertTrue(lagInfo.isPresent());
-    assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
-    assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
-    assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
-
-    // Host 2 is dead
-    lagReportingAgent.onHostStatusUpdated(HOSTS_HOST2_DEAD);
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST2, QUERY_STORE_A, 1);
-    assertFalse(lagInfo.isPresent());
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 1);
-    assertTrue(lagInfo.isPresent());
-    assertEquals(M1_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
-    assertEquals(M1_A1_END, lagInfo.get().getEndOffsetPosition());
-    assertEquals(M1_A1_LAG, lagInfo.get().getOffsetLag());
   }
 
   @Test
@@ -226,13 +190,13 @@ public class LagReportingAgentTest {
 
     // Then:
     Optional<LagInfoEntity> lagInfo
-        = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 1);
+        = lagReportingAgent.getLagInfoForHost(HOST1, QUERY_STORE_A, 1);
     assertTrue(lagInfo.isPresent());
     assertEquals(M2_A1_CUR, lagInfo.get().getCurrentOffsetPosition());
     assertEquals(M2_A1_END, lagInfo.get().getEndOffsetPosition());
     assertEquals(M2_A1_LAG, lagInfo.get().getOffsetLag());
 
-    lagInfo = lagReportingAgent.getHostsPartitionLagInfo(HOST1, QUERY_STORE_A, 3);
+    lagInfo = lagReportingAgent.getLagInfoForHost(HOST1, QUERY_STORE_A, 3);
     assertFalse(lagInfo.isPresent());
   }
 

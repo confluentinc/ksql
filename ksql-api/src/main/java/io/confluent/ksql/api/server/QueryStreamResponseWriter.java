@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
-import io.vertx.core.json.JsonArray;
 
 /**
  * Represents something that knows how to write out a query response
@@ -26,7 +26,7 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
-  QueryStreamResponseWriter writeRow(JsonArray row);
+  QueryStreamResponseWriter writeRow(GenericRow row);
 
   QueryStreamResponseWriter writeError(ErrorResponse error);
 

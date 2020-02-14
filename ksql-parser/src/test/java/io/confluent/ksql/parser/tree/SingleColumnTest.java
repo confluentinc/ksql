@@ -37,7 +37,7 @@ public class SingleColumnTest {
   public void shouldThrowIfAliasIsSystemColumnName() {
     // Expect:
     expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("is a reserved token for implicit column.");
+    expectedException.expectMessage("is a reserved system column name.");
 
     // When:
     new SingleColumn(A_LOCATION, AN_EXPRESSION, Optional.of(SchemaUtil.WINDOWSTART_NAME));

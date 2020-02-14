@@ -24,7 +24,6 @@ import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,12 +36,10 @@ public class LivenessFilterTest {
   @Mock
   private HeartbeatAgent heartbeatAgent;
 
-  private Optional<HeartbeatAgent> optionalHeartbeatAgent;
   private Map<KsqlHostInfo, HostStatus> allHostsStatus;
   private KsqlHostInfo activeHost;
   private KsqlHostInfo standByHost1;
   private KsqlHostInfo standByHost2;
-  private HostInfo activeHostInfo;
   private LivenessFilter livenessFilter;
 
   private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
@@ -51,10 +48,9 @@ public class LivenessFilterTest {
   @Before
   public void setUp() {
     activeHost = new KsqlHostInfo("activeHost", 2345);
-    activeHostInfo = new HostInfo("activeHost", 2345);
     standByHost1 = new KsqlHostInfo("standby1", 1234);
     standByHost2 = new KsqlHostInfo("standby2", 5678);
-    optionalHeartbeatAgent = Optional.of(heartbeatAgent);
+    Optional<HeartbeatAgent> optionalHeartbeatAgent = Optional.of(heartbeatAgent);
     livenessFilter = new LivenessFilter(optionalHeartbeatAgent);
   }
 
@@ -69,9 +65,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(true));
@@ -90,9 +86,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(false));
@@ -111,9 +107,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(true));
@@ -132,9 +128,9 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHostInfo, activeHost, "", -1);
-    final boolean filterStandby1 = livenessFilter.filter(activeHostInfo, standByHost1, "", -1);
-    final boolean filterStandby2 = livenessFilter.filter(activeHostInfo, standByHost2, "", -1);
+    final boolean filterActive = livenessFilter.filter(activeHost);
+    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
+    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
     assertThat(filterActive, is(false));

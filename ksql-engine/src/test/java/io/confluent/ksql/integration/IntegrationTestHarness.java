@@ -21,7 +21,6 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -163,7 +162,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   public void produceRecord(final String topicName, final String key, final String data) {
     kafkaCluster.produceRows(
         topicName,
-        ImmutableMap.of(key, data),
+        Collections.singletonMap(key, data),
         new StringSerializer(),
         new StringSerializer(),
         DEFAULT_TS_SUPPLIER

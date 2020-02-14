@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendHeartbeartsForWindowLength;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendLagReportingRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
@@ -34,8 +35,14 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.LagInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.entity.QueryStateStoreId;
+import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -59,6 +66,7 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -105,6 +113,15 @@ public class PullQueryRoutingFunctionalTest {
   private String QUERY_ID;
   private String sql;
 
+  private static final String STATE_STORE = "Aggregate-Aggregate-Materialize";
+  private static final long HOST_CURRENT_OFFSET = 25;
+  private static final long HOST_END_OFFSET = 75;
+  private static final long HOST_LAG = 50;
+  private static final Map<String, ?> LAG_FILTER_100 =
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "100");
+  private static final Map<String, ?> LAG_FILTER_25 =
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "25");
+
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
@@ -118,6 +135,8 @@ public class PullQueryRoutingFunctionalTest {
       .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 600000)
       .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 200)
       .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
+      .put(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
+      .put(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 600000)
       .put(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -226,6 +245,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.right, 3);
+    sendLagReportingMessages(clusterFormation.standBy, clusterFormation.active);
     sendHeartbeartsForWindowLength(
         clusterFormation.standBy.right, clusterFormation.active.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -246,6 +266,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.active);
     sendHeartbeartsForWindowLength(
         clusterFormation.router.right, clusterFormation.active.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -271,6 +292,7 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
     sendHeartbeartsForWindowLength(
         clusterFormation.router.right, clusterFormation.standBy.left, 2000);
     waitForRemoteServerToChangeStatus(
@@ -287,6 +309,45 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
   }
 
+  @Test
+  public void shouldFilterLaggyServers() {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
+    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
+    sendHeartbeartsForWindowLength(
+        clusterFormation.router.right, clusterFormation.standBy.left, 2000);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.right, clusterFormation.standBy.left,
+        HighAvailabilityTestUtil::remoteServerIsUp);
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.right, sql,
+        LAG_FILTER_100);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, BASE_TIME, 1)));
+
+    KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
+        sql, LAG_FILTER_25);
+    Assert.assertEquals(40001, errorMessage.getErrorCode());
+    Assert.assertTrue(errorMessage.getMessage()
+        .contains("All nodes are dead or exceed max allowed lag"));
+  }
+
+  private void sendLagReportingMessages(
+      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> to,
+      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> from) {
+    LagReportingMessage lagReportingMessage =
+        new LagReportingMessage(from.left,
+            new HostStoreLags(createLagMap(HOST_CURRENT_OFFSET, HOST_END_OFFSET, HOST_LAG), 100));
+    sendLagReportingRequest(to.right, lagReportingMessage);
+    // Send them to itself as well
+    sendLagReportingRequest(from.right, lagReportingMessage);
+  }
+
   private List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
@@ -301,6 +362,34 @@ public class PullQueryRoutingFunctionalTest {
   private List<KsqlEntity> makeAdminRequestWithResponse(
       TestKsqlRestApp restApp, final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  private static List<StreamedRow> makePullQueryRequest(
+      final TestKsqlRestApp target,
+      final String sql,
+      final Map<String, ?> properties
+  ) {
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(), properties);
+  }
+
+  private static KsqlErrorMessage makePullQueryRequestWithError(
+      final TestKsqlRestApp target,
+      final String sql,
+      final Map<String, ?> properties
+  ) {
+    return RestIntegrationTestUtil.makeQueryRequestWithError(target, sql, Optional.empty(),
+        properties);
+  }
+
+  private Map<QueryStateStoreId, StateStoreLags> createLagMap(long current, long end, long lag) {
+    final String queryId = "_confluent-ksql-default_query_" + QUERY_ID;
+    final QueryStateStoreId queryStateStoreId =
+        QueryStateStoreId.of(queryId, STATE_STORE);
+    return ImmutableMap.<QueryStateStoreId, StateStoreLags>builder()
+        .put(queryStateStoreId, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
+            .put(0, new LagInfoEntity(current, end, lag))
+            .build()))
+        .build();
   }
 
   private ClusterFormation findClusterFormation(

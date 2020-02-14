@@ -26,9 +26,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
@@ -46,6 +47,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
 public class PullQueryExecutorTest {
+  private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
+      (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
+          new RoutingFilters(ImmutableList.of());
 
   public static class Disabled {
     @Rule
@@ -66,7 +70,7 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), Optional.empty(), new RoutingFilters(ImmutableList.of()));
+          engine.getEngine(), Optional.empty(), ROUTING_FILTER_FACTORY);
 
       // Then:
       expectedException.expect(KsqlException.class);

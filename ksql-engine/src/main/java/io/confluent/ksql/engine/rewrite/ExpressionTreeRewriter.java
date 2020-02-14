@@ -93,18 +93,16 @@ public final class ExpressionTreeRewriter<C> {
 
   private final RewritingVisitor<C> rewriter;
 
-  @SuppressWarnings("unchecked")
   public static <C, T extends Expression> T rewriteWith(
       final BiFunction<Expression, Context<C>, Optional<Expression>> plugin, final T expression) {
     return rewriteWith(plugin, expression, null);
   }
 
-  @SuppressWarnings("unchecked")
   public static <C, T extends Expression> T rewriteWith(
       final BiFunction<Expression, Context<C>, Optional<Expression>> plugin,
       final T expression,
       final C context) {
-    return new ExpressionTreeRewriter<C>(plugin).rewrite(expression, context);
+    return new ExpressionTreeRewriter<>(plugin).rewrite(expression, context);
   }
 
   @SuppressWarnings("unchecked")
@@ -182,7 +180,7 @@ public final class ExpressionTreeRewriter<C> {
         final SubscriptExpression node,
         final C context) {
       final Optional<Expression> result
-          = plugin.apply(node, new Context<C>(context, this));
+          = plugin.apply(node, new Context<>(context, this));
       if (result.isPresent()) {
         return result.get();
       }

@@ -55,6 +55,11 @@
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-version-metrics-client</artifactId>
         </dependency>
 
@@ -118,6 +123,14 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-test-util</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-api</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
 

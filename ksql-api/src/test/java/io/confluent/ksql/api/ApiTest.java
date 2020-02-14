@@ -16,10 +16,12 @@
 package io.confluent.ksql.api;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
+import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INVALID_QUERY;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUEST;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
+import static io.confluent.ksql.api.utils.TestUtils.findFilePath;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -27,34 +29,29 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
-import io.confluent.ksql.api.TestQueryPublisher.ListRowGenerator;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.PushQueryId;
 import io.confluent.ksql.api.server.Server;
-import io.vertx.codegen.annotations.Nullable;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.confluent.ksql.api.utils.InsertsResponse;
+import io.confluent.ksql.api.utils.ListRowGenerator;
+import io.confluent.ksql.api.utils.QueryResponse;
+import io.confluent.ksql.api.utils.ReceiveStream;
+import io.confluent.ksql.api.utils.SendStream;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.streams.ReadStream;
-import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
-import java.io.FileNotFoundException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
@@ -62,7 +59,6 @@ import org.junit.Test;
 
 public class ApiTest {
 
-  private static final long WAIT_TIMEOUT = 10000;
   private static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
       .add("male");
   private static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INT")
@@ -70,9 +66,11 @@ public class ApiTest {
   private static final List<JsonArray> DEFAULT_ROWS = generateRows();
   private static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES = new JsonObject()
       .put("prop1", "val1").put("prop2", 23);
+  private static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey='1234';";
+  private static final String DEFAULT_PUSH_QUERY = "select * from foo emit changes;";
   private static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_BODY = new JsonObject()
-      .put("sql", "select * from foo")
-      .put("push", true).put("properties", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
+      .put("sql", DEFAULT_PUSH_QUERY)
+      .put("properties", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
 
   private Vertx vertx;
   private Server server;
@@ -80,16 +78,16 @@ public class ApiTest {
   private WebClient client;
 
   @Before
-  public void setUp() throws Throwable {
+  public void setUp() {
 
     vertx = Vertx.vertx();
 
     JsonObject config = new JsonObject()
-        .put("ksql.apiserver.host", "localhost")
-        .put("ksql.apiserver.port", 8089)
-        .put("ksql.apiserver.key-path", findFilePath("test-server-key.pem"))
-        .put("ksql.apiserver.cert-path", findFilePath("test-server-cert.pem"))
-        .put("ksql.apiserver.verticle-instances", 4);
+        .put("ksql.apiserver.listen.host", "localhost")
+        .put("ksql.apiserver.listen.port", 8089)
+        .put("ksql.apiserver.key.path", findFilePath("test-server-key.pem"))
+        .put("ksql.apiserver.cert.path", findFilePath("test-server-cert.pem"))
+        .put("ksql.apiserver.verticle.instances", 4);
 
     testEndpoints = new TestEndpoints(vertx);
     server = new Server(vertx, new ApiServerConfig(config), testEndpoints);
@@ -112,7 +110,7 @@ public class ApiTest {
   public void shouldExecutePullQuery() throws Exception {
 
     // Given
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
     requestBody.put("properties", properties);
 
@@ -122,8 +120,7 @@ public class ApiTest {
     // Then
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
-    assertThat(testEndpoints.getLastSql(), is("select * from foo"));
-    assertThat(testEndpoints.getLastPush(), is(false));
+    assertThat(testEndpoints.getLastSql(), is(DEFAULT_PULL_QUERY));
     assertThat(testEndpoints.getLastProperties(), is(properties));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
@@ -133,9 +130,6 @@ public class ApiTest {
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(notNullValue()));
     assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(false));
-    Integer rowCount = queryResponse.responseObject.getInteger("rowCount");
-    assertThat(rowCount, is(notNullValue()));
-    assertThat(rowCount, is(DEFAULT_ROWS.size()));
   }
 
   @Test
@@ -145,8 +139,7 @@ public class ApiTest {
     QueryResponse queryResponse = executePushQueryAndWaitForRows(DEFAULT_PUSH_QUERY_REQUEST_BODY);
 
     // Then
-    assertThat(testEndpoints.getLastSql(), is("select * from foo"));
-    assertThat(testEndpoints.getLastPush(), is(true));
+    assertThat(testEndpoints.getLastSql(), is(DEFAULT_PUSH_QUERY));
     assertThat(testEndpoints.getLastProperties(), is(DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
@@ -155,7 +148,6 @@ public class ApiTest {
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(queryId, is(notNullValue()));
     assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
-    assertThat(queryResponse.responseObject.getInteger("rowCount"), is(nullValue()));
   }
 
   @Test
@@ -195,7 +187,6 @@ public class ApiTest {
       assertThat(server.getQueryIDs(), hasSize(i + 1));
       assertThat(server.queryConnectionCount(), is(i + 1));
     }
-    assertAllQueries(numQueries, true);
 
     // Now close them one by one and make sure queries are cleaned up
     int count = 0;
@@ -209,7 +200,6 @@ public class ApiTest {
       assertThat(server.getQueryIDs(), hasSize(num));
       count++;
     }
-    assertAllQueries(numQueries, false);
   }
 
   @Test
@@ -227,7 +217,6 @@ public class ApiTest {
       assertThat(server.getQueryIDs(), hasSize(i + 1));
     }
     assertThatEventually(server::queryConnectionCount, is(1));
-    assertAllQueries(numQueries, true);
 
     // When
     client.close();
@@ -236,7 +225,6 @@ public class ApiTest {
     assertThatEventually(server::queryConnectionCount, is(0));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
     client = null;
-    assertAllQueries(numQueries, false);
   }
 
   @Test
@@ -261,7 +249,6 @@ public class ApiTest {
         int queries = i * numQueries + j + 1;
         assertThat(server.getQueryIDs(), hasSize(i * numQueries + j + 1));
         assertThat(server.queryConnectionCount(), is(i + 1));
-        assertAllQueries(queries, true);
       }
     }
 
@@ -276,8 +263,6 @@ public class ApiTest {
       assertThat(server.getQueryIDs(), hasSize(numQueries * connections));
       count++;
     }
-
-    assertAllQueries(numConnections * numQueries, false);
   }
 
   @Test
@@ -300,8 +285,7 @@ public class ApiTest {
   public void shouldHandleExtraArgInQuery() throws Exception {
 
     // Given
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo")
-        .put("push", false)
+    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY)
         .put("badarg", 213);
 
     // When
@@ -315,22 +299,6 @@ public class ApiTest {
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     validateError(ERROR_CODE_UNKNOWN_PARAM, "Unknown arg badarg",
         queryResponse.responseObject);
-  }
-
-  @Test
-  public void shouldHandleQueryWithMissingPush() throws Exception {
-
-    // Given
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo");
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    assertThat(response.statusMessage(), is("Bad Request"));
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No push in arguments", queryResponse.responseObject);
   }
 
   @Test
@@ -350,13 +318,32 @@ public class ApiTest {
     assertThat(queryResponse.rows, hasSize(DEFAULT_ROWS.size() - 1));
     validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing query", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
-    assertThat(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber(), is(false));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
   }
 
   @Test
   public void shouldRejectMalformedJsonInQueryArgs() throws Exception {
     shouldRejectMalformedJsonInArgs("/query-stream");
+  }
+
+  @Test
+  public void shouldRejectInvalidPushQuery() throws Exception {
+    shouldRejectInvalidQuery("slllecct * from foo emit changes;");
+  }
+
+  @Test
+  public void shouldRejectInvalidPullQuery() throws Exception {
+    shouldRejectInvalidQuery("selllect * from foo where rowkey='123';");
+  }
+
+  @Test
+  public void shouldRejectWhenInternalErrorInProcessingPushQuery() throws Exception {
+    shouldRejectWhenInternalErrorInProcessingQuery("slllecct * from foo emit changes;");
+  }
+
+  @Test
+  public void shouldRejectWhenInternalErrorInProcessingPullQuery() throws Exception {
+    shouldRejectWhenInternalErrorInProcessingQuery("selllect * from foo where rowkey='123';");
   }
 
   @Test
@@ -401,8 +388,6 @@ public class ApiTest {
     // Assert the query no longer exists on the server
     assertThat(server.getQueryIDs(), not(hasItem(new PushQueryId(queryId))));
     assertThat(server.getQueryIDs(), hasSize(0));
-    assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
-    assertThat(testEndpoints.getQueryPublishers().iterator().next().hasSubscriber(), is(false));
 
     // The response should now be ended
     assertThatEventually(writeStream::isEnded, is(true));
@@ -733,7 +718,7 @@ public class ApiTest {
   @Test
   public void shouldUseDelimitedFormatWhenNoAcceptHeaderQuery() throws Exception {
     // When
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(8089, "localhost", "/query-stream")
@@ -750,7 +735,7 @@ public class ApiTest {
   @Test
   public void shouldUseDelimitedFormatWhenDelimitedAcceptHeaderQuery() throws Exception {
     // When
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(8089, "localhost", "/query-stream")
@@ -768,7 +753,7 @@ public class ApiTest {
   @Test
   public void shouldUseJsonFormatWhenJsonAcceptHeaderQuery() throws Exception {
     // When
-    JsonObject requestBody = new JsonObject().put("sql", "select * from foo").put("push", false);
+    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(8089, "localhost", "/query-stream")
@@ -878,6 +863,48 @@ public class ApiTest {
         queryResponse.responseObject);
   }
 
+  private void shouldRejectInvalidQuery(final String query) throws Exception {
+
+    // Given
+    ParseFailedException pfe = new ParseFailedException("invalid query blah");
+    testEndpoints.setCreateQueryPublisherException(pfe);
+    JsonObject requestBody = new JsonObject().put("sql", query);
+
+    // When
+    HttpResponse<Buffer> response = sendRequest("/query-stream",
+        requestBody.toBuffer());
+
+    // Then
+    assertThat(response.statusCode(), is(400));
+    assertThat(response.statusMessage(), is("Bad Request"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(ERROR_CODE_INVALID_QUERY, pfe.getMessage(),
+        queryResponse.responseObject);
+  }
+
+  private void shouldRejectWhenInternalErrorInProcessingQuery(final String query) throws Exception {
+
+    // Given
+    NullPointerException npe = new NullPointerException("oops");
+    testEndpoints.setCreateQueryPublisherException(npe);
+    JsonObject requestBody = new JsonObject().put("sql", query);
+
+    // When
+    HttpResponse<Buffer> response = sendRequest("/query-stream",
+        requestBody.toBuffer());
+
+    // Then
+    assertThat(response.statusCode(), is(500));
+    assertThat(response.statusMessage(), is("Internal Server Error"));
+
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    validateError(ERROR_CODE_INTERNAL_ERROR,
+        "The server encountered an internal error when processing the query." +
+            " Please consult the server logs for more information.",
+        queryResponse.responseObject);
+  }
+
   private QueryResponse executePushQueryAndWaitForRows(final JsonObject requestBody)
       throws Exception {
     return executePushQueryAndWaitForRows(client, requestBody);
@@ -928,17 +955,6 @@ public class ApiTest {
     assertThat(error.size(), is(3));
   }
 
-  private void assertAllQueries(final int num, final boolean open) {
-    assertThat(testEndpoints.getQueryPublishers(), hasSize(num));
-    for (TestQueryPublisher queryPublisher : testEndpoints.getQueryPublishers()) {
-      if (open) {
-        assertThat(queryPublisher.hasSubscriber(), is(true));
-      } else {
-        assertThat(queryPublisher.hasSubscriber(), is(false));
-      }
-    }
-  }
-
   private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
       throws Exception {
     return sendRequest(client, uri, requestBody);
@@ -954,16 +970,24 @@ public class ApiTest {
     return requestFuture.get();
   }
 
+  @SuppressWarnings("unchecked")
   private void setDefaultRowGenerator() {
+    List<GenericRow> rows = new ArrayList<>();
+    for (JsonArray ja : DEFAULT_ROWS) {
+      rows.add(GenericRow.fromList(ja.getList()));
+    }
     testEndpoints.setRowGeneratorFactory(
-        () -> new ListRowGenerator(DEFAULT_COLUMN_NAMES, DEFAULT_COLUMN_TYPES,
-            DEFAULT_ROWS));
+        () -> new ListRowGenerator(
+            DEFAULT_COLUMN_NAMES.getList(),
+            DEFAULT_COLUMN_TYPES.getList(),
+            rows));
   }
 
   private static List<JsonArray> generateRows() {
     List<JsonArray> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      rows.add(new JsonArray().add("foo" + i).add(i).add(i % 2 == 0));
+      JsonArray row = new JsonArray().add("foo" + i).add(i).add(i % 2 == 0);
+      rows.add(row);
     }
     return rows;
   }
@@ -978,229 +1002,6 @@ public class ApiTest {
       rows.add(row);
     }
     return rows;
-  }
-
-  private static String findFilePath(String fileName) throws Exception {
-    URL url = Thread.currentThread().getContextClassLoader().getResource(fileName);
-    if (url == null) {
-      throw new FileNotFoundException(fileName);
-    }
-    return url.toURI().getPath();
-  }
-
-  private static class QueryResponse {
-
-    public final JsonObject responseObject;
-    public final List<JsonArray> rows;
-    public final JsonObject error;
-
-    public QueryResponse(String responseBody) {
-      JsonObject error = null;
-      String[] parts = responseBody.split("\n");
-      responseObject = new JsonObject(parts[0]);
-      rows = new ArrayList<>();
-      for (int i = 1; i < parts.length; i++) {
-        if (parts[i].startsWith("[")) {
-          JsonArray row = new JsonArray(parts[i]);
-          rows.add(row);
-        } else {
-          assertThat(error, is(nullValue()));
-          error = new JsonObject(parts[i]);
-        }
-      }
-      this.error = error;
-    }
-
-    @Override
-    public String toString() {
-      return "QueryResponse{" +
-          "metadata=" + responseObject +
-          ", rows=" + rows +
-          '}';
-    }
-  }
-
-  private static class InsertsResponse {
-
-    public final List<JsonObject> acks;
-    public final JsonObject error;
-
-    public InsertsResponse(String responseBody) {
-      String[] parts = responseBody.split("\n");
-      acks = new ArrayList<>();
-      JsonObject error = null;
-      for (int i = 0; i < parts.length; i++) {
-        JsonObject jsonObject = new JsonObject(parts[i]);
-        String status = jsonObject.getString("status");
-        assertThat(status, is(notNullValue()));
-        if (status.equals("ok")) {
-          acks.add(jsonObject);
-        } else {
-          assertThat(error, is(nullValue()));
-          error = jsonObject;
-        }
-      }
-      this.error = error;
-    }
-
-    @Override
-    public String toString() {
-      return "QueryResponse{" +
-          "acks=" + acks +
-          '}';
-    }
-  }
-
-  private static class SendStream implements ReadStream<Buffer> {
-
-    private final Vertx vertx;
-    private final Queue<Buffer> pending = new LinkedList<>();
-    private Handler<Buffer> handler;
-    private Handler<Void> endHandler;
-    private boolean ended;
-    private long lastSentTime;
-
-    public SendStream(final Vertx vertx) {
-      this.vertx = vertx;
-    }
-
-    synchronized void acceptBuffer(final Buffer buffer) {
-      if (handler == null) {
-        pending.add(buffer);
-      } else {
-        sendBuffer(buffer);
-      }
-    }
-
-    @Override
-    public ReadStream<Buffer> exceptionHandler(final Handler<Throwable> handler) {
-      return this;
-    }
-
-    @Override
-    public synchronized ReadStream<Buffer> handler(@Nullable final Handler<Buffer> handler) {
-      this.handler = handler;
-      if (handler != null) {
-        Buffer buff;
-        while ((buff = pending.poll()) != null) {
-          sendBuffer(buff);
-        }
-      }
-      return this;
-    }
-
-    private void sendBuffer(final Buffer buff) {
-      lastSentTime = System.currentTimeMillis();
-      handler.handle(buff);
-    }
-
-    @Override
-    public ReadStream<Buffer> pause() {
-      return this;
-    }
-
-    @Override
-    public ReadStream<Buffer> resume() {
-      return this;
-    }
-
-    @Override
-    public ReadStream<Buffer> fetch(final long amount) {
-      return this;
-    }
-
-    @Override
-    public synchronized ReadStream<Buffer> endHandler(@Nullable final Handler<Void> endHandler) {
-      this.endHandler = endHandler;
-      if (ended && endHandler != null) {
-        vertx.runOnContext(v -> endHandler.handle(null));
-      }
-      return this;
-    }
-
-    synchronized void end() {
-      this.ended = true;
-      if (endHandler != null) {
-        vertx.runOnContext(v -> endHandler.handle(null));
-      }
-    }
-
-    synchronized long getLastSentTime() {
-      return lastSentTime;
-    }
-  }
-
-  private static class ReceiveStream implements WriteStream<Buffer> {
-
-    private final Vertx vertx;
-    private final Buffer body = Buffer.buffer();
-    private long firstReceivedTime;
-    private boolean ended;
-
-    public ReceiveStream(final Vertx vertx) {
-      this.vertx = vertx;
-    }
-
-    @Override
-    public WriteStream<Buffer> exceptionHandler(final Handler<Throwable> handler) {
-      return this;
-    }
-
-    @Override
-    public synchronized WriteStream<Buffer> write(final Buffer data) {
-      firstReceivedTime = System.currentTimeMillis();
-      body.appendBuffer(data);
-      return this;
-    }
-
-    @Override
-    public WriteStream<Buffer> write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
-      body.appendBuffer(data);
-      if (handler != null) {
-        vertx.runOnContext(v -> handler.handle(Future.succeededFuture()));
-      }
-      return this;
-    }
-
-    @Override
-    public synchronized void end() {
-      ended = true;
-    }
-
-    @Override
-    public void end(final Handler<AsyncResult<Void>> handler) {
-      end();
-      if (handler != null) {
-        vertx.runOnContext(v -> handler.handle(Future.succeededFuture()));
-      }
-    }
-
-    @Override
-    public WriteStream<Buffer> setWriteQueueMaxSize(final int maxSize) {
-      return this;
-    }
-
-    @Override
-    public boolean writeQueueFull() {
-      return false;
-    }
-
-    @Override
-    public WriteStream<Buffer> drainHandler(@Nullable final Handler<Void> handler) {
-      return this;
-    }
-
-    synchronized Buffer getBody() {
-      return body;
-    }
-
-    synchronized long getFirstReceivedTime() {
-      return firstReceivedTime;
-    }
-
-    synchronized boolean isEnded() {
-      return ended;
-    }
   }
 
 }

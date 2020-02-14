@@ -29,8 +29,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.api.plugin.KsqlServerEndpoints;
+import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -97,6 +102,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import io.vertx.core.Vertx;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -166,12 +172,16 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
 
+  // We embed this in here for now
+  private Vertx vertx = null;
+  private Server apiServer = null;
+
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
-  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final ServiceContext serviceContext,
@@ -253,6 +263,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (versionCheckerAgent != null) {
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+    if (ksqlConfigWithPort.getBoolean(KsqlConfig.KSQL_NEW_API_ENABLED)) {
+      startApiServer(ksqlConfigWithPort);
+    }
     displayWelcomeMessage();
   }
 
@@ -260,6 +273,20 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
     initialize(ksqlConfigWithPort);
+  }
+
+  void startApiServer(final KsqlConfig ksqlConfigWithPort) {
+    vertx = Vertx.vertx();
+    final Endpoints endpoints = new KsqlServerEndpoints(
+        ksqlEngine,
+        ksqlConfigWithPort,
+        securityExtension,
+        RestServiceContextFactory::create
+    );
+    final ApiServerConfig config = new ApiServerConfig(ksqlConfigWithPort.originals());
+    apiServer = new Server(vertx, config, endpoints);
+    apiServer.start();
+    log.info("KSQL New API Server started");
   }
 
   @VisibleForTesting
@@ -360,6 +387,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    if (apiServer != null) {
+      apiServer.stop();
+      apiServer = null;
+    }
+    if (vertx != null) {
+      vertx.close();
+      vertx = null;
     }
 
     shutdownAdditionalAgents();
@@ -476,10 +512,10 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           ErrorMessages.class
       ));
 
-      final RoutingFilters routingFilters = initializeRoutingFilters(
-          ksqlConfigNoPort, heartbeatAgent);
+      final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(
+          ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
       final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          ksqlEngine, heartbeatAgent, routingFilters);
+          ksqlEngine, heartbeatAgent, routingFilterFactory);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -611,10 +647,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
         initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
-    final RoutingFilters routingFilters = initializeRoutingFilters(ksqlConfig, heartbeatAgent);
+    final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(ksqlConfig,
+        heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, heartbeatAgent, routingFilters);
+        ksqlEngine, heartbeatAgent, routingFilterFactory);
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -740,16 +777,21 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     return Optional.empty();
   }
 
-  private static RoutingFilters initializeRoutingFilters(
+  private static RoutingFilterFactory initializeRoutingFilterFactory(
       final KsqlConfig ksqlConfig,
-      final Optional<HeartbeatAgent> heartbeatAgent) {
-    final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-      filterBuilder.add(new ActiveHostFilter());
-    }
-    filterBuilder.add(new LivenessFilter(heartbeatAgent));
-    final RoutingFilters routingFilters = new RoutingFilters(filterBuilder.build());
-    return routingFilters;
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent) {
+    return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
+      final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
+        filterBuilder.add(new ActiveHostFilter(active));
+      }
+      filterBuilder.add(new LivenessFilter(heartbeatAgent));
+      MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+          storeName, partition)
+          .map(filterBuilder::add);
+      return new RoutingFilters(filterBuilder.build());
+    };
   }
 
   private void registerCommandTopic() {

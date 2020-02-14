@@ -46,7 +46,8 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -125,16 +126,17 @@ public final class PullQueryExecutor {
 
   private final KsqlExecutionContext executionContext;
   private final Optional<HeartbeatAgent> heartbeatAgent;
-  private final RoutingFilter routingFilters;
+  private final RoutingFilterFactory routingFilterFactory;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final Optional<HeartbeatAgent> heartbeatAgent,
-      final RoutingFilter routingFilters
+      final RoutingFilterFactory routingFilterFactory
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
-    this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
+    this.routingFilterFactory =
+        Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
   }
 
   public static void validate(
@@ -213,11 +215,15 @@ public final class PullQueryExecutor {
       final ServiceContext serviceContext,
       final PullQueryContext pullQueryContext
   ) {
+    final RoutingOptions routingOptions = new ConfigRoutingOptions(
+        statement.getConfig(), statement.getOverrides());
+
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
     final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
         pullQueryContext.rowKey,
-        routingFilters
+        routingOptions,
+        routingFilterFactory
     );
 
     if (filteredAndOrderedNodes.isEmpty()) {
@@ -854,7 +860,7 @@ public final class PullQueryExecutor {
   ) {
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getStatementText(), statement.getOverrides());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
@@ -955,6 +961,29 @@ public final class PullQueryExecutor {
         final Context<Void> ctx
     ) {
       return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+    }
+  }
+
+  private static final class ConfigRoutingOptions implements RoutingOptions {
+
+    private final KsqlConfig ksqlConfig;
+    private final Map<String, ?> overrides;
+
+    ConfigRoutingOptions(final KsqlConfig ksqlConfig, final Map<String, ?> overrides) {
+      this.ksqlConfig = ksqlConfig;
+      this.overrides = overrides;
+    }
+
+    private long getLong(final String key) {
+      if (overrides.containsKey(key)) {
+        return (Long) overrides.get(key);
+      }
+      return ksqlConfig.getLong(key);
+    }
+
+    @Override
+    public long getOffsetLagAllowed() {
+      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
   }
 }

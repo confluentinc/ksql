@@ -170,7 +170,7 @@ public class QueryExecutorTest {
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
-    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
@@ -303,7 +303,8 @@ public class QueryExecutorTest {
         any(),
         eq(Optional.empty()),
         eq(properties),
-        eq(ksqlConfig)
+        eq(ksqlConfig),
+        any()
     );
   }
 

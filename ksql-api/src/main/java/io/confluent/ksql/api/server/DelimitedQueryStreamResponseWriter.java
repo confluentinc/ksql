@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.PojoCodec;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonArray;
 import java.util.Objects;
 
 /**
@@ -53,8 +54,8 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final JsonArray row) {
-    response.write(row.toBuffer().appendString("\n"));
+  public QueryStreamResponseWriter writeRow(final GenericRow row) {
+    response.write(PojoCodec.serializeObject(row.values()).appendString("\n"));
     return this;
   }
 

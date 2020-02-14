@@ -31,6 +31,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.core.Response;
 
 /**
@@ -70,7 +71,8 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<List<StreamedRow>> makeQueryRequest(
       final URI serverEndpoint,
-      final String sql
+      final String sql,
+      final Map<String, ?> properties
   ) {
     throw new UnsupportedOperationException();
   }

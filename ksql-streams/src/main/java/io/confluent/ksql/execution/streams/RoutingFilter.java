@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.util.KsqlHostInfo;
+import java.util.List;
 import org.apache.kafka.streams.state.HostInfo;
 
 /**
@@ -25,10 +26,35 @@ import org.apache.kafka.streams.state.HostInfo;
  */
 public interface RoutingFilter {
 
-  boolean filter(
-      HostInfo activeHost,
-      KsqlHostInfo hostInfo,
-      String storeName,
-      int partition);
+  /**
+   * If the given host should be included for consideration.
+   * @param hostInfo The host to be considered for this filter
+   * @return If the host should be included for consideration.
+   */
+  boolean filter(KsqlHostInfo hostInfo);
+
+  /**
+   * A factory for RoutingFilters.
+   */
+  interface RoutingFilterFactory {
+
+    /**
+     * Creates a RoutingFilter
+     * @param routingOptions The options to use when filtering
+     * @param hosts The set of all hosts that have the store, including actives and standbys
+     * @param activeHost The active host
+     * @param applicationQueryId The query id of the persistent query that materialized the table
+     * @param storeName The state store name of the materialized table
+     * @param partition The partition of the changelog topic
+     * @return The new RoutingFilter
+     */
+    RoutingFilter createRoutingFilter(
+        RoutingOptions routingOptions,
+        List<KsqlHostInfo> hosts,
+        HostInfo activeHost,
+        String applicationQueryId,
+        String storeName,
+        int partition);
+  }
 
 }

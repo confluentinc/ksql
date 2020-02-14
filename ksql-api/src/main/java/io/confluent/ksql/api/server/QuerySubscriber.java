@@ -17,11 +17,11 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonArray;
 import java.util.Objects;
-import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,57 +30,47 @@ import org.slf4j.LoggerFactory;
  * This is a reactive streams subscriber which receives a stream of results from a publisher which
  * is implemented by the back-end. The results are then written to the HTTP2 response.
  */
-public class QuerySubscriber implements Subscriber<JsonArray> {
+public class QuerySubscriber extends ReactiveSubscriber<GenericRow> {
 
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
+  private static final int REQUEST_BATCH_SIZE = 1000;
 
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;
-  private Subscription subscription;
-  private long tokens;
+  private int tokens;
 
-  private static final int BATCH_SIZE = 4;
-
-  public QuerySubscriber(final HttpServerResponse response,
+  public QuerySubscriber(final Context context, final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter) {
+    super(context);
     this.response = Objects.requireNonNull(response);
     this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
   }
 
   @Override
-  public synchronized void onSubscribe(final Subscription subscription) {
-    if (this.subscription != null) {
-      throw new IllegalStateException("Already subscribed");
-    }
-    this.subscription = Objects.requireNonNull(subscription);
-    checkRequestTokens();
+  protected void afterSubscribe(final Subscription subscription) {
+    checkMakeRequest();
   }
 
   @Override
-  public synchronized void onNext(final JsonArray row) {
-    if (tokens == 0) {
-      throw new IllegalStateException("Unsolicited data");
-    }
+  public void handleValue(final GenericRow row) {
     queryStreamResponseWriter.writeRow(row);
     tokens--;
     if (response.writeQueueFull()) {
-      response.drainHandler(v -> {
-        checkRequestTokens();
-      });
+      response.drainHandler(v -> checkMakeRequest());
     } else {
-      checkRequestTokens();
+      checkMakeRequest();
     }
   }
 
-  private void checkRequestTokens() {
+  private void checkMakeRequest() {
     if (tokens == 0) {
-      tokens = BATCH_SIZE;
-      subscription.request(BATCH_SIZE);
+      tokens = REQUEST_BATCH_SIZE;
+      makeRequest(REQUEST_BATCH_SIZE);
     }
   }
 
   @Override
-  public synchronized void onError(final Throwable t) {
+  public void handleError(final Throwable t) {
     log.error("Error in processing query", t);
     final ErrorResponse errorResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
         "Error in processing query");
@@ -88,13 +78,8 @@ public class QuerySubscriber implements Subscriber<JsonArray> {
   }
 
   @Override
-  public synchronized void onComplete() {
+  public void handleComplete() {
     queryStreamResponseWriter.end();
   }
 
-  public synchronized void close() {
-    if (subscription != null) {
-      subscription.cancel();
-    }
-  }
 }

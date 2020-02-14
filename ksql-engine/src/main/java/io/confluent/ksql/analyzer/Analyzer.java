@@ -303,21 +303,21 @@ class Analyzer {
 
     private void throwOnUnknownColumnReference() {
 
-      final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas(true));
+      final ColumnReferenceValidator columnValidator =
+          new ColumnReferenceValidator(analysis.getFromSourceSchemas(true));
 
       analysis.getWhereExpression()
-          .ifPresent(expressionAnalyzer::analyzeExpression);
+          .ifPresent(columnValidator::analyzeExpression);
 
       analysis.getGroupByExpressions()
-          .forEach(expressionAnalyzer::analyzeExpression);
+          .forEach(columnValidator::analyzeExpression);
 
       analysis.getHavingExpression()
-          .ifPresent(expressionAnalyzer::analyzeExpression);
+          .ifPresent(columnValidator::analyzeExpression);
 
       analysis.getSelectExpressions().stream()
           .map(SelectExpression::getExpression)
-          .forEach(expressionAnalyzer::analyzeExpression);
+          .forEach(columnValidator::analyzeExpression);
     }
 
     @Override
@@ -340,13 +340,13 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromSourceSchemas(false));
+      final ColumnReferenceValidator columnValidator =
+          new ColumnReferenceValidator(analysis.getFromSourceSchemas(false));
 
-      final Set<SourceName> srcsUsedInLeft = expressionAnalyzer
+      final Set<SourceName> srcsUsedInLeft = columnValidator
           .analyzeExpression(comparisonExpression.getLeft());
 
-      final Set<SourceName> srcsUsedInRight = expressionAnalyzer
+      final Set<SourceName> srcsUsedInRight = columnValidator
           .analyzeExpression(comparisonExpression.getRight());
 
       final SourceName leftSourceName = getOnlySourceForJoin(

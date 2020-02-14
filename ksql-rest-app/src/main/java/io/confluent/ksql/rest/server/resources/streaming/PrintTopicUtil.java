@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.BytesDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
@@ -33,19 +32,19 @@ final class PrintTopicUtil {
   private PrintTopicUtil() {
   }
 
-  static KafkaConsumer<String, Bytes> createTopicConsumer(
+  static KafkaConsumer<Bytes, Bytes> createTopicConsumer(
       final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic
   ) {
-    final KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
+    final KafkaConsumer<Bytes, Bytes> topicConsumer = new KafkaConsumer<>(
         injectSupplierProperties(serviceContext, consumerProperties),
-        new StringDeserializer(),
+        new BytesDeserializer(),
         new BytesDeserializer()
     );
 
     final List<TopicPartition> topicPartitions =
-        topicConsumer.partitionsFor(printTopic.getTopic().toString())
+        topicConsumer.partitionsFor(printTopic.getTopic())
             .stream()
             .map(partitionInfo ->
                 new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))

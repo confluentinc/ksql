@@ -20,6 +20,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -49,24 +50,12 @@ public class Server {
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private String deploymentID;
+  private WorkerExecutor workerExecutor;
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
-  }
-
-  private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
-    return
-        new HttpServerOptions().setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
-            .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
-            .setUseAlpn(true)
-            .setSsl(true)
-            .setPemKeyCertOptions(
-                new PemKeyCertOptions()
-                    .setKeyPath(apiServerConfig.getString(ApiServerConfig.KEY_PATH))
-                    .setCertPath(apiServerConfig.getString(ApiServerConfig.CERT_PATH))
-            );
   }
 
   public synchronized void start() {
@@ -76,10 +65,14 @@ public class Server {
     final DeploymentOptions options = new DeploymentOptions()
         .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES))
         .setConfig(config.toJsonObject());
+    this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
+        config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
+    final WorkerExecutor theWorkerExecutor = workerExecutor;
     vertx.deployVerticle(() ->
-            new ServerVerticle(endpoints, createHttpServerOptions(config), this), options,
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this, theWorkerExecutor),
+        options,
         future);
     try {
       deploymentID = future.get();
@@ -93,6 +86,9 @@ public class Server {
     if (deploymentID == null) {
       throw new IllegalStateException("Not started");
     }
+    if (workerExecutor != null) {
+      workerExecutor.close();
+    }
     final VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
     vertx.undeploy(deploymentID, future);
     try {
@@ -100,6 +96,7 @@ public class Server {
     } catch (Exception e) {
       throw new KsqlException("Failure in stopping API server", e);
     }
+    log.info("API server stopped");
   }
 
   void registerQuery(final PushQueryHolder query) {
@@ -130,5 +127,19 @@ public class Server {
   public int queryConnectionCount() {
     return connections.size();
   }
+
+  private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
+    return
+        new HttpServerOptions().setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
+            .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
+            .setUseAlpn(true)
+            .setSsl(true)
+            .setPemKeyCertOptions(
+                new PemKeyCertOptions()
+                    .setKeyPath(apiServerConfig.getString(ApiServerConfig.KEY_PATH))
+                    .setCertPath(apiServerConfig.getString(ApiServerConfig.CERT_PATH))
+            );
+  }
+
 
 }

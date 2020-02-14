@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -38,11 +39,12 @@ public class ConnectionQueryManager {
   }
 
   public PushQueryHolder createApiQuery(final QuerySubscriber querySubscriber,
+      final QueryPublisher queryPublisher,
       final HttpServerRequest request) {
     checkContext();
     final ConnectionQueries connectionQueries = getConnectionQueries(request);
     final PushQueryHolder query = new PushQueryHolder(server, querySubscriber,
-        connectionQueries::removeQuery);
+        queryPublisher, connectionQueries::removeQuery);
     connectionQueries.addQuery(query);
     return query;
   }

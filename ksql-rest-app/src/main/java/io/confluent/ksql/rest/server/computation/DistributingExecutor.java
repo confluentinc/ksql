@@ -19,6 +19,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -40,6 +41,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.TimeoutException;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -55,6 +57,7 @@ public class DistributingExecutor {
   private final ValidatedCommandFactory validatedCommandFactory;
   private final CommandIdAssigner commandIdAssigner;
   private final ReservedInternalTopics internalTopics;
+  private final Errors errorHandler;
 
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
@@ -62,7 +65,8 @@ public class DistributingExecutor {
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final ValidatedCommandFactory validatedCommandFactory
+      final ValidatedCommandFactory validatedCommandFactory,
+      final Errors errorHandler
   ) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
@@ -77,6 +81,7 @@ public class DistributingExecutor {
     this.commandIdAssigner = new CommandIdAssigner();
     this.internalTopics =
         new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
   }
 
   /**
@@ -109,8 +114,18 @@ public class DistributingExecutor {
 
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
+
     try {
       transactionalProducer.initTransactions();
+    } catch (final TimeoutException e) {
+      throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
+    } catch (final Exception e) {
+      throw new KsqlServerException(String.format(
+          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+          statement.getStatementText()), e);
+    }
+    
+    try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 

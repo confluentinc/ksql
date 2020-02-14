@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
-import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +41,8 @@ public interface Locator {
    */
   List<KsqlNode> locate(
       Struct key,
-      RoutingFilter routingFilters
+      RoutingOptions routingOptions,
+      RoutingFilterFactory routingFilterFactory
   );
 
   interface KsqlNode {

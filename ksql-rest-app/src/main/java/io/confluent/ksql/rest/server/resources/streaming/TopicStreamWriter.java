@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
@@ -22,12 +25,11 @@ import io.confluent.ksql.services.ServiceContext;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -38,9 +40,9 @@ import org.slf4j.LoggerFactory;
 public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
-  private final Long interval;
+  private final long interval;
   private final Duration disconnectCheckInterval;
-  private final KafkaConsumer<String, Bytes> topicConsumer;
+  private final KafkaConsumer<Bytes, Bytes> topicConsumer;
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
   private final OptionalInt limit;
@@ -60,7 +62,7 @@ public class TopicStreamWriter implements StreamingOutput {
             serviceContext,
             consumerProperties,
             printTopic),
-        printTopic.getTopic().toString(),
+        printTopic.getTopic(),
         printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getLimit());
@@ -68,51 +70,58 @@ public class TopicStreamWriter implements StreamingOutput {
 
   TopicStreamWriter(
       final SchemaRegistryClient schemaRegistryClient,
-      final KafkaConsumer<String, Bytes> topicConsumer,
+      final KafkaConsumer<Bytes, Bytes> topicConsumer,
       final String topicName,
       final long interval,
       final Duration disconnectCheckInterval,
       final OptionalInt limit
   ) {
-    this.topicConsumer = topicConsumer;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.topicName = topicName;
+    this.topicConsumer = requireNonNull(topicConsumer, "topicConsumer");
+    this.schemaRegistryClient = requireNonNull(schemaRegistryClient, "schemaRegistryClient");
+    this.topicName = requireNonNull(topicName, "topicName");
     this.interval = interval;
-    this.limit = limit;
-    this.disconnectCheckInterval = Objects
-        .requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
-
+    this.limit = requireNonNull(limit, "limit");
+    this.disconnectCheckInterval =
+        requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.messagesWritten = 0;
     this.messagesPolled = 0;
+
+    if (interval < 1) {
+      throw new IllegalArgumentException("INTERVAL must be greater than one, but was: " + interval);
+    }
   }
 
   @Override
   public void write(final OutputStream out) {
     try {
       final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
+
       boolean printFormat = true;
       while (true) {
-        final ConsumerRecords<String, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
+        final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
-          out.write("\n".getBytes(StandardCharsets.UTF_8));
+          out.write("\n".getBytes(UTF_8));
           out.flush();
-        } else {
-          final List<String> values = formatter.format(records);
-          for (final String value : values) {
-            if (printFormat) {
-              printFormat = false;
-              out.write(("Format:" + formatter.getFormat().name() + "\n")
-                            .getBytes(StandardCharsets.UTF_8));
-            }
-            if (messagesPolled++ % interval == 0) {
-              messagesWritten++;
-              out.write(value.getBytes(StandardCharsets.UTF_8));
-              out.flush();
-            }
+          continue;
+        }
 
-            if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
-              return;
-            }
+        final List<Supplier<String>> values = formatter.format(records.records(topicName));
+        for (final Supplier<String> value : values) {
+          if (printFormat) {
+            printFormat = false;
+            out.write(("Key format: " + formatter.getKeyFormat() + "\n").getBytes(UTF_8));
+            out.write(("Value format: " + formatter.getValueFormat() + "\n").getBytes(UTF_8));
+          }
+
+          if (messagesPolled++ % interval == 0) {
+            messagesWritten++;
+            out.write(value.get().getBytes(UTF_8));
+            out.write(System.lineSeparator().getBytes(UTF_8));
+            out.flush();
+          }
+
+          if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
+            return;
           }
         }
       }
@@ -126,10 +135,10 @@ public class TopicStreamWriter implements StreamingOutput {
     }
   }
 
-  private void outputException(final OutputStream out, final Exception exception) {
+  private static void outputException(final OutputStream out, final Exception exception) {
     try {
-      out.write(exception.getMessage().getBytes(StandardCharsets.UTF_8));
-      out.write("\n".getBytes(StandardCharsets.UTF_8));
+      out.write(exception.getMessage().getBytes(UTF_8));
+      out.write("\n".getBytes(UTF_8));
       out.flush();
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");

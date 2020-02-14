@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -182,6 +184,14 @@ public class KsqlConfig extends AbstractConfig {
           + "to ksql.streams.num.standby.replicas >= 1";
   public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG =
+      "ksql.query.pull.max.allowed.offset.lag";
+  public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = Long.MAX_VALUE;
+  private static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
+      "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
+          + "hosts storing it, both active and standbys included. This can be overridden per query "
+          + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
+          + "By default, any amount of lag is is allowed.";
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
       "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
@@ -244,12 +254,17 @@ public class KsqlConfig extends AbstractConfig {
       + "\nKSQL also marks its own internal topics as read-only. This is not controlled by this "
       + "config.";
 
+  public static final String KSQL_NEW_API_ENABLED = "ksql.new.api.enabled";
+  public static final Boolean KSQL_NEW_API_ENABLED_DEFAULT = false;
+  public static final String KSQL_NEW_API_ENABLED_DOC = "Is the new Vert.x based API enabled?";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
   }
 
   public static class CompatibilityBreakingConfigDef {
+
     private final String name;
     private final ConfigDef.Type type;
     private final Object defaultValueLegacy;
@@ -533,6 +548,13 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
         ).define(
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT,
+            zeroOrPositive(),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
+        ).define(
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
             ConfigDef.Type.LONG,
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
@@ -588,6 +610,13 @@ public class KsqlConfig extends AbstractConfig {
             ConfigValidators.validRegex(),
             Importance.LOW,
             KSQL_READONLY_TOPICS_DOC
+        )
+        .define(
+            KSQL_NEW_API_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_API_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_API_ENABLED_DOC
         )
         .withClientSslSupport();
 

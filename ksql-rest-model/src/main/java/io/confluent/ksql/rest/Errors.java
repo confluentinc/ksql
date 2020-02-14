@@ -30,7 +30,6 @@ import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Objects;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 
@@ -223,6 +222,10 @@ public final class Errors {
 
   public String kafkaAuthorizationErrorMessage(final Exception e) {
     return errorMessages.kafkaAuthorizationErrorMessage(e);
+  }
+
+  public String transactionInitTimeoutErrorMessage(final Exception e) {
+    return errorMessages.transactionInitTimeoutErrorMessage(e);
   }
 
   public Response generateResponse(

@@ -21,7 +21,6 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.state.HostInfo;
 
 /**
  * Filters ksql hosts based on whether they are alive or dead.
@@ -37,18 +36,11 @@ public class LivenessFilter implements RoutingFilter {
   /**
    * Returns true if the host is alive. If the heartbeat agent is not enabled, all hosts are
    * assumed to be alive.
-   * @param activeHost the active host for a particular state store
    * @param host The host for which the status is checked
-   * @param storeName Ignored
-   * @param partition Ignored
    * @return true if the host is alive, false otherwise.
    */
   @Override
-  public boolean filter(
-      final HostInfo activeHost,
-      final KsqlHostInfo host,
-      final String storeName,
-      final int partition) {
+  public boolean filter(final KsqlHostInfo host) {
 
     if (!heartbeatAgent.isPresent()) {
       return true;

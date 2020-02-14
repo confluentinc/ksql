@@ -15,159 +15,68 @@
 
 package io.confluent.ksql.api;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.BasePublisher;
 import io.confluent.ksql.api.spi.QueryPublisher;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
-import java.util.Iterator;
+import io.confluent.ksql.api.utils.RowGenerator;
+import io.vertx.core.Context;
 import java.util.List;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
-public class TestQueryPublisher implements QueryPublisher {
+public class TestQueryPublisher extends BasePublisher<GenericRow> implements QueryPublisher {
 
-  interface RowGenerator {
-
-    JsonArray getColumnNames();
-
-    JsonArray getColumnTypes();
-
-    JsonArray getNext();
-
-    int rowCount();
-  }
-
-  public static class ListRowGenerator implements RowGenerator {
-
-    private final JsonArray columnNames;
-    private final JsonArray columnTypes;
-    private final int rowCount;
-    private Iterator<JsonArray> iter;
-
-    public ListRowGenerator(final JsonArray columnNames, final JsonArray columnTypes,
-        final List<JsonArray> rows) {
-      this.columnNames = columnNames;
-      this.columnTypes = columnTypes;
-      this.iter = rows.iterator();
-      this.rowCount = rows.size();
-    }
-
-    @Override
-    public JsonArray getColumnNames() {
-      return columnNames;
-    }
-
-    @Override
-    public JsonArray getColumnTypes() {
-      return columnTypes;
-    }
-
-    @Override
-    public JsonArray getNext() {
-      if (iter.hasNext()) {
-        return iter.next();
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public int rowCount() {
-      return rowCount;
-    }
-  }
-
-  private final Vertx vertx;
   private final RowGenerator rowGenerator;
   private final int rowsBeforePublisherError;
   private final boolean push;
-  private Subscriber<? super JsonArray> subscriber;
   private int rowsSent;
 
-  public TestQueryPublisher(final Vertx vertx,
-      final RowGenerator rowGenerator, final int rowsBeforePublisherError,
-      final boolean push) {
-    this.vertx = vertx;
+  public TestQueryPublisher(final Context ctx, final RowGenerator rowGenerator,
+      final int rowsBeforePublisherError, final boolean push) {
+    super(ctx);
     this.rowGenerator = rowGenerator;
     this.rowsBeforePublisherError = rowsBeforePublisherError;
     this.push = push;
   }
 
-
-  @Override
-  public JsonArray getColumnNames() {
-    return rowGenerator.getColumnNames();
-  }
-
-  @Override
-  public JsonArray getColumnTypes() {
-    return rowGenerator.getColumnTypes();
-  }
-
-  @Override
-  public int getRowCount() {
-    return rowGenerator.rowCount();
-  }
-
-  @Override
-  public synchronized void subscribe(final Subscriber<? super JsonArray> subscriber) {
-    this.subscriber = subscriber;
-    subscriber.onSubscribe(new TestSubscription());
-  }
-
   synchronized boolean hasSubscriber() {
-    return subscriber != null;
+    return getSubscriber() != null;
   }
 
-  private synchronized void cancel() {
-    if (subscriber == null) {
-      return;
-    }
-    // TODO we should really deliver all events async
-    Subscriber<? super JsonArray> theSub = subscriber;
-    subscriber = null;
-    theSub.onComplete();
+  @Override
+  protected void maybeSend() {
+    doSend(getDemand());
   }
 
-  private void sendAsync(long amount) {
-    vertx.runOnContext(v -> send(amount));
-  }
-
-  private synchronized void send(long amount) {
-    if (subscriber == null) {
+  private void doSend(long amount) {
+    if (getSubscriber() == null) {
       return;
     }
     for (int i = 0; i < amount; i++) {
-      JsonArray row = rowGenerator.getNext();
+      GenericRow row = rowGenerator.getNext();
       if (row == null) {
         if (!push) {
-          cancel();
+          sendComplete();
         }
         break;
       } else {
         if (rowsBeforePublisherError != -1 && rowsSent == rowsBeforePublisherError) {
           // Inject an error
-          Subscriber<? super JsonArray> theSub = subscriber;
-          subscriber = null;
-          theSub.onError(new RuntimeException("Failure in processing"));
+          getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          subscriber.onNext(row);
+          getSubscriber().onNext(row);
         }
       }
     }
   }
 
-  class TestSubscription implements Subscription {
+  @Override
+  public List<String> getColumnNames() {
+    return rowGenerator.getColumnNames();
+  }
 
-    @Override
-    public void request(final long l) {
-      sendAsync(l);
-    }
-
-    @Override
-    public void cancel() {
-      TestQueryPublisher.this.cancel();
-    }
+  @Override
+  public List<String> getColumnTypes() {
+    return rowGenerator.getColumnTypes();
   }
 
 }

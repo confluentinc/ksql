@@ -276,5 +276,4 @@ public class KsqlServerEndpoints implements Endpoints {
       queryMetadata.close();
     }
   }
-  
 }

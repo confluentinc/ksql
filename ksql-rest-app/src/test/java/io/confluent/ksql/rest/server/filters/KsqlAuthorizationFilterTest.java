@@ -29,7 +29,6 @@ import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
 import java.net.URI;
 import java.security.Principal;
-
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;
@@ -139,8 +138,7 @@ public class KsqlAuthorizationFilterTest {
         URI.create(path),
         method,
         securityContext,
-        mock(PropertiesDelegate.class),
-        null
+        mock(PropertiesDelegate.class)
     );
 
     return requestContext;

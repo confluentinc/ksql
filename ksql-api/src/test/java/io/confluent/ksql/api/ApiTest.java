@@ -471,7 +471,7 @@ public class ApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
   }
 
@@ -496,7 +496,7 @@ public class ApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size()));
-    assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
   }
@@ -548,8 +548,9 @@ public class ApiTest {
     assertThat(insertsResponse.acks, hasSize(rows.size()));
 
     // Make sure all inserts made it to the server
-    assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    TestInsertsSubscriber insertsSubscriber = testEndpoints.getInsertsSubscriber();
+    assertThatEventually(insertsSubscriber::getRowsInserted, is(rows));
+    assertThatEventually(insertsSubscriber::isCompleted, is(true));
 
     // Ensure we received at least some of the response before all the request body was written
     // Yay HTTP2!

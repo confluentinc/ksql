@@ -21,6 +21,9 @@ Description
 
 Print the contents of Kafka topics to the ksqlDB CLI.
 
+The _topicName_ is case sensitive. Quote the name if it contains invalid characters.
+See [Valid Identifiers](../../concepts/schemas#valid-identifiers) for more information.
+
 The PRINT statement supports the following properties:
 
 |     Property      |                                                   Description                                                    |
@@ -33,10 +36,11 @@ Example
 -------
 
 The following statement shows how to print all of the records in a topic named
-`ksql__commands`.
+`_confluent-ksql-default__command_topic`, (the default name for the topic ksqlDB stores your submitted command in).
+Note, the topic name has been quoted as it contains the invalid dash character.
 
 ```sql
-PRINT ksql__commands FROM BEGINNING;
+PRINT '_confluent-ksql-default__command_topic' FROM BEGINNING;
 ```
 
 ksqlDB attempts to determine the format of the data in the topic and outputs what it thinks are

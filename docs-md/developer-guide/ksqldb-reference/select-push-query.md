@@ -48,7 +48,7 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the system columns `ROWTIME` and `ROWKEY`.
+including the `ROWTIME` and `ROWKEY` system columns.
 
 Example
 -------
@@ -114,7 +114,7 @@ or joins. Windows are tracked per record key.
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
 
-KsqlDB supports the following WINDOW types.
+ksqlDB supports the following WINDOW types:
 
 **TUMBLING**: Tumbling windows group input records into fixed-sized,
 non-overlapping windows based on the records' timestamps. You must

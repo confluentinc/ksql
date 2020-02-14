@@ -129,7 +129,7 @@ public class LoggingDeserializerTest {
       final SchemaAndValue result = errorCaptor.getValue().apply(LOG_CONFIG);
 
       assertThat(result, is(SerdeProcessingLogMessageFactory
-          .deserializationErrorMsg(e, Optional.of(SOME_BYTES)).apply(LOG_CONFIG)));
+          .deserializationErrorMsg(e, Optional.of(SOME_BYTES), "t").apply(LOG_CONFIG)));
 
       throw e;
     }

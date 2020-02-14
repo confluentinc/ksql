@@ -33,7 +33,8 @@ public final class SerdeProcessingLogMessageFactory {
 
   public static Function<ProcessingLogConfig, SchemaAndValue> deserializationErrorMsg(
       final Throwable exception,
-      final Optional<byte[]> record
+      final Optional<byte[]> record,
+      final String topic
   ) {
     Objects.requireNonNull(exception);
     return (config) -> {
@@ -47,6 +48,10 @@ public final class SerdeProcessingLogMessageFactory {
       deserializationError.put(
           ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE,
           cause
+      );
+      deserializationError.put(
+          ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC,
+          topic
       );
       if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
         deserializationError.put(

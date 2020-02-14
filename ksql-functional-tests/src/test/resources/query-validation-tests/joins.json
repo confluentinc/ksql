@@ -1738,15 +1738,16 @@
     {
       "name": "stream stream join - contains CAST",
       "statements": [
-        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE STREAM TEST2 (ID int) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM TEST1 (ROWKEY bigint KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST2 (ROWKEY int KEY, ID int) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
         "CREATE STREAM OUTPUT as SELECT t.ID FROM test1 t JOIN test2 tt WITHIN 30 seconds ON t.id = CAST(tt.id AS BIGINT);"
       ],
       "inputs": [
-        {"topic": "left_topic", "value": {"id": 1}, "timestamp": 10},
-        {"topic": "right_topic", "value": {"id": 1}, "timestamp": 10}
+        {"topic": "left_topic", "key": 1, "value": {"id": 1}, "timestamp": 10},
+        {"topic": "right_topic", "key": 1, "value": {"id": 1}, "timestamp": 10}
       ],
       "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition", "key": 1, "value": {"TT_ID": 1, "TT_ROWTIME": 10, "TT_ROWKEY": 1}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 1, "value": {"T_ID": 1}, "timestamp": 10}
       ]
     },

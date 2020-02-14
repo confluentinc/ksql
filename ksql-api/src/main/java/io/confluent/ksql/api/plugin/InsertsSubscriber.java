@@ -48,7 +48,7 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InsertsSubscriber extends BaseSubscriber<JsonObject> implements
+public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implements
     InsertsStreamSubscriber {
 
   private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);

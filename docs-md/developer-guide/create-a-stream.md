@@ -282,8 +282,8 @@ PRINT pageviews_intro;
 Your output should resemble:
 
 ```
-Key format: KAFKA (BIGINT or DOUBLE)
-Value format: KAFKA (STRING)
+Key format: KAFKA_BIGINT or KAFKA_DOUBLE
+Value format: KAFKA_STRING
 rowtime: 10/30/18 10:15:51 PM GMT, key: 294851, value: 1540937751186,User_8,Page_12
 rowtime: 10/30/18 10:15:55 PM GMT, key: 295051, value: 1540937755255,User_1,Page_15
 rowtime: 10/30/18 10:15:57 PM GMT, key: 295111, value: 1540937757265,User_8,Page_10
@@ -297,6 +297,13 @@ Press Ctrl+C to stop printing the stream.
 
 !!! note
 		The query continues to run after you stop printing the stream.
+
+!!! note
+    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
+    KsqlDB has not narrowed it further because it is not possible to rule out
+    either format just by inspecting the key's serialized bytes. In this case we know the key is
+    a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
+    of the data.
 
 Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `pageviews_intro` stream:

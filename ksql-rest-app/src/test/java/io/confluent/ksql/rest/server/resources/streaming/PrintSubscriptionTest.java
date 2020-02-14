@@ -13,7 +13,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.resources.streaming.PrintPublisher.PrintSubscription;
 import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;

@@ -69,6 +69,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
@@ -141,7 +142,7 @@ public final class PullQueryExecutor {
 
   public static void validate(
       final ConfiguredStatement<Query> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

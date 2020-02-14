@@ -26,6 +26,7 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
@@ -37,7 +38,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class DescribeFunctionExecutor {
@@ -49,7 +49,7 @@ public final class DescribeFunctionExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeFunction> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

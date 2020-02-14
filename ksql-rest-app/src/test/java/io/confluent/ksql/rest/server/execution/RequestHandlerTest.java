@@ -39,10 +39,10 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -55,9 +55,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,6 +71,7 @@ public class RequestHandlerTest {
   @Mock private DistributingExecutor distributor;
   @Mock private KsqlEntity entity;
   @Mock private CommandQueueSync sync;
+  @Mock private SessionProperties sessionProperties;
 
   private MetaStore metaStore;
   private RequestHandler handler;
@@ -85,6 +84,7 @@ public class RequestHandlerTest {
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
     when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -101,7 +101,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(securityContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     assertThat(entities, contains(entity));
@@ -110,7 +110,7 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(ImmutableMap.of()),
+            eq(sessionProperties),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -124,7 +124,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(securityContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     assertThat(entities, contains(entity));
@@ -142,14 +142,14 @@ public class RequestHandlerTest {
   public void shouldDistributeProperties() {
     // Given
     givenRequestHandler(ImmutableMap.of());
-
+    when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of("x", "y"));
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(
         securityContext,
         statements,
-        ImmutableMap.of("x", "y")
+        sessionProperties
     );
 
     // Then
@@ -186,7 +186,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(securityContext, statements, ImmutableMap.of());
+    handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());

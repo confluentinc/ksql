@@ -20,10 +20,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.confluent.ksql.util.KsqlHostInfo;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,11 +46,13 @@ public class PropertyExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "stream");
     final Map<String, Object> properties = new HashMap<>();
+    final SessionProperties sessionProperties =
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
         engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';"),
-        properties,
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -59,11 +67,13 @@ public class PropertyExecutorTest {
     engine.givenSource(DataSourceType.KSTREAM, "stream");
     final Map<String, Object> properties = new HashMap<>();
     properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
+    final SessionProperties sessionProperties =
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(
         engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"),
-        properties,
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );

@@ -51,6 +51,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -191,7 +192,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -210,7 +211,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -233,7 +234,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -254,7 +255,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -275,7 +276,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -295,7 +296,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -316,7 +317,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -335,7 +336,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -355,7 +356,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -375,7 +376,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -394,7 +395,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -422,7 +423,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -448,7 +449,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -470,7 +471,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("oo"));
@@ -497,7 +498,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("o"));
@@ -518,7 +519,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -553,7 +554,7 @@ public class InsertValuesExecutorTest {
         "Cannot insert values into read-only topic: _confluent-ksql-default__command-topic");
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -583,7 +584,7 @@ public class InsertValuesExecutorTest {
         "Cannot insert values into read-only topic: default_ksql_processing_log");
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -608,7 +609,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectMessage("Failed to insert values into ");
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -629,7 +630,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -651,7 +652,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -675,7 +676,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -693,7 +694,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -710,7 +711,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -730,7 +731,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -747,7 +748,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
@@ -769,7 +770,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
@@ -790,7 +791,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
@@ -816,7 +817,7 @@ public class InsertValuesExecutorTest {
         "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
  }
 
   @Test
@@ -836,7 +837,7 @@ public class InsertValuesExecutorTest {
         "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
   }
 
   @Test
@@ -851,7 +852,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(keySerdeFactory).create(

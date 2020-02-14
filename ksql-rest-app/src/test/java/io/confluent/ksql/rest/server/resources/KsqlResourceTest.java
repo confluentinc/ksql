@@ -199,7 +199,8 @@ public class KsqlResourceTest {
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-      0L);
+      0L
+  );
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .build();

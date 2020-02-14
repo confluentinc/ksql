@@ -23,20 +23,18 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.ServiceManager;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,9 +42,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -358,16 +356,8 @@ public final class HeartbeatAgent {
         if (currentQueries.isEmpty()) {
           return;
         }
-
-        final Set<HostInfo> uniqueHosts = currentQueries.stream()
-            .map(queryMetadata -> queryMetadata.getAllMetadata())
-            .filter(Objects::nonNull)
-            .flatMap(Collection::stream)
-            .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
-            .map(StreamsMetadata::hostInfo)
-            .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
-                && hostInfo.port() == (localHost.port())))
-            .collect(Collectors.toSet());
+        final Set<HostInfo> uniqueHosts =
+            DiscoverRemoteHostsUtil.getRemoteHosts(currentQueries, localHost);
 
         for (HostInfo hostInfo : uniqueHosts) {
           // Only add to map if it is the first time it is discovered. Design decision to

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -52,7 +53,7 @@ public final class ListTopicsExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTopics> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

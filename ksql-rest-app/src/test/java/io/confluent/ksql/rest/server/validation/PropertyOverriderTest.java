@@ -19,14 +19,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
+
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +63,7 @@ public class PropertyOverriderTest {
             new HashMap<>(),
             engine.getKsqlConfig()
         ),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -68,6 +73,8 @@ public class PropertyOverriderTest {
   public void shouldAllowSetKnownProperty() {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
+    final SessionProperties sessionProperties = 
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
@@ -78,7 +85,7 @@ public class PropertyOverriderTest {
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
-        properties,
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -90,6 +97,11 @@ public class PropertyOverriderTest {
 
   @Test
   public void shouldFailOnInvalidSetPropertyValue() {
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+    final SessionProperties sessionProperties =
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+
     // Expect:
     expectedException.expect(KsqlStatementException.class);
     expectedException.expectMessage("Invalid value invalid");
@@ -103,7 +115,7 @@ public class PropertyOverriderTest {
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
-        new HashMap<>(),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -111,6 +123,11 @@ public class PropertyOverriderTest {
 
   @Test
   public void shouldFailOnUnknownUnsetProperty() {
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+    final SessionProperties sessionProperties =
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+
     // Expect:
     expectedException.expect(KsqlStatementException.class);
     expectedException.expectMessage("Unknown property: consumer.invalid");
@@ -124,7 +141,7 @@ public class PropertyOverriderTest {
             new HashMap<>(),
             engine.getKsqlConfig()
         ),
-        ImmutableMap.of(),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -135,6 +152,8 @@ public class PropertyOverriderTest {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
     properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    final SessionProperties sessionProperties =
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
 
     // When:
     CustomValidators.UNSET_PROPERTY.validate(
@@ -145,7 +164,7 @@ public class PropertyOverriderTest {
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
-        properties,
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     );

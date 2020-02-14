@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -99,7 +100,7 @@ public class ListSourceExecutorTest {
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -130,7 +131,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS EXTENDED;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -163,7 +164,7 @@ public class ListSourceExecutorTest {
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -196,7 +197,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES EXTENDED;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -243,7 +244,7 @@ public class ListSourceExecutorTest {
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -273,7 +274,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE S;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -295,7 +296,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -351,7 +352,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS EXTENDED;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -371,7 +372,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
         engine.configure("SHOW TABLES EXTENDED;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -390,7 +391,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE EXTENDED STREAM1;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);

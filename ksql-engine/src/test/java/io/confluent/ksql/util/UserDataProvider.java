@@ -15,9 +15,9 @@
  **/
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -35,24 +35,23 @@ public class UserDataProvider extends TestDataProvider {
       .field("REGIONID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-  private static final Map<String, GenericRow> data = new UserDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public UserDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
-    final Map<String, GenericRow> dataMap = new HashMap<>();
+  private static Map<String, GenericRow> buildData() {
     // create a records with:
     // key == user_id
     // value = (creation_time, gender, region, user_id)
-    dataMap.put("USER_0", new GenericRow(Arrays.asList(0L, "FEMALE", "REGION_0", "USER_0")));
-    dataMap.put("USER_1", new GenericRow(Arrays.asList(1L, "MALE", "REGION_1", "USER_1")));
-    dataMap.put("USER_2", new GenericRow(Arrays.asList(2L, "FEMALE", "REGION_1", "USER_2")));
-    dataMap.put("USER_3", new GenericRow(Arrays.asList(3L, "MALE", "REGION_0", "USER_3")));
-    dataMap.put("USER_4", new GenericRow(Arrays.asList(4L, "MALE", "REGION_4", "USER_4")));
-
-    return dataMap;
+    return ImmutableMap.<String, GenericRow>builder()
+        .put("USER_0", new GenericRow(Arrays.asList(0L, "FEMALE", "REGION_0", "USER_0")))
+        .put("USER_1", new GenericRow(Arrays.asList(1L, "MALE", "REGION_1", "USER_1")))
+        .put("USER_2", new GenericRow(Arrays.asList(2L, "FEMALE", "REGION_1", "USER_2")))
+        .put("USER_3", new GenericRow(Arrays.asList(3L, "MALE", "REGION_0", "USER_3")))
+        .put("USER_4", new GenericRow(Arrays.asList(4L, "MALE", "REGION_4", "USER_4")))
+        .build();
   }
 
 

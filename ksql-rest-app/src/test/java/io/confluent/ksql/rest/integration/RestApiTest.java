@@ -59,6 +59,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.jetty.websocket.api.Session;
@@ -206,13 +207,15 @@ public class RestApiTest {
     );
 
     // Then:
-    final String[] messages = response.split(System.lineSeparator());
-    assertThat(messages.length, is(HEADER + LIMIT + FOOTER));
-    assertThat(messages[0],
+    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toList());
+    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
+    assertThat(messages.get(0),
         is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` STRING\"}}"));
-    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}}"));
-    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}}"));
-    assertThat(messages[3], is("{\"finalMessage\":\"Limit Reached\"}"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}}"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}}"));
+    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}"));
   }
 
   @Test

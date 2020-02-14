@@ -79,18 +79,20 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
     createQueryPublisherAsync(queryStreamArgs.get().sql, queryStreamArgs.get().properties, context)
         .thenAccept(queryPublisher -> {
-          final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-              routingContext.response(),
-              queryStreamResponseWriter);
 
           final PushQueryHolder query = connectionQueryManager
-              .createApiQuery(querySubscriber, queryPublisher, routingContext.request());
+              .createApiQuery(queryPublisher, routingContext.request());
 
           final QueryResponseMetadata metadata = new QueryResponseMetadata(query.getId().toString(),
               queryPublisher.getColumnNames(),
               queryPublisher.getColumnTypes());
 
           queryStreamResponseWriter.writeMetadata(metadata);
+
+          final QuerySubscriber querySubscriber = new QuerySubscriber(context,
+              routingContext.response(),
+              queryStreamResponseWriter);
+
           queryPublisher.subscribe(querySubscriber);
 
           // When response is complete, publisher should be closed and query unregistered

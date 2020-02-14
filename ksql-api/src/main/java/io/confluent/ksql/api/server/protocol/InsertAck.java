@@ -23,16 +23,19 @@ import com.google.errorprone.annotations.Immutable;
 @Immutable
 public class InsertAck extends SerializableObject {
 
+  public final long seq;
   public final String status;
 
-  public InsertAck() {
+  public InsertAck(final long seq) {
+    this.seq = seq;
     this.status = "ok";
   }
 
   @Override
   public String toString() {
     return "InsertAck{"
-        + "status='" + status + '\''
+        + "seq=" + seq
+        + ", status='" + status + '\''
         + '}';
   }
 }

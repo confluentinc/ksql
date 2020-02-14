@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.spi;
 
+import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -31,8 +33,10 @@ public interface Endpoints {
    * Create a publisher that will publish the results of the query. This will be subscribed to from
    * the API server and the subscriber will write the results to the HTTP response
    *
-   * @param sql        The sql of the query
-   * @param properties Optional properties for the query
+   * @param sql            The sql of the query
+   * @param properties     Optional properties for the query
+   * @param context        The Vert.x context
+   * @param workerExecutor The worker executor to use for blocking operations
    * @return The publisher
    */
   QueryPublisher createQueryPublisher(String sql, JsonObject properties,
@@ -46,9 +50,10 @@ public interface Endpoints {
    * @param target         The target to insert into
    * @param properties     Optional properties
    * @param acksSubscriber Optional subscriber of acks
+   * @param context        The Vert.x context
    * @return The inserts subscriber
    */
-  InsertsSubscriber createInsertsSubscriber(String target, JsonObject properties,
-      Subscriber<JsonObject> acksSubscriber);
+  InsertsStreamSubscriber createInsertsSubscriber(String target, JsonObject properties,
+      Subscriber<InsertResult> acksSubscriber, Context context, WorkerExecutor workerExecutor);
 
 }

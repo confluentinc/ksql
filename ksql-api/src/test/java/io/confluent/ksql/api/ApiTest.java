@@ -56,8 +56,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApiTest {
+
+  private static final Logger log = LoggerFactory.getLogger(ApiTest.class);
 
   private static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
       .add("male");
@@ -81,6 +85,7 @@ public class ApiTest {
   public void setUp() {
 
     vertx = Vertx.vertx();
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     JsonObject config = new JsonObject()
         .put("ksql.apiserver.listen.host", "localhost")
@@ -89,7 +94,7 @@ public class ApiTest {
         .put("ksql.apiserver.cert.path", findFilePath("test-server-cert.pem"))
         .put("ksql.apiserver.verticle.instances", 4);
 
-    testEndpoints = new TestEndpoints(vertx);
+    testEndpoints = new TestEndpoints();
     server = new Server(vertx, new ApiServerConfig(config), testEndpoints);
     server.start();
     client = createClient();
@@ -453,33 +458,10 @@ public class ApiTest {
   }
 
   @Test
-  public void shouldInsertWithNoAcksStream() throws Exception {
-
-    // Given
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", false);
-    List<JsonObject> rows = generateInsertRows();
-    Buffer requestBody = Buffer.buffer();
-    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
-    for (JsonObject row : rows) {
-      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
-    }
-
-    //When
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
-
-    // Then
-    assertThat(response.statusCode(), is(200));
-    assertThat(response.statusMessage(), is("OK"));
-    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
-    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
-    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
-  }
-
-  @Test
   public void shouldInsertWithAcksStream() throws Exception {
 
     // Given
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -499,13 +481,14 @@ public class ApiTest {
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+    assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(true));
   }
 
   @Test
   public void shouldStreamInserts() throws Exception {
 
     // Given
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
 
     // Stream for piping the HTTP request body
     SendStream readStream = new SendStream(vertx);
@@ -546,6 +529,10 @@ public class ApiTest {
     // Verify we got acks for all our inserts
     InsertsResponse insertsResponse = new InsertsResponse(writeStream.getBody().toString());
     assertThat(insertsResponse.acks, hasSize(rows.size()));
+    for (int i = 0; i < insertsResponse.acks.size(); i++) {
+      final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
+      assertThat(insertsResponse.acks.get(i), is(ackLine));
+    }
 
     // Make sure all inserts made it to the server
     TestInsertsSubscriber insertsSubscriber = testEndpoints.getInsertsSubscriber();
@@ -561,7 +548,7 @@ public class ApiTest {
   public void shouldHandleMissingTargetInInserts() throws Exception {
 
     // Given
-    JsonObject requestBody = new JsonObject().put("requiresAcks", true);
+    JsonObject requestBody = new JsonObject();
 
     // When
     HttpResponse<Buffer> response = sendRequest("/inserts-stream",
@@ -576,30 +563,10 @@ public class ApiTest {
   }
 
   @Test
-  public void shouldHandleMissingAcksInInserts() throws Exception {
-
-    // Given
-    JsonObject requestBody = new JsonObject().put("target", "some-stream");
-
-    // When
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream",
-        requestBody.toBuffer().appendString("\n"));
-
-    // Then
-    assertThat(response.statusCode(), is(400));
-    assertThat(response.statusMessage(), is("Bad Request"));
-
-    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    validateError(ERROR_CODE_MISSING_PARAM, "No requiresAcks in arguments",
-        queryResponse.responseObject);
-  }
-
-  @Test
   public void shouldHandleExtraArgInInserts() throws Exception {
 
     // Given
     JsonObject requestBody = new JsonObject().put("target", "some-stream")
-        .put("requiresAcks", false)
         .put("badarg", 213);
 
     // When
@@ -619,7 +586,7 @@ public class ApiTest {
   public void shouldHandleErrorInProcessingInserts() throws Exception {
 
     // Given
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -643,7 +610,9 @@ public class ApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size() - 1));
-    validateError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts", insertsResponse.error);
+    validateInsertStreamError(ERROR_CODE_INTERNAL_ERROR, "Error in processing inserts",
+        insertsResponse.error,
+        (long) rows.size() - 1);
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
 
@@ -656,7 +625,7 @@ public class ApiTest {
   public void shouldHandleMalformedJsonInInsertsStream() throws Exception {
 
     // Given
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -680,8 +649,8 @@ public class ApiTest {
 
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
-    validateError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
-        insertsResponse.error);
+    validateInsertStreamError(ERROR_CODE_MALFORMED_REQUEST, "Invalid JSON in inserts stream",
+        insertsResponse.error, (long) rows.size() - 1);
 
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
@@ -776,7 +745,7 @@ public class ApiTest {
   @Test
   public void shouldUseDelimitedFormatWhenNoAcceptHeaderInserts() throws Exception {
     // When
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -793,12 +762,16 @@ public class ApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size()));
+    for (int i = 0; i < insertsResponse.acks.size(); i++) {
+      final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
+      assertThat(insertsResponse.acks.get(i), is(ackLine));
+    }
   }
 
   @Test
   public void shouldUseDelimitedFormatWhenDelimitedHeaderInserts() throws Exception {
     // When
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -816,12 +789,16 @@ public class ApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size()));
+    for (int i = 0; i < insertsResponse.acks.size(); i++) {
+      final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
+      assertThat(insertsResponse.acks.get(i), is(ackLine));
+    }
   }
 
   @Test
   public void shouldUseJsonFormatWhenJsonHeaderInserts() throws Exception {
     // When
-    JsonObject params = new JsonObject().put("target", "test-stream").put("requiresAcks", true);
+    JsonObject params = new JsonObject().put("target", "test-stream");
     List<JsonObject> rows = generateInsertRows();
     Buffer requestBody = Buffer.buffer();
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
@@ -838,8 +815,8 @@ public class ApiTest {
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
     assertThat(jsonArray.size(), is(DEFAULT_ROWS.size()));
-    final JsonObject ackLine = new JsonObject().put("status", "ok");
     for (int i = 0; i < jsonArray.size(); i++) {
+      final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
     }
   }
@@ -950,10 +927,22 @@ public class ApiTest {
 
   private static void validateError(final int errorCode, final String message,
       final JsonObject error) {
+    assertThat(error.size(), is(3));
+    validateErrorCommon(errorCode, message, error);
+  }
+
+  private static void validateInsertStreamError(final int errorCode, final String message,
+      final JsonObject error, final long sequence) {
+    assertThat(error.size(), is(4));
+    validateErrorCommon(errorCode, message, error);
+    assertThat(error.getLong("seq"), is(sequence));
+  }
+
+  private static void validateErrorCommon(final int errorCode, final String message,
+      final JsonObject error) {
     assertThat(error.getString("status"), is("error"));
     assertThat(error.getInteger("errorCode"), is(errorCode));
     assertThat(error.getString("message"), is(message));
-    assertThat(error.size(), is(3));
   }
 
   private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)

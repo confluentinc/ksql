@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
 import java.util.HashMap;
@@ -38,12 +38,12 @@ public class ConnectionQueryManager {
     this.server = Objects.requireNonNull(server);
   }
 
-  public PushQueryHolder createApiQuery(final QuerySubscriber querySubscriber,
+  public PushQueryHolder createApiQuery(
       final QueryPublisher queryPublisher,
       final HttpServerRequest request) {
     checkContext();
     final ConnectionQueries connectionQueries = getConnectionQueries(request);
-    final PushQueryHolder query = new PushQueryHolder(server, querySubscriber,
+    final PushQueryHolder query = new PushQueryHolder(server,
         queryPublisher, connectionQueries::removeQuery);
     connectionQueries.addQuery(query);
     return query;
@@ -55,9 +55,7 @@ public class ConnectionQueryManager {
   }
 
   private void checkContext() {
-    if (Vertx.currentContext() != context) {
-      throw new IllegalStateException("On wrong context");
-    }
+    Utils.checkContext(context);
   }
 
   private class ConnectionQueries implements Handler<Void> {

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.tck;
 
-import io.confluent.ksql.api.server.ReactiveSubscriber;
+import io.confluent.ksql.api.server.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -26,12 +26,12 @@ import org.reactivestreams.tck.SubscriberWhiteboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
 
 @Ignore
-public class ReactiveSubscriberWhiteboxVerificationTest extends
+public class BaseSubscriberWhiteboxVerificationTest extends
     SubscriberWhiteboxVerification<JsonObject> {
 
   private final Vertx vertx;
 
-  public ReactiveSubscriberWhiteboxVerificationTest() {
+  public BaseSubscriberWhiteboxVerificationTest() {
     super(new TestEnvironment(1000));
     this.vertx = Vertx.vertx();
   }
@@ -44,7 +44,7 @@ public class ReactiveSubscriberWhiteboxVerificationTest extends
   @Override
   public Subscriber<JsonObject> createSubscriber(final WhiteboxSubscriberProbe<JsonObject> probe) {
     final Context context = vertx.getOrCreateContext();
-    return new ReactiveSubscriber<JsonObject>(context) {
+    return new BaseSubscriber<JsonObject>(context) {
 
       private Subscription subscription;
 

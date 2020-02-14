@@ -15,24 +15,22 @@
 
 package io.confluent.ksql.api.server;
 
-/**
- * The error codes that signify different types of errors that can occur in the API
- */
-public final class ErrorCodes {
+import io.confluent.ksql.util.KsqlException;
 
-  private ErrorCodes() {
+/**
+ * Represents an error due to user error that can be propagated to the user. Do not use this for
+ * internal errors
+ */
+public class KsqlApiException extends KsqlException {
+
+  private final int errorCode;
+
+  public KsqlApiException(final String message, final int errorCode) {
+    super(message);
+    this.errorCode = errorCode;
   }
 
-  public static final int ERROR_CODE_MISSING_PARAM = 1;
-  public static final int ERROR_CODE_UNKNOWN_PARAM = 2;
-  public static final int ERROR_CODE_UNKNOWN_QUERY_ID = 3;
-  public static final int ERROR_CODE_MALFORMED_REQUEST = 4;
-  public static final int ERROR_CODE_INVALID_QUERY = 5;
-  public static final int ERROR_CODE_MISSING_KEY_FIELD = 6;
-  public static final int ERROR_CODE_CANNOT_COERCE_FIELD = 7;
-
-
-  public static final int ERROR_CODE_INTERNAL_ERROR = 100;
-
-
+  public int getErrorCode() {
+    return errorCode;
+  }
 }

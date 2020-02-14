@@ -18,7 +18,6 @@ package io.confluent.ksql.api.server;
 import io.vertx.core.Context;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Queue;
 import org.slf4j.Logger;
@@ -51,17 +50,19 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    *            more than one thread.
    */
   public BufferedPublisher(final Context ctx) {
-    this(ctx, Collections.emptySet(), DEFAULT_BUFFER_MAX_SIZE);
+    this(ctx, DEFAULT_BUFFER_MAX_SIZE);
   }
 
   /**
-   * Construct a BufferedPublisher
+   * Construct a complete BufferedPublisher
    *
    * @param ctx           The Vert.x context to use for the publisher
    * @param initialBuffer A collection of elements to initialise the buffer with
    */
   public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer) {
-    this(ctx, initialBuffer, DEFAULT_BUFFER_MAX_SIZE);
+    this(ctx);
+    this.buffer.addAll(initialBuffer);
+    complete = true;
   }
 
   /**
@@ -74,20 +75,7 @@ public class BufferedPublisher<T> extends BasePublisher<T> {
    *                      notified when the buffer is cleared
    */
   public BufferedPublisher(final Context ctx, final int bufferMaxSize) {
-    this(ctx, Collections.emptySet(), bufferMaxSize);
-  }
-
-  /**
-   * Construct a BufferedPublisher
-   *
-   * @param ctx           The Vert.x context to use for the publisher
-   * @param initialBuffer A collection of elements to initialise the buffer with
-   * @param bufferMaxSize Indicative max number of elements to buffer
-   */
-  public BufferedPublisher(final Context ctx, final Collection<T> initialBuffer,
-      final int bufferMaxSize) {
     super(ctx);
-    this.buffer.addAll(initialBuffer);
     this.bufferMaxSize = bufferMaxSize;
   }
 

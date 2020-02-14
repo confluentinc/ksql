@@ -83,7 +83,7 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
-        .handler(new InsertsStreamHandler(context, endpoints));
+        .handler(new InsertsStreamHandler(context, endpoints, workerExecutor));
     router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
     return router;

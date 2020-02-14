@@ -17,12 +17,16 @@ package io.confluent.ksql.api.plugin;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.impl.Utils;
-import io.confluent.ksql.api.server.BlockingQueryPublisher;
+import io.confluent.ksql.api.server.InsertResult;
+import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandler;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.InsertsSubscriber;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -35,8 +39,10 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -58,20 +64,22 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final KsqlSecurityExtension securityExtension;
-  private final ServiceContextFactory theServiceContextFactory;
+  private final ServiceContextFactory serviceContextFactory;
   private final PullQueryApiExecutor pullQueryApiExecutor;
+  private final ReservedInternalTopics reservedInternalTopics;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory theServiceContextFactory,
+      final ServiceContextFactory serviceContextFactory,
       final PullQueryApiExecutor pullQueryApiExecutor) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
     this.securityExtension = Objects.requireNonNull(securityExtension);
-    this.theServiceContextFactory = Objects.requireNonNull(theServiceContextFactory);
+    this.serviceContextFactory = Objects.requireNonNull(serviceContextFactory);
     this.pullQueryApiExecutor = Objects.requireNonNull(pullQueryApiExecutor);
+    this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
   }
 
   public QueryPublisher createQueryPublisher(
@@ -81,6 +89,8 @@ public class KsqlServerEndpoints implements Endpoints {
 
     // Must be run on worker as all this stuff is slow
     Utils.checkIsWorker();
+
+    properties.put("auto.offset.reset", "earliest");
 
     final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
@@ -154,7 +164,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    return theServiceContextFactory.create(ksqlConfig,
+    return serviceContextFactory.create(ksqlConfig,
         Optional.empty(),
         kafkaClientSupplier, srClientFactory);
   }
@@ -168,10 +178,41 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public InsertsSubscriber createInsertsSubscriber(final String target,
+  public InsertsStreamSubscriber createInsertsSubscriber(final String target,
       final JsonObject properties,
-      final Subscriber<JsonObject> acksSubscriber) {
-    return null;
+      final Subscriber<InsertResult> acksSubscriber, final Context context,
+      final WorkerExecutor workerExecutor) {
+    Utils.checkIsWorker();
+    final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
+    final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
+        SourceName.of(target));
+    if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
+      throw new KsqlException("Cannot insert into a table");
+    }
+    return InsertsSubscriber.createInsertsSubscriber(serviceContext, properties, dataSource,
+        ksqlConfig, context, acksSubscriber, workerExecutor);
+  }
+
+  private DataSource getDataSource(
+      final MetaStore metaStore,
+      final SourceName sourceName
+  ) {
+    final DataSource dataSource = metaStore.getSource(sourceName);
+    if (dataSource == null) {
+      throw new KsqlException("Cannot insert values into an unknown stream: "
+          + sourceName);
+    }
+
+    if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
+      throw new KsqlException("Cannot insert values into windowed stream");
+    }
+
+    if (reservedInternalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert values into read-only topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    return dataSource;
   }
 
   private static List<String> colTypesFromSchema(final LogicalSchema logicalSchema) {

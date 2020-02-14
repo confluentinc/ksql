@@ -17,10 +17,10 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
-import io.confluent.ksql.api.server.protocol.ErrorResponse;
+import io.confluent.ksql.api.server.protocol.InsertAck;
+import io.confluent.ksql.api.server.protocol.InsertError;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * A reactive streams subscriber that subscribes to publishers of acks. As it receive acks it writes
  * them to the HTTP response.
  */
-public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
+public class AcksSubscriber extends BaseSubscriber<InsertResult> {
 
   private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 1000;
@@ -40,6 +40,7 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   private Long insertsSent;
   private long acksSent;
   private boolean drainHandlerSet;
+  private boolean responseEnded;
 
   public AcksSubscriber(final Context context, final HttpServerResponse response,
       final InsertsStreamResponseWriter insertsStreamResponseWriter) {
@@ -54,9 +55,30 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
   }
 
   @Override
-  public void handleValue(final JsonObject value) {
+  public void handleValue(final InsertResult result) {
     checkContext();
-    insertsStreamResponseWriter.writeInsertResponse();
+    if (responseEnded) {
+      return;
+    }
+    if (result.succeeded()) {
+      handleSuccessfulInsert(result);
+    } else {
+      handleFailedInsert(result);
+    }
+  }
+
+  @Override
+  public void handleComplete() {
+    insertsStreamResponseWriter.end();
+  }
+
+  @Override
+  public void handleError(final Throwable t) {
+    log.error("Error in processing inserts", t);
+  }
+
+  private void handleSuccessfulInsert(final InsertResult result) {
+    insertsStreamResponseWriter.writeInsertResponse(new InsertAck(result.sequenceNumber()));
     acksSent++;
     if (insertsSent != null && insertsSent == acksSent) {
       close();
@@ -73,19 +95,20 @@ public class AcksSubscriber extends ReactiveSubscriber<JsonObject> {
     }
   }
 
-  @Override
-  public void handleComplete() {
-    insertsStreamResponseWriter.end();
-  }
-
-  @Override
-  public void handleError(final Throwable t) {
-    log.error("Error in processing inserts", t);
-
-    final ErrorResponse errResponse = new ErrorResponse(ERROR_CODE_INTERNAL_ERROR,
-        "Error in processing inserts");
-    insertsStreamResponseWriter.writeError(errResponse).end();
-
+  private void handleFailedInsert(final InsertResult result) {
+    log.error("Error in processing inserts", result.exception());
+    final InsertError insertError;
+    final Exception exception = result.exception();
+    if (exception instanceof KsqlApiException) {
+      insertError = new InsertError(result.sequenceNumber(),
+          ((KsqlApiException) exception).getErrorCode(),
+          exception.getMessage());
+    } else {
+      insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_INTERNAL_ERROR,
+          "Error in processing inserts");
+    }
+    insertsStreamResponseWriter.writeError(insertError).end();
+    responseEnded = true;
   }
 
   private void checkMakeRequest() {

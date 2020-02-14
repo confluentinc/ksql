@@ -30,7 +30,7 @@ drop the `-daemon` switch, and start the CLI in a second console.
 To build and test changes locally, run the following commands:
 
 ```shell
-$ mvn clean install checkstyle:check integration-test
+$ mvn clean checkstyle:check integration-test
 ```
 
 ### Testing docker image

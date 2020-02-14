@@ -37,8 +37,6 @@ import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +49,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.glassfish.jersey.internal.util.Base64;
 
 final class RestIntegrationTestUtil {
 
@@ -251,8 +250,7 @@ final class RestIntegrationTestUtil {
   }
 
   private static String buildBasicAuthHeader(final Credentials credentials) {
-    final String creds = credentials.username + ":" + credentials.password;
-    return Base64.getEncoder().encodeToString(creds.getBytes(StandardCharsets.UTF_8));
+    return Base64.encodeAsString(credentials.username + ":" + credentials.password);
   }
 
   private static String buildStreamingRequest(final String sql) {

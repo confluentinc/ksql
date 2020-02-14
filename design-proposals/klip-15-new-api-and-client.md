@@ -77,6 +77,10 @@ The API will have the following characteristics:
 * TLS
 * Easy to create new clients using the protocol
 
+Please note the parameters are not necessarily exhaustive. The description here is an outline not a detailed
+low level design. The low level design will evolve during development, and the web-site API docs
+will provide exact and detailed documentation on the endpoints and how to use them.
+
 #### Query streaming
 
 The request method will be a POST.
@@ -84,14 +88,13 @@ The request method will be a POST.
 Requests will be made to a specific URL, e.g. "/query-stream" (this can be configurable)
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
-operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
+operation (newlines have been added here for the sake of clarity but the real JSON must not contain
+ unescaped newlines)
 
 ````
 {
-"query": "select * from foo", <----- the SQL of the query to execute
-"push": true,                 <----- if true then push query, else pull query
-"limit": 10                   <----  If specified return at most this many rows,
-"properties": {               <----- Optional properties for the query
+"sql": "select * from foo", <----- the SQL of the query to execute
+"properties": {             <----- Optional properties for the query
     "prop1": "val1",
     "prop2": "val2"
    }
@@ -99,17 +102,13 @@ operation (newlines have been added here for the sake of clarity but the real JS
 
 ````
 
-Please note the parameters are not necessarily exhaustive. The description here is an outline not a detailed
-low level design. The low level design will evolve during development.
-
 In the case of a successful query 
 
 ````
 {
-"query-id", "xyz123",                          <---- unique ID of the query, used when terminating the query
-"columns":["col", "col2", "col3"],             <---- the names of the columns
-"column_types":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
-"row_count": 101                               <---- The number of rows - only set in case of pull query
+"queryId", "xyz123",                          <---- unique ID of the query, used when terminating the query
+"columnNames":["col", "col2", "col3"],        <---- the names of the columns
+"columnTypes":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
 }
 ````
 
@@ -133,14 +132,14 @@ Push queries can be explicitly terminated by the client by making a request to t
 
 The request method will be a POST.
 
-Requests will be made to a specific URL, e.g. "/query-terminate" (this can be configurable)
+Requests will be made to a specific URL, e.g. "/close-query"
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
 operation (newlines have been added here for the sake of clarity but the real JSON must not contain newlines)
 
 ````
 {
-"query-id": "xyz123", <----- the ID of the query to terminate
+"queryId": "xyz123", <----- the ID of the query to terminate
 }
 
 ````
@@ -157,8 +156,7 @@ operation (newlines have been added for clarity, the real JSON must not contain 
 
 ````
 {
-"stream": "my-stream" <----- The name of the KSQL stream to insert into
-"acks": true          <----- If true then a stream of acks will be returned in the response
+"target": "my-stream" <----- The name of the KSQL stream to insert into
 }
 
 ````
@@ -176,16 +174,27 @@ Each JSON object will be separated by a new line.
 
 To terminate the insert stream the client should end the request.
 
-If acks are requested then the response will be written to the response when each row has been
+Acks will be written to the response when each row has been
 successfully committed to the underlying topic. Rows are committed in the order they are provided.
-Each ack in the response is just an empty JSON object, separated by newlines:
+Each ack in the response is a JSON object, separated by newlines:
 
 ````
-{}
-{}
-{}
-{}
+{"status":"ok","seq":0}
+{"status":"ok","seq":2}
+{"status":"ok","seq":1}
+{"status":"ok","seq":3}
 ````
+
+A successful ack will contain a field `status` with value `ok`.
+
+All ack responses also contain a field `seq` with a 64 bit signed integer value. This number
+corresponds to the sequence of the insert on the request. The first send has sequence `0`, the second
+`1`, the third `2`, etc. It allows the client to correlate the ack to the corresponding send.
+
+In case of error, an error response (see below) will be sent. For an error response for a send, the
+`seq` field will also be included. 
+
+Please note that acks can be returned in a different sequence to which the inserts were submitted. 
 
 #### Errors
 
@@ -193,6 +202,7 @@ Apropriate status codes will be returned from failed requests. The response will
 with further information on the error:
 
 {
+    "status": "error"
     "error_code": <Error code>
     "message": <Error Message>
 }
@@ -209,12 +219,8 @@ For this reason we do not provide query results (or accept streams of inserts) b
 JSON object. If we did so we would force users to find and use a streaming JSON parser in order to 
 parse the results as they arrive. If no parser is available on their platform they would be forced
 to parse the entire result set as a single JSON object in memory - this might not be feasible or
-desirable due to memory and latency constraints. Moreover, in the world of streaming it's quite common
-to want to pipe the stream from one place to another without looking into it. In that case it's very
-inefficient to deserialize the bytes as JSON simply to serialize them back to bytes to write them
-to the output stream. For these reasons the results, by default, are sent as a set of JSON arrays
-delimited by newline. Newlines are very easy to parse by virtually every target platform without
-having to rely on specialist libraries.
+desirable due to memory and latency constraints. Newlines are very easy to parse by virtually every
+target platform without having to rely on specialist libraries.
 
 There are, however, some use cases where we can guarantee the results of the query are small, e.g.
 when using a limit clause. In this case, the more general streaming use case degenerates into an RPC
@@ -236,7 +242,7 @@ We will migrate the existing Jetty specific plug-ins to Vert.x
 
 The new server API will be implemented using Vert.x
 
-The implementation will be designed in a reactive / non blocking way in order to provide the best performance / scalability characteristics with
+The implementation will be designed in a reactive / non-blocking way in order to provide the best performance / scalability characteristics with
 low resource usage. This will also influence the overall threading model of the server and position us with a better, more scalability internal
 server architecture that will help future proof the ksqlDB server.
 

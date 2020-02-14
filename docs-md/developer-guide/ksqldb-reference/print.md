@@ -64,7 +64,7 @@ Your output should resemble:
 
 The key format for this topic is `KAFKA_STRING`. However, the `PRINT` command does not know this and
 has attempted to determine the format of the key by inspecting the data. It has determined that the
-format may be `KAFA_STRING`, but it could also be `JSON` or a windowed `KAFKA_STRING`.
+format may be `KAFKA_STRING`, but it could also be `JSON` or a windowed `KAFKA_STRING`.
 
 The value format for this topic is `JSON`. However, the `PRINT` command has also determined it could
 be `KAFKA_STRING`. This is because `JSON` is serialized as text. Hence you could choose to deserialize

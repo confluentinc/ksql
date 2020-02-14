@@ -114,7 +114,7 @@ or joins. Windows are tracked per record key.
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
 
-KsqlDB supports the following WINDOW types:
+ksqlDB supports the following WINDOW types:
 
 **TUMBLING**: Tumbling windows group input records into fixed-sized,
 non-overlapping windows based on the records' timestamps. You must

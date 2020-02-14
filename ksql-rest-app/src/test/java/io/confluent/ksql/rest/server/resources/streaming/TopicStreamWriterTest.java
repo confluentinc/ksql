@@ -78,8 +78,12 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key format: KAFKA (STRING)",
-        "Value format: KAFKA (STRING)",
+        "Key format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "Value format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
         "rowtime: N/A, key: key-0, value: value-0",
         System.lineSeparator(),
         "rowtime: N/A, key: key-1, value: value-1",
@@ -106,8 +110,12 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Key format: KAFKA (STRING)",
-        "Value format: KAFKA (STRING)",
+        "Key format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "Value format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
         "rowtime: N/A, key: key-0, value: value-0",
         System.lineSeparator(),
         "rowtime: N/A, key: key-2, value: value-2",
@@ -118,7 +126,7 @@ public class TopicStreamWriterTest {
 
   private static class ValidatingOutputStream extends OutputStream {
 
-    private final List<byte[]> recordedWrites;
+    private final List<String> recordedWrites;
 
     ValidatingOutputStream() {
       this.recordedWrites = new ArrayList<>();
@@ -127,21 +135,19 @@ public class TopicStreamWriterTest {
     @Override public void write(final int b) { /* not called*/ }
 
     @Override
-    public void write(final byte[] bytes) {
-      recordedWrites.add(bytes);
+    public void write(final byte[] bytes, int off, int len) {
+      recordedWrites.add(new String(bytes, off, len, Charsets.UTF_8));
     }
 
     void assertWrites(final List<String> expected) {
 
       for (int i = 0; i < recordedWrites.size(); i++) {
-        final byte[] bytes = recordedWrites.get(i);
+        final String actual = recordedWrites.get(i);
         if (expected.size() <= i) {
           break;
         }
 
-        assertThat(
-            new String(bytes, Charsets.UTF_8),
-            containsString(expected.get(i)));
+        assertThat(actual, containsString(expected.get(i)));
       }
 
       assertThat(recordedWrites, hasSize(expected.size()));

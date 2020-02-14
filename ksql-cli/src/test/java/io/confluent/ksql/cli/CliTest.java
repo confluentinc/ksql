@@ -402,13 +402,13 @@ public class CliTest {
 
     // Then:
     assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: JSON"));
-    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA (BIGINT or DOUBLE)"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_BIGINT or KAFKA_DOUBLE"));
     assertThat(terminal.getOutputString(), containsString(","
         + " key: 1, "
         + "value: {"
         + "\"ORDERTIME\":1,"
-        + "\"ORDERID\":" + "\"ORDER_1\","
-        + "\"ITEMID\":" + "\"ITEM_1\","
+        + "\"ORDERID\":\"ORDER_1\","
+        + "\"ITEMID\":\"ITEM_1\","
         + "\"ORDERUNITS\":10.0,"
         + "\"TIMESTAMP\":\"2018-01-01\","
         + "\"PRICEARRAY\":[100.0,110.99,90.0],"
@@ -422,8 +422,8 @@ public class CliTest {
     run("print " + DELIMITED_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
 
     // Then:
-    assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: KAFKA (STRING)"));
-    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA (STRING)"));
+    assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
     assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
     assertThat(terminal.getOutputString(), containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
   }

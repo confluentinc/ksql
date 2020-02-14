@@ -144,8 +144,8 @@ PRINT 'raw-topic' FROM BEGINNING;
 Your output should resemble:
 
 ```json
-    Key format: KAFKA (STRING)
-    Value format: JSON
+    Key format: KAFKA_STRING
+    Value format: JSON OR KAFKA_STRING
     rowtime: 12/21/18 23:58:42 PM PSD, key: 1, value: {"type":"key1","data":{"timestamp":"2018-12-21 23:58:42.1","field-a":1,"field-b":"first-value-for-key1"}}
     rowtime: 12/21/18 23:58:42 PM PSD, key: 2, value: {"type":"key2","data":{"timestamp":"2018-12-21 23:58:42.2","field-a":1,"field-c":11,"field-d":"first-value-for-key2"}}
     rowtime: 12/21/18 23:58:42 PM PSD, key: 3, value: {"type":"key1","data":{"timestamp":"2018-12-21 23:58:42.3","field-a":2,"field-b":"updated-value-for-key1"}}

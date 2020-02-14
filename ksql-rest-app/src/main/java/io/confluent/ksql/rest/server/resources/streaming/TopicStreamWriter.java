@@ -20,15 +20,16 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import io.confluent.ksql.services.ServiceContext;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -45,7 +46,7 @@ public class TopicStreamWriter implements StreamingOutput {
   private final KafkaConsumer<Bytes, Bytes> topicConsumer;
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
-  private final OptionalInt limit;
+  private final Predicate<Long> limitReached;
 
   private long messagesWritten;
   private long messagesPolled;
@@ -80,7 +81,9 @@ public class TopicStreamWriter implements StreamingOutput {
     this.schemaRegistryClient = requireNonNull(schemaRegistryClient, "schemaRegistryClient");
     this.topicName = requireNonNull(topicName, "topicName");
     this.interval = interval;
-    this.limit = requireNonNull(limit, "limit");
+    this.limitReached = requireNonNull(limit, "limit").isPresent()
+        ? written -> written >= limit.getAsInt()
+        : written -> false;
     this.disconnectCheckInterval =
         requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.messagesWritten = 0;
@@ -94,39 +97,38 @@ public class TopicStreamWriter implements StreamingOutput {
   @Override
   public void write(final OutputStream out) {
     try {
+      final PrintStream print = new PrintStream(out, true, "UTF8");
       final RecordFormatter formatter = new RecordFormatter(schemaRegistryClient, topicName);
 
-      boolean printFormat = true;
-      while (true) {
+      final FormatsTracker formatsTracker = new FormatsTracker(print);
+      while (!print.checkError() && !limitReached.test(messagesWritten)) {
         final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
         if (records.isEmpty()) {
-          out.write("\n".getBytes(UTF_8));
-          out.flush();
+          print.println();
           continue;
         }
 
         final List<Supplier<String>> values = formatter.format(records.records(topicName));
-        for (final Supplier<String> value : values) {
-          if (printFormat) {
-            printFormat = false;
-            out.write(("Key format: " + formatter.getKeyFormat() + "\n").getBytes(UTF_8));
-            out.write(("Value format: " + formatter.getValueFormat() + "\n").getBytes(UTF_8));
-          }
+        if (values.isEmpty()) {
+          continue;
+        }
 
+        final List<String> toOutput = new ArrayList<>();
+        for (final Supplier<String> value : values) {
           if (messagesPolled++ % interval == 0) {
             messagesWritten++;
-            out.write(value.get().getBytes(UTF_8));
-            out.write(System.lineSeparator().getBytes(UTF_8));
-            out.flush();
+            toOutput.add(value.get());
           }
 
-          if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
-            return;
+          if (limitReached.test(messagesWritten)) {
+            break;
           }
         }
+
+        formatsTracker.update(formatter);
+
+        toOutput.forEach(print::println);
       }
-    } catch (final EOFException exception) {
-      // Connection terminated, we can stop writing
     } catch (final Exception exception) {
       log.error("Exception encountered while writing to output stream", exception);
       outputException(out, exception);
@@ -142,6 +144,47 @@ public class TopicStreamWriter implements StreamingOutput {
       out.flush();
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");
+    }
+  }
+
+  private static final class FormatsTracker {
+
+    private final PrintStream out;
+    private final List<String> keyFormats = new ArrayList<>();
+    private final List<String> valueFormats = new ArrayList<>();
+
+    FormatsTracker(final PrintStream out) {
+      this.out = requireNonNull(out, "out");
+      this.keyFormats.add("add an entry to force output for formats on the first loop");
+      this.valueFormats.add("add an entry to force output for formats on the first loop");
+    }
+
+    public void update(final RecordFormatter formatter) {
+      update(out, keyFormats, formatter.getPossibleKeyFormats(), "Key format: ");
+      update(out, valueFormats, formatter.getPossibleValueFormats(), "Value format: ");
+    }
+
+    private static void update(
+        final PrintStream out,
+        final List<String> previous,
+        final List<String> current,
+        final String prefix
+    ) {
+      if (previous.equals(current)) {
+        return;
+      }
+
+      previous.clear();
+      previous.addAll(current);
+
+      out.print(prefix);
+
+      if (current.isEmpty()) {
+        out.println(" does not match any supported format. "
+            + "It may be a STRING with encoding other than UTF8, or some other format.");
+      } else {
+        out.println(String.join(" or ", current));
+      }
     }
   }
 }

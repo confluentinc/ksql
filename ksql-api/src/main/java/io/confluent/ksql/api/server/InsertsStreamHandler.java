@@ -84,6 +84,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     private boolean paused;
     private boolean responseEnded;
     private long sendSequence;
+    private InsertsStreamSubscriber insertsSubscriber;
 
     RequestHandler(final RoutingContext routingContext,
         final RecordParser recordParser) {
@@ -146,8 +147,6 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
           })
           .exceptionally(t -> handleInsertSubscriberException(t, routingContext));
     }
-
-    private InsertsStreamSubscriber insertsSubscriber;
 
     private Void handleInsertSubscriberException(final Throwable t,
         final RoutingContext routingContext) {

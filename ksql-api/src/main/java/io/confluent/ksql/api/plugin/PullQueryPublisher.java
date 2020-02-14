@@ -21,6 +21,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class PullQueryPublisher extends BufferedPublisher<GenericRow> implements QueryPublisher {
 
@@ -30,8 +31,8 @@ public class PullQueryPublisher extends BufferedPublisher<GenericRow> implements
   public PullQueryPublisher(final Context ctx, final TableRows tableRows,
       final List<String> columnNames, final List<String> columnTypes) {
     super(ctx, toGenericRows(tableRows));
-    this.columnNames = columnNames;
-    this.columnTypes = columnTypes;
+    this.columnNames = Objects.requireNonNull(columnNames);
+    this.columnTypes = Objects.requireNonNull(columnTypes);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

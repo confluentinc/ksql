@@ -52,7 +52,7 @@ public class BaseSubscriber<T> implements Subscriber<T> {
    *                concurrently by more than one thread.
    */
   public BaseSubscriber(final Context context) {
-    this.context = context;
+    this.context = Objects.requireNonNull(context);
   }
 
   @Override

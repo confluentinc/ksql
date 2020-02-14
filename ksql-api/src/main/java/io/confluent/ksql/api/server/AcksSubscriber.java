@@ -61,35 +61,9 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
       return;
     }
     if (result.succeeded()) {
-      insertsStreamResponseWriter.writeInsertResponse(new InsertAck(result.sequenceNumber()));
-      acksSent++;
-      if (insertsSent != null && insertsSent == acksSent) {
-        close();
-      } else if (response.writeQueueFull()) {
-        if (!drainHandlerSet) {
-          response.drainHandler(v -> {
-            drainHandlerSet = false;
-            checkMakeRequest();
-          });
-          drainHandlerSet = true;
-        }
-      } else {
-        checkMakeRequest();
-      }
+      handleSuccessfulInsert(result);
     } else {
-      log.error("Error in processing inserts", result.exception());
-      final InsertError insertError;
-      final Exception exception = result.exception();
-      if (exception instanceof KsqlInsertsException) {
-        insertError = new InsertError(result.sequenceNumber(),
-            ((KsqlInsertsException) exception).getErrorCode(),
-            exception.getMessage());
-      } else {
-        insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_INTERNAL_ERROR,
-            "Error in processing inserts");
-      }
-      insertsStreamResponseWriter.writeError(insertError).end();
-      responseEnded = true;
+      handleFailedInsert(result);
     }
   }
 
@@ -101,6 +75,40 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
   @Override
   public void handleError(final Throwable t) {
     log.error("Error in processing inserts", t);
+  }
+
+  private void handleSuccessfulInsert(final InsertResult result) {
+    insertsStreamResponseWriter.writeInsertResponse(new InsertAck(result.sequenceNumber()));
+    acksSent++;
+    if (insertsSent != null && insertsSent == acksSent) {
+      close();
+    } else if (response.writeQueueFull()) {
+      if (!drainHandlerSet) {
+        response.drainHandler(v -> {
+          drainHandlerSet = false;
+          checkMakeRequest();
+        });
+        drainHandlerSet = true;
+      }
+    } else {
+      checkMakeRequest();
+    }
+  }
+
+  private void handleFailedInsert(final InsertResult result) {
+    log.error("Error in processing inserts", result.exception());
+    final InsertError insertError;
+    final Exception exception = result.exception();
+    if (exception instanceof KsqlApiException) {
+      insertError = new InsertError(result.sequenceNumber(),
+          ((KsqlApiException) exception).getErrorCode(),
+          exception.getMessage());
+    } else {
+      insertError = new InsertError(result.sequenceNumber(), ERROR_CODE_INTERNAL_ERROR,
+          "Error in processing inserts");
+    }
+    insertsStreamResponseWriter.writeError(insertError).end();
+    responseEnded = true;
   }
 
   private void checkMakeRequest() {

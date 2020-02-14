@@ -17,7 +17,7 @@ package io.confluent.ksql.api.plugin;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.ErrorCodes;
-import io.confluent.ksql.api.server.KsqlInsertsException;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -43,7 +43,7 @@ public final class KeyValueExtractor {
     for (final Field field : key.schema().fields()) {
       final Object value = values.getValue(field.name());
       if (value == null) {
-        throw new KsqlInsertsException("Key field must be specified: " + field.name(),
+        throw new KsqlApiException("Key field must be specified: " + field.name(),
             ErrorCodes.ERROR_CODE_MISSING_KEY_FIELD);
       }
       final Object coercedValue = coerceObject(value,
@@ -85,7 +85,7 @@ public final class KeyValueExtractor {
       }
     }
     return sqlValueCoercer.coerce(value, sqlType)
-        .orElseThrow(() -> new KsqlInsertsException(
+        .orElseThrow(() -> new KsqlApiException(
             String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
                 value, sqlType),
             ErrorCodes.ERROR_CODE_CANNOT_COERCE_FIELD));

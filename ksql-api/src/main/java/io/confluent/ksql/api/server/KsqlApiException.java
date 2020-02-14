@@ -17,11 +17,15 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.util.KsqlException;
 
-public class KsqlInsertsException extends KsqlException {
+/**
+ * Represents an error due to user error that can be propagated to the user. Do not use this for
+ * internal errors
+ */
+public class KsqlApiException extends KsqlException {
 
   private final int errorCode;
 
-  public KsqlInsertsException(final String message, final int errorCode) {
+  public KsqlApiException(final String message, final int errorCode) {
     super(message);
     this.errorCode = errorCode;
   }

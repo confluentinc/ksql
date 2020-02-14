@@ -66,6 +66,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final KsqlSecurityExtension securityExtension;
   private final ServiceContextFactory serviceContextFactory;
   private final PullQueryApiExecutor pullQueryApiExecutor;
+  private final ReservedInternalTopics reservedInternalTopics;
 
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
@@ -78,6 +79,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.securityExtension = Objects.requireNonNull(securityExtension);
     this.serviceContextFactory = Objects.requireNonNull(serviceContextFactory);
     this.pullQueryApiExecutor = Objects.requireNonNull(pullQueryApiExecutor);
+    this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
   }
 
   public QueryPublisher createQueryPublisher(
@@ -182,7 +184,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor) {
     Utils.checkIsWorker();
     final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
-    final DataSource dataSource = getDataSource(ksqlConfig, ksqlEngine.getMetaStore(),
+    final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));
     if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
       throw new KsqlException("Cannot insert into a table");
@@ -192,7 +194,6 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   private DataSource getDataSource(
-      final KsqlConfig ksqlConfig,
       final MetaStore metaStore,
       final SourceName sourceName
   ) {
@@ -206,8 +207,7 @@ public class KsqlServerEndpoints implements Endpoints {
       throw new KsqlException("Cannot insert values into windowed stream");
     }
 
-    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
-    if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+    if (reservedInternalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert values into read-only topic: "
           + dataSource.getKafkaTopicName());
     }

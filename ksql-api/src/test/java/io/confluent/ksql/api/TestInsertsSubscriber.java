@@ -60,7 +60,7 @@ public class TestInsertsSubscriber extends ReactiveSubscriber<JsonObject> implem
   }
 
   public synchronized List<JsonObject> getRowsInserted() {
-    return rowsInserted;
+    return new ArrayList<>(rowsInserted);
   }
 
   public synchronized boolean isCompleted() {

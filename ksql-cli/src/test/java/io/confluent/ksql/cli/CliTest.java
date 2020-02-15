@@ -335,8 +335,7 @@ public class CliTest {
 
     final String streamOrTable = stream ? "stream" : "table";
 
-    final String dropStatement =
-        String.format("drop " + streamOrTable + " %s;", name);
+    final String dropStatement = String.format("drop " + streamOrTable + " %s;", name);
 
     final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {

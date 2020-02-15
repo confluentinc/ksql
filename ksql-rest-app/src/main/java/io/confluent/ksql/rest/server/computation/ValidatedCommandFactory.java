@@ -107,9 +107,6 @@ public final class ValidatedCommandFactory {
             statement.getConfig()
         )
     );
-    if (!config.getBoolean(KsqlConfig.KSQL_EXECUTION_PLANS_ENABLE)) {
-      return Command.of(statement);
-    }
     return Command.of(
         ConfiguredKsqlPlan.of(plan, statement.getOverrides(), statement.getConfig()));
   }

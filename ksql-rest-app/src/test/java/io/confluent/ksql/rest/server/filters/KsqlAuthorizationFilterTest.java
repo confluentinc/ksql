@@ -138,7 +138,8 @@ public class KsqlAuthorizationFilterTest {
         URI.create(path),
         method,
         securityContext,
-        mock(PropertiesDelegate.class)
+        mock(PropertiesDelegate.class),
+        null
     );
 
     return requestContext;

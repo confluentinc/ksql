@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.api.utils.TestUtils.findFilePath;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,6 +38,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -52,6 +52,7 @@ import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.common.config.SslConfigs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -87,8 +88,14 @@ public class ApiIntegrationTest {
       .withProperty("ksql.new.api.enabled", true)
       .withProperty("ksql.apiserver.listen.host", "localhost")
       .withProperty("ksql.apiserver.listen.port", 8089)
-      .withProperty("ksql.apiserver.key.path", findFilePath("test-server-key.pem"))
-      .withProperty("ksql.apiserver.cert.path", findFilePath("test-server-cert.pem"))
+      .withProperty("ksql.apiserver.keystore.path", ServerKeyStore.keyStoreProps()
+          .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+      .withProperty("ksql.apiserver.keystore.password", ServerKeyStore.keyStoreProps()
+          .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
+      .withProperty("ksql.apiserver.truststore.path", ServerKeyStore.keyStoreProps()
+          .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+      .withProperty("ksql.apiserver.truststore.password", ServerKeyStore.keyStoreProps()
+          .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG))
       .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 
@@ -471,7 +478,8 @@ public class ApiIntegrationTest {
     WebClientOptions options = new WebClientOptions().setSsl(true).
         setUseAlpn(true).
         setProtocolVersion(HttpVersion.HTTP_2).
-        setTrustAll(true);
+        setTrustAll(true).
+        setVerifyHost(false);
 
     return WebClient.create(vertx, options);
   }

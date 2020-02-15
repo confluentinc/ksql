@@ -21,7 +21,6 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MALFORMED_REQUE
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_MISSING_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_PARAM;
 import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_UNKNOWN_QUERY_ID;
-import static io.confluent.ksql.api.utils.TestUtils.findFilePath;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -51,7 +50,9 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
@@ -76,10 +77,12 @@ public class ApiTest {
       .put("sql", DEFAULT_PUSH_QUERY)
       .put("properties", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
 
-  private Vertx vertx;
+  protected Vertx vertx;
+  protected WebClient client;
+  protected ApiServerConfig serverConfig;
+  protected WebClientOptions clientConfig;
   private Server server;
   private TestEndpoints testEndpoints;
-  private WebClient client;
 
   @Before
   public void setUp() {
@@ -87,17 +90,12 @@ public class ApiTest {
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
-    JsonObject config = new JsonObject()
-        .put("ksql.apiserver.listen.host", "localhost")
-        .put("ksql.apiserver.listen.port", 8089)
-        .put("ksql.apiserver.key.path", findFilePath("test-server-key.pem"))
-        .put("ksql.apiserver.cert.path", findFilePath("test-server-cert.pem"))
-        .put("ksql.apiserver.verticle.instances", 4);
-
     testEndpoints = new TestEndpoints();
-    server = new Server(vertx, new ApiServerConfig(config), testEndpoints);
+    serverConfig = createServerConfig();
+    clientConfig = createClientOptions();
+    server = new Server(vertx, serverConfig, testEndpoints);
     server.start();
-    client = createClient();
+    this.client = createClient();
     setDefaultRowGenerator();
   }
 
@@ -109,6 +107,25 @@ public class ApiTest {
     if (server != null) {
       server.stop();
     }
+  }
+
+  protected ApiServerConfig createServerConfig() {
+    final Map<String, Object> config = new HashMap<>();
+    config.put("ksql.apiserver.listen.host", "localhost");
+    config.put("ksql.apiserver.listen.port", 8089);
+    config.put("ksql.apiserver.tls.enabled", false);
+    config.put("ksql.apiserver.verticle.instances", 4);
+
+    return new ApiServerConfig(config);
+  }
+
+  protected WebClientOptions createClientOptions() {
+    return new WebClientOptions()
+        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+  }
+
+  protected WebClient createClient() {
+    return WebClient.create(vertx, clientConfig);
   }
 
   @Test
@@ -914,15 +931,6 @@ public class ApiTest {
     assertThat(writeStream.isEnded(), is(false));
 
     return new QueryResponse(writeStream.getBody().toString());
-  }
-
-  private WebClient createClient() {
-    WebClientOptions options = new WebClientOptions().setSsl(true).
-        setUseAlpn(true).
-        setProtocolVersion(HttpVersion.HTTP_2).
-        setTrustAll(true);
-
-    return WebClient.create(vertx, options);
   }
 
   private static void validateError(final int errorCode, final String message,

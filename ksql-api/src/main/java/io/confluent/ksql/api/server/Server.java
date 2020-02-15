@@ -21,10 +21,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.JksOptions;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -62,9 +63,10 @@ public class Server {
     if (deploymentID != null) {
       throw new IllegalStateException("Already started");
     }
+    // final DeploymentOptions options = new DeploymentOptions()
+    //     .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES));
     final DeploymentOptions options = new DeploymentOptions()
-        .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES))
-        .setConfig(config.toJsonObject());
+        .setInstances(1);
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
@@ -129,16 +131,28 @@ public class Server {
   }
 
   private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
-    return
-        new HttpServerOptions().setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
-            .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
-            .setUseAlpn(true)
-            .setSsl(true)
-            .setPemKeyCertOptions(
-                new PemKeyCertOptions()
-                    .setKeyPath(apiServerConfig.getString(ApiServerConfig.KEY_PATH))
-                    .setCertPath(apiServerConfig.getString(ApiServerConfig.CERT_PATH))
-            );
+
+    final HttpServerOptions options = new HttpServerOptions()
+        .setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
+        .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT));
+
+    if (apiServerConfig.getBoolean(ApiServerConfig.TLS_ENABLED)) {
+      options.setUseAlpn(true)
+          .setSsl(true)
+          .setKeyStoreOptions(
+              new JksOptions()
+                  .setPath(apiServerConfig.getString(ApiServerConfig.TLS_KEY_STORE_PATH))
+                  .setPassword(apiServerConfig.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD)))
+          .setTrustStoreOptions(
+              new JksOptions()
+                  .setPath(apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PATH))
+                  .setPassword(
+                      apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD)))
+          .setClientAuth(apiServerConfig.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)
+              ? ClientAuth.REQUIRED : ClientAuth.NONE);
+    }
+
+    return options;
   }
 
 

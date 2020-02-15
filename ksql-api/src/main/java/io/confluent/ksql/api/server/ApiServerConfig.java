@@ -20,7 +20,6 @@ import io.confluent.common.config.ConfigDef;
 import io.confluent.common.config.ConfigDef.Importance;
 import io.confluent.common.config.ConfigDef.Type;
 import io.confluent.ksql.util.KsqlConfig;
-import io.vertx.core.json.JsonObject;
 import java.util.Map;
 
 /**
@@ -38,22 +37,40 @@ public class ApiServerConfig extends AbstractConfig {
           + " as there are cores you want to use, as each instance is single threaded.";
 
   public static final String LISTEN_HOST = propertyName("listen.host");
-  public static final String DEFAULT_LISTEN_HOST = "0.0.0.0";
+  public static final String DEFAULT_LISTEN_HOST = "localhost";
   public static final String LISTEN_HOST_DOC =
       "The hostname to listen on";
 
   public static final String LISTEN_PORT = propertyName("listen.port");
-  public static final int DEFAULT_LISTEN_PORT = 8089;
+  public static final int DEFAULT_LISTEN_PORT = 8088;
   public static final String LISTEN_PORT_DOC =
       "The port to listen on";
 
-  public static final String KEY_PATH = propertyName("key.path");
-  public static final String KEY_PATH_DOC =
-      "Path to key file";
+  public static final String TLS_ENABLED = propertyName("tls.enabled");
+  public static final boolean DEFAULT_TLS_ENABLED = false;
+  public static final String TLS_ENABLED_DOC =
+      "Is TLS enabled?";
 
-  public static final String CERT_PATH = propertyName("cert.path");
-  public static final String CERT_PATH_DOC =
-      "Path to cert file";
+  public static final String TLS_KEY_STORE_PATH = propertyName("tls.keystore.path");
+  public static final String TLS_KEY_STORE_PATH_DOC =
+      "Path to server key store";
+
+  public static final String TLS_KEY_STORE_PASSWORD = propertyName("tls.keystore.password");
+  public static final String TLS_KEY_STORE_PASSWORD_DOC =
+      "Password for server key store";
+
+  public static final String TLS_TRUST_STORE_PATH = propertyName("tls.truststore.path");
+  public static final String TLS_TRUST_STORE_PATH_DOC =
+      "Path to client trust store";
+
+  public static final String TLS_TRUST_STORE_PASSWORD = propertyName("tls.truststore.password");
+  public static final String TLS_TRUST_STORE_PASSWORD_DOC =
+      "Password for client trust store";
+
+  public static final String TLS_CLIENT_AUTH_REQUIRED = propertyName("tls.client.auth.required");
+  public static final boolean DEFAULT_TLS_CLIENT_AUTH_REQUIRED = false;
+  public static final String TLS_CLIENT_AUTH_REQUIRED_DOC =
+      "Is client auth required?";
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
@@ -69,7 +86,7 @@ public class ApiServerConfig extends AbstractConfig {
           VERTICLE_INSTANCES,
           Type.INT,
           DEFAULT_VERTICLE_INSTANCES,
-          Importance.LOW,
+          Importance.MEDIUM,
           VERTICLE_INSTANCES_DOC)
       .define(
           LISTEN_HOST,
@@ -84,17 +101,41 @@ public class ApiServerConfig extends AbstractConfig {
           Importance.MEDIUM,
           LISTEN_PORT_DOC)
       .define(
-          KEY_PATH,
-          Type.STRING,
-          null,
+          TLS_ENABLED,
+          Type.BOOLEAN,
+          DEFAULT_TLS_ENABLED,
           Importance.MEDIUM,
-          KEY_PATH_DOC)
+          TLS_ENABLED_DOC)
       .define(
-          CERT_PATH,
+          TLS_KEY_STORE_PATH,
           Type.STRING,
-          null,
+          "",
           Importance.MEDIUM,
-          CERT_PATH_DOC)
+          TLS_KEY_STORE_PATH_DOC)
+      .define(
+          TLS_KEY_STORE_PASSWORD,
+          Type.STRING,
+          "",
+          Importance.MEDIUM,
+          TLS_KEY_STORE_PASSWORD_DOC)
+      .define(
+          TLS_TRUST_STORE_PATH,
+          Type.STRING,
+          "",
+          Importance.MEDIUM,
+          TLS_TRUST_STORE_PATH_DOC)
+      .define(
+          TLS_TRUST_STORE_PASSWORD,
+          Type.STRING,
+          "",
+          Importance.MEDIUM,
+          TLS_TRUST_STORE_PASSWORD_DOC)
+      .define(
+          TLS_CLIENT_AUTH_REQUIRED,
+          Type.BOOLEAN,
+          DEFAULT_TLS_CLIENT_AUTH_REQUIRED,
+          Importance.MEDIUM,
+          TLS_CLIENT_AUTH_REQUIRED_DOC)
       .define(
           WORKER_POOL_SIZE,
           Type.INT,
@@ -104,14 +145,6 @@ public class ApiServerConfig extends AbstractConfig {
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);
-  }
-
-  public ApiServerConfig(final JsonObject jsonObject) {
-    super(CONFIG_DEF, jsonObject.getMap());
-  }
-
-  public JsonObject toJsonObject() {
-    return new JsonObject(originalsWithPrefix(""));
   }
 
 }

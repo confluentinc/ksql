@@ -26,8 +26,12 @@ import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -120,6 +124,10 @@ public class StreamGroupByBuilderTest {
   private KGroupedStream<Struct, GenericRow> groupedStream;
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  @Mock
+  private ProcessingLogContext processingLogContext;
+  @Mock
+  private ProcessingLoggerFactory processingLoggerFactory;
 
   private PlanBuilder planBuilder;
   private StreamGroupBy<Struct> streamGroupBy;
@@ -135,6 +143,8 @@ public class StreamGroupByBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
     when(sourceStream.filter(any())).thenReturn(filteredStream);
@@ -143,6 +153,8 @@ public class StreamGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.build(any())).thenReturn(
         new KStreamHolder<>(sourceStream, SCHEMA, mock(KeySerdeFactory.class)));
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
     streamGroupBy = new StreamGroupBy<>(
         PROPERTIES,
         sourceStep,

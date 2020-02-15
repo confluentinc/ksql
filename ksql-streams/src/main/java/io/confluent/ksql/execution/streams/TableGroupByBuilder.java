@@ -20,10 +20,12 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
@@ -58,7 +60,14 @@ public final class TableGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
 
-    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy);
+    final ProcessingLogger logger = queryBuilder
+        .getProcessingLogContext()
+        .getLoggerFactory()
+        .getLogger(
+            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
+        );
+
+    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy, logger);
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),

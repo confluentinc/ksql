@@ -21,7 +21,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -39,6 +41,18 @@ public final class EngineProcessingLogMessageFactory {
   public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
       final String errorMsg, final Throwable exception, final GenericRow record
   ) {
+    return recordProcessingError(errorMsg, Optional.of(exception), record);
+  }
+
+  public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
+      final String errorMsg, final GenericRow record
+  ) {
+    return recordProcessingError(errorMsg, Optional.empty(), record);
+  }
+
+  private static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
+      final String errorMsg, final Optional<Throwable> exception, final GenericRow record
+  ) {
     return (config) -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
@@ -49,8 +63,8 @@ public final class EngineProcessingLogMessageFactory {
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
           errorMsg
       );
-      final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
-      cause.remove(0);
+      final List<String> cause = exception.map(EngineProcessingLogMessageFactory::getCause)
+          .orElse(Collections.emptyList());
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
           cause
@@ -64,6 +78,12 @@ public final class EngineProcessingLogMessageFactory {
       );
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
+  }
+
+  private static List<String> getCause(final Throwable e) {
+    final List<String> cause = ErrorMessageUtil.getErrorMessages(e);
+    cause.remove(0);
+    return cause;
   }
 
   private static String serializeRow(final ProcessingLogConfig config, final GenericRow record) {

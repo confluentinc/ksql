@@ -98,7 +98,7 @@ public class PullQueryRoutingFunctionalTest {
     }
   }
 
-  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
   private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8088);
   private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8089);
   private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8087);

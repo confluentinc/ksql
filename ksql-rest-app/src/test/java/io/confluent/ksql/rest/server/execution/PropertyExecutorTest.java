@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,10 +45,9 @@ public class PropertyExecutorTest {
   @Test
   public void shouldSetProperty() {
     // Given:
-    engine.givenSource(DataSourceType.KSTREAM, "stream");
-    final Map<String, Object> properties = new HashMap<>();
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+    final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
@@ -65,10 +65,12 @@ public class PropertyExecutorTest {
   public void shouldUnSetProperty() {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "stream");
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(
+            Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none"),
+            mock(KsqlHostInfo.class),
+            mock(URL.class));
+    final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(

@@ -72,7 +72,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.commons.collections4.map.HashedMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
@@ -168,8 +167,8 @@ public class KsqlResource implements KsqlConfigurable {
       this.localUrl = new URL(applicationServer);
     } catch (final Exception e) {
       throw new IllegalStateException("Failed to convert remote host info to URL."
-              + " remoteInfo: " + localHost.host() + ":"
-              + localHost.host());
+          + " remoteInfo: " + localHost.host() + ":"
+          + localHost.host());
     }
 
     this.validator = new RequestValidator(
@@ -217,7 +216,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           TERMINATE_CLUSTER,
               new SessionProperties(
-                  new HashedMap<>(request.getStreamsProperties()),
+                  request.getStreamsProperties(),
                   localHost,
                   localUrl
               )
@@ -251,7 +250,7 @@ public class KsqlResource implements KsqlConfigurable {
           SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
           new SessionProperties(
-              new HashedMap<>(request.getStreamsProperties()),
+              request.getStreamsProperties(),
               localHost, 
               localUrl
           ),
@@ -262,7 +261,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           statements,
           new SessionProperties(
-              new HashedMap<>(request.getStreamsProperties()),
+              request.getStreamsProperties(),
               localHost,
               localUrl
           )

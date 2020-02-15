@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;

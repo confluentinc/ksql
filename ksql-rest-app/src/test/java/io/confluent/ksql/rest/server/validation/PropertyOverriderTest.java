@@ -32,9 +32,12 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.commons.collections4.map.HashedMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,9 +75,9 @@ public class PropertyOverriderTest {
   @Test
   public void shouldAllowSetKnownProperty() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
     final SessionProperties sessionProperties = 
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+    final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
@@ -98,9 +101,8 @@ public class PropertyOverriderTest {
   @Test
   public void shouldFailOnInvalidSetPropertyValue() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -150,10 +152,12 @@ public class PropertyOverriderTest {
   @Test
   public void shouldAllowUnsetKnownProperty() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(
+            Collections.singletonMap(
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+                mock(KsqlHostInfo.class), mock(URL.class));
+    final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
     CustomValidators.UNSET_PROPERTY.validate(

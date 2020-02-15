@@ -18,6 +18,7 @@ package io.confluent.ksql.rest;
 import io.confluent.ksql.util.KsqlHostInfo;
 
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,11 +29,11 @@ public class SessionProperties {
   private final URL localUrl;
 
   public SessionProperties(
-          final Map<String, Object> mutableScopedProperties,
-          final KsqlHostInfo ksqlHostInfo,
-          final URL localUrl) {
+      final Map<String, Object> mutableScopedProperties,
+      final KsqlHostInfo ksqlHostInfo,
+      final URL localUrl) {
     this.mutableScopedProperties = 
-        Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties");
+        new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
     this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
     this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
   }

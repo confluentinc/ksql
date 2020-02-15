@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
@@ -42,8 +43,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -102,7 +102,6 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     }
 
     public void handleBodyBuffer(final Buffer buff) {
-
       if (responseEnded) {
         // Ignore further buffers from request if response has been written (most probably due
         // to error)

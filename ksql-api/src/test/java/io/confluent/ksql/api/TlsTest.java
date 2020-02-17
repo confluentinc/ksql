@@ -28,16 +28,16 @@ public class TlsTest extends ApiTest {
   @Override
   protected ApiServerConfig createServerConfig() {
 
-    final String keyStorePath = ServerKeyStore.keyStoreProps()
+    String keyStorePath = ServerKeyStore.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-    final String keyStorePassword = ServerKeyStore.keyStoreProps()
+    String keyStorePassword = ServerKeyStore.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-    final String trustStorePath = ServerKeyStore.keyStoreProps()
+    String trustStorePath = ServerKeyStore.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    final String trustStorePassword = ServerKeyStore.keyStoreProps()
+    String trustStorePassword = ServerKeyStore.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
-    final Map<String, Object> config = new HashMap<>();
+    Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
     config.put("ksql.apiserver.listen.port", 8089);
     config.put("ksql.apiserver.tls.enabled", true);

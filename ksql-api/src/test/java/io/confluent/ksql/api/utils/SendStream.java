@@ -26,7 +26,7 @@ import java.util.Queue;
 
 public class SendStream implements ReadStream<Buffer> {
 
-  private Context context;
+  private final Context context;
   private final Queue<Buffer> pending = new LinkedList<>();
   private Handler<Buffer> handler;
   private Handler<Void> endHandler;

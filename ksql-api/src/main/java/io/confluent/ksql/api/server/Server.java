@@ -63,10 +63,8 @@ public class Server {
     if (deploymentID != null) {
       throw new IllegalStateException("Already started");
     }
-    // final DeploymentOptions options = new DeploymentOptions()
-    //     .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES));
     final DeploymentOptions options = new DeploymentOptions()
-        .setInstances(1);
+        .setInstances(config.getInt(ApiServerConfig.VERTICLE_INSTANCES));
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");

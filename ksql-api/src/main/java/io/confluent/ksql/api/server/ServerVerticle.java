@@ -55,10 +55,8 @@ public class ServerVerticle extends AbstractVerticle {
   @Override
   public void start(final Promise<Void> startPromise) {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
-
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
-
     final Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
     Utils.connectPromise(listenFuture.map(s -> null), startPromise);
     httpServer.listen(listenFuture);

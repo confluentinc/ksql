@@ -79,8 +79,6 @@ public class ApiTest {
 
   protected Vertx vertx;
   protected WebClient client;
-  protected ApiServerConfig serverConfig;
-  protected WebClientOptions clientConfig;
   private Server server;
   private TestEndpoints testEndpoints;
 
@@ -91,8 +89,7 @@ public class ApiTest {
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
-    serverConfig = createServerConfig();
-    clientConfig = createClientOptions();
+    ApiServerConfig serverConfig = createServerConfig();
     server = new Server(vertx, serverConfig, testEndpoints);
     server.start();
     this.client = createClient();
@@ -124,8 +121,8 @@ public class ApiTest {
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
   }
 
-  protected WebClient createClient() {
-    return WebClient.create(vertx, clientConfig);
+  private WebClient createClient() {
+    return WebClient.create(vertx, createClientOptions());
   }
 
   @Test

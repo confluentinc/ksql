@@ -77,7 +77,6 @@ public final class PlannedTestPath {
 
   private static String formatName(final String originalName) {
     return originalName
-        .replaceAll(" - (AVRO|JSON|DELIMITED|KAFKA)$", "")
         .replaceAll(INVALID_FILENAME_CHARS_PATTERN, "_");
   }
 }

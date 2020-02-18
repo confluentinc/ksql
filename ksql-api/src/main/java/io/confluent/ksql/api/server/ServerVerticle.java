@@ -25,6 +25,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +45,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
       final Server server) {
-    this.endpoints = endpoints;
-    this.httpServerOptions = httpServerOptions;
-    this.server = server;
+    this.endpoints = Objects.requireNonNull(endpoints);
+    this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
+    this.server = Objects.requireNonNull(server);
   }
 
   @Override

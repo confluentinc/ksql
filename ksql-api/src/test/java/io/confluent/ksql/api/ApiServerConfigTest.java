@@ -19,52 +19,61 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
-import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Test;
 
-
 public class ApiServerConfigTest {
 
   @Test
-  public void shouldConvertToJsonObject() {
-    Map<String, Object> map = new HashMap<>();
+  public void shouldCreateFromMap() {
 
+    // Given:
+    Map<String, Object> map = new HashMap<>();
     map.put(ApiServerConfig.VERTICLE_INSTANCES, 2);
     map.put(ApiServerConfig.LISTEN_HOST, "foo.com");
     map.put(ApiServerConfig.LISTEN_PORT, 8089);
-    map.put(ApiServerConfig.CERT_PATH, "uygugy");
-    map.put(ApiServerConfig.KEY_PATH, "ewfwef");
+    map.put(ApiServerConfig.TLS_ENABLED, true);
+    map.put(ApiServerConfig.TLS_KEY_STORE_PATH, "uygugy");
+    map.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, "ewfwef");
+    map.put(ApiServerConfig.TLS_TRUST_STORE_PATH, "wefewf");
+    map.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD, "ergerg");
+    map.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, true);
 
+    // When:
     ApiServerConfig config = new ApiServerConfig(map);
 
-    JsonObject jsonObject = config.toJsonObject();
-
-    assertThat(2, is(jsonObject.getInteger(ApiServerConfig.VERTICLE_INSTANCES)));
-    assertThat("foo.com", is(jsonObject.getString(ApiServerConfig.LISTEN_HOST)));
-    assertThat(8089, is(jsonObject.getInteger(ApiServerConfig.LISTEN_PORT)));
-    assertThat("uygugy", is(jsonObject.getString(ApiServerConfig.CERT_PATH)));
-    assertThat("ewfwef", is(jsonObject.getString(ApiServerConfig.KEY_PATH)));
+    // Then:
+    assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(2));
+    assertThat(config.getString(ApiServerConfig.LISTEN_HOST), is("foo.com"));
+    assertThat(config.getInt(ApiServerConfig.LISTEN_PORT), is(8089));
+    assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(true));
+    assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is("uygugy"));
+    assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is("ewfwef"));
+    assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is("wefewf"));
+    assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD), is("ergerg"));
+    assertThat(config.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is(true));
   }
 
   @Test
-  public void shouldCreateFromJsonObject() {
-    JsonObject jsonObject = new JsonObject();
+  public void shouldUseDefaults() {
 
-    jsonObject.put(ApiServerConfig.VERTICLE_INSTANCES, 2);
-    jsonObject.put(ApiServerConfig.LISTEN_HOST, "foo.com");
-    jsonObject.put(ApiServerConfig.LISTEN_PORT, 8089);
-    jsonObject.put(ApiServerConfig.CERT_PATH, "uygugy");
-    jsonObject.put(ApiServerConfig.KEY_PATH, "ewfwef");
+    // Given:
+    Map<String, Object> map = new HashMap<>();
 
-    ApiServerConfig config = new ApiServerConfig(jsonObject);
+    // When:
+    ApiServerConfig config = new ApiServerConfig(map);
 
-    JsonObject jsonObject2 = config.toJsonObject();
-    assertThat(2, is(jsonObject2.getInteger(ApiServerConfig.VERTICLE_INSTANCES)));
-    assertThat("foo.com", is(jsonObject2.getString(ApiServerConfig.LISTEN_HOST)));
-    assertThat(8089, is(jsonObject2.getInteger(ApiServerConfig.LISTEN_PORT)));
-    assertThat("uygugy", is(jsonObject2.getString(ApiServerConfig.CERT_PATH)));
-    assertThat("ewfwef", is(jsonObject2.getString(ApiServerConfig.KEY_PATH)));
+    // Then:
+    int expectedVerticleInstances = 2 * Runtime.getRuntime().availableProcessors();
+    assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(expectedVerticleInstances));
+    assertThat(config.getString(ApiServerConfig.LISTEN_HOST), is("localhost"));
+    assertThat(config.getInt(ApiServerConfig.LISTEN_PORT), is(8088));
+    assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(false));
+    assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is(""));
+    assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is(""));
+    assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is(""));
+    assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD), is(""));
+    assertThat(config.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is(false));
   }
 }

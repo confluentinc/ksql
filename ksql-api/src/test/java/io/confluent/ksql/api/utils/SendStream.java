@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.utils;
 
 import io.vertx.codegen.annotations.Nullable;
+import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -25,7 +26,7 @@ import java.util.Queue;
 
 public class SendStream implements ReadStream<Buffer> {
 
-  private final Vertx vertx;
+  private final Context context;
   private final Queue<Buffer> pending = new LinkedList<>();
   private Handler<Buffer> handler;
   private Handler<Void> endHandler;
@@ -33,14 +34,14 @@ public class SendStream implements ReadStream<Buffer> {
   private long lastSentTime;
 
   public SendStream(final Vertx vertx) {
-    this.vertx = vertx;
+    this.context = vertx.getOrCreateContext();
   }
 
   public synchronized void acceptBuffer(final Buffer buffer) {
     if (handler == null) {
       pending.add(buffer);
     } else {
-      sendBuffer(buffer);
+      context.runOnContext(v -> sendBuffer(buffer));
     }
   }
 
@@ -52,12 +53,6 @@ public class SendStream implements ReadStream<Buffer> {
   @Override
   public synchronized ReadStream<Buffer> handler(@Nullable final Handler<Buffer> handler) {
     this.handler = handler;
-    if (handler != null) {
-      Buffer buff;
-      while ((buff = pending.poll()) != null) {
-        sendBuffer(buff);
-      }
-    }
     return this;
   }
 
@@ -73,6 +68,15 @@ public class SendStream implements ReadStream<Buffer> {
 
   @Override
   public ReadStream<Buffer> resume() {
+    context.runOnContext(v -> {
+      if (handler != null) {
+        Buffer buff;
+        while ((buff = pending.poll()) != null) {
+          sendBuffer(buff);
+        }
+      }
+    });
+
     return this;
   }
 
@@ -85,7 +89,7 @@ public class SendStream implements ReadStream<Buffer> {
   public synchronized ReadStream<Buffer> endHandler(@Nullable final Handler<Void> endHandler) {
     this.endHandler = endHandler;
     if (ended && endHandler != null) {
-      vertx.runOnContext(v -> endHandler.handle(null));
+      context.runOnContext(v -> endHandler.handle(null));
     }
     return this;
   }
@@ -93,7 +97,7 @@ public class SendStream implements ReadStream<Buffer> {
   public synchronized void end() {
     this.ended = true;
     if (endHandler != null) {
-      vertx.runOnContext(v -> endHandler.handle(null));
+      context.runOnContext(v -> endHandler.handle(null));
     }
   }
 

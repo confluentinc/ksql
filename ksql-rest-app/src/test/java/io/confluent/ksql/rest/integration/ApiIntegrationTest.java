@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.api.utils.TestUtils.findFilePath;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -87,8 +86,6 @@ public class ApiIntegrationTest {
       .withProperty("ksql.new.api.enabled", true)
       .withProperty("ksql.apiserver.listen.host", "localhost")
       .withProperty("ksql.apiserver.listen.port", 8089)
-      .withProperty("ksql.apiserver.key.path", findFilePath("test-server-key.pem"))
-      .withProperty("ksql.apiserver.cert.path", findFilePath("test-server-cert.pem"))
       .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 
@@ -468,11 +465,8 @@ public class ApiIntegrationTest {
   }
 
   private WebClient createClient() {
-    WebClientOptions options = new WebClientOptions().setSsl(true).
-        setUseAlpn(true).
-        setProtocolVersion(HttpVersion.HTTP_2).
-        setTrustAll(true);
-
+    WebClientOptions options = new WebClientOptions().
+        setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
     return WebClient.create(vertx, options);
   }
 

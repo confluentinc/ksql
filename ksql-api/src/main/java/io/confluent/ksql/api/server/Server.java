@@ -141,7 +141,8 @@ public class Server {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
-        .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT));
+        .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
+        .setReuseAddress(true);
 
     if (apiServerConfig.getBoolean(ApiServerConfig.TLS_ENABLED)) {
       options.setUseAlpn(true)

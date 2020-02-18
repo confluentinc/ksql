@@ -50,14 +50,14 @@ public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
 
+  @SuppressWarnings("UnstableApiUsage")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return
         Streams.concat(
-            PlannedTestLoader.of(testFileLoader())
-                .load(),
-            ExpectedTopologiesTestLoader.of(testFileLoader(), "expected_topology/")
-                .load()
+            testFileLoader().load(),
+            PlannedTestLoader.of(testFileLoader()).load(),
+            ExpectedTopologiesTestLoader.of(testFileLoader(), "expected_topology/").load()
         )
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));

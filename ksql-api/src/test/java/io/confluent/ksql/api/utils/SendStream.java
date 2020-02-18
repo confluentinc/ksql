@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.utils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -56,7 +57,7 @@ public class SendStream implements ReadStream<Buffer> {
     return this;
   }
 
-  private void sendBuffer(final Buffer buff) {
+  private synchronized void sendBuffer(final Buffer buff) {
     lastSentTime = System.currentTimeMillis();
     handler.handle(buff);
   }
@@ -66,6 +67,7 @@ public class SendStream implements ReadStream<Buffer> {
     return this;
   }
 
+  @SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
   @Override
   public ReadStream<Buffer> resume() {
     context.runOnContext(v -> {

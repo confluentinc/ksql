@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class RecordFormatterTest {
 
     private static final Bytes KEY_BYTES = Bytes.wrap("the key".getBytes(UTF_8));
     private static final Bytes VALUE_BYTES = Bytes.wrap("the value".getBytes(UTF_8));
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000");
 
     @Mock
     private SchemaRegistryClient schemaRegistryClient;
@@ -103,7 +105,7 @@ public class RecordFormatterTest {
     @Before
     public void setUp() {
       formatter = new RecordFormatter(
-          new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000"),
+          DATE_FORMAT,
           keyDeserializers,
           valueDeserializers
       );
@@ -192,11 +194,14 @@ public class RecordFormatterTest {
 
     @Test
     public void shouldFormatRowTime() {
+      // Given:
+      final String expected = DATE_FORMAT.format(new Date(timestamp));
+
       // When:
       final String formatted = formatSingle(consumerRecord(null, null));
 
       // Then:
-      assertThat(formatted, containsString("rowtime: 02/10/2020 20:26:44 +0000, "));
+      assertThat(formatted, containsString("rowtime: " + expected + ", "));
     }
 
     @Test

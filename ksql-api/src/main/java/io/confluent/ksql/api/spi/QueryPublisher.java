@@ -41,4 +41,9 @@ public interface QueryPublisher extends Publisher<GenericRow> {
    */
   void close();
 
+  /**
+   * @return true if pull query
+   */
+  boolean isPullQuery();
+
 }

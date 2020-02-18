@@ -17,7 +17,6 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.impl.Utils;
 import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -51,7 +50,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
     Objects.requireNonNull(subscriber);
-    if (Vertx.currentContext() == ctx && !Utils.isWorkerThread()) {
+    if (Utils.isEventLoopAndSameContext(ctx)) {
       doSubscribe(subscriber);
     } else {
       ctx.runOnContext(v -> doSubscribe(subscriber));

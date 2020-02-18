@@ -50,6 +50,7 @@ public class Server {
   private final Endpoints endpoints;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
+  private final int maxPushQueryCount;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
 
@@ -57,6 +58,7 @@ public class Server {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
+    this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
   }
 
   public synchronized void start() {
@@ -69,9 +71,8 @@ public class Server {
         config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
-    final WorkerExecutor theWorkerExecutor = workerExecutor;
     vertx.deployVerticle(() ->
-            new ServerVerticle(endpoints, createHttpServerOptions(config), this, theWorkerExecutor),
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this),
         options,
         future);
     try {
@@ -99,8 +100,16 @@ public class Server {
     log.info("API server stopped");
   }
 
-  void registerQuery(final PushQueryHolder query) {
+  public WorkerExecutor getWorkerExecutor() {
+    return workerExecutor;
+  }
+
+  synchronized void registerQuery(final PushQueryHolder query) {
     Objects.requireNonNull(query);
+    if (queries.size() == maxPushQueryCount) {
+      throw new KsqlApiException("Maximum number of push queries exceeded",
+          ErrorCodes.ERROR_MAX_PUSH_QUERIES_EXCEEDED);
+    }
     if (queries.putIfAbsent(query.getId(), query) != null) {
       // It should never happen
       // https://stackoverflow.com/questions/2513573/how-good-is-javas-uuid-randomuuid

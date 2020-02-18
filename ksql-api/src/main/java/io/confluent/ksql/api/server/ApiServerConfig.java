@@ -77,6 +77,11 @@ public class ApiServerConfig extends AbstractConfig {
       "Max number of worker threads for executing blocking code";
   public static final int DEFAULT_WORKER_POOL_SIZE = 100;
 
+  public static final String MAX_PUSH_QUERIES = propertyName("max.push.queries");
+  public static final int DEFAULT_MAX_PUSH_QUERIES = 100;
+  public static final String MAX_PUSH_QUERIES_DOC =
+      "The maximum number of push queries allowed on the server at any one time";
+
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
   }
@@ -141,7 +146,13 @@ public class ApiServerConfig extends AbstractConfig {
           Type.INT,
           DEFAULT_WORKER_POOL_SIZE,
           Importance.MEDIUM,
-          WORKER_POOL_DOC);
+          WORKER_POOL_DOC)
+      .define(
+          MAX_PUSH_QUERIES,
+          Type.INT,
+          DEFAULT_MAX_PUSH_QUERIES,
+          Importance.MEDIUM,
+          MAX_PUSH_QUERIES_DOC);
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);

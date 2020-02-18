@@ -257,7 +257,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
-    assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
+    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
     assertThat(response.rows.get(0).getString(0), is("USER_1"));  // rowkey
     assertThat(response.rows.get(0).getLong(1), is(notNullValue()));  // rowtime - non deterministic
     assertThat(response.rows.get(0).getLong(2), is(1L)); // count

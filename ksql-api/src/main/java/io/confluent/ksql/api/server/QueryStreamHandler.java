@@ -23,7 +23,6 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
-import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
@@ -45,16 +44,16 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private final Endpoints endpoints;
   private final ConnectionQueryManager connectionQueryManager;
   private final Context context;
-  private final WorkerExecutor workerExecutor;
+  private final Server server;
 
   public QueryStreamHandler(final Endpoints endpoints,
       final ConnectionQueryManager connectionQueryManager,
       final Context context,
-      final WorkerExecutor workerExecutor) {
+      final Server server) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.connectionQueryManager = Objects.requireNonNull(connectionQueryManager);
     this.context = Objects.requireNonNull(context);
-    this.workerExecutor = Objects.requireNonNull(workerExecutor);
+    this.server = Objects.requireNonNull(server);
   }
 
   @Override
@@ -80,10 +79,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     createQueryPublisherAsync(queryStreamArgs.get().sql, queryStreamArgs.get().properties, context)
         .thenAccept(queryPublisher -> {
 
-          final PushQueryHolder query = connectionQueryManager
-              .createApiQuery(queryPublisher, routingContext.request());
+          final PushQueryHolder query = queryPublisher.isPullQuery() ? null :
+              connectionQueryManager.createApiQuery(queryPublisher, routingContext.request());
 
-          final QueryResponseMetadata metadata = new QueryResponseMetadata(query.getId().toString(),
+          final QueryResponseMetadata metadata = new QueryResponseMetadata(
+              query == null ? null : query.getId().toString(),
               queryPublisher.getColumnNames(),
               queryPublisher.getColumnTypes());
 
@@ -95,8 +95,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
           queryPublisher.subscribe(querySubscriber);
 
-          // When response is complete, publisher should be closed and query unregistered
-          routingContext.response().endHandler(v -> query.close());
+          if (query != null) {
+            // When response is complete, publisher should be closed and query unregistered
+            routingContext.response().endHandler(v -> query.close());
+          }
         })
         .exceptionally(t -> handleQueryPublisherException(t, routingContext));
   }
@@ -110,6 +112,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         ServerUtils.handleError(routingContext.response(), 400, ErrorCodes.ERROR_CODE_INVALID_QUERY,
             actual.getMessage());
         return null;
+      } else if (actual instanceof KsqlApiException) {
+        ServerUtils
+            .handleError(routingContext.response(), 400, ((KsqlApiException) actual).getErrorCode(),
+                actual.getMessage());
       }
     }
     // We don't expose internal error message via public API
@@ -124,9 +130,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private CompletableFuture<QueryPublisher> createQueryPublisherAsync(final String sql,
       final JsonObject properties, final Context context) {
     final VertxCompletableFuture<QueryPublisher> vcf = new VertxCompletableFuture<>();
-    workerExecutor.executeBlocking(
+    server.getWorkerExecutor().executeBlocking(
         p -> p.complete(
-            endpoints.createQueryPublisher(sql, properties, context, workerExecutor)),
+            endpoints.createQueryPublisher(sql, properties, context, server.getWorkerExecutor())),
         false,
         vcf);
     return vcf;

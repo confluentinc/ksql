@@ -82,6 +82,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
   }
 
+  @Override
   public QueryPublisher createQueryPublisher(
       final String sql, final JsonObject properties,
       final Context context,
@@ -105,6 +106,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private QueryPublisher createPushQueryPublisher(final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement, final WorkerExecutor workerExecutor) {
+
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context,
         workerExecutor);
     final QueryMetadata queryMetadata = ksqlEngine

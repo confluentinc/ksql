@@ -33,8 +33,8 @@ import org.slf4j.LoggerFactory;
 public class BufferedPublisher<T> extends BasePublisher<T> {
 
   private static final Logger log = LoggerFactory.getLogger(BufferedPublisher.class);
-  public static final int SEND_MAX_BATCH_SIZE = 10;
-  public static final int DEFAULT_BUFFER_MAX_SIZE = 100;
+  public static final int SEND_MAX_BATCH_SIZE = 200;
+  public static final int DEFAULT_BUFFER_MAX_SIZE = 200;
 
   private final Queue<T> buffer = new ArrayDeque<>();
   private final int bufferMaxSize;

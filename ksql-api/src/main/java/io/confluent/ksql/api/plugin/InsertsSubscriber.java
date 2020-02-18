@@ -52,7 +52,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
     InsertsStreamSubscriber {
 
   private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);
-  private static final int REQUEST_BATCH_SIZE = 1000;
+  private static final int REQUEST_BATCH_SIZE = 200;
   private static final SqlValueCoercer SQL_VALUE_COERCER = DefaultSqlValueCoercer.INSTANCE;
 
   private final Producer<byte[], byte[]> producer;

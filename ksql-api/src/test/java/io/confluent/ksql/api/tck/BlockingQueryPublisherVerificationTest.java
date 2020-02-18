@@ -17,7 +17,7 @@ package io.confluent.ksql.api.tck;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.plugin.BlockingQueryPublisher;
-import io.confluent.ksql.api.server.PushQueryHandler;
+import io.confluent.ksql.api.server.PushQueryHandle;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -67,7 +67,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     return GenericRow.fromList(l);
   }
 
-  private static class TestQueryHandle implements PushQueryHandler {
+  private static class TestQueryHandle implements PushQueryHandle {
 
     private final long elements;
 

@@ -251,8 +251,8 @@ final class RestIntegrationTestUtil {
   }
 
   private static String buildBasicAuthHeader(final Credentials credentials) {
-    return Base64.getEncoder().encodeToString(
-        (credentials.username + ":" + credentials.password).getBytes(Charset.defaultCharset()));
+    final String creds = credentials.username + ":" + credentials.password;
+    return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
   private static String buildStreamingRequest(final String sql) {

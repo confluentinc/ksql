@@ -204,8 +204,8 @@ public class BasicAuthFunctionalTest {
   }
 
   private static String buildBasicAuthHeader(final String userName, final String password) {
-    return Base64.getEncoder().encodeToString(
-        (userName + ":" + password).getBytes(Charset.defaultCharset()));
+    final String credentials = userName + ":" + password;
+    return Base64.getEncoder().encodeToString(credentials.getBytes(Charset.defaultCharset()));
   }
 
   private static String createJaasConfigContent() {

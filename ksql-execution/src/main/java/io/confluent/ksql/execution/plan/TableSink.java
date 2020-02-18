@@ -37,8 +37,7 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "topicName", required = true) final String topicName,
-      @JsonProperty(value = "timestampColumn", required = true)
-      final Optional<TimestampColumn> timestampColumn
+      @JsonProperty(value = "timestampColumn") final Optional<TimestampColumn> timestampColumn
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");

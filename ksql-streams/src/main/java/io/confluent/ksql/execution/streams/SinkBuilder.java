@@ -65,13 +65,17 @@ public final class SinkBuilder {
         queryContext
     );
 
-    final int timestampColumnIndex = timestampColumn.map(TimestampColumn::getColumn)
+    final Optional<TransformTimestamp<K>> tsTransformer = timestampColumn
+        .map(TimestampColumn::getColumn)
         .map(c -> schema.findValueColumn(c).orElseThrow(IllegalStateException::new))
         .map(Column::index)
-        .orElse(-1);
+        .map(TransformTimestamp::new);
 
-    stream.transform(new TransformTimestamp<>(timestampColumnIndex))
-        .to(topicName, Produced.with(keySerde, valueSerde));
+    final KStream<K, GenericRow> transformed = tsTransformer
+        .map(t -> stream.transform(t))
+        .orElse(stream);
+
+    transformed.to(topicName, Produced.with(keySerde, valueSerde));
   }
 
   static class TransformTimestamp<K>
@@ -79,7 +83,7 @@ public final class SinkBuilder {
     private final int timestampColumnIndex;
 
     TransformTimestamp(final int timestampColumnIndex) {
-      this.timestampColumnIndex = timestampColumnIndex;
+      this.timestampColumnIndex = requireNonNull(timestampColumnIndex, "timestampColumnIndex");
     }
 
     @Override
@@ -109,7 +113,7 @@ public final class SinkBuilder {
 
         @Override
         public KeyValue<K, GenericRow> transform(final K key, final GenericRow row) {
-          if (timestampColumnIndex >= 0 && row.get(timestampColumnIndex) instanceof Long) {
+          if (row.get(timestampColumnIndex) instanceof Long) {
             processorContext.forward(
                 key,
                 row,

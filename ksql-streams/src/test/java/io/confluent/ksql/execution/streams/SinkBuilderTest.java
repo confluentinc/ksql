@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -53,6 +54,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -95,7 +97,7 @@ public class SinkBuilderTest {
   }
 
   @Test
-  public void shouldBuildStreamWithTransformTimestamp() {
+  public void shouldBuildStreamUsingTransformTimestampWhenTimestampIsSpecified() {
     // Given/When
     SinkBuilder.build(
         SCHEMA,
@@ -109,9 +111,30 @@ public class SinkBuilderTest {
     );
 
     // Then
-    verify(kStream, times(1))
-        .transform(new SinkBuilder.TransformTimestamp<>(1));
-    verify(kStream, times(1)).to(anyString(), any());
+    final InOrder inOrder = Mockito.inOrder(kStream);
+    inOrder.verify(kStream).transform(new SinkBuilder.TransformTimestamp<>(1));
+    inOrder.verify(kStream).to(anyString(), any());
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldBuildStreamWithoutTransformTimestampWhenNoTimestampIsSpecified() {
+    // Given/When
+    SinkBuilder.build(
+        SCHEMA,
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Optional.empty(),
+        TOPIC,
+        kStream,
+        keySerdeFactory,
+        queryContext,
+        queryBuilder
+    );
+
+    // Then
+    final InOrder inOrder = Mockito.inOrder(kStream);
+    inOrder.verify(kStream).to(anyString(), any());
+    inOrder.verifyNoMoreInteractions();
   }
 
   @Test

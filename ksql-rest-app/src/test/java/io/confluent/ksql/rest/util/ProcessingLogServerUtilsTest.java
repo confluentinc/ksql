@@ -191,7 +191,7 @@ public class ProcessingLogServerUtilsTest {
             + "time BIGINT, "
             + "message STRUCT<"
             + "type INT, "
-            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>>, "
+            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
             + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
             + "productionError STRUCT<errorMessage VARCHAR>"
             + ">"

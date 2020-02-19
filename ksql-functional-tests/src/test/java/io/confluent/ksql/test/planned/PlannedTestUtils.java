@@ -17,31 +17,25 @@ package io.confluent.ksql.test.planned;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.test.tools.VersionedTest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public final class PlannedTestUtils {
+
   private PlannedTestUtils() {
   }
 
   public static boolean isPlannedTestCase(final TestCase testCase) {
-    return !testCase.expectedException().isPresent();
+    return !testCase.expectedException().isPresent()
+        && !testCase.getTestFile().endsWith("/scratch.json");
   }
 
   public static boolean isSamePlan(

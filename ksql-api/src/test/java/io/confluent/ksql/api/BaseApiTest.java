@@ -35,7 +35,6 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +65,6 @@ public class BaseApiTest {
   protected WebClient client;
   protected Server server;
   protected TestEndpoints testEndpoints;
-  protected int serverPort;
 
   @Before
   public void setUp() throws Exception {
@@ -75,19 +73,11 @@ public class BaseApiTest {
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
-    serverPort = getFreePort();
     ApiServerConfig serverConfig = createServerConfig();
     server = new Server(vertx, serverConfig, testEndpoints);
     server.start();
     this.client = createClient();
     setDefaultRowGenerator();
-  }
-
-  private int getFreePort() throws Exception {
-    ServerSocket socket = new ServerSocket(0);
-    int port = socket.getLocalPort();
-    socket.close();
-    return port;
   }
 
   @After
@@ -110,8 +100,7 @@ public class BaseApiTest {
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
-    System.out.println("Server port is " + serverPort);
-    config.put("ksql.apiserver.listen.port", serverPort);
+    config.put("ksql.apiserver.listen.port", 0);
     config.put("ksql.apiserver.tls.enabled", false);
     config.put("ksql.apiserver.verticle.instances", 4);
 
@@ -122,7 +111,7 @@ public class BaseApiTest {
     return new WebClientOptions()
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
         .setDefaultHost("localhost")
-        .setDefaultPort(serverPort)
+        .setDefaultPort(server.getActualPort())
         .setReusePort(true);
   }
 

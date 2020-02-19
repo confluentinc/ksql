@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class Server {
   private final int maxPushQueryCount;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
+  private AtomicInteger actualPort = new AtomicInteger(-1);
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints) {
     this.vertx = Objects.requireNonNull(vertx);
@@ -136,6 +138,14 @@ public class Server {
 
   public int queryConnectionCount() {
     return connections.size();
+  }
+
+  void setActualPort(final int port) {
+    actualPort.set(port);
+  }
+
+  public int getActualPort() {
+    return actualPort.get();
   }
 
   private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {

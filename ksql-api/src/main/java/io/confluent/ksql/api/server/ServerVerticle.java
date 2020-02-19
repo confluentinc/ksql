@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -55,10 +53,14 @@ public class ServerVerticle extends AbstractVerticle {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
-    final Future<HttpServer> listenFuture = Promise.<HttpServer>promise().future();
-    Utils.connectPromise(listenFuture.map(s -> null), startPromise);
-    httpServer.listen(listenFuture);
-    vertx.getOrCreateContext().exceptionHandler(ServerUtils::unhandledExceptonHandler);
+    httpServer.listen(ar -> {
+      if (ar.succeeded()) {
+        server.setActualPort(ar.result().actualPort());
+        startPromise.complete();
+      } else {
+        startPromise.fail(ar.cause());
+      }
+    });
   }
 
   @Override

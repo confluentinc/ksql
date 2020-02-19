@@ -39,7 +39,7 @@ public class TlsTest extends ApiTest {
 
     Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", serverPort);
+    config.put("ksql.apiserver.listen.port", 0);
     config.put("ksql.apiserver.tls.enabled", true);
     config.put("ksql.apiserver.tls.keystore.path", keyStorePath);
     config.put("ksql.apiserver.tls.keystore.password", keyStorePassword);
@@ -58,7 +58,7 @@ public class TlsTest extends ApiTest {
         setTrustAll(true).
         setVerifyHost(false).
         setDefaultHost("localhost").
-        setDefaultPort(serverPort);
+        setDefaultPort(server.getActualPort());
   }
 
 }

@@ -22,23 +22,14 @@ import java.util.Map;
 import java.util.Objects;
 
 class TestCasePlanNode {
-  private final String version;
-  private final long timestamp;
   private final List<KsqlPlan> plan;
-  private final Map<String, String> schemas;
   private final Map<String, String> configs;
 
   public TestCasePlanNode(
-      @JsonProperty("version") final String version,
-      @JsonProperty("timestamp") final long timestamp,
       @JsonProperty("plan") final List<KsqlPlan> plan,
-      @JsonProperty("schemas") final Map<String, String> schemas,
       @JsonProperty("configs") final Map<String, String> configs
   ) {
-    this.version = Objects.requireNonNull(version, "version");
-    this.timestamp = timestamp;
     this.plan = Objects.requireNonNull(plan, "plan");
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
     this.configs = Objects.requireNonNull(configs, "configs");
   }
 
@@ -46,19 +37,7 @@ class TestCasePlanNode {
     return plan;
   }
 
-  public long getTimestamp() {
-    return timestamp;
-  }
-
   public Map<String, String> getConfigs() {
     return configs;
-  }
-
-  public Map<String, String> getSchemas() {
-    return schemas;
-  }
-
-  public String getVersion() {
-    return version;
   }
 }

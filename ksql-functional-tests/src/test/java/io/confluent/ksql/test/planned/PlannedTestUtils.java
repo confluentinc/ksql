@@ -17,8 +17,11 @@ package io.confluent.ksql.test.planned;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,9 +29,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class PlannedTestUtils {
+  static final ObjectMapper PLAN_MAPPER = PlanJsonMapper.create();
 
   private PlannedTestUtils() {
   }
@@ -68,16 +74,24 @@ public final class PlannedTestUtils {
       final TestCase testCase,
       final TestCasePlan planAtVersionNode
   ) {
+    final Map<String, Topic> topicsByName = testCase.getTopics().stream()
+        .collect(Collectors.toMap(Topic::getName, t -> t));
     final KsqlVersion version = KsqlVersion.parse(planAtVersionNode.getVersion())
         .withTimestamp(planAtVersionNode.getTimestamp());
-    return testCase.withExpectedTopology(
+    return testCase.withPlan(
         version,
         new TopologyAndConfigs(
             Optional.of(planAtVersionNode.getPlan()),
             planAtVersionNode.getTopology(),
             planAtVersionNode.getSchemas(),
             planAtVersionNode.getConfigs()
-        )
+        ),
+        planAtVersionNode.getInputs().stream()
+            .map(n -> n.build(topicsByName))
+            .collect(Collectors.toList()),
+        planAtVersionNode.getOutputs().stream()
+            .map(n -> n.build(topicsByName))
+            .collect(Collectors.toList())
     );
   }
 }

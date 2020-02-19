@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.planned;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -24,14 +23,15 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
@@ -57,7 +57,6 @@ import org.w3c.dom.NodeList;
 public final class TestCasePlanLoader {
 
   private static final StubKafkaService KAFKA_STUB = StubKafkaService.create();
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
   private static final String CURRENT_VERSION = getFormattedVersionFromPomFile();
   private static final KsqlConfig BASE_CONFIG = new KsqlConfig(TestExecutor.baseConfig());
 
@@ -94,13 +93,12 @@ public final class TestCasePlanLoader {
   public static TestCasePlan rebuiltForTestCase(
       final TestCase testCase,
       final TestCasePlan original) {
-    final TestCase withOriginal = PlannedTestUtils.buildPlannedTestCase(testCase, original);
     final KsqlConfig configs = BASE_CONFIG.cloneWithPropertyOverwrite(testCase.properties());
     try (
         final ServiceContext serviceContext = getServiceContext();
         final KsqlEngine engine = getKsqlEngine(serviceContext)) {
       return buildStatementsInTestCase(
-          withOriginal,
+          testCase,
           configs,
           serviceContext,
           engine,
@@ -145,11 +143,13 @@ public final class TestCasePlanLoader {
   }
 
   private static TestCasePlan parseSpec(final PlannedTestPath versionDir) {
+    final PlannedTestPath planPath = versionDir.resolve(PlannedTestPath.PLAN_FILE);
     final PlannedTestPath specPath = versionDir.resolve(PlannedTestPath.SPEC_FILE);
     final PlannedTestPath topologyPath = versionDir.resolve(PlannedTestPath.TOPOLOGY_FILE);
     try {
       return new TestCasePlan(
-          MAPPER.readValue(slurp(specPath), TestCasePlanNode.class),
+          JsonTestLoader.OBJECT_MAPPER.readValue(slurp(specPath), TestCaseSpecNode.class),
+          PlannedTestUtils.PLAN_MAPPER.readValue(slurp(planPath), TestCasePlanNode.class),
           slurp(topologyPath)
       );
     } catch (final IOException e) {
@@ -199,7 +199,9 @@ public final class TestCasePlanLoader {
         plansBuilder.build(),
         queryMetadata.getTopologyDescription(),
         queryMetadata.getSchemasDescription(),
-        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated()
+        BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated(),
+        testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
+        testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList())
     );
   }
 

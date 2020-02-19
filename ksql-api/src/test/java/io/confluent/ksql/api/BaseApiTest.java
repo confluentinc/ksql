@@ -85,7 +85,9 @@ public class BaseApiTest {
 
   private int getFreePort() throws Exception {
     ServerSocket socket = new ServerSocket(0);
-    return socket.getLocalPort();
+    int port = socket.getLocalPort();
+    socket.close();
+    return port;
   }
 
   @After
@@ -94,7 +96,11 @@ public class BaseApiTest {
       client.close();
     }
     if (server != null) {
-      server.stop();
+      try {
+        server.stop();
+      } catch (Exception e) {
+        log.error("Failed to shutdown server", e);
+      }
     }
     if (vertx != null) {
       vertx.close();
@@ -104,6 +110,7 @@ public class BaseApiTest {
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
+    System.out.println("Server port is " + serverPort);
     config.put("ksql.apiserver.listen.port", serverPort);
     config.put("ksql.apiserver.tls.enabled", false);
     config.put("ksql.apiserver.verticle.instances", 4);

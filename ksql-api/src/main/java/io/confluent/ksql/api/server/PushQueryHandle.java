@@ -21,7 +21,7 @@ import java.util.OptionalInt;
 /**
  * Handle to a push query running in the engine
  */
-public interface PushQueryHandler {
+public interface PushQueryHandle {
 
   List<String> getColumnNames();
 

@@ -19,7 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.server.PushQueryHandler;
+import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -243,7 +243,7 @@ public class KsqlServerEndpoints implements Endpoints {
     return colNames;
   }
 
-  private static class KsqlQueryHandle implements PushQueryHandler {
+  private static class KsqlQueryHandle implements PushQueryHandle {
 
     private final QueryMetadata queryMetadata;
     private final OptionalInt limit;

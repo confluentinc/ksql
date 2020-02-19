@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class QuerySubscriber extends BaseSubscriber<GenericRow> {
 
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
-  private static final int REQUEST_BATCH_SIZE = 1000;
+  private static final int REQUEST_BATCH_SIZE = 200;
 
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;

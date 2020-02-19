@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.PublisherTestBase;
-import io.confluent.ksql.api.server.PushQueryHandler;
+import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.utils.AsyncAssert;
 import io.vertx.core.WorkerExecutor;
 import java.util.ArrayList;
@@ -223,7 +223,7 @@ public class BlockingQueryPublisherTest extends PublisherTestBase<GenericRow> {
     shouldDeliver(num, num);
   }
 
-  private static class TestQueryHandle implements PushQueryHandler {
+  private static class TestQueryHandle implements PushQueryHandle {
 
     private final OptionalInt limit;
     private int stopCalledTimes;

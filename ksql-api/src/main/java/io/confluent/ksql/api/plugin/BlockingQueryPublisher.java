@@ -18,7 +18,7 @@ package io.confluent.ksql.api.plugin;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.BasePublisher;
-import io.confluent.ksql.api.server.PushQueryHandler;
+import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -46,13 +46,13 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);
 
-  public static final int SEND_MAX_BATCH_SIZE = 10;
-  public static final int BLOCKING_QUEUE_CAPACITY = 1000;
+  public static final int SEND_MAX_BATCH_SIZE = 200;
+  public static final int BLOCKING_QUEUE_CAPACITY = 500;
 
   private final BlockingQueue<GenericRow> queue = new LinkedBlockingQueue<>(
       BLOCKING_QUEUE_CAPACITY);
   private final WorkerExecutor workerExecutor;
-  private PushQueryHandler queryHandle;
+  private PushQueryHandle queryHandle;
   private List<String> columnNames;
   private List<String> columnTypes;
   private OptionalInt limit;
@@ -66,7 +66,7 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
   }
 
-  public void setQueryHandle(final PushQueryHandler queryHandle) {
+  public void setQueryHandle(final PushQueryHandle queryHandle) {
     this.queryHandle = Objects.requireNonNull(queryHandle);
     this.limit = queryHandle.getLimit();
     this.columnNames = queryHandle.getColumnNames();

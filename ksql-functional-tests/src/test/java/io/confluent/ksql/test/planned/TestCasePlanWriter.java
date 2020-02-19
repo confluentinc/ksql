@@ -24,8 +24,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public class TestCasePlanWriter {
+public final class TestCasePlanWriter {
+
   private static final ObjectMapper MAPPER = PlanJsonMapper.create();
+
+  private TestCasePlanWriter() {
+  }
 
   public static void writeTestCasePlan(final TestCase testCase, final TestCasePlan planAtVersion) {
     final Path parent = PlannedTestPath.forTestCasePlan(testCase, planAtVersion).relativePath();

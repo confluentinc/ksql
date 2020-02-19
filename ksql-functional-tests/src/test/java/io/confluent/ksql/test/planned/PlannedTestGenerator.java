@@ -22,7 +22,10 @@ import java.util.stream.Stream;
 /**
  * Tool for generating new TestCasePlans and writing them to the local filesystem
  */
-public class PlannedTestGenerator {
+public final class PlannedTestGenerator {
+
+  private PlannedTestGenerator() {
+  }
 
   public static void generatePlans(final Stream<TestCase> testCases) {
     testCases

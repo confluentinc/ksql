@@ -19,9 +19,9 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.test.planned.PlannedTestUtils;
 import io.confluent.ksql.test.planned.TestCasePlan;
 import io.confluent.ksql.test.planned.TestCasePlanLoader;
-import io.confluent.ksql.test.planned.PlannedTestUtils;
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
 import java.util.Collection;
@@ -40,6 +40,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class PlannedTestsUpToDateTest {
+
   private static final ObjectMapper MAPPER = PlanJsonMapper.create();
 
   private final TestCase testCase;
@@ -53,11 +54,29 @@ public class PlannedTestsUpToDateTest {
   }
 
   /**
-   * Test to check for qtt cases that require a new plan to be generated/persisted
+   * Test to check for qtt cases that require a new plan to be generated/persisted.
+   *
+   * <p>If this test fails it means there is a QTT test for which there is no query plan,
+   * or the query plan has changed.
+   *
+   * <p>If you add a new QTT test you should run
+   * {@link PlannedTestGeneratorTest#manuallyGeneratePlans()}
+   * to generate a plan for your new test(s) and check that in with your new test(s).
+   *
+   * <p>If you've made a change that means existing QTT tests are now generating different query
+   * plans then you will hopefully know if this was intention or not.  If not intentional, fix
+   * your changes so that they don't result in a new query plan.  If intentional, run
+   * {@link PlannedTestGeneratorTest#manuallyGeneratePlans()} to generate new query plans and check
+   * them in with your change.
+   *
+   * <p>Note: Running {@link PlannedTestGeneratorTest#manuallyGeneratePlans()} may create <i>new</i>
+   * query plans. It will not change existing ones. To maintain backwards compatibility KSQL needs
+   * to support both the new and old plans.
    *
    * @param name unused - included just so the test has a name
    * @param testCase test case to check for requiring plan generation
    */
+  @SuppressWarnings("unused") // `name` is used to name the test.
   public PlannedTestsUpToDateTest(final String name, final TestCase testCase) {
     this.testCase = Objects.requireNonNull(testCase);
   }

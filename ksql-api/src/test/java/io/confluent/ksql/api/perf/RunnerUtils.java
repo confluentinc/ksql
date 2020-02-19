@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.perf;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -23,15 +24,14 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.WriteStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class RunnerUtils {
 
-  protected static final List<String> DEFAULT_COLUMN_NAMES = Collections
-      .unmodifiableList(Arrays.asList("name", "age", "male"));
-  protected static final List<String> DEFAULT_COLUMN_TYPES = Collections.unmodifiableList(Arrays
-      .asList("STRING", "INT", "BOOLEAN"));
+  protected static final List<String> DEFAULT_COLUMN_NAMES = ImmutableList
+      .of("name", "age", "male");
+  protected static final List<String> DEFAULT_COLUMN_TYPES = ImmutableList
+      .of("STRING", "INT", "BOOLEAN");
   protected static final GenericRow DEFAULT_ROW = GenericRow
       .fromList(Arrays.asList("tim", 105, true));
 

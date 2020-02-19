@@ -294,7 +294,19 @@
 
             <dependency>
                 <groupId>io.confluent</groupId>
+                <artifactId>kafka-json-schema-provider</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-json-schema-converter</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
 

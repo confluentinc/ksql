@@ -31,11 +31,11 @@ public class KsqlJsonSerializer implements Serializer<Object> {
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerializer.class);
 
   private final PersistenceSchema physicalSchema;
-  private final JsonConverter jsonConverter;
+  private final JsonConverter converter;
 
   public KsqlJsonSerializer(final PersistenceSchema physicalSchema) {
-    this.jsonConverter = new JsonConverter();
-    this.jsonConverter.configure(ImmutableMap.of(
+    this.converter = new JsonConverter();
+    this.converter.configure(ImmutableMap.of(
         JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false,
         JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()
     ), false);
@@ -57,7 +57,7 @@ public class KsqlJsonSerializer implements Serializer<Object> {
     }
 
     try {
-      return jsonConverter.fromConnectData(topic, physicalSchema.serializedSchema(), data);
+      return converter.fromConnectData(topic, physicalSchema.serializedSchema(), data);
     } catch (final Exception e) {
       throw new SerializationException("Error serializing JSON message for topic: " + topic, e);
     }

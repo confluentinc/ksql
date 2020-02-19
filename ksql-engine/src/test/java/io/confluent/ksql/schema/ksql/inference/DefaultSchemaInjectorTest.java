@@ -75,7 +75,7 @@ public class DefaultSchemaInjectorTest {
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
-      "VALUE_FORMAT", new StringLiteral("json"),
+      "VALUE_FORMAT", new StringLiteral("delimited"),
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
   );
   private static final Map<String, Literal> SUPPORTED_PROPS = ImmutableMap.of(

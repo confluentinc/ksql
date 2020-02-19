@@ -105,7 +105,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   private static SchemaResult notFound(final String topicName) {
     return SchemaResult.failure(new KsqlException(
-        "Avro schema for message values on topic " + topicName
+        "Schema for message values on topic " + topicName
             + " does not exist in the Schema Registry."
             + "Subject: " + topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
             + System.lineSeparator()
@@ -114,11 +114,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "- The topic itself does not exist"
             + "\t-> Use SHOW TOPICS; to check"
             + System.lineSeparator()
-            + "- Messages on the topic are not Avro serialized"
+            + "- Messages on the topic are not serialized using a format Schema Registry supports"
             + "\t-> Use PRINT '" + topicName + "' FROM BEGINNING; to verify"
             + System.lineSeparator()
-            + "- Messages on the topic have not been serialized using the Confluent Schema "
-            + "Registry Avro serializer"
+            + "- Messages on the topic have not been serialized using a Confluent Schema "
+            + "Registry supported serializer"
             + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
             + System.lineSeparator()
             + "- The schema is registered on a different instance of the Schema Registry"

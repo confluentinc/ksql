@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -77,9 +78,9 @@ public final class SerdeUtil {
       return Optional.empty();
     }
 
-    // format == null is the legacy case
-    if (format == null || format.equalsIgnoreCase(AvroFormat.NAME)) {
-      try {
+    try {
+      // format == null is the legacy case
+      if (format == null || format.equalsIgnoreCase(AvroFormat.NAME)) {
         final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
         final org.apache.avro.Schema avroSchema =
             new org.apache.avro.Schema.Parser().parse(schemaString);
@@ -87,9 +88,12 @@ public final class SerdeUtil {
             new AvroFormat()
                 .toParsedSchema(new AvroData(1).toConnectSchema(avroSchema))
         );
-      } catch (final Exception e) {
-        throw new InvalidFieldException("schema", "failed to parse", e);
+      } else if (format.equalsIgnoreCase(JsonFormat.NAME)) {
+        final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
+        return Optional.of(new JsonSchema(schemaString));
       }
+    } catch (final Exception e) {
+      throw new InvalidFieldException("schema", "failed to parse", e);
     }
 
     throw new InvalidFieldException("schema", "not supported with format: " + format);

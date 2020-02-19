@@ -63,7 +63,7 @@ public class MaxQueriesTest extends BaseApiTest {
   @Override
   protected ApiServerConfig createServerConfig() {
     ApiServerConfig config = super.createServerConfig();
-    Map<String, Object> origs = config.originalsWithPrefix("");
+    Map<String, Object> origs = config.originals();
     origs.put(ApiServerConfig.MAX_PUSH_QUERIES, MAX_QUERIES);
     return new ApiServerConfig(origs);
   }

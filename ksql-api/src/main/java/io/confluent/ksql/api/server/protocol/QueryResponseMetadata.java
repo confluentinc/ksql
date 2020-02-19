@@ -36,4 +36,10 @@ public class QueryResponseMetadata extends SerializableObject {
     this.columnTypes = Objects.requireNonNull(columnTypes);
   }
 
+  public QueryResponseMetadata(final List<String> columnNames, final List<String> columnTypes) {
+    this.queryId = null;
+    this.columnNames = Objects.requireNonNull(columnNames);
+    this.columnTypes = Objects.requireNonNull(columnTypes);
+  }
+
 }

@@ -79,13 +79,24 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     createQueryPublisherAsync(queryStreamArgs.get().sql, queryStreamArgs.get().properties, context)
         .thenAccept(queryPublisher -> {
 
-          final PushQueryHolder query = queryPublisher.isPullQuery() ? null :
-              connectionQueryManager.createApiQuery(queryPublisher, routingContext.request());
+          final QueryResponseMetadata metadata;
 
-          final QueryResponseMetadata metadata = new QueryResponseMetadata(
-              query == null ? null : query.getId().toString(),
-              queryPublisher.getColumnNames(),
-              queryPublisher.getColumnTypes());
+          if (queryPublisher.isPullQuery()) {
+            metadata = new QueryResponseMetadata(
+                queryPublisher.getColumnNames(),
+                queryPublisher.getColumnTypes());
+          } else {
+            final PushQueryHolder query = connectionQueryManager
+                .createApiQuery(queryPublisher, routingContext.request());
+
+            metadata = new QueryResponseMetadata(
+                query.getId().toString(),
+                queryPublisher.getColumnNames(),
+                queryPublisher.getColumnTypes());
+
+            // When response is complete, publisher should be closed and query unregistered
+            routingContext.response().endHandler(v -> query.close());
+          }
 
           queryStreamResponseWriter.writeMetadata(metadata);
 
@@ -95,10 +106,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
           queryPublisher.subscribe(querySubscriber);
 
-          if (query != null) {
-            // When response is complete, publisher should be closed and query unregistered
-            routingContext.response().endHandler(v -> query.close());
-          }
         })
         .exceptionally(t -> handleQueryPublisherException(t, routingContext));
   }

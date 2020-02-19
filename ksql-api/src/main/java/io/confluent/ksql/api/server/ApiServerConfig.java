@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 
 import io.confluent.ksql.util.KsqlConfig;
@@ -23,8 +24,6 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigDef.Validator;
-import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Config for the API server
@@ -72,9 +71,9 @@ public class ApiServerConfig extends AbstractConfig {
       "Password for client trust store";
 
   public static final String TLS_CLIENT_AUTH_REQUIRED = propertyName("tls.client.auth.required");
-  public static final boolean DEFAULT_TLS_CLIENT_AUTH_REQUIRED = false;
+  public static final String DEFAULT_TLS_CLIENT_AUTH_REQUIRED = "none";
   public static final String TLS_CLIENT_AUTH_REQUIRED_DOC =
-      "Is client auth required?";
+      "Is client auth required? One of none, request or required";
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
@@ -143,7 +142,7 @@ public class ApiServerConfig extends AbstractConfig {
           TLS_TRUST_STORE_PASSWORD_DOC)
       .define(
           TLS_CLIENT_AUTH_REQUIRED,
-          Type.BOOLEAN,
+          Type.STRING,
           DEFAULT_TLS_CLIENT_AUTH_REQUIRED,
           Importance.MEDIUM,
           TLS_CLIENT_AUTH_REQUIRED_DOC)
@@ -166,20 +165,5 @@ public class ApiServerConfig extends AbstractConfig {
     super(CONFIG_DEF, map);
   }
 
-  private static Validator oneOrMore() {
-    return (name, val) -> {
-      if (val instanceof Long) {
-        if (((Long) val) < 1) {
-          throw new ConfigException(name, val, "Not >= 1");
-        }
-      } else if (val instanceof Integer) {
-        if (((Integer) val) < 1) {
-          throw new ConfigException(name, val, "Not >= 1");
-        }
-      } else {
-        throw new IllegalArgumentException("validator should only be used with int, long");
-      }
-    };
-  }
 
 }

@@ -88,6 +88,9 @@ public class BaseApiTest {
     if (server != null) {
       server.stop();
     }
+    if (vertx != null) {
+      vertx.close();
+    }
   }
 
   protected ApiServerConfig createServerConfig() {

@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,8 @@ public class Server {
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
         .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
-        .setReuseAddress(true);
+        .setReuseAddress(true)
+        .setReusePort(true);
 
     if (apiServerConfig.getBoolean(ApiServerConfig.TLS_ENABLED)) {
       options.setUseAlpn(true)
@@ -156,11 +158,26 @@ public class Server {
                   .setPath(apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PATH))
                   .setPassword(
                       apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD)))
-          .setClientAuth(apiServerConfig.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)
-              ? ClientAuth.REQUIRED : ClientAuth.NONE);
+          .setClientAuth(
+              toClientAuth(apiServerConfig.getString(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)));
     }
 
     return options;
+  }
+
+  private static ClientAuth toClientAuth(final String val) {
+    switch (val) {
+      case "none":
+        return ClientAuth.NONE;
+      case "request":
+        return ClientAuth.REQUEST;
+      case "required":
+        return ClientAuth.REQUIRED;
+      default:
+        throw new ConfigException(
+            "Invalid value for %s (%s) should be one of 'none', 'request' or 'required'",
+            ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, val);
+    }
   }
 
 

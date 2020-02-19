@@ -138,6 +138,22 @@ public final class ConfigValidators {
     };
   }
 
+  public static Validator oneOrMore() {
+    return (name, val) -> {
+      if (val instanceof Long) {
+        if (((Long) val) < 1) {
+          throw new ConfigException(name, val, "Not >= 1");
+        }
+      } else if (val instanceof Integer) {
+        if (((Integer) val) < 1) {
+          throw new ConfigException(name, val, "Not >= 1");
+        }
+      } else {
+        throw new IllegalArgumentException("validator should only be used with int, long");
+      }
+    };
+  }
+
   public static final class ValidCaseInsensitiveString implements Validator {
 
     private final List<String> validStrings;

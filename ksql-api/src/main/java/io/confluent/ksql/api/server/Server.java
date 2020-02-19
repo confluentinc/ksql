@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,7 @@ public class Server {
   private final Endpoints endpoints;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
+  private final int maxPushQueryCount;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
 
@@ -57,6 +59,7 @@ public class Server {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
+    this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
   }
 
   public synchronized void start() {
@@ -69,9 +72,8 @@ public class Server {
         config.getInt(ApiServerConfig.WORKER_POOL_SIZE));
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
-    final WorkerExecutor theWorkerExecutor = workerExecutor;
     vertx.deployVerticle(() ->
-            new ServerVerticle(endpoints, createHttpServerOptions(config), this, theWorkerExecutor),
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this),
         options,
         future);
     try {
@@ -99,8 +101,16 @@ public class Server {
     log.info("API server stopped");
   }
 
-  void registerQuery(final PushQueryHolder query) {
+  public WorkerExecutor getWorkerExecutor() {
+    return workerExecutor;
+  }
+
+  synchronized void registerQuery(final PushQueryHolder query) {
     Objects.requireNonNull(query);
+    if (queries.size() == maxPushQueryCount) {
+      throw new KsqlApiException("Maximum number of push queries exceeded",
+          ErrorCodes.ERROR_MAX_PUSH_QUERIES_EXCEEDED);
+    }
     if (queries.putIfAbsent(query.getId(), query) != null) {
       // It should never happen
       // https://stackoverflow.com/questions/2513573/how-good-is-javas-uuid-randomuuid
@@ -132,7 +142,9 @@ public class Server {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
-        .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT));
+        .setPort(apiServerConfig.getInt(ApiServerConfig.LISTEN_PORT))
+        .setReuseAddress(true)
+        .setReusePort(true);
 
     if (apiServerConfig.getBoolean(ApiServerConfig.TLS_ENABLED)) {
       options.setUseAlpn(true)
@@ -146,11 +158,26 @@ public class Server {
                   .setPath(apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PATH))
                   .setPassword(
                       apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD)))
-          .setClientAuth(apiServerConfig.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)
-              ? ClientAuth.REQUIRED : ClientAuth.NONE);
+          .setClientAuth(
+              toClientAuth(apiServerConfig.getString(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)));
     }
 
     return options;
+  }
+
+  private static ClientAuth toClientAuth(final String val) {
+    switch (val) {
+      case "none":
+        return ClientAuth.NONE;
+      case "request":
+        return ClientAuth.REQUEST;
+      case "required":
+        return ClientAuth.REQUIRED;
+      default:
+        throw new ConfigException(
+            "Invalid value for %s (%s) should be one of 'none', 'request' or 'required'",
+            ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, val);
+    }
   }
 
 

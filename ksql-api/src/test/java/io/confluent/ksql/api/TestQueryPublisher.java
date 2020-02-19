@@ -79,4 +79,9 @@ public class TestQueryPublisher extends BasePublisher<GenericRow> implements Que
     return rowGenerator.getColumnTypes();
   }
 
+  @Override
+  public boolean isPullQuery() {
+    return !push;
+  }
+
 }

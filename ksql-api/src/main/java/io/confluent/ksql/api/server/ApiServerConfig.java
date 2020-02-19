@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.common.config.AbstractConfig;
-import io.confluent.common.config.ConfigDef;
-import io.confluent.common.config.ConfigDef.Importance;
-import io.confluent.common.config.ConfigDef.Type;
+import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
+import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
 
 /**
  * Config for the API server
@@ -68,14 +71,19 @@ public class ApiServerConfig extends AbstractConfig {
       "Password for client trust store";
 
   public static final String TLS_CLIENT_AUTH_REQUIRED = propertyName("tls.client.auth.required");
-  public static final boolean DEFAULT_TLS_CLIENT_AUTH_REQUIRED = false;
+  public static final String DEFAULT_TLS_CLIENT_AUTH_REQUIRED = "none";
   public static final String TLS_CLIENT_AUTH_REQUIRED_DOC =
-      "Is client auth required?";
+      "Is client auth required? One of none, request or required";
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =
       "Max number of worker threads for executing blocking code";
   public static final int DEFAULT_WORKER_POOL_SIZE = 100;
+
+  public static final String MAX_PUSH_QUERIES = propertyName("max.push.queries");
+  public static final int DEFAULT_MAX_PUSH_QUERIES = 100;
+  public static final String MAX_PUSH_QUERIES_DOC =
+      "The maximum number of push queries allowed on the server at any one time";
 
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
@@ -86,6 +94,7 @@ public class ApiServerConfig extends AbstractConfig {
           VERTICLE_INSTANCES,
           Type.INT,
           DEFAULT_VERTICLE_INSTANCES,
+          oneOrMore(),
           Importance.MEDIUM,
           VERTICLE_INSTANCES_DOC)
       .define(
@@ -98,6 +107,7 @@ public class ApiServerConfig extends AbstractConfig {
           LISTEN_PORT,
           Type.INT,
           DEFAULT_LISTEN_PORT,
+          zeroOrPositive(),
           Importance.MEDIUM,
           LISTEN_PORT_DOC)
       .define(
@@ -132,7 +142,7 @@ public class ApiServerConfig extends AbstractConfig {
           TLS_TRUST_STORE_PASSWORD_DOC)
       .define(
           TLS_CLIENT_AUTH_REQUIRED,
-          Type.BOOLEAN,
+          Type.STRING,
           DEFAULT_TLS_CLIENT_AUTH_REQUIRED,
           Importance.MEDIUM,
           TLS_CLIENT_AUTH_REQUIRED_DOC)
@@ -140,11 +150,20 @@ public class ApiServerConfig extends AbstractConfig {
           WORKER_POOL_SIZE,
           Type.INT,
           DEFAULT_WORKER_POOL_SIZE,
+          zeroOrPositive(),
           Importance.MEDIUM,
-          WORKER_POOL_DOC);
+          WORKER_POOL_DOC)
+      .define(
+          MAX_PUSH_QUERIES,
+          Type.INT,
+          DEFAULT_MAX_PUSH_QUERIES,
+          zeroOrPositive(),
+          Importance.MEDIUM,
+          MAX_PUSH_QUERIES_DOC);
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);
   }
+
 
 }

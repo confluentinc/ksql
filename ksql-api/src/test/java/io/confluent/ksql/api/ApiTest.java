@@ -28,102 +28,33 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.impl.VertxCompletableFuture;
-import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.PushQueryId;
-import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ApiTest {
+public class ApiTest extends BaseApiTest {
 
   private static final Logger log = LoggerFactory.getLogger(ApiTest.class);
-
-  private static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
-      .add("male");
-  private static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INT")
-      .add("BOOLEAN");
-  private static final List<JsonArray> DEFAULT_ROWS = generateRows();
-  private static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES = new JsonObject()
-      .put("prop1", "val1").put("prop2", 23);
-  private static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey='1234';";
-  private static final String DEFAULT_PUSH_QUERY = "select * from foo emit changes;";
-  private static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_BODY = new JsonObject()
-      .put("sql", DEFAULT_PUSH_QUERY)
-      .put("properties", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
-
-  protected Vertx vertx;
-  protected WebClient client;
-  private Server server;
-  private TestEndpoints testEndpoints;
-
-  @Before
-  public void setUp() {
-
-    vertx = Vertx.vertx();
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-
-    testEndpoints = new TestEndpoints();
-    ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, testEndpoints);
-    server.start();
-    this.client = createClient();
-    setDefaultRowGenerator();
-  }
-
-  @After
-  public void tearDown() {
-    if (client != null) {
-      client.close();
-    }
-    if (server != null) {
-      server.stop();
-    }
-  }
-
-  protected ApiServerConfig createServerConfig() {
-    final Map<String, Object> config = new HashMap<>();
-    config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 8089);
-    config.put("ksql.apiserver.tls.enabled", false);
-    config.put("ksql.apiserver.verticle.instances", 4);
-
-    return new ApiServerConfig(config);
-  }
-
-  protected WebClientOptions createClientOptions() {
-    return new WebClientOptions()
-        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
-  }
-
-  private WebClient createClient() {
-    return WebClient.create(vertx, createClientOptions());
-  }
 
   @Test
   public void shouldExecutePullQuery() throws Exception {
@@ -147,8 +78,7 @@ public class ApiTest {
     assertThat(queryResponse.rows, is(DEFAULT_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
-    assertThat(queryId, is(notNullValue()));
-    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(false));
+    assertThat(queryId, is(nullValue()));
   }
 
   @Test
@@ -897,44 +827,6 @@ public class ApiTest {
         queryResponse.responseObject);
   }
 
-  private QueryResponse executePushQueryAndWaitForRows(final JsonObject requestBody)
-      throws Exception {
-    return executePushQueryAndWaitForRows(client, requestBody);
-  }
-
-  private QueryResponse executePushQueryAndWaitForRows(final WebClient client,
-      final JsonObject requestBody)
-      throws Exception {
-
-    ReceiveStream writeStream = new ReceiveStream(vertx);
-
-    client.post(8089, "localhost", "/query-stream")
-        .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(requestBody, ar -> {
-        });
-
-    // Wait for all rows to arrive
-    assertThatEventually(() -> {
-      try {
-        Buffer buff = writeStream.getBody();
-        QueryResponse queryResponse = new QueryResponse(buff.toString());
-        return queryResponse.rows.size();
-      } catch (Throwable t) {
-        return Integer.MAX_VALUE;
-      }
-    }, is(DEFAULT_ROWS.size()));
-
-    // Note, the response hasn't ended at this point
-    assertThat(writeStream.isEnded(), is(false));
-
-    return new QueryResponse(writeStream.getBody().toString());
-  }
-
-  private static void validateError(final int errorCode, final String message,
-      final JsonObject error) {
-    assertThat(error.size(), is(3));
-    validateErrorCommon(errorCode, message, error);
-  }
 
   private static void validateInsertStreamError(final int errorCode, final String message,
       final JsonObject error, final long sequence) {
@@ -943,27 +835,6 @@ public class ApiTest {
     assertThat(error.getLong("seq"), is(sequence));
   }
 
-  private static void validateErrorCommon(final int errorCode, final String message,
-      final JsonObject error) {
-    assertThat(error.getString("status"), is("error"));
-    assertThat(error.getInteger("errorCode"), is(errorCode));
-    assertThat(error.getString("message"), is(message));
-  }
-
-  private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
-      throws Exception {
-    return sendRequest(client, uri, requestBody);
-  }
-
-  private HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
-      final Buffer requestBody)
-      throws Exception {
-    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-    client
-        .post(8089, "localhost", uri)
-        .sendBuffer(requestBody, requestFuture);
-    return requestFuture.get();
-  }
 
   @SuppressWarnings("unchecked")
   private void setDefaultRowGenerator() {

@@ -54,4 +54,9 @@ public class PullQueryPublisher extends BufferedPublisher<GenericRow> implements
   public List<String> getColumnTypes() {
     return columnTypes;
   }
+
+  @Override
+  public boolean isPullQuery() {
+    return true;
+  }
 }

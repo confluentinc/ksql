@@ -120,6 +120,11 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
   }
 
   @Override
+  public boolean isPullQuery() {
+    return false;
+  }
+
+  @Override
   protected void maybeSend() {
     ctx.runOnContext(v -> doSend());
   }

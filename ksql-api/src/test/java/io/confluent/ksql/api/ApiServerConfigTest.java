@@ -38,7 +38,7 @@ public class ApiServerConfigTest {
     map.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, "ewfwef");
     map.put(ApiServerConfig.TLS_TRUST_STORE_PATH, "wefewf");
     map.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD, "ergerg");
-    map.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, true);
+    map.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, "request");
 
     // When:
     ApiServerConfig config = new ApiServerConfig(map);
@@ -52,7 +52,7 @@ public class ApiServerConfigTest {
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is("ewfwef"));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is("wefewf"));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD), is("ergerg"));
-    assertThat(config.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is(true));
+    assertThat(config.getString(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is("request"));
   }
 
   @Test
@@ -74,6 +74,6 @@ public class ApiServerConfigTest {
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is(""));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PATH), is(""));
     assertThat(config.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD), is(""));
-    assertThat(config.getBoolean(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is(false));
+    assertThat(config.getString(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED), is("none"));
   }
 }

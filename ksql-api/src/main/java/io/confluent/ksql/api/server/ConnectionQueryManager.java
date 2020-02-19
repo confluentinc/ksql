@@ -45,6 +45,7 @@ public class ConnectionQueryManager {
     final ConnectionQueries connectionQueries = getConnectionQueries(request);
     final PushQueryHolder query = new PushQueryHolder(server,
         queryPublisher, connectionQueries::removeQuery);
+    server.registerQuery(query);
     connectionQueries.addQuery(query);
     return query;
   }

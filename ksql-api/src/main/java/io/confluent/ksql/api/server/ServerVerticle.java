@@ -20,12 +20,12 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,16 +40,14 @@ public class ServerVerticle extends AbstractVerticle {
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
   private final Server server;
-  private final WorkerExecutor workerExecutor;
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
-      final Server server, final WorkerExecutor workerExecutor) {
-    this.endpoints = endpoints;
-    this.httpServerOptions = httpServerOptions;
-    this.server = server;
-    this.workerExecutor = workerExecutor;
+      final Server server) {
+    this.endpoints = Objects.requireNonNull(endpoints);
+    this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
+    this.server = Objects.requireNonNull(server);
   }
 
   @Override
@@ -79,11 +77,11 @@ public class ServerVerticle extends AbstractVerticle {
         .produces("application/json")
         .handler(BodyHandler.create())
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context,
-            workerExecutor));
+            server));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")
-        .handler(new InsertsStreamHandler(context, endpoints, workerExecutor));
+        .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
     router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
     return router;

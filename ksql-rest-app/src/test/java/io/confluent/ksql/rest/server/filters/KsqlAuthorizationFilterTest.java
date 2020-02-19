@@ -133,7 +133,7 @@ public class KsqlAuthorizationFilterTest {
   ) {
     when(securityContext.getUserPrincipal()).thenReturn(principal);
 
-    final ContainerRequest requestContext = new ContainerRequest(
+    return new ContainerRequest(
         URI.create(""),
         URI.create(path),
         method,
@@ -141,7 +141,5 @@ public class KsqlAuthorizationFilterTest {
         mock(PropertiesDelegate.class),
         null
     );
-
-    return requestContext;
   }
 }

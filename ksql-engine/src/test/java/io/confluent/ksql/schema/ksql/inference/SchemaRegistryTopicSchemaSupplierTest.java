@@ -104,7 +104,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Avro schema for message values on topic " + TOPIC_NAME
+        "Schema for message values on topic " + TOPIC_NAME
             + " does not exist in the Schema Registry."));
   }
 
@@ -121,7 +121,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Avro schema for message values on topic " + TOPIC_NAME
+        "Schema for message values on topic " + TOPIC_NAME
             + " does not exist in the Schema Registry."));
   }
 
@@ -138,7 +138,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Avro schema for message values on topic " + TOPIC_NAME
+        "Schema for message values on topic " + TOPIC_NAME
             + " does not exist in the Schema Registry."));
   }
 
@@ -155,7 +155,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Avro schema for message values on topic " + TOPIC_NAME
+        "Schema for message values on topic " + TOPIC_NAME
             + " does not exist in the Schema Registry."));
   }
 

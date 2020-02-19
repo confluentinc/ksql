@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -119,7 +120,8 @@ public class KsqlSchemaRegistryClientFactory {
     return schemaRegistryClientFactory.create(
         restService,
         1000,
-        ImmutableList.of(new AvroSchemaProvider(), new ProtobufSchemaProvider()),
+        ImmutableList.of(
+            new AvroSchemaProvider(), new ProtobufSchemaProvider(), new JsonSchemaProvider()),
         schemaRegistryClientConfigs,
         httpHeaders
     );

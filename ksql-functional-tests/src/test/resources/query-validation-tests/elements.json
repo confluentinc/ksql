@@ -2,7 +2,7 @@
   "tests": [
     {
       "name": "validate without elements FAILS",
-      "format": ["DELIMITED", "JSON", "KAFKA"],
+      "format": ["DELIMITED", "KAFKA"],
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='{FORMAT}');"
       ],
@@ -33,6 +33,27 @@
         {
           "name": "OUTPUT",
           "format": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate without elements OK - JSON SCHEMA",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "format": "JSON"
+        },
+        {
+          "name": "OUTPUT",
+          "format": "JSON",
           "partitions": 4
         }
       ],

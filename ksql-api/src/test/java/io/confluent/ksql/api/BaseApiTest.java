@@ -122,7 +122,8 @@ public class BaseApiTest {
     return new WebClientOptions()
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
         .setDefaultHost("localhost")
-        .setDefaultPort(serverPort);
+        .setDefaultPort(serverPort)
+        .setReusePort(true);
   }
 
   protected WebClient createClient() {

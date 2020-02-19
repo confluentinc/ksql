@@ -303,7 +303,7 @@ public class ApiTest extends BaseApiTest {
 
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     // Make the request to stream a query
-    client.post(8089, "localhost", "/query-stream")
+    client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture);
 
@@ -444,7 +444,7 @@ public class ApiTest extends BaseApiTest {
     // When
 
     // Make an HTTP request but keep the request body and response streams open
-    client.post(8089, "localhost", "/inserts-stream")
+    client.post("/inserts-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendStream(readStream, fut);
 
@@ -606,7 +606,7 @@ public class ApiTest extends BaseApiTest {
 
     // When
     client
-        .post(8089, "localhost", "/no-such-endpoint")
+        .post("/no-such-endpoint")
         .sendBuffer(Buffer.buffer(), requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
@@ -620,7 +620,7 @@ public class ApiTest extends BaseApiTest {
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/query-stream")
+        .post("/query-stream")
         .putHeader("accept", "blahblah")
         .sendBuffer(Buffer.buffer(), requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
@@ -635,7 +635,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/query-stream")
+        .post("/query-stream")
         .sendBuffer(requestBody.toBuffer(), requestFuture);
 
     // Then
@@ -652,7 +652,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/query-stream")
+        .post("/query-stream")
         .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
         .sendBuffer(requestBody.toBuffer(), requestFuture);
 
@@ -670,7 +670,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/query-stream")
+        .post("/query-stream")
         .putHeader("accept", "application/json")
         .sendBuffer(requestBody.toBuffer(), requestFuture);
 
@@ -698,7 +698,7 @@ public class ApiTest extends BaseApiTest {
     }
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/inserts-stream")
+        .post("/inserts-stream")
         .sendBuffer(requestBody, requestFuture);
 
     // Then
@@ -724,7 +724,7 @@ public class ApiTest extends BaseApiTest {
     }
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/inserts-stream")
+        .post("/inserts-stream")
         .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
         .sendBuffer(requestBody, requestFuture);
 
@@ -751,7 +751,7 @@ public class ApiTest extends BaseApiTest {
     }
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", "/inserts-stream")
+        .post("/inserts-stream")
         .putHeader("accept", "application/json")
         .sendBuffer(requestBody, requestFuture);
 
@@ -773,7 +773,7 @@ public class ApiTest extends BaseApiTest {
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", uri)
+        .post(uri)
         .sendBuffer(requestBody, requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 

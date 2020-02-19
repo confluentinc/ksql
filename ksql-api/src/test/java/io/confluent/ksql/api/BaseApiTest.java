@@ -35,6 +35,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,19 +66,26 @@ public class BaseApiTest {
   protected WebClient client;
   protected Server server;
   protected TestEndpoints testEndpoints;
+  protected int serverPort;
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
 
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     testEndpoints = new TestEndpoints();
+    serverPort = getFreePort();
     ApiServerConfig serverConfig = createServerConfig();
     server = new Server(vertx, serverConfig, testEndpoints);
     server.start();
     this.client = createClient();
     setDefaultRowGenerator();
+  }
+
+  private int getFreePort() throws Exception {
+    ServerSocket socket = new ServerSocket(0);
+    return socket.getLocalPort();
   }
 
   @After
@@ -96,7 +104,7 @@ public class BaseApiTest {
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 8089);
+    config.put("ksql.apiserver.listen.port", serverPort);
     config.put("ksql.apiserver.tls.enabled", false);
     config.put("ksql.apiserver.verticle.instances", 4);
 
@@ -105,7 +113,9 @@ public class BaseApiTest {
 
   protected WebClientOptions createClientOptions() {
     return new WebClientOptions()
-        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
+        .setDefaultHost("localhost")
+        .setDefaultPort(serverPort);
   }
 
   protected WebClient createClient() {
@@ -123,7 +133,7 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    client.post(8089, "localhost", "/query-stream")
+    client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendJsonObject(requestBody, ar -> {
         });
@@ -156,7 +166,7 @@ public class BaseApiTest {
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", uri)
+        .post(uri)
         .sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }

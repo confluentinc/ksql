@@ -28,16 +28,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
@@ -50,9 +56,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class KsqlJsonSerializerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -124,10 +133,22 @@ public class KsqlJsonSerializerTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private KsqlJsonSerializer serializer;
+  @Parameters
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][]{{false}, {true}});
+  }
+
+  @Parameter
+  public boolean useSchemas;
+
+  private KsqlConfig config;
+  private SchemaRegistryClient srClient;
+  private Serializer<Object> serializer;
 
   @Before
   public void before() {
+    config = new KsqlConfig(ImmutableMap.of());
+    srClient = new MockSchemaRegistryClient();
     givenSerializerForSchema(ORDER_SCHEMA);
   }
 
@@ -159,6 +180,10 @@ public class KsqlJsonSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
 
     // Then:
+    final String mapCol = useSchemas
+        ? "[{\"key\":\"key1\",\"value\":100.0}]"
+        : "{\"key1\":100.0}";
+
     assertThat(asJsonString(bytes), equalTo(
         "{"
             + "\"ORDERTIME\":1511897796092,"
@@ -166,7 +191,7 @@ public class KsqlJsonSerializerTest {
             + "\"ITEMID\":\"item_1\","
             + "\"ORDERUNITS\":10.0,"
             + "\"ARRAYCOL\":[100.0],"
-            + "\"MAPCOL\":{\"key1\":100.0},"
+            + "\"MAPCOL\":" + mapCol + ","
             + "\"DECIMALCOL\":1.12345"
             + "}"));
   }
@@ -192,7 +217,10 @@ public class KsqlJsonSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
 
     // Then:
-    final JsonNode jsonNode = OBJECT_MAPPER.readTree(bytes);
+    final JsonNode jsonNode = useSchemas
+        ? OBJECT_MAPPER.readTree(JsonSerdeUtils.asStandardJson(bytes))
+        : OBJECT_MAPPER.readTree(bytes);
+
     assertThat(jsonNode.size(), equalTo(7));
     assertThat(jsonNode.get("ordertime").asLong(), is(1234567L));
     assertThat(jsonNode.get("itemid").get("NAME").asText(), is("Item_10"));
@@ -286,6 +314,18 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     assertThat(asJsonString(bytes), is("62.0"));
+  }
+
+  @Test
+  public void shouldSerializeDecimal() {
+    // Given:
+    givenSerializerForSchema(DecimalUtil.builder(20, 19).build());
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, new BigDecimal("1.234567890123456789"));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("1.234567890123456789"));
   }
 
   @Test
@@ -389,7 +429,11 @@ public class KsqlJsonSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", 1, "b", 2));
 
     // Then:
-    assertThat(asJsonString(bytes), is("{\"a\":1,\"b\":2}"));
+    if (useSchemas) {
+      assertThat(asJsonString(bytes), is("[{\"key\":\"a\",\"value\":1},{\"key\":\"b\",\"value\":2}]"));
+    } else {
+      assertThat(asJsonString(bytes), is("{\"a\":1,\"b\":2}"));
+    }
   }
 
   @Test
@@ -462,7 +506,7 @@ public class KsqlJsonSerializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonSerializer(physicalSchema);
+    new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null);
   }
 
   @Test
@@ -487,7 +531,7 @@ public class KsqlJsonSerializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonSerializer(physicalSchema);
+    new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null);
   }
 
   @Test
@@ -552,8 +596,12 @@ public class KsqlJsonSerializerTest {
     }
   }
 
-  private static String asJsonString(final byte[] bytes) {
-    return new String(bytes, StandardCharsets.UTF_8);
+  private String asJsonString(final byte[] bytes) {
+    if (useSchemas) {
+      return new String(Arrays.copyOfRange(bytes, 5, bytes.length), StandardCharsets.UTF_8);
+    } else {
+      return new String(bytes, StandardCharsets.UTF_8);
+    }
   }
 
   private static Struct buildWithNestedStruct() {
@@ -602,6 +650,8 @@ public class KsqlJsonSerializerTest {
     final PersistenceSchema persistenceSchema = PersistenceSchema
         .from((ConnectSchema) ksqlSchema, unwrap);
 
-    serializer = new KsqlJsonSerializer(persistenceSchema);
+    serializer = new KsqlJsonSerdeFactory(useSchemas)
+        .createSerde(persistenceSchema, config, () -> srClient)
+        .serializer();
   }
 }

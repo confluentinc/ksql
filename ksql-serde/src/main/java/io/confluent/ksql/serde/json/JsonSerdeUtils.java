@@ -23,12 +23,57 @@ import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.util.KsqlException;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
-final class JsonSerdeUtils {
+public final class JsonSerdeUtils {
+
+  // the JsonSchemaConverter adds a magic NULL byte and 4 bytes for the
+  // schema ID at the start of the message
+  private static final int SIZE_OF_SR_PREFIX = Byte.BYTES + Integer.BYTES;
 
   private JsonSerdeUtils() {
+  }
+
+  /**
+   * Converts {@code jsonWithMagic} into an {@link InputStream} that represents
+   * standard JSON encoding.
+   *
+   * @param jsonWithMagic the serialized JSON
+   * @return the corresponding input stream
+   * @throws io.confluent.ksql.util.KsqlException If the input is not encoded
+   *         using the schema registry format (first byte magic byte, then
+   *         four bytes for the schemaID).
+   */
+  public static InputStream asStandardJson(@Nonnull final byte[] jsonWithMagic) {
+    if (!hasMagicByte(jsonWithMagic)) {
+      // don't log contents of jsonWithMagic to avoid leaking data into the logs
+      throw new KsqlException(
+          "Got unexpected JSON serialization format that did not start with the magic byte. If "
+              + "this stream was not serialized using the JsonSchemaConverter, then make sure "
+              + "the stream is declared with JSON_SR format (not JSON).");
+    }
+
+    return new ByteArrayInputStream(
+        jsonWithMagic,
+        SIZE_OF_SR_PREFIX,
+        jsonWithMagic.length - SIZE_OF_SR_PREFIX
+    );
+  }
+
+  /**
+   * @param json the serialized JSON
+   * @return whether or not this JSON contains the magic schema registry byte
+   */
+  static boolean hasMagicByte(@Nonnull final byte[] json) {
+    // (https://tools.ietf.org/html/rfc7159#section-2) valid JSON should not
+    // start with 0x00 - the only "insignificant" characters allowed are
+    // 0x20, 0x09, 0x0A and 0x0D
+    return json.length > 0 && json[0] == 0x00;
   }
 
   static PersistenceSchema validateSchema(final PersistenceSchema schema) {

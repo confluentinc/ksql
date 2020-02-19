@@ -237,6 +237,31 @@ public class JsonSerdeUtilsTest {
     ));
   }
 
+  @Test
+  public void shouldSetCorrectOffsetWithMagicByte() throws IOException {
+    // Given:
+    byte[] json = new byte[]{/* magic */ 0x00, /* id */ 0x00, 0x00, 0x00, 0x01, /* data */ 0x01};
+
+    // When:
+    final InputStream inputStream = JsonSerdeUtils.asStandardJson(json);
+    final int read = inputStream.read();
+
+    // Then:
+    assertThat(read, is(0x01));
+  }
+
+  @Test()
+  public void shouldThrowOnStandardJsonConversion() throws IOException {
+    // Given:
+    byte[] json = new byte[]{/* data */ 0x01};
+
+    // Expect:
+    expectedException.expectMessage("Got unexpected JSON serialization format that did not start with the magic byte");
+
+    // When:
+    JsonSerdeUtils.asStandardJson(json);
+  }
+
   private static PersistenceSchema persistenceSchema(final Schema schema) {
     return PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder.struct()

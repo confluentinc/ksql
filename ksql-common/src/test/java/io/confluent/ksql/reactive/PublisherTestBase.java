@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api;
+package io.confluent.ksql.reactive;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,12 +24,12 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-import io.confluent.ksql.api.utils.TestUtils;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -191,7 +191,7 @@ public abstract class PublisherTestBase<T> {
       action.run();
       latch.countDown();
     });
-    TestUtils.awaitLatch(latch);
+    awaitLatch(latch);
   }
 
   protected void shouldDeliver(int numRequested, int numDelivered) throws Exception {
@@ -211,6 +211,9 @@ public abstract class PublisherTestBase<T> {
     assertThat(subscriber.getError(), is(nullValue()));
   }
 
+  protected static void awaitLatch(CountDownLatch latch) throws Exception {
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+  }
 
   protected static class TestSubscriber<T> implements Subscriber<T> {
 

@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.plugin;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
@@ -43,6 +42,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -89,7 +89,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor) {
 
     // Must be run on worker as all this stuff is slow
-    Utils.checkIsWorker();
+    VertxUtils.checkIsWorker();
 
     properties.put("auto.offset.reset", "earliest");
 
@@ -184,7 +184,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final JsonObject properties,
       final Subscriber<InsertResult> acksSubscriber, final Context context,
       final WorkerExecutor workerExecutor) {
-    Utils.checkIsWorker();
+    VertxUtils.checkIsWorker();
     final ServiceContext serviceContext = createServiceContext(new DummyPrincipal());
     final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));

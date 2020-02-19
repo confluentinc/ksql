@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.ErrorCodes.ERROR_CODE_INTERNAL_ERROR;
 
 import io.confluent.ksql.api.server.protocol.InsertAck;
 import io.confluent.ksql.api.server.protocol.InsertError;
+import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;

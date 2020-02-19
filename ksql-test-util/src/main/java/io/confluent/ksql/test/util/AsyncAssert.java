@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.utils;
+package io.confluent.ksql.test.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -23,8 +23,7 @@ public class AsyncAssert {
 
   private AssertionError error;
 
-  public synchronized <T> void assertAsync(T t,
-      Matcher<? super T> expected) {
+  public synchronized <T> void assertAsync(final T t, final Matcher<? super T> expected) {
     try {
       assertThat(t, expected);
     } catch (AssertionError e) {

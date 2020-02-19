@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api;
+package io.confluent.ksql.reactive;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,9 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
 
-import io.confluent.ksql.api.server.BufferedPublisher;
-import io.confluent.ksql.api.utils.AsyncAssert;
-import io.confluent.ksql.api.utils.TestUtils;
+import io.confluent.ksql.test.util.AsyncAssert;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
@@ -64,7 +62,7 @@ public class BufferedPublisherTest extends PublisherTestBase<String> {
         latch.countDown();
       }
     });
-    TestUtils.awaitLatch(latch);
+    awaitLatch(latch);
   }
 
   @Test

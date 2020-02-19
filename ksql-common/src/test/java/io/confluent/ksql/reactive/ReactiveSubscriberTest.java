@@ -13,17 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api;
+package io.confluent.ksql.reactive;
 
-import static io.confluent.ksql.api.utils.TestUtils.awaitLatch;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.api.server.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.Before;
@@ -87,7 +86,7 @@ public class ReactiveSubscriberTest {
     assertThatEventually(afterSubScribeCalled::get, is(true));
     subscriber.onNext("record0");
     subscriber.onComplete();
-    awaitLatch(latch);
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
     assertThat(wrongContext.get(), is(false));
     assertThat(handleValueCalled.get(), is(true));
   }
@@ -146,6 +145,10 @@ public class ReactiveSubscriberTest {
     if (Vertx.currentContext() != context) {
       wrongContext.set(true);
     }
+  }
+
+  protected static void awaitLatch(CountDownLatch latch) throws Exception {
+    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
   }
 
   private static class TestSubscription implements Subscription {

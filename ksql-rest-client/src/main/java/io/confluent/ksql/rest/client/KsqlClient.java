@@ -22,12 +22,18 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.SocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.WebTarget;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
 public final class KsqlClient implements AutoCloseable {
@@ -38,37 +44,85 @@ public final class KsqlClient implements AutoCloseable {
     JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule(false));
   }
 
-  private final Client httpClient;
+  private final Vertx vertx;
+  private final HttpClient httpClient;
   private final LocalProperties localProperties;
+  private final Optional<String> basicAuthHeader;
+  private final boolean isTls;
 
   public KsqlClient(
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties
   ) {
-    this(HttpClientBuilder.buildClient(clientProps), credentials, localProperties);
+    this(clientProps, credentials, localProperties, new HttpClientOptions());
+  }
+
+  public KsqlClient(
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions
+  ) {
+    this.localProperties = requireNonNull(localProperties, "localProperties");
+    this.basicAuthHeader = createBasicAuthHeader(
+        Objects.requireNonNull(credentials, "credentials"));
+    this.vertx = Vertx.vertx();
+    final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    if (trustStoreLocation != null) {
+      httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
+          .setPassword(clientProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)));
+      final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+      if (keyStoreLocation != null) {
+        httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
+            .setPassword(clientProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+      }
+      httpClientOptions.setSsl(true);
+      this.isTls = true;
+    } else {
+      this.isTls = false;
+    }
+    this.httpClient = vertx.createHttpClient(httpClientOptions);
   }
 
   @VisibleForTesting
   KsqlClient(
-      final Client httpClient,
+      final HttpClient httpClient,
+      final boolean isTls,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties
   ) {
-    this.httpClient = requireNonNull(httpClient, "httpClient");
-    this.localProperties = requireNonNull(localProperties, "localProperties");
-
-    credentials.ifPresent(creds -> {
-      httpClient.register(HttpAuthenticationFeature.basic(creds.username(), creds.password()));
-    });
+    this.vertx = null;
+    this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+    this.isTls = isTls;
+    this.basicAuthHeader = createBasicAuthHeader(
+        Objects.requireNonNull(credentials, "credentials"));
+    this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
   }
 
   public KsqlTarget target(final URI server) {
-    final WebTarget target = httpClient.target(server);
-    return new KsqlTarget(target, localProperties, Optional.empty());
+    final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
+    if (isTls != isUriTls) {
+      throw new KsqlRestClientException("Cannot make request with scheme " + server.getScheme()
+          + " as client is configured " + (isTls ? "with" : "without") + " tls");
+    }
+    return new KsqlTarget(httpClient,
+        SocketAddress.inetSocketAddress(server.getPort(), server.getHost()), localProperties,
+        basicAuthHeader);
   }
 
   public void close() {
     httpClient.close();
+    if (vertx != null) {
+      vertx.close();
+    }
+  }
+
+  private static Optional<String> createBasicAuthHeader(
+      final Optional<BasicCredentials> credentials) {
+    return credentials.map(basicCredentials -> "Basic " + Base64.getEncoder()
+        .encodeToString((basicCredentials.username()
+            + ":" + basicCredentials.password()).getBytes(StandardCharsets.UTF_8))
+    );
   }
 }

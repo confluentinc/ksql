@@ -16,8 +16,8 @@
 package io.confluent.ksql.api.plugin;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import java.util.ArrayList;
 import java.util.List;

@@ -322,11 +322,11 @@ public final class TestExecutorUtil {
     ) {
       this.statements = requireNonNull(statements, "statements");
       this.executionContext = requireNonNull(executionContext, "executionContext");
-      this.sessionProperties = 
+      this.sessionProperties =
           new SessionProperties(
               requireNonNull(overrides, "overrides"),
               new KsqlHostInfo("host", 50),
-              buildURL());
+              buildUrl());
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
       this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
       this.schemaInjector = requireNonNull(schemaInjector, "schemaInjector");
@@ -472,7 +472,7 @@ public final class TestExecutorUtil {
     }
   }
 
-  private static URL buildURL() {
+  private static URL buildUrl() {
     try {
       return new URL("https://someHost:9876");
     } catch (final MalformedURLException e) {

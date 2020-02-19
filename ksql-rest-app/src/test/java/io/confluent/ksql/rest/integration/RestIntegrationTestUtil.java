@@ -15,14 +15,11 @@
 
 package io.confluent.ksql.rest.integration;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
@@ -92,17 +89,12 @@ public final class RestIntegrationTestUtil {
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
-      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
+      final RestResponse<List<StreamedRow>> res =
+          restClient.makeQueryRequest(sql, null, properties);
 
       throwOnError(res);
 
-      final QueryStream s = res.getResponse();
-
-      final Builder<StreamedRow> builder = ImmutableList.builder();
-      while (s.hasNext()) {
-        builder.add(s.next());
-      }
-      return builder.build();
+      return res.getResponse();
     }
   }
 
@@ -114,7 +106,8 @@ public final class RestIntegrationTestUtil {
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
-      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
+      final RestResponse<List<StreamedRow>> res =
+          restClient.makeQueryRequest(sql, null, properties);
 
       throwOnNoError(res);
 

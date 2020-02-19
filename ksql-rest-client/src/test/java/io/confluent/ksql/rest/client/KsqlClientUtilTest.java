@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -26,15 +27,20 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.JsonObject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlClientUtilTest {
@@ -43,25 +49,24 @@ public class KsqlClientUtilTest {
   private static final String ERROR_REASON = "something bad";
 
   @Mock
-  private Response response;
+  private ResponseWithBody response;
   @Mock
-  private Function<Response, KsqlEntityList> mapper;
+  private HttpClientResponse httpClientResponse;
+  @Mock
+  private Function<ResponseWithBody, KsqlEntityList> mapper;
   @Mock
   private KsqlEntityList entities;
-  @Mock
-  private KsqlErrorMessage errorMessage;
-  @Mock
-  private Response.StatusType statusInfo;
 
   @Before
   public void setUp() {
+    when(response.getResponse()).thenReturn(httpClientResponse);
     when(mapper.apply(response)).thenReturn(entities);
   }
 
   @Test
   public void shouldCreateRestResponseFromSuccessfulResponse() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.OK.getStatusCode());
+    when(httpClientResponse.statusCode()).thenReturn(Code.OK.getCode());
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -76,8 +81,9 @@ public class KsqlClientUtilTest {
   @Test
   public void shouldCreateRestResponseFromUnsuccessfulResponseWithMessage() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.BAD_REQUEST.getStatusCode());
-    when(response.readEntity(KsqlErrorMessage.class)).thenReturn(errorMessage);
+    KsqlErrorMessage errorMessage = new KsqlErrorMessage(12345, "foobar");
+    when(httpClientResponse.statusCode()).thenReturn(Code.BAD_REQUEST.getCode());
+    when(response.getBody()).thenReturn(KsqlClientUtil.serialize(errorMessage));
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -90,10 +96,11 @@ public class KsqlClientUtilTest {
     verify(mapper, never()).apply(any());
   }
 
+
   @Test
   public void shouldCreateRestResponseFromNotFoundResponse() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.NOT_FOUND.getStatusCode());
+    when(httpClientResponse.statusCode()).thenReturn(Code.NOT_FOUND.getCode());
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -103,13 +110,14 @@ public class KsqlClientUtilTest {
     assertThat("is erroneous", restResponse.isErroneous());
     assertThat(restResponse.getStatusCode(), is(Code.NOT_FOUND));
     assertThat(restResponse.getErrorMessage().getMessage(),
-        containsString("Check your ksql http url to make sure you are connecting to a ksql server"));
+        containsString(
+            "Check your ksql http url to make sure you are connecting to a ksql server"));
   }
 
   @Test
   public void shouldCreateRestResponseFromUnauthorizedResponse() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.UNAUTHORIZED.getStatusCode());
+    when(httpClientResponse.statusCode()).thenReturn(Code.UNAUTHORIZED.getCode());
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -125,7 +133,7 @@ public class KsqlClientUtilTest {
   @Test
   public void shouldCreateRestResponseFromForbiddenResponse() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.FORBIDDEN.getStatusCode());
+    when(httpClientResponse.statusCode()).thenReturn(Code.FORBIDDEN.getCode());
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -141,9 +149,8 @@ public class KsqlClientUtilTest {
   @Test
   public void shouldCreateRestResponseFromUnknownResponse() {
     // Given:
-    when(response.getStatus()).thenReturn(Status.INTERNAL_SERVER_ERROR.getStatusCode());
-    when(response.getStatusInfo()).thenReturn(statusInfo);
-    when(statusInfo.getReasonPhrase()).thenReturn(ERROR_REASON);
+    when(httpClientResponse.statusCode()).thenReturn(Code.INTERNAL_SERVER_ERROR.getCode());
+    when(httpClientResponse.statusMessage()).thenReturn(ERROR_REASON);
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =
@@ -157,4 +164,29 @@ public class KsqlClientUtilTest {
     assertThat(restResponse.getErrorMessage().getMessage(),
         containsString(ERROR_REASON));
   }
+
+  @Test
+  public void shouldSerialiseDeserialise() {
+    // Given:
+    Map<String, Object> props = new HashMap<>();
+    props.put("auto.offset.reset", "latest");
+    KsqlRequest request = new KsqlRequest("some ksql", props, 21345L);
+
+    // When:
+    Buffer buff = KsqlClientUtil.serialize(request);
+
+    // Then:
+    assertThat(buff, is(notNullValue()));
+    String expectedJson = "{\"ksql\":\"some ksql\",\"streamsProperties\":{\"auto.offset.reset\":\""
+        + "latest\"},\"commandSequenceNumber\":21345}";
+    assertThat(new JsonObject(buff), is(new JsonObject(expectedJson)));
+
+    // When:
+    KsqlRequest deserialised = KsqlClientUtil
+        .deserialize(Buffer.buffer(expectedJson), KsqlRequest.class);
+
+    // Then:
+    assertThat(deserialised, is(request));
+  }
+
 }

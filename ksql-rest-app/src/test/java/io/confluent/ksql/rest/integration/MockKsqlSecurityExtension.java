@@ -22,8 +22,9 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public Optional<KsqlAuthorizationProvider> getAuthorizationProvider() {
-    return Optional.of((user, method, path) ->
-        MockKsqlSecurityExtension.provider.checkEndpointAccess(user, method, path));
+    return Optional.of(
+        (user, method, path) -> MockKsqlSecurityExtension.provider
+            .checkEndpointAccess(user, method, path));
   }
 
   @Override

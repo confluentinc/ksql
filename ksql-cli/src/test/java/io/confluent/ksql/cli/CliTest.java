@@ -163,7 +163,6 @@ public class CliTest {
 
   private static KsqlRestClient restClient;
 
-
   private Console console;
   private TestTerminal terminal;
   private TestRowCaptor rowCaptor;
@@ -402,8 +401,9 @@ public class CliTest {
 
     // Then:
     assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: JSON"));
-    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_BIGINT or KAFKA_DOUBLE"));
-    assertThat(terminal.getOutputString(), containsString(","
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Key format: KAFKA_BIGINT or KAFKA_DOUBLE"));
+    assertThatEventually(() -> terminal.getOutputString(), containsString(","
         + " key: 1, "
         + "value: {"
         + "\"ORDERTIME\":1,"
@@ -422,10 +422,12 @@ public class CliTest {
     run("print " + DELIMITED_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
 
     // Then:
-    assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: KAFKA_STRING"));
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Value format: KAFKA_STRING"));
     assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
     assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
-    assertThat(terminal.getOutputString(), containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
+    assertThat(terminal.getOutputString(),
+        containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
   }
 
   @Test

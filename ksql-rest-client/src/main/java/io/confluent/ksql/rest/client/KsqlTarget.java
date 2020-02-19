@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
+import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
@@ -28,27 +30,30 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import java.io.InputStream;
-import java.net.SocketTimeoutException;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import org.glassfish.jersey.client.ClientProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("WeakerAccess") // Public API
 public final class KsqlTarget {
 
-  private static final int MAX_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(32);
+  private static final Logger log = LoggerFactory.getLogger(KsqlTarget.class);
 
   private static final String STATUS_PATH = "/status";
   private static final String KSQL_PATH = "/ksql";
@@ -57,26 +62,32 @@ public final class KsqlTarget {
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
   private static final String LAG_REPORT_PATH = "/lag";
 
-  private final WebTarget target;
+  private final HttpClient httpClient;
+  private final SocketAddress socketAddress;
   private final LocalProperties localProperties;
   private final Optional<String> authHeader;
 
   KsqlTarget(
-      final WebTarget target,
+      final HttpClient httpClient,
+      final SocketAddress socketAddress,
       final LocalProperties localProperties,
       final Optional<String> authHeader
   ) {
-    this.target = requireNonNull(target, "target");
+    this.httpClient = requireNonNull(httpClient, "httpClient");
+    this.socketAddress = requireNonNull(socketAddress, "socketAddress");
     this.localProperties = requireNonNull(localProperties, "localProperties");
     this.authHeader = requireNonNull(authHeader, "authHeader");
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
-    return new KsqlTarget(target, localProperties, Optional.of(authHeader));
+    return new KsqlTarget(httpClient, socketAddress, localProperties,
+        Optional.of(authHeader));
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
-    return new KsqlTarget(target, new LocalProperties(properties), authHeader);
+    return new KsqlTarget(httpClient, socketAddress,
+        new LocalProperties(properties),
+        authHeader);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -87,14 +98,13 @@ public final class KsqlTarget {
     return get("/healthcheck", HealthCheckResponse.class);
   }
 
-  public Future<Response> postAsyncHeartbeatRequest(
+  public void postAsyncHeartbeatRequest(
       final KsqlHostInfoEntity host,
       final long timestamp
   ) {
-    return postAsync(
+    executeRequestAsync(
         HEARTBEAT_PATH,
-        new HeartbeatMessage(host, timestamp),
-        Optional.empty()
+        new HeartbeatMessage(host, timestamp)
     );
   }
 
@@ -102,13 +112,12 @@ public final class KsqlTarget {
     return get(CLUSTERSTATUS_PATH, ClusterStatusResponse.class);
   }
 
-  public Future<Response> postAsyncLagReportingRequest(
+  public void postAsyncLagReportingRequest(
       final LagReportingMessage lagReportingMessage
   ) {
-    return postAsync(
+    executeRequestAsync(
         LAG_REPORT_PATH,
-        lagReportingMessage,
-        Optional.empty()
+        lagReportingMessage
     );
   }
 
@@ -126,40 +135,38 @@ public final class KsqlTarget {
   ) {
     return post(
         KSQL_PATH,
-        ksqlRequest(ksql, previousCommandSeqNum),
-        Optional.empty(),
-        true,
-        r -> r.readEntity(KsqlEntityList.class)
+        createKsqlRequest(ksql, previousCommandSeqNum),
+        r -> deserialize(r.getBody(), KsqlEntityList.class)
     );
   }
 
-  public RestResponse<QueryStream> postQueryRequest(
+  public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
     return post(
         QUERY_PATH,
-        ksqlRequest(ksql, previousCommandSeqNum),
-        Optional.of(QueryStream.READ_TIMEOUT_MS),
-        false,
-        QueryStream::new
+        createKsqlRequest(ksql, previousCommandSeqNum),
+        KsqlTarget::toRows
     );
   }
 
-  public RestResponse<InputStream> postPrintTopicRequest(
+  public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
+      final String sql,
+      final Optional<Long> previousCommandSeqNum
+  ) {
+    return executeQueryRequestWithStreamResponse(sql, previousCommandSeqNum,
+        buff -> deserialize(buff, StreamedRow.class));
+  }
+
+  public RestResponse<StreamPublisher<String>> postPrintTopicRequest(
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return post(
-        QUERY_PATH,
-        ksqlRequest(ksql, previousCommandSeqNum),
-        Optional.empty(),
-        false,
-        r -> (InputStream) r.getEntity()
-    );
+    return executeQueryRequestWithStreamResponse(ksql, previousCommandSeqNum, Object::toString);
   }
 
-  private KsqlRequest ksqlRequest(
+  private KsqlRequest createKsqlRequest(
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
@@ -171,89 +178,123 @@ public final class KsqlTarget {
   }
 
   private <T> RestResponse<T> get(final String path, final Class<T> type) {
-    try (Response response = target
-        .path(path)
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .headers(headers())
-        .get()
-    ) {
-      return KsqlClientUtil.toRestResponse(response, path, r -> r.readEntity(type));
-    } catch (final Exception e) {
-      throw new KsqlRestClientException("Error issuing GET to KSQL server. path:" + path, e);
-    }
+    return executeRequestSync(HttpMethod.GET, path, null, r -> deserialize(r.getBody(), type));
   }
 
   private <T> RestResponse<T> post(
       final String path,
       final Object jsonEntity,
-      final Optional<Integer> readTimeoutMs,
-      final boolean closeResponse,
-      final Function<Response, T> mapper
+      final Function<ResponseWithBody, T> mapper
   ) {
-    Response response = null;
-
-    try {
-      response = target
-          .path(path)
-          .request(MediaType.APPLICATION_JSON_TYPE)
-          .property(ClientProperties.READ_TIMEOUT, readTimeoutMs.orElse(0))
-          .headers(headers())
-          .post(Entity.json(jsonEntity));
-
-      return KsqlClientUtil.toRestResponse(response, path, mapper);
-    } catch (final ProcessingException e) {
-      if (shouldRetry(readTimeoutMs, e)) {
-        return post(path, jsonEntity, calcReadTimeout(readTimeoutMs), closeResponse, mapper);
-      }
-      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
-    } catch (final Exception e) {
-      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
-    } finally {
-      if (response != null && closeResponse) {
-        response.close();
-      }
-    }
+    return executeRequestSync(HttpMethod.POST, path, jsonEntity, mapper);
   }
 
-  private Future<Response> postAsync(
+  private void executeRequestAsync(
       final String path,
-      final Object jsonEntity,
-      final Optional<Integer> readTimeoutMs
+      final Object jsonEntity
   ) {
+    execute(HttpMethod.POST, path, jsonEntity, (resp, vcf) -> {
+    }).exceptionally(t -> {
+      log.error("Unexpected exception in async request", t);
+      return null;
+    });
+  }
+
+  private <T> RestResponse<T> executeRequestSync(
+      final HttpMethod httpMethod,
+      final String path,
+      final Object requestBody,
+      final Function<ResponseWithBody, T> mapper
+  ) {
+    return executeSync(httpMethod, path, requestBody, mapper, (resp, vcf) -> {
+      resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
+    });
+  }
+
+  private <T> RestResponse<StreamPublisher<T>> executeQueryRequestWithStreamResponse(
+      final String ksql,
+      final Optional<Long> previousCommandSeqNum,
+      final Function<Buffer, T> mapper
+  ) {
+    final KsqlRequest ksqlRequest = createKsqlRequest(ksql, previousCommandSeqNum);
+    final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
+    return executeSync(HttpMethod.POST, QUERY_PATH, ksqlRequest, resp -> pubRef.get(),
+        (resp, vcf) -> {
+          if (resp.statusCode() == 200) {
+            pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
+                resp, mapper, vcf));
+            vcf.complete(new ResponseWithBody(resp));
+          } else {
+            resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
+          }
+        });
+  }
+
+  private <T> RestResponse<T> executeSync(
+      final HttpMethod httpMethod,
+      final String path,
+      final Object requestBody,
+      final Function<ResponseWithBody, T> mapper,
+      final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
+  ) {
+    final CompletableFuture<ResponseWithBody> vcf =
+        execute(httpMethod, path, requestBody, responseHandler);
+
+    final ResponseWithBody response;
     try {
-      // Performs an asynchronous request
-      return target
-          .path(path)
-          .request(MediaType.APPLICATION_JSON_TYPE)
-          .property(ClientProperties.READ_TIMEOUT, readTimeoutMs.orElse(0))
-          .headers(headers())
-          .async()
-          .post(Entity.json(jsonEntity));
-    } catch (final ProcessingException e) {
-      if (shouldRetry(readTimeoutMs, e)) {
-        return postAsync(path, jsonEntity, calcReadTimeout(readTimeoutMs));
-      }
-      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
-    } catch (final Exception e) {
-      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
+      response = vcf.get();
+    } catch (Exception e) {
+      throw new KsqlRestClientException("Error issuing GET to KSQL server. path:" + path, e);
     }
+    return KsqlClientUtil.toRestResponse(response, path, mapper);
   }
 
-  private MultivaluedMap<String, Object> headers() {
-    final MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
-    authHeader.ifPresent(v -> headers.add(HttpHeaders.AUTHORIZATION, v));
-    return headers;
-  }
-
-  private static boolean shouldRetry(
-      final Optional<Integer> readTimeoutMs,
-      final ProcessingException e
+  private CompletableFuture<ResponseWithBody> execute(
+      final HttpMethod httpMethod,
+      final String path,
+      final Object requestBody,
+      final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
-    return readTimeoutMs.map(timeout -> timeout < MAX_TIMEOUT).orElse(false)
-        && e.getCause() instanceof SocketTimeoutException;
+    final VertxCompletableFuture<ResponseWithBody> vcf = new VertxCompletableFuture<>();
+
+    final HttpClientRequest httpClientRequest = httpClient.request(httpMethod,
+        socketAddress, socketAddress.port(), socketAddress.host(),
+        path,
+        resp -> responseHandler.accept(resp, vcf))
+        .exceptionHandler(vcf::completeExceptionally);
+
+    httpClientRequest.putHeader("Accept", "application/json");
+    authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
+
+    if (requestBody != null) {
+      httpClientRequest.end(serialize(requestBody));
+    } else {
+      httpClientRequest.end();
+    }
+
+    return vcf;
   }
 
-  private static Optional<Integer> calcReadTimeout(final Optional<Integer> previousTimeoutMs) {
-    return previousTimeoutMs.map(timeout -> Math.min(timeout * 2, MAX_TIMEOUT));
+  private static List<StreamedRow> toRows(final ResponseWithBody resp) {
+
+    final List<StreamedRow> rows = new ArrayList<>();
+    final Buffer buff = resp.getBody();
+    int begin = 0;
+
+    for (int i = 0; i <= buff.length(); i++) {
+      if ((i == buff.length() && (i - begin > 1)) || buff.getByte(i) == (byte) '\n') {
+        if (begin != i) { // Ignore random newlines - the server can send these
+          final Buffer sliced = buff.slice(begin, i);
+          final Buffer tidied = StreamPublisher.toJsonMsg(sliced);
+          final StreamedRow row = deserialize(tidied, StreamedRow.class);
+          rows.add(row);
+        }
+
+        begin = i + 1;
+      }
+    }
+
+    return rows;
   }
+
 }

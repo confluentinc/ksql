@@ -18,13 +18,10 @@ package io.confluent.ksql.rest.server.services;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
-import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -33,6 +30,7 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.vertx.core.http.HttpClientOptions;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +47,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         new KsqlClient(
             ImmutableMap.of(),
             Optional.empty(),
-            new LocalProperties(ImmutableMap.of())
+            new LocalProperties(ImmutableMap.of()),
+            createClientOptions()
         )
     );
   }
@@ -84,21 +83,14 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint)
         .properties(properties);
 
-    final RestResponse<QueryStream> resp = getTarget(target, authHeader)
+    final RestResponse<List<StreamedRow>> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, Optional.empty());
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
     }
 
-    final QueryStream stream = resp.getResponse();
-
-    final Builder<StreamedRow> rows = ImmutableList.builder();
-    while (stream.hasNext()) {
-      rows.add(stream.next());
-    }
-
-    return RestResponse.successful(resp.getStatusCode(), rows.build());
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
   }
 
   @Override
@@ -137,4 +129,9 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .map(target::authorizationHeader)
         .orElse(target);
   }
+
+  private static HttpClientOptions createClientOptions() {
+    return new HttpClientOptions().setMaxPoolSize(100);
+  }
+
 }

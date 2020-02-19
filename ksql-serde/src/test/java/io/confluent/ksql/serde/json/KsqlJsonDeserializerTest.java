@@ -128,20 +128,6 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeJsonObjectCorrectlyWhenSerializedWithMagicByteAndSchemaId() {
-    // Given:
-    final byte[] bytes = ArrayUtils.addAll(
-        new byte[]{0x00, 0x00, 0x00, 0x00, 0x01},
-        serializeJson(AN_ORDER));
-
-    // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(expectedOrder));
-  }
-
-  @Test
   public void shouldIgnoreDeserializeJsonObjectCaseMismatch() {
     // Given:
     final Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()

@@ -93,7 +93,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     try {
       final JsonNode value = bytes == null
           ? null
-          : MAPPER.readTree(JsonSerdeUtils.asInputStream(bytes));
+          : MAPPER.readTree(bytes);
 
       final Object coerced = enforceFieldType(
           "$",

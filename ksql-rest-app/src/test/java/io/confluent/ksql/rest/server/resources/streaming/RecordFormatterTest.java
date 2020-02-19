@@ -35,9 +35,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.Message;
+import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter.Deserializers;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -63,6 +67,8 @@ import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
 import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Window;
@@ -119,6 +125,7 @@ public class RecordFormatterTest {
       // Then:
       assertThat(formatter.getPossibleKeyFormats(), containsInAnyOrder(
           "AVRO", "SESSION(AVRO)", "TUMBLING(AVRO)", "HOPPING(AVRO)",
+          "PROTOBUF", "SESSION(PROTOBUF)", "TUMBLING(PROTOBUF)", "HOPPING(PROTOBUF)",
           "JSON", "SESSION(JSON)", "TUMBLING(JSON)", "HOPPING(JSON)",
           "KAFKA_INT", "SESSION(KAFKA_INT)", "TUMBLING(KAFKA_INT)", "HOPPING(KAFKA_INT)",
           "KAFKA_BIGINT", "SESSION(KAFKA_BIGINT)", "TUMBLING(KAFKA_BIGINT)",
@@ -137,6 +144,7 @@ public class RecordFormatterTest {
       // Then:
       assertThat(formatter.getPossibleValueFormats(), containsInAnyOrder(
           "AVRO",
+          "PROTOBUF",
           "JSON",
           "KAFKA_INT",
           "KAFKA_BIGINT",
@@ -322,6 +330,19 @@ public class RecordFormatterTest {
     private static final Bytes SERIALIZED_SESSION_WINDOWED_AVRO_RECORD = serialize(
         new Windowed<>(AVRO_RECORD, SESSION_WINDOW),
         new SessionWindowedSerializer<>(avroSerializer())
+    );
+
+    private static final ProtobufSchema PROTOBUF_SCHEMA = new ProtobufSchema(
+        "syntax = \"proto3\"; message MyRecord {string str1 = 1; string str2 = 2;}");
+    private static final Message PROTOBUF_RECORD = protobufRecord();
+    private static final Bytes SERIALIZED_PROTOBUF_RECORD = serialize(PROTOBUF_RECORD, protobufSerializer());
+    private static final Bytes SERIALIZED_TIME_WINDOWED_PROTOBUF_RECORD = serialize(
+        new Windowed<>(PROTOBUF_RECORD, TIME_WINDOW),
+        new TimeWindowedSerializer<>(protobufSerializer())
+    );
+    private static final Bytes SERIALIZED_SESSION_WINDOWED_PROTOBUF_RECORD = serialize(
+        new Windowed<>(PROTOBUF_RECORD, SESSION_WINDOW),
+        new SessionWindowedSerializer<>(protobufSerializer())
     );
 
     private static final int KAFKA_INT = 24;
@@ -524,6 +545,95 @@ public class RecordFormatterTest {
 
       // Then:
       assertThat(formatted, is("[{\"str1\": \"My first string\"}@1534567890123/1534567899999]"));
+    }
+
+    @Test
+    public void shouldExcludeProtobufNoSchema() {
+      // Given:
+      // not: givenProtoSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), not(hasItem("PROTOBUF")));
+    }
+
+    @Test
+    public void shouldNotExcludeAvroOnValidProtobuf() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "PROTOBUF"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidProtobuf() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(formatted, is("str1: \"My first string\" str2: \"My second string\""));
+    }
+
+    @Test
+    public void shouldNotExcludeTimeWindowedProtobufOnValidTimeWindowedAvro() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_TIME_WINDOWED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "TUMBLING(PROTOBUF)", "HOPPING(PROTOBUF)"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidTimeWindowedProtobuf() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_TIME_WINDOWED_PROTOBUF_RECORD);
+
+      assertThat(formatted, is("[str1: \"My first string\" str2: \"My second string\"@1234567890123/-]"));
+    }
+
+    @Test
+    public void shouldNotExcludeSessionWindowedProtobufOnValidTimeWindowedAvro() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      deserializers.format(SERIALIZED_SESSION_WINDOWED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), hasItems(
+          "SESSION(PROTOBUF)"
+      ));
+    }
+
+    @Test
+    public void shouldFormatValidSessionWindowedProtobuf() {
+      // Given:
+      givenProtoSchemaRegistered();
+
+      // When:
+      final String formatted = deserializers.format(SERIALIZED_SESSION_WINDOWED_PROTOBUF_RECORD);
+
+      // Then:
+      assertThat(formatted, is("[str1: \"My first string\" str2: \"My second string\"@1534567890123/1534567899999]"));
     }
 
     @Test
@@ -954,6 +1064,14 @@ public class RecordFormatterTest {
       }
     }
 
+    private void givenProtoSchemaRegistered() {
+      try {
+        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(PROTOBUF_SCHEMA);
+      } catch (final Exception e) {
+        fail("invalid test:" + e.getMessage());
+      }
+    }
+
     private static Bytes getBytes(final int size) {
       final byte[] bytes = new byte[size];
       RNG.nextBytes(bytes);
@@ -992,6 +1110,27 @@ public class RecordFormatterTest {
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
       return new KafkaAvroSerializer(schemaRegistryClient, props);
+    }
+
+    private static Message protobufRecord() {
+      final org.apache.kafka.connect.data.Schema schema = SchemaBuilder.struct()
+          .field("str1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+          .field("str2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+          .build();
+      return (Message) new ProtobufData().fromConnectData(
+          schema,
+          new Struct(schema)
+              .put("str1", "My first string")
+              .put("str2", "My second string")
+      ).getValue();
+    }
+
+    private static Serializer<Message> protobufSerializer() {
+      final Map<String, String> props = new HashMap<>();
+      props.put("schema.registry.url", "localhost:9092");
+
+      final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+      return new KafkaProtobufSerializer<Message>(schemaRegistryClient, props);
     }
   }
 

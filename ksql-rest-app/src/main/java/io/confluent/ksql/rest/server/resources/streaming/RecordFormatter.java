@@ -20,8 +20,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -248,7 +251,7 @@ public final class RecordFormatter {
     ) {
       try {
         final Object result = deserializer.deserializer.deserialize(topicName, bytes.get());
-        return Optional.of(result == null ? "<null>" : result.toString());
+        return Optional.of(result == null ? "<null>" : deserializer.format(result));
       } catch (final Exception e) {
         return Optional.empty();
       }
@@ -257,13 +260,13 @@ public final class RecordFormatter {
 
   enum WindowSchema {
 
-    SESSION(SessionWindowedDeserializer::new),
+    SESSION(WindowSchema::newSessionWindowedDeserializer),
     HOPPING(WindowSchema::newTimeWindowedDeserializer),
     TUMBLING(WindowSchema::newTimeWindowedDeserializer);
 
-    private final Function<Deserializer<?>, Deserializer<?>> mapper;
+    private final Function<NamedDeserializer, Deserializer<?>> mapper;
 
-    WindowSchema(final Function<Deserializer<?>, Deserializer<?>> mapper) {
+    WindowSchema(final Function<NamedDeserializer, Deserializer<?>> mapper) {
       this.mapper = requireNonNull(mapper, "mapper");
     }
 
@@ -271,25 +274,45 @@ public final class RecordFormatter {
 
       final String name = name() + "(" + inner.name + ")";
 
-      final Deserializer<?> deserializer = mapper.apply(inner.deserializer);
+      final Deserializer<?> deserializer = mapper.apply(inner);
 
-      return new NamedDeserializer(name, inner.doNotWrap, deserializer);
+      return new NamedDeserializer(name, inner.doNotWrap, deserializer, inner::format);
     }
 
-    private static Deserializer<?> newTimeWindowedDeserializer(final Deserializer<?> inner) {
-      final TimeWindowedDeserializer<?> windowedDeser = new TimeWindowedDeserializer<>(inner);
+    private static Deserializer<?> newSessionWindowedDeserializer(
+        final NamedDeserializer inner
+    ) {
+      final SessionWindowedDeserializer<?> sessionDeser
+          = new SessionWindowedDeserializer<>(inner.deserializer);
+
+      return (topic, data) -> {
+        final Windowed<?> windowed = sessionDeser.deserialize(topic, data);
+        return "[" + inner.format(windowed.key())
+            + "@" + windowed.window().start() + "/" + windowed.window().end() + "]";
+      };
+    }
+
+    private static Deserializer<?> newTimeWindowedDeserializer(
+        final NamedDeserializer inner
+    ) {
+      final TimeWindowedDeserializer<?> windowedDeser
+          = new TimeWindowedDeserializer<>(inner.deserializer);
 
       return (topic, data) -> {
         final Windowed<?> windowed = windowedDeser.deserialize(topic, data);
 
         // Exclude window end time for time-windowed as the end time is not in the serialized data:
-        return "[" + windowed.key() + "@" + windowed.window().start() + "/-]";
+        return "[" + inner.format(windowed.key()) + "@" + windowed.window().start() + "/-]";
       };
     }
   }
 
   enum Format {
-    AVRO(0, KafkaAvroDeserializer::new),
+    AVRO(0, KafkaAvroDeserializer::new, Object::toString),
+    PROTOBUF(
+        0,
+        KafkaProtobufDeserializer::new,
+            o -> TextFormat.printer().shortDebugString((Message) o)),
     JSON(RecordFormatter::newJsonDeserializer),
     KAFKA_INT(IntegerDeserializer::new),
     KAFKA_BIGINT(LongDeserializer::new),
@@ -298,22 +321,25 @@ public final class RecordFormatter {
     UNRECOGNISED_BYTES(BytesDeserializer::new);
 
     private final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory;
+    private Function<Object, String> formatObject;
 
     Format(final Supplier<Deserializer<?>> deserializerFactory) {
-      this(1, srClient -> deserializerFactory.get());
+      this(1, srClient -> deserializerFactory.get(), Object::toString);
     }
 
     @SuppressWarnings("unused")
     Format(
         final int usedOnlyToDifferentiateWhichConstructorIsCalled,
-        final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory
+        final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory,
+        final Function<Object, String> formatObject
     ) {
       this.deserializerFactory = requireNonNull(deserializerFactory, "deserializerFactory");
+      this.formatObject = requireNonNull(formatObject, "formatObject");
     }
 
     NamedDeserializer getDeserializer(final SchemaRegistryClient srClient) {
       final Deserializer<?> deserializer = deserializerFactory.apply(srClient);
-      return new NamedDeserializer(name(), this == UNRECOGNISED_BYTES, deserializer);
+      return new NamedDeserializer(name(), this == UNRECOGNISED_BYTES, deserializer, formatObject);
     }
   }
 
@@ -322,20 +348,30 @@ public final class RecordFormatter {
     final String name;
     final boolean doNotWrap;
     final Deserializer<?> deserializer;
+    private final Function<Object, String> formatObj;
 
     private NamedDeserializer(
         final String name,
         final boolean doNotWrap,
-        final Deserializer<?> deserializer
+        final Deserializer<?> deserializer,
+        final Function<Object, String> formatObj
     ) {
       this.name = requireNonNull(name, "name");
       this.doNotWrap = doNotWrap;
       this.deserializer = requireNonNull(deserializer, "deserializer");
+      this.formatObj = requireNonNull(formatObj, "formatObj");
     }
 
     @Override
     public String toString() {
       return name;
+    }
+
+    public String format(final Object o) {
+      if (o instanceof String) {
+        return (String) o;
+      }
+      return formatObj.apply(o);
     }
   }
 

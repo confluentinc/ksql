@@ -108,8 +108,6 @@ final class GroupByParamsFactory {
                 row
             )
         );
-        LOG.error("Group-by column with index {} resolved to null. "
-            + "The source row will be excluded from the table.", index);
       }
       return result;
     } catch (final Exception e) {
@@ -123,8 +121,6 @@ final class GroupByParamsFactory {
               row
           )
       );
-      LOG.error("Error calculating group-by column with index {}. "
-          + "The source row will be excluded from the table.", index, e);
       return null;
     }
   }

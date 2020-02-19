@@ -195,7 +195,7 @@ public class RecordFormatterTest {
     @Test
     public void shouldFormatRowTime() {
       // Given:
-      final String expected = DATE_FORMAT.format(new Date(timestamp));
+      final String expected = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss +0000").format(new Date(timestamp));
 
       // When:
       final String formatted = formatSingle(consumerRecord(null, null));

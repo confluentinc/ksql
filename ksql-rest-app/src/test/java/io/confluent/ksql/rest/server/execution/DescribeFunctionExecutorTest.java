@@ -16,8 +16,9 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -39,7 +40,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION CONCAT;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -65,7 +66,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION MAX;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -91,7 +92,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);

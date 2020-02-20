@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -33,6 +32,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -55,7 +55,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
-        ImmutableMap.of(),
+            mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -75,7 +75,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -103,7 +103,7 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);

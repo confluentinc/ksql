@@ -215,11 +215,11 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlEntityList entities = handler.execute(
           securityContext,
           TERMINATE_CLUSTER,
-              new SessionProperties(
-                  request.getStreamsProperties(),
-                  localHost,
-                  localUrl
-              )
+          new SessionProperties(
+              request.getStreamsProperties(),
+              localHost,
+              localUrl
+          )
       );
       return Response.ok(entities).build();
     } catch (final Exception e) {

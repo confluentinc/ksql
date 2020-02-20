@@ -22,12 +22,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties 
+ * in a object withthe {@link KsqlHostInfo} and URL of the server that handles the request.
+ * This should be created in the Rest Resource that receives the request.
+ */
 public class SessionProperties {
   
   private final Map<String, Object> mutableScopedProperties;
   private final KsqlHostInfo ksqlHostInfo;
   private final URL localUrl;
 
+  /**
+   * @param mutableScopedProperties   The streamsProperties of the incoming request
+   * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request 
+   * @param localUrl                  The url of the server that handles the request
+   */
   public SessionProperties(
       final Map<String, Object> mutableScopedProperties,
       final KsqlHostInfo ksqlHostInfo,

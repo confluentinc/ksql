@@ -513,7 +513,7 @@ public class WSQueryEndpoint {
   }
 
 
-  interface PrintTopicPublisher {
+  public interface PrintTopicPublisher {
 
     void start(
         ListeningScheduledExecutorService exec,

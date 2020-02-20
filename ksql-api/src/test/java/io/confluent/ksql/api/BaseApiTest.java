@@ -67,7 +67,7 @@ public class BaseApiTest {
   protected TestEndpoints testEndpoints;
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
 
     vertx = Vertx.vertx();
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
@@ -86,7 +86,11 @@ public class BaseApiTest {
       client.close();
     }
     if (server != null) {
-      server.stop();
+      try {
+        server.stop();
+      } catch (Exception e) {
+        log.error("Failed to shutdown server", e);
+      }
     }
     if (vertx != null) {
       vertx.close();
@@ -96,7 +100,7 @@ public class BaseApiTest {
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
     config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 8089);
+    config.put("ksql.apiserver.listen.port", 0);
     config.put("ksql.apiserver.tls.enabled", false);
     config.put("ksql.apiserver.verticle.instances", 4);
 
@@ -105,7 +109,10 @@ public class BaseApiTest {
 
   protected WebClientOptions createClientOptions() {
     return new WebClientOptions()
-        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
+        .setDefaultHost("localhost")
+        .setDefaultPort(server.getActualPort())
+        .setReusePort(true);
   }
 
   protected WebClient createClient() {
@@ -123,7 +130,7 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    client.post(8089, "localhost", "/query-stream")
+    client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendJsonObject(requestBody, ar -> {
         });
@@ -156,7 +163,7 @@ public class BaseApiTest {
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", uri)
+        .post(uri)
         .sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
   }

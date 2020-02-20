@@ -489,40 +489,6 @@ public class WSQueryEndpoint {
         .subscribe(topicSubscriber);
   }
 
-  public interface QueryPublisher {
-
-    void start(
-        KsqlEngine ksqlEngine,
-        ServiceContext serviceContext,
-        ListeningScheduledExecutorService exec,
-        ConfiguredStatement<Query> query,
-        WebSocketSubscriber<StreamedRow> subscriber);
-
-  }
-
-  public interface IPullQueryPublisher {
-
-    void start(
-        KsqlEngine ksqlEngine,
-        ServiceContext serviceContext,
-        ListeningScheduledExecutorService exec,
-        ConfiguredStatement<Query> query,
-        WebSocketSubscriber<StreamedRow> subscriber,
-        PullQueryExecutor pullQueryExecutor);
-
-  }
-
-
-  public interface PrintTopicPublisher {
-
-    void start(
-        ListeningScheduledExecutorService exec,
-        ServiceContext serviceContext,
-        Map<String, Object> consumerProperties,
-        PrintTopic printTopic,
-        WebSocketSubscriber<String> subscriber);
-  }
-
   private static final class RequestContext {
 
     private final Session session;

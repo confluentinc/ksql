@@ -15,8 +15,6 @@
 
 package io.confluent.support.metrics.common.time;
 
-import io.confluent.support.metrics.common.time.Clock;
-
 public class TimeUtils {
 
   private static class SystemClock implements Clock {
@@ -34,7 +32,7 @@ public class TimeUtils {
     this(new SystemClock());
   }
 
-  public TimeUtils(Clock clock) {
+  public TimeUtils(final Clock clock) {
     this.clock = clock;
   }
 

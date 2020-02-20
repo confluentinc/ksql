@@ -18,7 +18,6 @@ package io.confluent.support.metrics.common;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.confluent.support.metrics.common.Uuid;
 import org.junit.Test;
 
 public class UuidTest {
@@ -28,7 +27,7 @@ public class UuidTest {
     Uuid uuid = new Uuid();
 
     // When
-    String generatedUUID = uuid.getUUID();
+    String generatedUUID = uuid.getUuid();
 
     // Then
     assertTrue(generatedUUID.matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"));
@@ -40,7 +39,7 @@ public class UuidTest {
     Uuid uuid = new Uuid();
 
     // When/Then
-    assertEquals(uuid.getUUID(), uuid.toString());
+    assertEquals(uuid.getUuid(), uuid.toString());
   }
 
   @Test
@@ -49,8 +48,8 @@ public class UuidTest {
     Uuid uuid = new Uuid();
 
     // When
-    String firstUuid = uuid.getUUID();
-    String secondUuid = uuid.getUUID();
+    String firstUuid = uuid.getUuid();
+    String secondUuid = uuid.getUuid();
 
     // Then
     assertEquals(secondUuid, firstUuid);

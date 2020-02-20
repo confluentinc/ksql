@@ -16,8 +16,6 @@
 package io.confluent.support.metrics.submitters;
 
 import io.confluent.support.metrics.BaseSupportConfig;
-import io.confluent.support.metrics.submitters.ResponseHandler;
-import io.confluent.support.metrics.submitters.Submitter;
 import io.confluent.support.metrics.utils.StringUtils;
 import io.confluent.support.metrics.utils.WebClient;
 import java.net.URI;
@@ -33,8 +31,8 @@ public class ConfluentSubmitter implements Submitter {
       .getLogger(io.confluent.support.metrics.submitters.ConfluentSubmitter.class);
 
   private final String customerId;
-  private final String endpointHTTP;
-  private final String endpointHTTPS;
+  private final String endpointHttp;
+  private final String endpointHttps;
   private HttpHost proxy;
   private ResponseHandler responseHandler;
 
@@ -42,18 +40,19 @@ public class ConfluentSubmitter implements Submitter {
     return proxy == null ? null : proxy.toString();
   }
 
-  public void setProxy(String name, int port, String scheme) {
+  public void setProxy(final String name, final int port, final String scheme) {
     this.proxy = new HttpHost(name, port, scheme);
   }
 
   /**
    * Class that decides how to send data to Confluent.
    *
-   * @param endpointHTTP HTTP endpoint for the Confluent support service. Can be null.
-   * @param endpointHTTPS HTTPS endpoint for the Confluent support service. Can be null.
+   * @param endpointHttp HTTP endpoint for the Confluent support service. Can be null.
+   * @param endpointHttps HTTPS endpoint for the Confluent support service. Can be null.
    */
-  public ConfluentSubmitter(String customerId, String endpointHTTP, String endpointHTTPS) {
-    this(customerId, endpointHTTP, endpointHTTPS, null, null);
+  public ConfluentSubmitter(final String customerId, final String endpointHttp,
+      final String endpointHttps) {
+    this(customerId, endpointHttp, endpointHttps, null, null);
   }
 
   /**
@@ -61,7 +60,7 @@ public class ConfluentSubmitter implements Submitter {
    * BaseMetricsReporter and, as a result, don't need PhoneHomeConfig.
    * Sets customerId = "anonymous"
    */
-  public ConfluentSubmitter(String componentId, ResponseHandler responseHandler) {
+  public ConfluentSubmitter(final String componentId, final ResponseHandler responseHandler) {
     this(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT, componentId, responseHandler);
   }
 
@@ -78,7 +77,7 @@ public class ConfluentSubmitter implements Submitter {
    * the phone-home ping.
    */
   public ConfluentSubmitter(
-      String customerId, String componentId, ResponseHandler responseHandler
+      final String customerId, final String componentId, final ResponseHandler responseHandler
   ) {
     this(customerId,
          BaseSupportConfig.getEndpoint(false, customerId, componentId),
@@ -88,37 +87,37 @@ public class ConfluentSubmitter implements Submitter {
   }
 
   public ConfluentSubmitter(
-      String customerId,
-      String endpointHTTP,
-      String endpointHTTPS,
-      String proxyURIString,
-      ResponseHandler responseHandler
+      final String customerId,
+      final String endpointHttp,
+      final String endpointHttps,
+      final String proxyUriString,
+      final ResponseHandler responseHandler
   ) {
 
-    if (StringUtils.isNullOrEmpty(endpointHTTP) && StringUtils.isNullOrEmpty(endpointHTTPS)) {
+    if (StringUtils.isNullOrEmpty(endpointHttp) && StringUtils.isNullOrEmpty(endpointHttps)) {
       throw new IllegalArgumentException("must specify endpoints");
     }
-    if (!StringUtils.isNullOrEmpty(endpointHTTP)) {
-      if (!endpointHTTP.startsWith("http://")) {
-        throw new IllegalArgumentException("invalid HTTP endpoint " + endpointHTTP);
+    if (!StringUtils.isNullOrEmpty(endpointHttp)) {
+      if (!endpointHttp.startsWith("http://")) {
+        throw new IllegalArgumentException("invalid HTTP endpoint " + endpointHttp);
       }
     }
-    if (!StringUtils.isNullOrEmpty(endpointHTTPS)) {
-      if (!endpointHTTPS.startsWith("https://")) {
-        throw new IllegalArgumentException("invalid HTTPS endpoint " + endpointHTTPS);
+    if (!StringUtils.isNullOrEmpty(endpointHttps)) {
+      if (!endpointHttps.startsWith("https://")) {
+        throw new IllegalArgumentException("invalid HTTPS endpoint " + endpointHttps);
       }
     }
     if (!BaseSupportConfig.isSyntacticallyCorrectCustomerId(customerId)) {
       throw new IllegalArgumentException("invalid customer ID "  + customerId);
     }
-    this.endpointHTTP = endpointHTTP;
-    this.endpointHTTPS = endpointHTTPS;
+    this.endpointHttp = endpointHttp;
+    this.endpointHttps = endpointHttps;
     this.customerId = customerId;
     this.responseHandler = responseHandler;
 
-    if (!StringUtils.isNullOrEmpty(proxyURIString)) {
-      URI proxyURI = URI.create(proxyURIString);
-      this.setProxy(proxyURI.getHost(), proxyURI.getPort(), proxyURI.getScheme());
+    if (!StringUtils.isNullOrEmpty(proxyUriString)) {
+      final URI proxyUri = URI.create(proxyUriString);
+      this.setProxy(proxyUri.getHost(), proxyUri.getPort(), proxyUri.getScheme());
     }
   }
 
@@ -126,7 +125,7 @@ public class ConfluentSubmitter implements Submitter {
    * Submits metrics to Confluent via the Internet.  Ignores null or empty inputs.
    */
   @Override
-  public void submit(byte[] bytes) {
+  public void submit(final byte[] bytes) {
     if (bytes != null && bytes.length > 0) {
       if (isSecureEndpointEnabled()) {
         if (!submittedSuccessfully(sendSecurely(bytes))) {
@@ -138,7 +137,7 @@ public class ConfluentSubmitter implements Submitter {
           } else {
             log.error(
                 "Failed to submit metrics via secure endpoint={} -- giving up",
-                endpointHTTPS
+                endpointHttps
             );
           }
         } else {
@@ -156,50 +155,50 @@ public class ConfluentSubmitter implements Submitter {
     }
   }
 
-  private void submitToInsecureEndpoint(byte[] encodedMetricsRecord) {
-    int statusCode = sendInsecurely(encodedMetricsRecord);
+  private void submitToInsecureEndpoint(final byte[] encodedMetricsRecord) {
+    final int statusCode = sendInsecurely(encodedMetricsRecord);
     if (submittedSuccessfully(statusCode)) {
       log.info("Successfully submitted metrics to Confluent via insecure endpoint");
     } else {
       log.error(
           "Failed to submit metrics to Confluent via insecure endpoint={} -- giving up",
-          endpointHTTP
+          endpointHttp
       );
     }
   }
 
   private boolean isSecureEndpointEnabled() {
-    return !endpointHTTPS.isEmpty();
+    return !endpointHttps.isEmpty();
   }
 
   private boolean isInsecureEndpointEnabled() {
-    return !endpointHTTP.isEmpty();
+    return !endpointHttp.isEmpty();
   }
 
   /**
    * Getters for testing
    */
-  String getEndpointHTTP() {
-    return endpointHTTP;
+  String getEndpointHttp() {
+    return endpointHttp;
   }
 
-  String getEndpointHTTPS() {
-    return endpointHTTPS;
+  String getEndpointHttps() {
+    return endpointHttps;
   }
 
-  private boolean submittedSuccessfully(int statusCode) {
+  private boolean submittedSuccessfully(final int statusCode) {
     return statusCode == HttpStatus.SC_OK;
   }
 
-  private int sendSecurely(byte[] encodedMetricsRecord) {
-    return send(encodedMetricsRecord, endpointHTTPS);
+  private int sendSecurely(final byte[] encodedMetricsRecord) {
+    return send(encodedMetricsRecord, endpointHttps);
   }
 
-  private int sendInsecurely(byte[] encodedMetricsRecord) {
-    return send(encodedMetricsRecord, endpointHTTP);
+  private int sendInsecurely(final byte[] encodedMetricsRecord) {
+    return send(encodedMetricsRecord, endpointHttp);
   }
 
-  private int send(byte[] encodedMetricsRecord, String endpoint) {
+  private int send(final byte[] encodedMetricsRecord, final String endpoint) {
     return WebClient
         .send(customerId, encodedMetricsRecord, new HttpPost(endpoint), proxy, responseHandler);
   }

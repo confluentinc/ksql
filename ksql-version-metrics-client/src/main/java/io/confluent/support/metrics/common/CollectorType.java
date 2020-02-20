@@ -20,12 +20,12 @@ public enum CollectorType {
   public final int id;
   public final String name;
 
-  CollectorType(int id, String name) {
+  CollectorType(final int id, final String name) {
     this.id = id;
     this.name = name;
   }
 
-  public static io.confluent.support.metrics.common.CollectorType forId(int id) {
+  public static io.confluent.support.metrics.common.CollectorType forId(final int id) {
     switch (id) {
       case 0:
         return BASIC;
@@ -36,7 +36,7 @@ public enum CollectorType {
     }
   }
 
-  public static io.confluent.support.metrics.common.CollectorType forName(String name) {
+  public static io.confluent.support.metrics.common.CollectorType forName(final String name) {
     if (BASIC.name.equals(name)) {
       return BASIC;
     } else if (FULL.name.equals(name)) {

@@ -17,8 +17,6 @@ package io.confluent.support.metrics;
 
 import static org.junit.Assert.assertEquals;
 
-import io.confluent.support.metrics.BaseSupportConfig;
-import io.confluent.support.metrics.PhoneHomeConfig;
 import java.util.Properties;
 import org.junit.Test;
 
@@ -37,9 +35,9 @@ public class PhoneHomeConfigTest {
     assertEquals("", config.getKafkaTopic());
     assertEquals(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT, config.getCustomerId());
     assertEquals(EXPECTED_SECURE_ENDPOINT + "/TestComponent/anon",
-                 config.getEndpointHTTPS());
+                 config.getEndpointHttps());
     assertEquals(EXPECTED_INSECURE_ENDPOINT + "/TestComponent/anon",
-                 config.getEndpointHTTP());
+                 config.getEndpointHttp());
   }
 
   @Test
@@ -52,9 +50,9 @@ public class PhoneHomeConfigTest {
     assertEquals("", config.getKafkaTopic());
     assertEquals(BaseSupportConfig.CONFLUENT_SUPPORT_TEST_ID_DEFAULT, config.getCustomerId());
     assertEquals(EXPECTED_SECURE_ENDPOINT + "/TestComponent/test",
-                 config.getEndpointHTTPS());
+                 config.getEndpointHttps());
     assertEquals(EXPECTED_INSECURE_ENDPOINT + "/TestComponent/test",
-                 config.getEndpointHTTP());
+                 config.getEndpointHttp());
   }
 
   @Test
@@ -66,9 +64,9 @@ public class PhoneHomeConfigTest {
     BaseSupportConfig config = new PhoneHomeConfig(overrideProps, "TestComponent");
     assertEquals(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT, config.getCustomerId());
     assertEquals(EXPECTED_SECURE_ENDPOINT + "/TestComponent/anon",
-                 config.getEndpointHTTPS());
+                 config.getEndpointHttps());
     assertEquals("",
-                 config.getEndpointHTTP());
+                 config.getEndpointHttp());
   }
 
 }

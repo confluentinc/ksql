@@ -20,8 +20,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.confluent.support.metrics.BaseSupportConfig;
-import io.confluent.support.metrics.submitters.ConfluentSubmitter;
-import io.confluent.support.metrics.submitters.ResponseHandler;
 import io.confluent.support.metrics.utils.CustomerIdExamples;
 import io.confluent.support.metrics.utils.StringUtils;
 import org.apache.http.HttpResponse;
@@ -110,12 +108,12 @@ public class ConfluentSubmitterTest {
         false,
         BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT,
         "test-component"),
-        submitter.getEndpointHTTP());
+        submitter.getEndpointHttp());
     assertEquals(BaseSupportConfig.getEndpoint(
         true,
         BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT,
         "test-component"),
-        submitter.getEndpointHTTPS());
+        submitter.getEndpointHttps());
   }
 
   @Test
@@ -132,9 +130,9 @@ public class ConfluentSubmitterTest {
         new ConfluentSubmitter(customerId, "test-component", responseHandler);
     assertTrue(StringUtils.isNullOrEmpty(submitter.getProxy()));
     assertEquals(BaseSupportConfig.getEndpoint(false, customerId, "test-component"),
-        submitter.getEndpointHTTP());
+        submitter.getEndpointHttp());
     assertEquals(BaseSupportConfig.getEndpoint(true, customerId, "test-component"),
-        submitter.getEndpointHTTPS());
+        submitter.getEndpointHttps());
   }
 
   @Test

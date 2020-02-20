@@ -24,7 +24,7 @@ public class Uuid {
    */
   private final UUID uuid = UUID.randomUUID();
 
-  public String getUUID() {
+  public String getUuid() {
     return toString();
   }
 

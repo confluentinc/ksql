@@ -15,17 +15,15 @@
 
 package io.confluent.support.metrics;
 
-import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Use this config for component-specific phone-home clients. It disables writing metrics to
- * Kafka topic and ensures that non-test customer Ids are "anonymous", even if the client sets
- * support topic and customer id in the config.
- * TODO(apovzner) this class will probably be extended for standard phone-home libraries (the
- * difference is a different URI format).
+ * Use this config for component-specific phone-home clients. It disables writing metrics to Kafka
+ * topic and ensures that non-test customer Ids are "anonymous", even if the client sets support
+ * topic and customer id in the config. standard phone-home libraries (the difference is a different
+ * URI format).
  */
 public class PhoneHomeConfig extends BaseSupportConfig {
 
@@ -39,21 +37,22 @@ public class PhoneHomeConfig extends BaseSupportConfig {
    * Will make sure that writing to support metrics topic is disabled and there is no customer
    * endpoint.
    */
-  public PhoneHomeConfig(Properties originals, String componentId) {
+  public PhoneHomeConfig(final Properties originals, final String componentId) {
     this(originals, componentId,
-         CONFLUENT_SUPPORT_METRICS_TOPIC_ENABLED_DEFAULT,
-         CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT);
+        CONFLUENT_SUPPORT_METRICS_TOPIC_ENABLED_DEFAULT,
+        CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT);
   }
 
-  private PhoneHomeConfig(Properties originals, String componentId,
-                          boolean supportMetricsTopicEnabled, boolean supportCustomerIdEnabled) {
+  private PhoneHomeConfig(final Properties originals, final String componentId,
+      final boolean supportMetricsTopicEnabled, final boolean supportCustomerIdEnabled) {
     super(setupProperties(originals, supportMetricsTopicEnabled, supportCustomerIdEnabled),
-          getEndpointPath(componentId));
+        getEndpointPath(componentId));
   }
 
+  @SuppressWarnings("checkstyle:FinalParameters")
   private static Properties setupProperties(Properties originals,
-                                            boolean supportMetricsTopicEnabled,
-                                            boolean supportCustomerIdEnabled) {
+      final boolean supportMetricsTopicEnabled,
+      final boolean supportCustomerIdEnabled) {
     if (!supportCustomerIdEnabled || !supportMetricsTopicEnabled) {
       //disable publish to topic
       if (originals == null) {
@@ -67,7 +66,7 @@ public class PhoneHomeConfig extends BaseSupportConfig {
         if (!isTestUser(getCustomerId(originals))) {
           log.warn("Enforcing customer ID '{}'", CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
           originals.setProperty(CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
-                                CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
+              CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
         }
       }
     }
@@ -81,7 +80,7 @@ public class PhoneHomeConfig extends BaseSupportConfig {
    * The resulting insecure endpoint will be:
    * BaseSupportConfig.CONFLUENT_PHONE_HOME_ENDPOINT_BASE_INSECURE/getEndpointPath()/{anon|test}
    */
-  private static String getEndpointPath(String componentId) {
+  private static String getEndpointPath(final String componentId) {
     return componentId;
   }
 

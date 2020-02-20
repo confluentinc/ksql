@@ -26,8 +26,8 @@ public class PhoneHomeResponse {
 
   @JsonCreator
   public PhoneHomeResponse(
-      @JsonProperty("confluentPlatformVersion") String confluentPlatformVersion,
-      @JsonProperty("informationForUser") String informationForUser
+      @JsonProperty("confluentPlatformVersion") final String confluentPlatformVersion,
+      @JsonProperty("informationForUser") final String informationForUser
   ) {
     this.confluentPlatformVersion = confluentPlatformVersion;
     this.informationForUser = informationForUser;
@@ -48,14 +48,15 @@ public class PhoneHomeResponse {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof io.confluent.support.metrics.response.PhoneHomeResponse)) {
       return false;
     }
-    io.confluent.support.metrics.response.PhoneHomeResponse that = (io.confluent.support.metrics.response.PhoneHomeResponse) o;
+    final io.confluent.support.metrics.response.PhoneHomeResponse that =
+        (io.confluent.support.metrics.response.PhoneHomeResponse) o;
     return Objects.equals(getConfluentPlatformVersion(), that.getConfluentPlatformVersion())
            && Objects.equals(getInformationForUser(), that.getInformationForUser());
   }

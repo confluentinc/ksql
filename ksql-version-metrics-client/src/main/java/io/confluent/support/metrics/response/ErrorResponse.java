@@ -24,7 +24,7 @@ public class ErrorResponse {
   private final String message;
 
   @JsonCreator
-  public ErrorResponse(@JsonProperty("message") String message) {
+  public ErrorResponse(@JsonProperty("message") final String message) {
     this.message = message;
   }
 
@@ -33,14 +33,15 @@ public class ErrorResponse {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof io.confluent.support.metrics.response.ErrorResponse)) {
       return false;
     }
-    io.confluent.support.metrics.response.ErrorResponse that = (io.confluent.support.metrics.response.ErrorResponse) o;
+    final io.confluent.support.metrics.response.ErrorResponse that =
+        (io.confluent.support.metrics.response.ErrorResponse) o;
     return Objects.equals(getMessage(), that.getMessage());
   }
 

@@ -31,12 +31,16 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WebClient {
+public final class WebClient {
 
   private static final Logger log = LoggerFactory
       .getLogger(io.confluent.support.metrics.utils.WebClient.class);
   private static final int REQUEST_TIMEOUT_MS = 2000;
   public static final int DEFAULT_STATUS_CODE = HttpStatus.SC_BAD_GATEWAY;
+
+  private WebClient() {
+    throw new IllegalStateException("Utility class should not be instantiated");
+  }
 
   /**
    * Sends a POST request to a web server
@@ -50,15 +54,16 @@ public class WebClient {
    * @return an HTTP Status code
    * @see #send(String, byte[], HttpPost, ResponseHandler)
    */
+  @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:FinalParameters"})
   protected static int send(
-      String customerId, byte[] bytes, HttpPost httpPost, HttpHost proxy,
-      CloseableHttpClient httpClient, ResponseHandler responseHandler
+      final String customerId, final byte[] bytes, final HttpPost httpPost, final HttpHost proxy,
+      CloseableHttpClient httpClient, final ResponseHandler responseHandler
   ) {
     int statusCode = DEFAULT_STATUS_CODE;
     if (bytes != null && bytes.length > 0 && httpPost != null && customerId != null) {
 
       // add the body to the request
-      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+      final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
       builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
       builder.addTextBody("cid", customerId);
       builder.addBinaryBody("file", bytes, ContentType.DEFAULT_BINARY, "filename");
@@ -79,7 +84,7 @@ public class WebClient {
           log.debug("setting proxy to {}", proxy);
           config = RequestConfig.copy(config).setProxy(proxy).build();
           httpPost.setConfig(config);
-          DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+          final DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
           if (httpClient == null) {
             httpClient = HttpClientBuilder
                 .create()
@@ -135,11 +140,11 @@ public class WebClient {
    * @return an HTTP Status code
    */
   public static int send(
-      String customerId,
-      byte[] bytes,
-      HttpPost httpPost,
-      HttpHost proxy,
-      ResponseHandler responseHandler
+      final String customerId,
+      final byte[] bytes,
+      final HttpPost httpPost,
+      final HttpHost proxy,
+      final ResponseHandler responseHandler
   ) {
     return send(customerId, bytes, httpPost, proxy, null, responseHandler);
   }
@@ -153,10 +158,10 @@ public class WebClient {
    * @return an HTTP Status code
    */
   public static int send(
-      String customerId,
-      byte[] bytes,
-      HttpPost httpPost,
-      ResponseHandler responseHandler
+      final String customerId,
+      final byte[] bytes,
+      final HttpPost httpPost,
+      final ResponseHandler responseHandler
   ) {
     return send(customerId, bytes, httpPost, null, responseHandler);
   }

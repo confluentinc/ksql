@@ -15,8 +15,13 @@
 
 package io.confluent.support.metrics.utils;
 
-public class StringUtils {
-  public static boolean isNullOrBlank(CharSequence cs) {
+public final class StringUtils {
+
+  private StringUtils() {
+    throw new IllegalStateException("Utility class should not be instantiated");
+  }
+
+  public static boolean isNullOrBlank(final CharSequence cs) {
     if (cs == null) {
       return true;
     }
@@ -28,7 +33,7 @@ public class StringUtils {
     return true;
   }
 
-  public static boolean isNullOrEmpty(CharSequence cs) {
+  public static boolean isNullOrEmpty(final CharSequence cs) {
     return (cs == null) || (cs.length() == 0);
   }
 }

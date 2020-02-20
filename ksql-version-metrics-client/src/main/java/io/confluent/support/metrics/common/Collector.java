@@ -25,7 +25,7 @@ public abstract class Collector {
 
     private final int stateId;
 
-    RuntimeState(int stateId) {
+    RuntimeState(final int stateId) {
       this.stateId = stateId;
     }
 
@@ -58,7 +58,7 @@ public abstract class Collector {
   /**
    * Sets the runtime state of this collector.
    */
-  public void setRuntimeState(RuntimeState runtimeState) {
+  public void setRuntimeState(final RuntimeState runtimeState) {
     this.runtimeState = runtimeState;
   }
 

@@ -15,14 +15,16 @@
 
 package io.confluent.support.metrics.validate;
 
-import io.confluent.support.metrics.validate.KSqlValidModuleType;
-
 /**
  * Utility methods to verify metrics fields for various components
  */
-public class MetricsValidation {
+public final class MetricsValidation {
 
-  public static boolean isValidKsqlModuleType(String moduleType) {
+  private MetricsValidation() {
+    throw new IllegalStateException("Utility class should not be instantiated");
+  }
+
+  public static boolean isValidKsqlModuleType(final String moduleType) {
     for (KSqlValidModuleType type: KSqlValidModuleType.values()) {
       if (moduleType.equals(type.name())) {
         return true;

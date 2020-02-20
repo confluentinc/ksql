@@ -20,11 +20,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import io.confluent.support.metrics.utils.CustomerIdExamples;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Stream;
-import kafka.server.KafkaConfig;
 import org.junit.Test;
 
 public class BaseSupportConfigTest {
@@ -142,8 +140,8 @@ public class BaseSupportConfigTest {
     assertTrue(supportConfig.isHttpsEnabled());
     assertTrue(supportConfig.isProactiveSupportEnabled());
     assertEquals("", supportConfig.getProxy());
-    assertEquals("http://support-metrics.confluent.io/anon", supportConfig.getEndpointHTTP());
-    assertEquals("https://support-metrics.confluent.io/anon", supportConfig.getEndpointHTTPS());
+    assertEquals("http://support-metrics.confluent.io/anon", supportConfig.getEndpointHttp());
+    assertEquals("https://support-metrics.confluent.io/anon", supportConfig.getEndpointHttps());
   }
 
   @Test
@@ -162,8 +160,8 @@ public class BaseSupportConfigTest {
     BaseSupportConfig supportConfig = new TestSupportConfig(overrideProps);
 
     // Then
-    assertEquals("http://support-metrics.confluent.io/anon", supportConfig.getEndpointHTTP());
-    assertEquals("https://support-metrics.confluent.io/anon", supportConfig.getEndpointHTTPS());
+    assertEquals("http://support-metrics.confluent.io/anon", supportConfig.getEndpointHttp());
+    assertEquals("https://support-metrics.confluent.io/anon", supportConfig.getEndpointHttps());
   }
 
   @Test
@@ -178,8 +176,8 @@ public class BaseSupportConfigTest {
     BaseSupportConfig supportConfig = new TestSupportConfig(overrideProps);
 
     // Then
-    assertTrue(supportConfig.getEndpointHTTP().isEmpty());
-    assertTrue(supportConfig.getEndpointHTTPS().isEmpty());
+    assertTrue(supportConfig.getEndpointHttp().isEmpty());
+    assertTrue(supportConfig.getEndpointHttps().isEmpty());
   }
 
   @Test

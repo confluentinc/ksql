@@ -72,7 +72,7 @@ public abstract class BaseSupportConfig {
       "confluent.support.metrics.topic";
   private static final String CONFLUENT_SUPPORT_METRICS_TOPIC_DOC =
       "Internal topic used for metric collection. If missing, metrics will not be collected in a "
-      + "Kafka topic ";
+          + "Kafka topic ";
   public static final String CONFLUENT_SUPPORT_METRICS_TOPIC_DEFAULT =
       "__confluent.support.metrics";
 
@@ -104,8 +104,8 @@ public abstract class BaseSupportConfig {
 
 
   /**
-   * Confluent endpoints. These are internal properties that cannot be set from a config file
-   * but that are added to the original config file at startup time
+   * Confluent endpoints. These are internal properties that cannot be set from a config file but
+   * that are added to the original config file at startup time
    */
   public static final String CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_CONFIG =
       "confluent.support.metrics.endpoint.insecure";
@@ -133,7 +133,7 @@ public abstract class BaseSupportConfig {
    * Returns the default Proactive Support properties
    */
   protected Properties getDefaultProps() {
-    Properties props = new Properties();
+    final Properties props = new Properties();
     props.setProperty(
         CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG,
         CONFLUENT_SUPPORT_METRICS_ENABLE_DEFAULT
@@ -159,26 +159,25 @@ public abstract class BaseSupportConfig {
     return props;
   }
 
-
-  // TODO(apovzner) remove this after all derived classes use constructor with endpointPath
-  public BaseSupportConfig(Properties originals) {
+  public BaseSupportConfig(final Properties originals) {
     mergeAndValidateWithDefaultProperties(originals, null);
   }
 
-  public BaseSupportConfig(Properties originals, String endpointPath) {
+  public BaseSupportConfig(final Properties originals, final String endpointPath) {
     mergeAndValidateWithDefaultProperties(originals, endpointPath);
   }
 
   /**
-   * Takes default properties from getDefaultProps() and a set of override properties and
-   * returns a merged properties object, where the defaults are overridden.
-   * Sanitizes and validates the returned properties
+   * Takes default properties from getDefaultProps() and a set of override properties and returns a
+   * merged properties object, where the defaults are overridden. Sanitizes and validates the
+   * returned properties
    *
    * @param overrides Parameters that override the default properties
    */
-  private void mergeAndValidateWithDefaultProperties(Properties overrides, String endpointPath) {
-    Properties defaults = getDefaultProps();
-    Properties props;
+  private void mergeAndValidateWithDefaultProperties(final Properties overrides,
+      final String endpointPath) {
+    final Properties defaults = getDefaultProps();
+    final Properties props;
 
     if (overrides == null) {
       props = defaults;
@@ -194,77 +193,78 @@ public abstract class BaseSupportConfig {
     props.remove(CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_CONFIG);
     props.remove(CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_CONFIG);
 
-    String customerId = getCustomerId();
+    final String customerId = getCustomerId();
 
     // new way to set endpoint
     if (endpointPath != null) {
       // derived class provided URI
       if (isHttpEnabled()) {
-        setEndpointHTTP(getEndpoint(false, customerId, endpointPath));
+        setEndpointHttp(getEndpoint(false, customerId, endpointPath));
       }
       if (isHttpsEnabled()) {
-        setEndpointHTTPS(getEndpoint(true, customerId, endpointPath));
+        setEndpointHttps(getEndpoint(true, customerId, endpointPath));
       }
     } else {
-      // TODO(apovzner) once all existing clients provide endpointPath, remove this code
       // set the correct customer id/endpoint pair
       setEndpointsOldWay(customerId);
     }
   }
 
-  private void setEndpointsOldWay(String customerId) {
+  private void setEndpointsOldWay(final String customerId) {
     if (isAnonymousUser(customerId)) {
       if (isHttpEnabled()) {
-        setEndpointHTTP(getAnonymousEndpoint(false));
+        setEndpointHttp(getAnonymousEndpoint(false));
       }
       if (isHttpsEnabled()) {
-        setEndpointHTTPS(getAnonymousEndpoint(true));
-      }
-    } else if (isTestUser(customerId)) {
-      if (isHttpEnabled()) {
-        setEndpointHTTP(getTestEndpoint(false));
-      }
-      if (isHttpsEnabled()) {
-        setEndpointHTTPS(getTestEndpoint(true));
+        setEndpointHttps(getAnonymousEndpoint(true));
       }
     } else {
-      if (isHttpEnabled()) {
-        setEndpointHTTP(getCustomerEndpoint(false));
-      }
-      if (isHttpsEnabled()) {
-        setEndpointHTTPS(getCustomerEndpoint(true));
+      if (isTestUser(customerId)) {
+        if (isHttpEnabled()) {
+          setEndpointHttp(getTestEndpoint(false));
+        }
+        if (isHttpsEnabled()) {
+          setEndpointHttps(getTestEndpoint(true));
+        }
+      } else {
+        if (isHttpEnabled()) {
+          setEndpointHttp(getCustomerEndpoint(false));
+        }
+        if (isHttpsEnabled()) {
+          setEndpointHttps(getCustomerEndpoint(true));
+        }
       }
     }
   }
 
-  // TODO(apovzner) remove this after all derived classes use constructor with endpointPath
-  protected String getAnonymousEndpoint(boolean secure) {
+  protected String getAnonymousEndpoint(final boolean secure) {
     return null;
   }
 
-  // TODO(apovzner) remove this after all derived classes use constructor with endpointPath
-  protected String getTestEndpoint(boolean secure) {
+  protected String getTestEndpoint(final boolean secure) {
     return null;
   }
 
-  // TODO(apovzner) remove this after all derived classes use constructor with endpointPath
-  protected String getCustomerEndpoint(boolean secure) {
+  protected String getCustomerEndpoint(final boolean secure) {
     return null;
   }
 
-  public static String getEndpoint(boolean secure, String customerId, String endpointPath) {
-    String base = secure ? CONFLUENT_PHONE_HOME_ENDPOINT_BASE_SECURE
-                         : CONFLUENT_PHONE_HOME_ENDPOINT_BASE_INSECURE;
+  public static String getEndpoint(final boolean secure, final String customerId,
+      final String endpointPath) {
+    final String base = secure ? CONFLUENT_PHONE_HOME_ENDPOINT_BASE_SECURE
+        : CONFLUENT_PHONE_HOME_ENDPOINT_BASE_INSECURE;
     return base + "/" + endpointPath + "/" + getEndpointSuffix(customerId);
   }
 
-  private static String getEndpointSuffix(String customerId) {
+  private static String getEndpointSuffix(final String customerId) {
     if (isAnonymousUser(customerId)) {
       return CONFLUENT_PHONE_HOME_ENDPOINT_SUFFIX_USER_ANON;
-    } else if (isTestUser(customerId)) {
-      return CONFLUENT_PHONE_HOME_ENDPOINT_SUFFIX_USER_TEST;
     } else {
-      return CONFLUENT_PHONE_HOME_ENDPOINT_SUFFIX_USER_CUSTOMER;
+      if (isTestUser(customerId)) {
+        return CONFLUENT_PHONE_HOME_ENDPOINT_SUFFIX_USER_TEST;
+      } else {
+        return CONFLUENT_PHONE_HOME_ENDPOINT_SUFFIX_USER_CUSTOMER;
+      }
     }
   }
 
@@ -285,7 +285,7 @@ public abstract class BaseSupportConfig {
    * @param customerId The value of "confluent.support.customer.id".
    * @return True if the value matches the setting we use to denote anonymous users.
    */
-  public static boolean isAnonymousUser(String customerId) {
+  public static boolean isAnonymousUser(final String customerId) {
     return customerId != null && customerId.toLowerCase(Locale.ROOT).equals(
         CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
   }
@@ -294,26 +294,27 @@ public abstract class BaseSupportConfig {
    * @param customerId The value of "confluent.support.customer.id".
    * @return True if the value matches the setting we use to denote internal testing.
    */
-  public static boolean isTestUser(String customerId) {
-    return customerId != null && customerId.toLowerCase(Locale.ROOT).equals(CONFLUENT_SUPPORT_TEST_ID_DEFAULT);
+  public static boolean isTestUser(final String customerId) {
+    return customerId != null && customerId.toLowerCase(Locale.ROOT)
+        .equals(CONFLUENT_SUPPORT_TEST_ID_DEFAULT);
   }
 
   /**
    * @param customerId The value of "confluent.support.customer.id".
    * @return True if the value matches the pattern of Confluent's internal customer ids.
    */
-  public static boolean isConfluentCustomer(String customerId) {
+  public static boolean isConfluentCustomer(final String customerId) {
     return customerId != null
-           && (CUSTOMER_PATTERN.matcher(customerId.toLowerCase(Locale.ROOT)).matches()
-               || NEW_CUSTOMER_CASE_INSENSISTIVE_PATTERN.matcher(customerId).matches()
-               || NEW_CUSTOMER_CASE_SENSISTIVE_PATTERN.matcher(customerId).matches());
+        && (CUSTOMER_PATTERN.matcher(customerId.toLowerCase(Locale.ROOT)).matches()
+        || NEW_CUSTOMER_CASE_INSENSISTIVE_PATTERN.matcher(customerId).matches()
+        || NEW_CUSTOMER_CASE_SENSISTIVE_PATTERN.matcher(customerId).matches());
   }
 
   /**
    * @param customerId The value of "confluent.support.customer.id".
    * @return True if the value is syntactically correct.
    */
-  public static boolean isSyntacticallyCorrectCustomerId(String customerId) {
+  public static boolean isSyntacticallyCorrectCustomerId(final String customerId) {
     return isAnonymousUser(customerId) || isConfluentCustomer(customerId);
   }
 
@@ -321,10 +322,11 @@ public abstract class BaseSupportConfig {
    * The 15-character alpha-numeric customer IDs are case-sensitive, others are case-insensitive.
    * The old-style customer ID "c\\d{1,30}" maybe look the same as a 15-character alpha-numeric ID,
    * if its length is also 15 characters. In that case, this method will return true.
+   *
    * @param customerId The value of "confluent.support.customer.id".
    * @return true if customer Id is case sensitive
    */
-  public static boolean isCaseSensitiveCustomerId(String customerId) {
+  public static boolean isCaseSensitiveCustomerId(final String customerId) {
     return NEW_CUSTOMER_CASE_SENSISTIVE_PATTERN.matcher(customerId).matches();
   }
 
@@ -332,8 +334,8 @@ public abstract class BaseSupportConfig {
     return getCustomerId(properties);
   }
 
-  public static String getCustomerId(Properties props) {
-    String fallbackId = CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT;
+  public static String getCustomerId(final Properties props) {
+    final String fallbackId = CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT;
     String id = props.getProperty(CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG);
     if (id == null || id.isEmpty()) {
       log.info("No customer ID configured -- falling back to id '{}'", fallbackId);
@@ -359,7 +361,7 @@ public abstract class BaseSupportConfig {
       intervalString = CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_DEFAULT;
     }
     try {
-      long intervalHours = Long.parseLong(intervalString);
+      final long intervalHours = Long.parseLong(intervalString);
       if (intervalHours < 1) {
         throw new ConfigException(
             CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_CONFIG,
@@ -382,53 +384,52 @@ public abstract class BaseSupportConfig {
   }
 
   public boolean getMetricsEnabled() {
-    String enableString = properties
+    final String enableString = properties
         .getProperty(CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG, "false");
     return Boolean.parseBoolean(enableString);
   }
 
   public boolean isHttpEnabled() {
-    String enableHTTP =
+    final String enableHttp =
         properties.getProperty(
             CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_ENABLE_CONFIG,
             CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_ENABLE_DEFAULT
         );
-    return Boolean.parseBoolean(enableHTTP);
+    return Boolean.parseBoolean(enableHttp);
   }
 
-  public String getEndpointHTTP() {
+  public String getEndpointHttp() {
     return properties
         .getProperty(CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_CONFIG, "");
   }
 
-  public void setEndpointHTTP(String endpointHTTP) {
-
+  public void setEndpointHttp(final String endpointHttp) {
     properties.setProperty(
         CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_CONFIG,
-        endpointHTTP
+        endpointHttp
     );
   }
 
   public boolean isHttpsEnabled() {
-    String enableHTTPS =
+    final String enableHttps =
         properties.getProperty(
             CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG,
             CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_DEFAULT
         );
-    return Boolean.parseBoolean(enableHTTPS);
+    return Boolean.parseBoolean(enableHttps);
   }
 
-  public String getEndpointHTTPS() {
+  public String getEndpointHttps() {
     return properties.getProperty(
         CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_CONFIG,
         ""
     );
   }
 
-  public void setEndpointHTTPS(String endpointHTTPS) {
+  public void setEndpointHttps(final String endpointHttps) {
     properties.setProperty(
         CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_CONFIG,
-        endpointHTTPS
+        endpointHttps
     );
   }
 

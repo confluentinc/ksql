@@ -15,14 +15,12 @@
 
 package io.confluent.ksql.api.server.protocol;
 
-import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Represents the metadata of a query stream response
  */
-@Immutable
 public class QueryResponseMetadata extends SerializableObject {
 
   public final String queryId;

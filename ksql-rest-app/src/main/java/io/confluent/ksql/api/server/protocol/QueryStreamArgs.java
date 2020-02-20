@@ -16,31 +16,29 @@
 package io.confluent.ksql.api.server.protocol;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.errorprone.annotations.Immutable;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents the arguments to an insert stream request
+ * Represents the arguments to a query stream request
  */
-@Immutable
-public class InsertsStreamArgs {
+public class QueryStreamArgs {
 
-  public final String target;
+  public final String sql;
   public final JsonObject properties;
 
-  public InsertsStreamArgs(final @JsonProperty(value = "target", required = true) String target,
+  public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
       final @JsonProperty(value = "properties")
           Map<String, Object> properties) {
-    this.target = Objects.requireNonNull(target);
+    this.sql = Objects.requireNonNull(sql);
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
   }
 
   @Override
   public String toString() {
-    return "InsertsStreamArgs{"
-        + "target='" + target + '\''
+    return "QueryStreamArgs{"
+        + "sql='" + sql + '\''
         + ", properties=" + properties
         + '}';
   }

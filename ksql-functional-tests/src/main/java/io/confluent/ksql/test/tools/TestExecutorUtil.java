@@ -407,7 +407,7 @@ public final class TestExecutorUtil {
         return Optional.of(
             ConfiguredKsqlPlan.of(
                 rewritePlan(plan),
-                reformatted.getOverrides(),
+                reformatted.getConfigOverrides(),
                 reformatted.getConfig()
             )
         );

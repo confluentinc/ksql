@@ -361,7 +361,7 @@ public class WSQueryEndpoint {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
-      request.getStreamsProperties();
+      request.getConfigOverrides();
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);
@@ -387,7 +387,7 @@ public class WSQueryEndpoint {
 
   @SuppressWarnings({"unused"})
   private void handleQuery(final RequestContext info, final Query query) {
-    final Map<String, Object> clientLocalProperties = info.request.getStreamsProperties();
+    final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.session, mapper);

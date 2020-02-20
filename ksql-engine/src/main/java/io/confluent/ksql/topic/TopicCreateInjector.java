@@ -137,7 +137,7 @@ public class TopicCreateInjector implements Injector {
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
     final String prefix =
-        statement.getOverrides().getOrDefault(
+        statement.getConfigOverrides().getOrDefault(
             KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
             statement.getConfig().getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
             .toString();

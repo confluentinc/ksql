@@ -235,8 +235,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
-    this.pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, heartbeatAgent, routingFilterFactory);
+    this.pullQueryExecutor = new PullQueryExecutor(ksqlEngine, routingFilterFactory);
   }
 
   @Override
@@ -663,7 +662,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, heartbeatAgent, routingFilterFactory);
+        ksqlEngine, routingFilterFactory);
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -790,18 +789,27 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   private static RoutingFilterFactory initializeRoutingFilterFactory(
-      final KsqlConfig ksqlConfig,
+      final KsqlConfig configWithApplicationServer,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent) {
     return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
       final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
-      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-        filterBuilder.add(new ActiveHostFilter(active));
+
+      // If the lookup is for a forwarded request, apply only MaxLagFilter for localhost
+      if (routingOptions.skipForwardRequest()) {
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+                                storeName, partition)
+            .map(filterBuilder::add);
+      } else {
+        if (!configWithApplicationServer.getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
+          filterBuilder.add(new ActiveHostFilter(active));
+        }
+        filterBuilder.add(new LivenessFilter(heartbeatAgent));
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+                                storeName, partition)
+            .map(filterBuilder::add);
       }
-      filterBuilder.add(new LivenessFilter(heartbeatAgent));
-      MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
-          storeName, partition)
-          .map(filterBuilder::add);
       return new RoutingFilters(filterBuilder.build());
     };
   }

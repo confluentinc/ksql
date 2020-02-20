@@ -17,9 +17,11 @@ package io.confluent.ksql.config;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static io.confluent.ksql.util.KsqlRequestConfig.KSQL_REQUEST_CONFIG_PROPERTY_PREFIX;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,6 +41,7 @@ public class KsqlConfigResolver implements ConfigResolver {
   private static final ConfigDef CONSUMER_CONFIG_DEF = getConfigDef(ConsumerConfig.class);
   private static final ConfigDef PRODUCER_CONFIG_DEF = getConfigDef(ProducerConfig.class);
   private static final ConfigDef KSQL_CONFIG_DEF = KsqlConfig.CURRENT_DEF;
+  private static final ConfigDef REQUEST_CONFIG_DEF = KsqlRequestConfig.CURRENT_DEF;
 
   private static final List<PrefixedConfig> STREAM_CONFIG_DEFS = ImmutableList.of(
       new PrefixedConfig(StreamsConfig.CONSUMER_PREFIX, CONSUMER_CONFIG_DEF),
@@ -50,7 +53,9 @@ public class KsqlConfigResolver implements ConfigResolver {
 
   @Override
   public  Optional<ConfigItem> resolve(final String propertyName, final boolean strict) {
-    if (propertyName.startsWith(KSQL_CONFIG_PROPERTY_PREFIX)
+    if (propertyName.startsWith(KSQL_REQUEST_CONFIG_PROPERTY_PREFIX)) {
+      return resolveRequestConfig(propertyName);
+    } else if (propertyName.startsWith(KSQL_CONFIG_PROPERTY_PREFIX)
         && !propertyName.startsWith(KSQL_STREAMS_PREFIX)) {
       return resolveKsqlConfig(propertyName);
     }
@@ -95,6 +100,15 @@ public class KsqlConfigResolver implements ConfigResolver {
     if (propertyName.startsWith(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX)) {
       // Functions properties are free form, so can not be resolved / validated:
       return Optional.of(ConfigItem.unresolved(propertyName));
+    }
+
+    return Optional.empty();
+  }
+
+  private static Optional<ConfigItem> resolveRequestConfig(final String propertyName) {
+    final Optional<ConfigItem> possibleItem = resolveConfig("", REQUEST_CONFIG_DEF, propertyName);
+    if (possibleItem.isPresent()) {
+      return possibleItem;
     }
 
     return Optional.empty();

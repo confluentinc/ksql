@@ -60,7 +60,8 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final URI serverEndpoint,
       final String sql
   ) {
-    final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
+    final KsqlRequest request = new KsqlRequest(
+        sql, Collections.emptyMap(), Collections.emptyMap(), null);
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
@@ -76,7 +77,8 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   public RestResponse<List<StreamedRow>> makeQueryRequest(
       final URI serverEndpoint,
       final String sql,
-      final Map<String, ?> properties
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties
   ) {
     throw new UnsupportedOperationException();
   }

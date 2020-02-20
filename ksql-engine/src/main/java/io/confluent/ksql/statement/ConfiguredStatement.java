@@ -35,7 +35,9 @@ public final class ConfiguredStatement<T extends Statement> {
 
   private final PreparedStatement<T> statement;
   @EffectivelyImmutable
-  private final ImmutableMap<String, Object> overrides;
+  private final ImmutableMap<String, Object> configOverrides;
+  @EffectivelyImmutable
+  private final ImmutableMap<String, Object> requestProperties;
   private final KsqlConfig config;
 
   public static <S extends Statement> ConfiguredStatement<S> of(
@@ -46,13 +48,36 @@ public final class ConfiguredStatement<T extends Statement> {
     return new ConfiguredStatement<>(statement, overrides, config);
   }
 
+  public static <S extends Statement> ConfiguredStatement<S> of(
+      final PreparedStatement<S> statement,
+      final Map<String, ?> overrides,
+      final Map<String, ?> requestProperties,
+      final KsqlConfig config
+  ) {
+    return new ConfiguredStatement<>(statement, overrides, requestProperties, config);
+  }
+
   private ConfiguredStatement(
       final PreparedStatement<T> statement,
-      final Map<String, ?> overrides,
+      final Map<String, ?> configOverrides,
       final KsqlConfig config
   ) {
     this.statement = requireNonNull(statement, "statement");
-    this.overrides = ImmutableMap.copyOf(requireNonNull(overrides, "overrides"));
+    this.configOverrides = ImmutableMap.copyOf(requireNonNull(configOverrides, "overrides"));
+    this.config = requireNonNull(config, "config");
+    this.requestProperties = ImmutableMap.of();
+  }
+
+  private ConfiguredStatement(
+      final PreparedStatement<T> statement,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties,
+      final KsqlConfig config
+  ) {
+    this.statement = requireNonNull(statement, "statement");
+    this.configOverrides = ImmutableMap.copyOf(requireNonNull(configOverrides, "overrides"));
+    this.requestProperties = ImmutableMap.copyOf(requireNonNull(
+        requestProperties, "serverProperties"));
     this.config = requireNonNull(config, "config");
   }
 
@@ -69,8 +94,12 @@ public final class ConfiguredStatement<T extends Statement> {
     return statement.getStatementText();
   }
 
-  public Map<String, Object> getOverrides() {
-    return overrides;
+  public Map<String, Object> getConfigOverrides() {
+    return configOverrides;
+  }
+
+  public Map<String, Object> getRequestProperties() {
+    return requestProperties;
   }
 
   public KsqlConfig getConfig() {
@@ -78,18 +107,22 @@ public final class ConfiguredStatement<T extends Statement> {
   }
 
   public ConfiguredStatement<T> withConfig(final KsqlConfig config) {
-    return new ConfiguredStatement<>(this.statement, this.overrides, config);
+    return new ConfiguredStatement<>(this.statement, this.configOverrides, config);
   }
 
-  public ConfiguredStatement<T> withProperties(final Map<String, Object> properties) {
+  public ConfiguredStatement<T> withConfigOverrides(final Map<String, Object> properties) {
     return new ConfiguredStatement<>(this.statement, properties, this.config);
+  }
+
+  public ConfiguredStatement<T> withRequestProperties(final Map<String, Object> properties) {
+    return new ConfiguredStatement<>(this.statement, this.configOverrides, properties, this.config);
   }
 
   public ConfiguredStatement<T> withStatement(
       final String statementText,
       final T statement) {
     return new ConfiguredStatement<>(
-        PreparedStatement.of(statementText, statement), this.overrides, this.config);
+        PreparedStatement.of(statementText, statement), this.configOverrides, this.config);
   }
 
   @Override
@@ -102,20 +135,21 @@ public final class ConfiguredStatement<T extends Statement> {
     }
     final ConfiguredStatement<?> that = (ConfiguredStatement<?>) o;
     return Objects.equals(statement, that.statement)
-        && Objects.equals(overrides, that.overrides)
+        && Objects.equals(configOverrides, that.configOverrides)
         && Objects.equals(config, that.config);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, overrides, config);
+    return Objects.hash(statement, configOverrides, config);
   }
 
   @Override
   public String toString() {
     return "ConfiguredStatement{"
         + "statement=" + statement
-        + ", overrides=" + overrides
+        + ", configOverrides=" + configOverrides
+        + ", requestProperties=" + requestProperties
         + ", config=" + config
         + '}';
   }

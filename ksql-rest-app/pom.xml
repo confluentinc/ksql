@@ -57,11 +57,6 @@
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-version-metrics-client</artifactId>
         </dependency>
 
@@ -163,15 +158,7 @@
           <version>${project.version}</version>
           <scope>test</scope>
       </dependency>
-
-      <dependency>
-          <groupId>io.confluent.ksql</groupId>
-          <artifactId>ksql-api</artifactId>
-          <version>${project.parent.version}</version>
-          <type>test-jar</type>
-          <scope>test</scope>
-      </dependency>
-
+      
       <dependency>
           <groupId>com.kjetland</groupId>
           <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>

@@ -500,7 +500,7 @@ public class WSQueryEndpoint {
 
   }
 
-  interface IPullQueryPublisher {
+  public interface IPullQueryPublisher {
 
     void start(
         KsqlEngine ksqlEngine,

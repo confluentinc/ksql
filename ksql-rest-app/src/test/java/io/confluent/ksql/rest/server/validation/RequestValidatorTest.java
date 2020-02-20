@@ -289,8 +289,6 @@ public class RequestValidatorTest {
   }
 
   @Sandbox
-  public interface SandboxEngine extends KsqlExecutionContext {
-
-  }
+  private interface SandboxEngine extends KsqlExecutionContext { }
 
 }

@@ -1,149 +1,80 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572101687,
-  "plan" : [ {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM ARRAY_ARRAY (ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<STRING>>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "ARRAY_ARRAY",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
-      "keyField" : null,
-      "timestampColumn" : null,
-      "topicName" : "test_topic",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM S3 AS SELECT\n  ARRAY_ARRAY.ID ID,\n  ARRAY_ARRAY.ARRAY_COL[1][1][1] ARRAY_ITEM\nFROM ARRAY_ARRAY ARRAY_ARRAY\nEMIT CHANGES",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "S3",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
-      "keyField" : null,
-      "timestampColumn" : null,
-      "topicName" : "S3",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : {
-      "sources" : [ "ARRAY_ARRAY" ],
-      "sink" : "S3",
-      "physicalPlan" : {
-        "@type" : "streamSinkV1",
-        "properties" : {
-          "queryContext" : "S3"
-        },
-        "source" : {
-          "@type" : "streamSelectV1",
-          "properties" : {
-            "queryContext" : "Project"
-          },
-          "source" : {
-            "@type" : "streamSourceV1",
-            "properties" : {
-              "queryContext" : "KsqlTopic/Source"
-            },
-            "topicName" : "test_topic",
-            "formats" : {
-              "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
-              },
-              "valueFormat" : {
-                "format" : "JSON",
-                "properties" : { }
-              },
-              "options" : [ ]
-            },
-            "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>"
-          },
-          "selectExpressions" : [ "ID AS ID", "ARRAY_COL[1][1][1] AS ARRAY_ITEM" ]
-        },
-        "formats" : {
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
-          },
-          "valueFormat" : {
-            "format" : "JSON",
-            "properties" : { }
-          },
-          "options" : [ ]
-        },
-        "topicName" : "S3"
-      },
-      "queryId" : "CSAS_S3_0"
-    }
-  } ],
   "schemas" : {
     "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>> NOT NULL",
     "CSAS_S3_0.S3" : "STRUCT<ID BIGINT, ARRAY_ITEM VARCHAR> NOT NULL"
   },
-  "configs" : {
-    "ksql.extension.dir" : "ext",
-    "ksql.streams.cache.max.bytes.buffering" : "0",
-    "ksql.security.extension.class" : null,
-    "ksql.transient.prefix" : "transient_",
-    "ksql.persistence.wrap.single.values" : "true",
-    "ksql.authorization.cache.expiry.time.secs" : "30",
-    "ksql.schema.registry.url" : "",
-    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
-    "ksql.output.topic.name.prefix" : "",
-    "ksql.streams.auto.offset.reset" : "earliest",
-    "ksql.query.pull.enable.standby.reads" : "false",
-    "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
-    "ksql.internal.topic.min.insync.replicas" : "1",
-    "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent3500161714550980076",
-    "ksql.internal.topic.replicas" : "1",
-    "ksql.insert.into.values.enabled" : "true",
-    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
-    "ksql.access.validator.enable" : "auto",
-    "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.streams.commit.interval.ms" : "2000",
-    "ksql.metric.reporters" : "",
-    "ksql.streams.auto.commit.interval.ms" : "0",
-    "ksql.metrics.extension" : null,
-    "ksql.streams.topology.optimization" : "all",
-    "ksql.execution.plan.enable" : "false",
-    "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
-    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.streams.num.stream.threads" : "4",
-    "ksql.authorization.cache.max.entries" : "10000",
-    "ksql.metrics.tags.custom" : "",
-    "ksql.pull.queries.enable" : "true",
-    "ksql.udfs.enabled" : "true",
-    "ksql.udf.enable.security.manager" : "true",
-    "ksql.connect.worker.config" : "",
-    "ksql.sink.window.change.log.additional.retention" : "1000000",
-    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.udf.collect.metrics" : "false",
-    "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
-  }
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 1,
+      "array_col" : [ [ [ "item_000_1", "item_001_1" ], [ "item_010_1", "item_011_1" ] ], [ [ "item_100_1", "item_101_1" ], [ "item_110_1", "item_111_1" ] ] ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 2,
+      "array_col" : [ [ [ "item_000_2", "item_001_2" ], [ "item_010_2", "item_011_2" ] ], [ [ "item_100_2", "item_101_2" ], [ "item_110_2", "item_111_2" ] ] ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 3,
+      "array_col" : [ [ [ "item_000_3", "item_001_3" ], [ "item_010_3", "item_011_3" ] ], [ [ "item_100_3", "item_101_3" ], [ "item_110_3", "item_111_3" ] ] ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 4,
+      "array_col" : [ [ [ "item_000_4", "item_001_4" ], [ "item_010_4", "item_011_4" ] ], [ [ "item_100_4", "item_101_4" ], [ "item_110_4", "item_111_4" ] ] ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 5,
+      "array_col" : [ [ [ "item_000_5", "item_001_5" ], [ "item_010_5", "item_011_5" ] ], [ [ "item_100_5", "item_101_5" ], [ "item_110_5", "item_111_5" ] ] ]
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 1,
+      "ARRAY_ITEM" : "item_000_1"
+    }
+  }, {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 2,
+      "ARRAY_ITEM" : "item_000_2"
+    }
+  }, {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 3,
+      "ARRAY_ITEM" : "item_000_3"
+    }
+  }, {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 4,
+      "ARRAY_ITEM" : "item_000_4"
+    }
+  }, {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 5,
+      "ARRAY_ITEM" : "item_000_5"
+    }
+  } ]
 }

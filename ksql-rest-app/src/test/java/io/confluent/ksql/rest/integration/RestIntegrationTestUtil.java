@@ -52,12 +52,12 @@ import javax.ws.rs.core.Response;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-final class RestIntegrationTestUtil {
+public final class RestIntegrationTestUtil {
 
   private RestIntegrationTestUtil() {
   }
 
-  static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
+  public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
     return makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
@@ -160,7 +160,8 @@ final class RestIntegrationTestUtil {
     }
   }
 
-  static void createStream(final TestKsqlRestApp restApp, final TestDataProvider<?> dataProvider) {
+  public static void createStream(final TestKsqlRestApp restApp,
+      final TestDataProvider<?> dataProvider) {
     makeKsqlRequest(
         restApp,
         "CREATE STREAM " + dataProvider.kstreamName()

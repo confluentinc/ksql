@@ -29,12 +29,14 @@
     <artifactId>ksql-rest-app</artifactId>
 
     <properties>
-        <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <main-class>io.confluent.ksql.rest.server.KsqlRestApplication</main-class>
-        <cli.skip-execute>false</cli.skip-execute>
-        <cli.main-class>${main-class}</cli.main-class>
-        <docker.skip-build>true</docker.skip-build>
-        <docker.skip-test>true</docker.skip-test>
+      <air.main.basedir>${project.parent.basedir}</air.main.basedir>
+      <main-class>io.confluent.ksql.rest.server.KsqlRestApplication</main-class>
+      <cli.skip-execute>false</cli.skip-execute>
+      <cli.main-class>${main-class}</cli.main-class>
+      <docker.skip-build>true</docker.skip-build>
+      <docker.skip-test>true</docker.skip-test>
+      <vertx.version>3.8.4</vertx.version>
+      <reactive-streams.version>1.0.3</reactive-streams.version>
     </properties>
 
     <dependencies>
@@ -85,61 +87,111 @@
 
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>${jackson.version}</version>
+          <artifactId>jackson-datatype-jdk8</artifactId>
+          <version>${jackson.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-log4j-appender</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-log4j-appender</artifactId>
+        <version>${kafka.version}</version>
+      </dependency>
 
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>confluent-log4j-extensions</artifactId>
-            <version>${confluent.version}</version>
-        </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>confluent-log4j-extensions</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
 
-        <!-- Required for running tests -->
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-core</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
 
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-engine</artifactId>
-            <version>${project.parent.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-codegen</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
 
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-rest-model</artifactId>
-            <version>${project.parent.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-web</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
 
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-test-util</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-web-client</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
 
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-api</artifactId>
-            <version>${project.parent.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative-boringssl-static</artifactId>
+        <version>2.0.28.Final</version>
+      </dependency>
 
-        <dependency>
-            <groupId>com.kjetland</groupId>
-            <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
-            <version>1.0.34</version>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>${reactive-streams.version}</version>
+      </dependency>
+
+      <!-- Required for running tests -->
+
+      <dependency>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksql-engine</artifactId>
+        <version>${project.parent.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksql-rest-model</artifactId>
+        <version>${project.parent.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+          <groupId>io.confluent.ksql</groupId>
+          <artifactId>ksql-test-util</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+      </dependency>
+
+      <dependency>
+          <groupId>io.confluent.ksql</groupId>
+          <artifactId>ksql-api</artifactId>
+          <version>${project.parent.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+      </dependency>
+
+      <dependency>
+          <groupId>com.kjetland</groupId>
+          <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
+          <version>1.0.34</version>
+          <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams-tck</artifactId>
+        <version>${reactive-streams.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testng</groupId>
+        <artifactId>testng</artifactId>
+        <version>6.11</version>
+        <scope>test</scope>
+      </dependency>
 
     </dependencies>
 

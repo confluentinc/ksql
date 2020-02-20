@@ -38,24 +38,38 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
+
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListQueriesExecutorTest {
 
+  private static final KsqlHostInfo LOCAL_HOST = new KsqlHostInfo("some host", 555);
+
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
+
+  @Mock
+  private SessionProperties sessionProperties;
+
+  @Before
+  public void setUp() {
+    when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
+  }
 
   @Test
   public void shouldListQueriesEmpty() {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
-            mock(SessionProperties.class),
+        sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -75,7 +89,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -86,7 +100,8 @@ public class ListQueriesExecutorTest {
             ImmutableSet.of(metadata.getSinkName().text()),
             ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
-            Optional.of(metadata.getState())
+            Optional.of(metadata.getState()),
+            Optional.of(new KsqlHostInfoEntity(LOCAL_HOST))
         )));
   }
 
@@ -103,13 +118,13 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        mock(SessionProperties.class),
+        sessionProperties,
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(metadata)));
+        QueryDescriptionFactory.forQueryMetadata(metadata, Optional.of(new KsqlHostInfoEntity(LOCAL_HOST)))));
   }
 
   @SuppressWarnings("SameParameterValue")

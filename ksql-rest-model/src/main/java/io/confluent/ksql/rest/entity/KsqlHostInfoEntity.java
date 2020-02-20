@@ -43,7 +43,7 @@ public class KsqlHostInfoEntity {
     final String [] parts = serializedPair.split(":");
     if (parts.length != 2) {
       throw new KsqlException("Invalid host info. Expected format: <hostname>:<port>, but was "
-                                  + serializedPair);
+              + serializedPair);
     }
 
     this.host = Objects.requireNonNull(parts[0], "host");
@@ -52,8 +52,13 @@ public class KsqlHostInfoEntity {
       this.port = Integer.parseInt(parts[1]);
     } catch (final Exception e) {
       throw new KsqlException("Invalid port. Expected format: <hostname>:<port>, but was "
-                                  + serializedPair, e);
+              + serializedPair, e);
     }
+  }
+
+  public KsqlHostInfoEntity(final KsqlHostInfo ksqlHostInfo) {
+    this.host = ksqlHostInfo.host();
+    this.port = ksqlHostInfo.port();
   }
 
   public String getHost() {

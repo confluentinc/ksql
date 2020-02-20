@@ -100,6 +100,7 @@ import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -541,8 +542,8 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0)),
-        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1))));
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), Optional.of(LOCAL_HOST)),
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1), Optional.of(LOCAL_HOST))));
   }
 
   @Test
@@ -1986,7 +1987,8 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
-            Optional.of(md.getState())
+            Optional.of(md.getState()),
+            Optional.empty()
         ))
         .collect(Collectors.toList());
   }
@@ -2212,7 +2214,7 @@ public class KsqlResourceTest {
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:9099");
+    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://" + APPLICATION_SERVER_CONFIG_STRING);
 
     final Properties properties = new Properties();
     properties.putAll(configMap);

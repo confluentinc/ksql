@@ -224,7 +224,8 @@ public final class ListSourceExecutor {
             ImmutableSet.of(q.getSinkName().text()),
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
-            Optional.of(q.getState())
+            Optional.of(q.getState()),
+            Optional.empty()
         ))
         .collect(Collectors.toList());
   }

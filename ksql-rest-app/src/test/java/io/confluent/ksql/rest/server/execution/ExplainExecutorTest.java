@@ -71,7 +71,7 @@ public class ExplainExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
+    assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata, Optional.empty())));
   }
 
   @Test

@@ -260,7 +260,8 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                Optional.of(metadata.getState())
+                Optional.of(metadata.getState()),
+                Optional.empty()
             )),
             Optional.empty())));
   }

@@ -118,7 +118,7 @@ public final class ExplainExecutor {
               new IllegalStateException("The provided statement did not run a ksql query"));
     }
 
-    return QueryDescriptionFactory.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(metadata, Optional.empty());
   }
 
   private static QueryDescription explainQuery(
@@ -131,7 +131,7 @@ public final class ExplainExecutor {
             "Query with id:" + queryId + " does not exist, "
                 + "use SHOW QUERIES to view the full set of queries."));
 
-    return QueryDescriptionFactory.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(metadata, Optional.empty());
   }
 
 }

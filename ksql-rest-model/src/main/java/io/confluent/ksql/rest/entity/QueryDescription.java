@@ -42,8 +42,10 @@ public class QueryDescription {
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
   private final Optional<String> state;
+  private final Optional<KsqlHostInfoEntity> ksqlHostInfo;
 
-  @SuppressWarnings("WeakerAccess") // Invoked via reflection
+  // Invoked via reflection
+  @SuppressWarnings({"WeakerAccess", "checkstyle:ParameterNumber"})
   @JsonCreator
   public QueryDescription(
       @JsonProperty("id") final QueryId id,
@@ -55,7 +57,8 @@ public class QueryDescription {
       @JsonProperty("topology") final String topology,
       @JsonProperty("executionPlan") final String executionPlan,
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("state") final Optional<String> state,
+      @JsonProperty("ksqlHostInfo") final Optional<KsqlHostInfoEntity> ksqlHostInfo
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -68,6 +71,7 @@ public class QueryDescription {
     this.overriddenProperties = ImmutableMap.copyOf(Objects
         .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.state = Objects.requireNonNull(state, "state");
+    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
   }
 
   public QueryId getId() {
@@ -108,6 +112,10 @@ public class QueryDescription {
 
   public Optional<String> getState() {
     return state;
+  }
+
+  public Optional<KsqlHostInfoEntity> getKsqlHostInfo() {
+    return ksqlHostInfo;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

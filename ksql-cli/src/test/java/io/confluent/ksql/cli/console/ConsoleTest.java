@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
@@ -88,6 +89,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.streams.state.HostInfo;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -98,6 +100,7 @@ public class ConsoleTest {
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
+  private static final Optional<KsqlHostInfoEntity> LOCAL_HOST = Optional.of(new KsqlHostInfoEntity("some host", 555));
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -288,7 +291,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar")));
+            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar"), LOCAL_HOST));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -308,16 +311,17 @@ public class ConsoleTest {
           + "    \"sinks\" : [ \"Test\" ],\n"
           + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
           + "    \"id\" : \"0\",\n"
-          + "    \"state\" : \"Foobar\"\n"
+          + "    \"state\" : \"Foobar\",\n"
+          + "    \"ksqlHostInfo\" : \"some host:555\"\n"
           + "  } ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     \n"
-          + "---------------------------------------------------------------------\n"
-          + " 0        | Foobar | Test      | Test topic       | select * from t1 \n"
-          + "---------------------------------------------------------------------\n"
+          + " Query ID | Status | Host Info     | Sink Name | Sink Kafka Topic | Query String     \n"
+          + "-------------------------------------------------------------------------------------\n"
+          + " 0        | Foobar | some host:555 | Test      | Test topic       | select * from t1 \n"
+          + "-------------------------------------------------------------------------------------\n"
           + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
     }
   }
@@ -339,10 +343,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"), LOCAL_HOST)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"), LOCAL_HOST)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -388,14 +392,16 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"ksqlHostInfo\" : \"some host:555\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"ksqlHostInfo\" : \"some host:555\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"
@@ -994,10 +1000,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"), LOCAL_HOST)
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"), LOCAL_HOST)
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1042,14 +1048,16 @@ public class ConsoleTest {
           + "      \"sinks\" : [ \"sink1\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"ksqlHostInfo\" : \"some host:555\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
           + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
           + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"state\" : \"Running\"\n"
+          + "      \"state\" : \"Running\",\n"
+          + "      \"ksqlHostInfo\" : \"some host:555\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"

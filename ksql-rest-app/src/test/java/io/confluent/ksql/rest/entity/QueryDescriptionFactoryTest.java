@@ -79,6 +79,7 @@ public class QueryDescriptionFactoryTest {
   private static final String SQL_TEXT = "test statement";
   private static final String TOPOLOGY_TEXT = "Topology Text";
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
+  private static final Optional<KsqlHostInfoEntity> LOCAL_HOST = Optional.of(new KsqlHostInfoEntity("localhost", 50));
 
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
@@ -117,7 +118,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Optional.empty());
 
     final PersistentQueryMetadata persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
@@ -138,7 +139,7 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout);
 
-    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery);
+    persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, LOCAL_HOST);
   }
 
   @Test
@@ -231,7 +232,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Optional.empty());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
@@ -264,7 +265,7 @@ public class QueryDescriptionFactoryTest {
         closeTimeout);
 
     // When:
-    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
+    transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Optional.empty());
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(

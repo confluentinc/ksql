@@ -32,6 +32,7 @@ public class RunningQuery {
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
   private final Optional<String> state;
+  private final Optional<KsqlHostInfoEntity> ksqlHostInfo;
 
   @JsonCreator
   public RunningQuery(
@@ -39,13 +40,15 @@ public class RunningQuery {
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
-      @JsonProperty("state") final Optional<String> state
+      @JsonProperty("state") final Optional<String> state,
+      @JsonProperty("ksqlHostInfo") final Optional<KsqlHostInfoEntity> ksqlHostInfo
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
     this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.state = Objects.requireNonNull(state, "state");
+    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
   }
 
   public String getQueryString() {
@@ -54,7 +57,7 @@ public class RunningQuery {
 
   @JsonIgnore
   public String getQuerySingleLine() {
-    return queryString.replaceAll(System.lineSeparator(), "");
+    return queryString.replaceAll(System.lineSeparator(), " ");
   }
 
   public Set<String> getSinks() {
@@ -73,6 +76,10 @@ public class RunningQuery {
     return state;
   }
 
+  public Optional<KsqlHostInfoEntity> getKsqlHostInfo() {
+    return ksqlHostInfo;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -86,11 +93,12 @@ public class RunningQuery {
         && Objects.equals(queryString, that.queryString)
         && Objects.equals(sinks, that.sinks)
         && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
-        && Objects.equals(state, that.state);
+        && Objects.equals(state, that.state)
+        && Objects.equals(ksqlHostInfo, that.ksqlHostInfo);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state, ksqlHostInfo);
   }
 }

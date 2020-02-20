@@ -32,7 +32,10 @@ public final class QueryDescriptionFactory {
   private QueryDescriptionFactory() {
   }
 
-  public static QueryDescription forQueryMetadata(final QueryMetadata queryMetadata) {
+  public static QueryDescription forQueryMetadata(
+      final QueryMetadata queryMetadata,
+      final Optional<KsqlHostInfoEntity> ksqlHostInfo
+  ) {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return create(
@@ -40,7 +43,8 @@ public final class QueryDescriptionFactory {
           persistentQuery,
           persistentQuery.getResultTopic().getKeyFormat().getWindowType(),
           ImmutableSet.of(persistentQuery.getSinkName()),
-          Optional.of(persistentQuery.getState())
+          Optional.of(persistentQuery.getState()),
+          ksqlHostInfo
       );
     }
 
@@ -49,6 +53,7 @@ public final class QueryDescriptionFactory {
         queryMetadata,
         Optional.empty(),
         Collections.emptySet(),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -58,7 +63,8 @@ public final class QueryDescriptionFactory {
       final QueryMetadata queryMetadata,
       final Optional<WindowType> windowType,
       final Set<SourceName> sinks,
-      final Optional<String> state
+      final Optional<String> state,
+      final Optional<KsqlHostInfoEntity> ksqlHostInfo
   ) {
     return new QueryDescription(
         id,
@@ -70,7 +76,8 @@ public final class QueryDescriptionFactory {
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
-        state
+        state,
+        ksqlHostInfo
     );
   }
 }

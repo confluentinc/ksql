@@ -25,14 +25,21 @@ import java.util.Optional;
 @Immutable
 public class ListQueries extends Statement {
 
+  private final boolean showAll;
   private final boolean showExtended;
 
   public ListQueries(
       final Optional<NodeLocation> location,
+      final boolean showAll,
       final boolean showExtended
   ) {
     super(location);
     this.showExtended = showExtended;
+    this.showAll = showAll;
+  }
+
+  public boolean getShowAll() {
+    return showAll;
   }
 
   public boolean getShowExtended() {
@@ -48,17 +55,18 @@ public class ListQueries extends Statement {
       return false;
     }
     final ListQueries that = (ListQueries) o;
-    return showExtended == that.showExtended;
+    return showAll == that.showAll && showExtended == that.showExtended;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(showExtended);
+    return Objects.hash(showExtended, showAll);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
+        .add("showAll", showAll)
         .add("showExtended", showExtended)
         .toString();
   }

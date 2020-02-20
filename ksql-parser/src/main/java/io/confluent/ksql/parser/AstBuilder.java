@@ -580,7 +580,7 @@ public class AstBuilder {
     @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
       return new ListTopics(getLocation(context),
-          context.ALL() != null, context.EXTENDED() != null);
+      context.ALL() != null, context.EXTENDED() != null);
     }
 
     @Override
@@ -597,8 +597,8 @@ public class AstBuilder {
 
     @Override
     public Node visitListQueries(final SqlBaseParser.ListQueriesContext context) {
-      return new ListQueries(
-          getLocation(context), context.EXTENDED() != null);
+      return new ListQueries(getLocation(context),
+      context.ALL() != null, context.EXTENDED() != null);
     }
 
     @Override

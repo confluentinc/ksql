@@ -13,13 +13,19 @@ Synopsis
 --------
 
 ```sql
-SHOW QUERIES;
+SHOW | LIST [ALL] QUERIES [EXTENDED];
 ```
 
 Description
 -----------
 
 List the running persistent queries.
+
+`SHOW QUERIES` lists queries running on the node that receives the request
+
+`SHOW QUERIES EXTENDED` Lists queries running on the node that receives the request in more detail
+
+`SHOW ALL QUERIES` lists all queries running across all nodes in the cluster
 
 Example
 -------

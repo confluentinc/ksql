@@ -63,7 +63,7 @@ public final class StandaloneExecutorFactory {
     );
   }
 
-  interface StandaloneExecutorConstructor {
+  public interface StandaloneExecutorConstructor {
 
     StandaloneExecutor create(
         ServiceContext serviceContext,

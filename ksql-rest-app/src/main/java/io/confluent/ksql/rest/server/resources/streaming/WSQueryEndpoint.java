@@ -489,7 +489,7 @@ public class WSQueryEndpoint {
         .subscribe(topicSubscriber);
   }
 
-  interface QueryPublisher {
+  public interface QueryPublisher {
 
     void start(
         KsqlEngine ksqlEngine,

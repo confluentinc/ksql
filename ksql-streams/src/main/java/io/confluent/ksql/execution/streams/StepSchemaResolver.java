@@ -182,7 +182,7 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory.build(sourceSchema, compiledGroupBy).getSchema();
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleTableGroupBy(
@@ -197,7 +197,7 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory.build(sourceSchema, compiledGroupBy).getSchema();
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleStreamSelect(

@@ -26,6 +26,7 @@ public final class PlannedTestPath {
   private static final String BASE_DIRECTORY = "src/test/resources/";
   private static final String PLANS_DIR = "historical_plans/";
   public static final String SPEC_FILE = "spec.json";
+  public static final String PLAN_FILE = "plan.json";
   public static final String TOPOLOGY_FILE = "topology";
 
   private final Path path;

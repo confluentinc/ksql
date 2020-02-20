@@ -1,149 +1,85 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572087472,
-  "plan" : [ {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID BIGINT, START_DATE INTEGER, DATE_FORMAT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
-      "keyField" : null,
-      "timestampColumn" : null,
-      "topicName" : "test_topic",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM DATE_STREAM AS SELECT\n  TEST.ID ID,\n  DATETOSTRING(TEST.START_DATE, TEST.DATE_FORMAT) CUSTOM_FORMATTED_START_DATE\nFROM TEST TEST\nEMIT CHANGES",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "DATE_STREAM",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
-      "keyField" : null,
-      "timestampColumn" : null,
-      "topicName" : "DATE_STREAM",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : {
-      "sources" : [ "TEST" ],
-      "sink" : "DATE_STREAM",
-      "physicalPlan" : {
-        "@type" : "streamSinkV1",
-        "properties" : {
-          "queryContext" : "DATE_STREAM"
-        },
-        "source" : {
-          "@type" : "streamSelectV1",
-          "properties" : {
-            "queryContext" : "Project"
-          },
-          "source" : {
-            "@type" : "streamSourceV1",
-            "properties" : {
-              "queryContext" : "KsqlTopic/Source"
-            },
-            "topicName" : "test_topic",
-            "formats" : {
-              "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
-              },
-              "valueFormat" : {
-                "format" : "JSON",
-                "properties" : { }
-              },
-              "options" : [ ]
-            },
-            "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING"
-          },
-          "selectExpressions" : [ "ID AS ID", "DATETOSTRING(START_DATE, DATE_FORMAT) AS CUSTOM_FORMATTED_START_DATE" ]
-        },
-        "formats" : {
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
-          },
-          "valueFormat" : {
-            "format" : "JSON",
-            "properties" : { }
-          },
-          "options" : [ ]
-        },
-        "topicName" : "DATE_STREAM"
-      },
-      "queryId" : "CSAS_DATE_STREAM_0"
-    }
-  } ],
   "schemas" : {
     "CSAS_DATE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, START_DATE INT, DATE_FORMAT VARCHAR> NOT NULL",
     "CSAS_DATE_STREAM_0.DATE_STREAM" : "STRUCT<ID BIGINT, CUSTOM_FORMATTED_START_DATE VARCHAR> NOT NULL"
   },
-  "configs" : {
-    "ksql.extension.dir" : "ext",
-    "ksql.streams.cache.max.bytes.buffering" : "0",
-    "ksql.security.extension.class" : null,
-    "ksql.transient.prefix" : "transient_",
-    "ksql.persistence.wrap.single.values" : "true",
-    "ksql.authorization.cache.expiry.time.secs" : "30",
-    "ksql.schema.registry.url" : "",
-    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
-    "ksql.output.topic.name.prefix" : "",
-    "ksql.streams.auto.offset.reset" : "earliest",
-    "ksql.query.pull.enable.standby.reads" : "false",
-    "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
-    "ksql.internal.topic.min.insync.replicas" : "1",
-    "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent3500161714550980076",
-    "ksql.internal.topic.replicas" : "1",
-    "ksql.insert.into.values.enabled" : "true",
-    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
-    "ksql.access.validator.enable" : "auto",
-    "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.streams.commit.interval.ms" : "2000",
-    "ksql.metric.reporters" : "",
-    "ksql.streams.auto.commit.interval.ms" : "0",
-    "ksql.metrics.extension" : null,
-    "ksql.streams.topology.optimization" : "all",
-    "ksql.execution.plan.enable" : "false",
-    "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
-    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.streams.num.stream.threads" : "4",
-    "ksql.authorization.cache.max.entries" : "10000",
-    "ksql.metrics.tags.custom" : "",
-    "ksql.pull.queries.enable" : "true",
-    "ksql.udfs.enabled" : "true",
-    "ksql.udf.enable.security.manager" : "true",
-    "ksql.connect.worker.config" : "",
-    "ksql.sink.window.change.log.additional.retention" : "1000000",
-    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.udf.collect.metrics" : "false",
-    "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
-  }
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 1,
+      "START_DATE" : 17662,
+      "DATE_FORMAT" : "yyyy-MM-dd"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 2,
+      "START_DATE" : 18027,
+      "DATE_FORMAT" : "dd/MM/yyyy"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 3,
+      "START_DATE" : 18993,
+      "DATE_FORMAT" : "dd-MMM-yyyy"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 4,
+      "START_DATE" : 0,
+      "DATE_FORMAT" : "dd-MM-yyyy"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 5,
+      "START_DATE" : -1,
+      "DATE_FORMAT" : "dd-MM-yyyy'Sophia'"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "DATE_STREAM",
+    "key" : "",
+    "value" : {
+      "ID" : 1,
+      "CUSTOM_FORMATTED_START_DATE" : "2018-05-11"
+    }
+  }, {
+    "topic" : "DATE_STREAM",
+    "key" : "",
+    "value" : {
+      "ID" : 2,
+      "CUSTOM_FORMATTED_START_DATE" : "11/05/2019"
+    }
+  }, {
+    "topic" : "DATE_STREAM",
+    "key" : "",
+    "value" : {
+      "ID" : 3,
+      "CUSTOM_FORMATTED_START_DATE" : "01-Jan-2022"
+    }
+  }, {
+    "topic" : "DATE_STREAM",
+    "key" : "",
+    "value" : {
+      "ID" : 4,
+      "CUSTOM_FORMATTED_START_DATE" : "01-01-1970"
+    }
+  }, {
+    "topic" : "DATE_STREAM",
+    "key" : "",
+    "value" : {
+      "ID" : 5,
+      "CUSTOM_FORMATTED_START_DATE" : "31-12-1969Sophia"
+    }
+  } ]
 }

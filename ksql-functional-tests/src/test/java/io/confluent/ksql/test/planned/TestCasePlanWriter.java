@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.test.planned;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,21 +25,29 @@ import java.nio.file.StandardOpenOption;
 
 public final class TestCasePlanWriter {
 
-  private static final ObjectMapper MAPPER = PlanJsonMapper.create();
-
   private TestCasePlanWriter() {
   }
 
   public static void writeTestCasePlan(final TestCase testCase, final TestCasePlan planAtVersion) {
     final Path parent = PlannedTestPath.forTestCasePlan(testCase, planAtVersion).relativePath();
     final Path specPath = parent.resolve(PlannedTestPath.SPEC_FILE);
+    final Path planPath = parent.resolve(PlannedTestPath.PLAN_FILE);
     final Path topologyPath = parent.resolve(PlannedTestPath.TOPOLOGY_FILE);
     try {
       Files.createDirectories(parent);
       Files.write(
           specPath,
-          MAPPER.writerWithDefaultPrettyPrinter()
-              .writeValueAsString(planAtVersion.getNode())
+          JsonTestLoader.OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
+              .writeValueAsString(planAtVersion.getSpecNode())
+              .getBytes(Charsets.UTF_8),
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE,
+          StandardOpenOption.TRUNCATE_EXISTING
+      );
+      Files.write(
+          planPath,
+          PlannedTestUtils.PLAN_MAPPER.writerWithDefaultPrettyPrinter()
+              .writeValueAsString(planAtVersion.getPlanNode())
               .getBytes(Charsets.UTF_8),
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE,

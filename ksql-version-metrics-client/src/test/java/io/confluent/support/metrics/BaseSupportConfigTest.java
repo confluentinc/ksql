@@ -38,20 +38,20 @@ public class BaseSupportConfigTest {
   @Test
   public void testValidNewCustomer() {
     String[] validNewCustomerIds = Stream.concat(
-        Arrays.stream(CustomerIdExamples.VALID_CASE_SENSISTIVE_NEW_CUSTOMER_IDS),
-        Arrays.stream(CustomerIdExamples.VALID_CASE_INSENSISTIVE_NEW_CUSTOMER_IDS)).
+        CustomerIdExamples.VALID_CASE_SENSISTIVE_NEW_CUSTOMER_IDS.stream(),
+        CustomerIdExamples.VALID_CASE_INSENSISTIVE_NEW_CUSTOMER_IDS.stream()).
         toArray(String[]::new);
     for (String validId : validNewCustomerIds) {
       assertTrue(validId + " is an invalid new customer identifier",
-                 BaseSupportConfig.isConfluentCustomer(validId));
+          BaseSupportConfig.isConfluentCustomer(validId));
     }
   }
 
   @Test
   public void testInvalidCustomer() {
     String[] invalidIds = Stream.concat(
-        Arrays.stream(CustomerIdExamples.INVALID_CUSTOMER_IDS),
-        Arrays.stream(CustomerIdExamples.VALID_ANONYMOUS_IDS)).
+        CustomerIdExamples.INVALID_CUSTOMER_IDS.stream(),
+        CustomerIdExamples.VALID_ANONYMOUS_IDS.stream()).
         toArray(String[]::new);
     for (String invalidCustomerId : invalidIds) {
       assertFalse(invalidCustomerId + " is a valid customer identifier",
@@ -70,8 +70,8 @@ public class BaseSupportConfigTest {
   @Test
   public void testInvalidAnonymousUser() {
     String[] invalidIds = Stream.concat(
-        Arrays.stream(CustomerIdExamples.INVALID_ANONYMOUS_IDS),
-        Arrays.stream(CustomerIdExamples.VALID_CUSTOMER_IDS)).
+        CustomerIdExamples.INVALID_ANONYMOUS_IDS.stream(),
+        CustomerIdExamples.VALID_CUSTOMER_IDS.stream()).
         toArray(String[]::new);
     for (String invalidId : invalidIds) {
       assertFalse(invalidId + " is a valid anonymous user identifier",
@@ -82,28 +82,28 @@ public class BaseSupportConfigTest {
   @Test
   public void testCustomerIdValidSettings() {
     String[] validValues = Stream.concat(
-        Arrays.stream(CustomerIdExamples.VALID_ANONYMOUS_IDS),
-        Arrays.stream(CustomerIdExamples.VALID_CUSTOMER_IDS)).
+        CustomerIdExamples.VALID_ANONYMOUS_IDS.stream(),
+        CustomerIdExamples.VALID_CUSTOMER_IDS.stream()).
         toArray(String[]::new);
     for (String validValue : validValues) {
       assertTrue(validValue + " is an invalid value for " +
-          BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
+              BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
           BaseSupportConfig.isSyntacticallyCorrectCustomerId(validValue));
       // old customer Ids are all case-insensitive
       assertFalse(validValue + " is case-sensitive customer ID.",
-                 BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
+          BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
     }
   }
 
   @Test
   public void testCustomerIdInvalidSettings() {
     String[] invalidValues = Stream.concat(
-        Arrays.stream(CustomerIdExamples.INVALID_ANONYMOUS_IDS),
-        Arrays.stream(CustomerIdExamples.INVALID_CUSTOMER_IDS)).
+        CustomerIdExamples.INVALID_ANONYMOUS_IDS.stream(),
+        CustomerIdExamples.INVALID_CUSTOMER_IDS.stream()).
         toArray(String[]::new);
     for (String invalidValue : invalidValues) {
       assertFalse(invalidValue + " is a valid value for " +
-          BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
+              BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
           BaseSupportConfig.isSyntacticallyCorrectCustomerId(invalidValue));
     }
   }
@@ -112,7 +112,7 @@ public class BaseSupportConfigTest {
   public void testCaseInsensitiveNewCustomerIds() {
     for (String validValue : CustomerIdExamples.VALID_CASE_INSENSISTIVE_NEW_CUSTOMER_IDS) {
       assertFalse(validValue + " is case-sensitive customer ID.",
-                 BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
+          BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
     }
   }
 
@@ -120,7 +120,7 @@ public class BaseSupportConfigTest {
   public void testCaseSensitiveNewCustomerIds() {
     for (String validValue : CustomerIdExamples.VALID_CASE_SENSISTIVE_NEW_CUSTOMER_IDS) {
       assertTrue(validValue + " is case-insensitive customer ID.",
-                 BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
+          BaseSupportConfig.isCaseSensitiveCustomerId(validValue));
     }
   }
 
@@ -193,7 +193,7 @@ public class BaseSupportConfigTest {
     BaseSupportConfig supportConfig = new TestSupportConfig(overrideProps);
 
     // Then
-    assertEquals(reportIntervalHours * 60 * 60 * 1000, supportConfig.getReportIntervalMs());
+    assertEquals((long) reportIntervalHours * 60 * 60 * 1000, supportConfig.getReportIntervalMs());
   }
 
   @Test
@@ -288,7 +288,7 @@ public class BaseSupportConfigTest {
     assertTrue(supportConfig.isProactiveSupportEnabled());
   }
 
-  public class TestSupportConfig extends BaseSupportConfig {
+  public static class TestSupportConfig extends BaseSupportConfig {
 
     public TestSupportConfig(Properties originals) {
       super(originals);

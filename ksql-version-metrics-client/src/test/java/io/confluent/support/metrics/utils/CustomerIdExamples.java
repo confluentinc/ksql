@@ -15,54 +15,63 @@
 
 package io.confluent.support.metrics.utils;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class CustomerIdExamples {
 
-  public static final String[] VALID_CUSTOMER_IDS = {
+  public static final List<String> VALID_CUSTOMER_IDS = Collections.unmodifiableList(Arrays.asList(
       "C0", "c1", "C1", "c12", "C22", "c123", "C333", "c1234", "C4444",
       "C00000", "C12345", "C99999", "C123456789", "C123456789012345678901234567890",
-      "c00000", "c12345", "c99999", "c123456789", "c123456789012345678901234567890",
-  };
+      "c00000", "c12345", "c99999", "c123456789", "c123456789012345678901234567890"
+  ));
 
-  public static final String[] VALID_CASE_SENSISTIVE_NEW_CUSTOMER_IDS = {
-      "5003001200D8cyJ",
-      "abbcaabcaaDwcyJ",
-      "abbcaabcaadwcyj",
-      "abbcaAbcAadwcyj",
-      "AGGQAAFLSSDWPYJ",
-      "AGGQAAfLSSDWpYJ",
-      "123456789012345",
-      "c23456789012345",
-      "C23456789012345"
-  };
+  public static final List<String> VALID_CASE_SENSISTIVE_NEW_CUSTOMER_IDS =
+      Collections.unmodifiableList(Arrays.asList(
+          "5003001200D8cyJ",
+          "abbcaabcaaDwcyJ",
+          "abbcaabcaadwcyj",
+          "abbcaAbcAadwcyj",
+          "AGGQAAFLSSDWPYJ",
+          "AGGQAAfLSSDWpYJ",
+          "123456789012345",
+          "c23456789012345",
+          "C23456789012345"
+      ));
 
-  public static final String[] VALID_CASE_INSENSISTIVE_NEW_CUSTOMER_IDS = {
-      "123456789012345123",
-      "123456789012345avc",
-      "5003001200D8cyJaaa",
-      "5003001200D8cyJ123",
-      "abbcaabcaadwcyjsss",
-      "AGGQAAFLSSDWPYJTTT"
-  };
+  public static final List<String> VALID_CASE_INSENSISTIVE_NEW_CUSTOMER_IDS =
+      Collections.unmodifiableList(Arrays.asList(
+          "123456789012345123",
+          "123456789012345avc",
+          "5003001200D8cyJaaa",
+          "5003001200D8cyJ123",
+          "abbcaabcaadwcyjsss",
+          "AGGQAAFLSSDWPYJTTT"
+      ));
 
   // These invalid customer ids should not include valid anonymous user IDs.
-  public static final String[] INVALID_CUSTOMER_IDS = {
-      "0c000", "0000C", null, "", "c", "C", "Hello", "World", "1", "12", "123", "1234", "12345",
-      "5003001200D8cy",
-      "abbcaabcaaDwcyJa",
-      "abbcaabcaadwc*j",
-      "AGGQAAFLSSD^PYJ",
-      "123456789$12345",
-      "12345678901234512",
-      "123456789012345avca",
-      "5003001200D8cyJaaa88",
-      "5003001200D8cyJ1@3",
-      "abbcaabcaadwcyj!ss",
-      "AGGQAAFLSSDWPYJ_TT",
-  };
+  public static final List<String> INVALID_CUSTOMER_IDS =
+      Collections.unmodifiableList(Arrays.asList(
+          "0c000", "0000C", null, "", "c", "C", "Hello", "World", "1", "12", "123", "1234", "12345",
+          "5003001200D8cy",
+          "abbcaabcaaDwcyJa",
+          "abbcaabcaadwc*j",
+          "AGGQAAFLSSD^PYJ",
+          "123456789$12345",
+          "12345678901234512",
+          "123456789012345avca",
+          "5003001200D8cyJaaa88",
+          "5003001200D8cyJ1@3",
+          "abbcaabcaadwcyj!ss",
+          "AGGQAAFLSSDWPYJ_TT"
+      ));
 
-  public static final String[] VALID_ANONYMOUS_IDS = {"anonymous", "ANONYMOUS", "anonyMOUS"};
+  public static final List<String> VALID_ANONYMOUS_IDS =
+      Collections.unmodifiableList(Arrays.asList("anonymous", "ANONYMOUS", "anonyMOUS"));
 
   // These invalid anonymous user IDs should not include valid customer IDs.
-  public static final String[] INVALID_ANONYMOUS_IDS = {null, "", "anon", "anonymou", "ANONYMOU"};
+  public static final List<String> INVALID_ANONYMOUS_IDS =
+      Collections.unmodifiableList(Arrays.asList(null, "", "anon", "anonymou", "ANONYMOU"));
 
 }

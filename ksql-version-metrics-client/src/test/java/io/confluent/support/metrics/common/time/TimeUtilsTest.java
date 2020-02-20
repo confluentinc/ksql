@@ -23,7 +23,7 @@ import org.junit.Test;
 
 public class TimeUtilsTest {
 
-  private class FixedClock implements Clock {
+  private static class FixedClock implements Clock {
 
     private final long fixedTimeMs;
 

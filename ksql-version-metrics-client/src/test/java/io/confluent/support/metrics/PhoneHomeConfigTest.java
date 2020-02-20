@@ -29,7 +29,7 @@ public class PhoneHomeConfigTest {
   public void testProductionEndpoints() {
     Properties overrideProps = new Properties();
     overrideProps.setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG, "c11");
-    overrideProps.getProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "topic");
+    overrideProps.setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "topic");
 
     BaseSupportConfig config = new PhoneHomeConfig(overrideProps, "TestComponent");
     assertEquals("", config.getKafkaTopic());

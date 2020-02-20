@@ -20,13 +20,15 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
 import org.junit.Test;
 
 public class WebClientTest {
-  private String customerId = CustomerIdExamples.VALID_CUSTOMER_IDS[0];
+  private String customerId = CustomerIdExamples.VALID_CUSTOMER_IDS.get(0);
   private static final String SECURE_LIVE_TEST_ENDPOINT = "https://support-metrics.confluent.io/test";
 
   @Test
@@ -59,9 +61,9 @@ public class WebClientTest {
   public void testSubmitInvalidCustomer() {
     // Given
     HttpPost p = new HttpPost(SECURE_LIVE_TEST_ENDPOINT);
-    byte[] anyData = "anyData".getBytes();
-    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.INVALID_CUSTOMER_IDS.length);
-    String invalidCustomerId = CustomerIdExamples.INVALID_CUSTOMER_IDS[randomIndex];
+    byte[] anyData = "anyData".getBytes(StandardCharsets.UTF_8);
+    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.INVALID_CUSTOMER_IDS.size());
+    String invalidCustomerId = CustomerIdExamples.INVALID_CUSTOMER_IDS.get(randomIndex);
 
     // When/Then
     assertNotEquals("customerId=" + invalidCustomerId,
@@ -72,9 +74,9 @@ public class WebClientTest {
   public void testSubmitInvalidAnonymousUser() {
     // Given
     HttpPost p = new HttpPost(SECURE_LIVE_TEST_ENDPOINT);
-    byte[] anyData = "anyData".getBytes();
-    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.INVALID_ANONYMOUS_IDS.length);
-    String invalidCustomerId = CustomerIdExamples.INVALID_ANONYMOUS_IDS[randomIndex];
+    byte[] anyData = "anyData".getBytes(StandardCharsets.UTF_8);
+    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.INVALID_ANONYMOUS_IDS.size());
+    String invalidCustomerId = CustomerIdExamples.INVALID_ANONYMOUS_IDS.get(randomIndex);
 
     // When/Then
     assertNotEquals("customerId=" + invalidCustomerId,
@@ -85,9 +87,9 @@ public class WebClientTest {
   public void testSubmitValidCustomer() {
     // Given
     HttpPost p = new HttpPost(SECURE_LIVE_TEST_ENDPOINT);
-    byte[] anyData = "anyData".getBytes();
-    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.VALID_CUSTOMER_IDS.length);
-    String validCustomerId = CustomerIdExamples.VALID_CUSTOMER_IDS[randomIndex];
+    byte[] anyData = "anyData".getBytes(StandardCharsets.UTF_8);
+    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.VALID_CUSTOMER_IDS.size());
+    String validCustomerId = CustomerIdExamples.VALID_CUSTOMER_IDS.get(randomIndex);
 
     // When/Then
     int status = WebClient.send(validCustomerId, anyData, p, null);
@@ -100,9 +102,9 @@ public class WebClientTest {
   public void testSubmitValidAnonymousUser() {
     // Given
     HttpPost p = new HttpPost(SECURE_LIVE_TEST_ENDPOINT);
-    byte[] anyData = "anyData".getBytes();
-    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.VALID_ANONYMOUS_IDS.length);
-    String validCustomerId = CustomerIdExamples.VALID_ANONYMOUS_IDS[randomIndex];
+    byte[] anyData = "anyData".getBytes(StandardCharsets.UTF_8);
+    int randomIndex = ThreadLocalRandom.current().nextInt(CustomerIdExamples.VALID_ANONYMOUS_IDS.size());
+    String validCustomerId = CustomerIdExamples.VALID_ANONYMOUS_IDS.get(randomIndex);
 
     // When/Then
     int status = WebClient.send(validCustomerId, anyData, p, null);

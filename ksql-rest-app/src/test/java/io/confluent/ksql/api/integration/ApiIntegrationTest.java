@@ -86,7 +86,7 @@ public class ApiIntegrationTest {
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty("ksql.new.api.enabled", true)
       .withProperty("ksql.apiserver.listen.host", "localhost")
-      .withProperty("ksql.apiserver.listen.port", 8089)
+      .withProperty("ksql.apiserver.listen.port", 0)
       .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 
@@ -197,7 +197,7 @@ public class ApiIntegrationTest {
     JsonObject requestBody = new JsonObject()
         .put("sql", sql).put("properties", properties);
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
-    client.post(8089, "localhost", "/query-stream")
+    client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
         .sendJsonObject(requestBody, responseFuture);
 
@@ -467,7 +467,8 @@ public class ApiIntegrationTest {
 
   private WebClient createClient() {
     WebClientOptions options = new WebClientOptions().
-        setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false);
+        setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
+        .setDefaultHost("localhost").setDefaultPort(REST_APP.getActualVertxPort());
     return WebClient.create(vertx, options);
   }
 
@@ -479,7 +480,7 @@ public class ApiIntegrationTest {
       final Buffer requestBody) {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
-        .post(8089, "localhost", uri)
+        .post(uri)
         .sendBuffer(requestBody, requestFuture);
     try {
       return requestFuture.get();

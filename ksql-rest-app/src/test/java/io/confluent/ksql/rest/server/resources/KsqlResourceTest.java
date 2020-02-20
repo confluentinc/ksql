@@ -2274,7 +2274,7 @@ public class KsqlResourceTest {
   }
 
   @Sandbox
-  public interface SandboxEngine extends KsqlExecutionContext {
+  private interface SandboxEngine extends KsqlExecutionContext {
 
   }
 }

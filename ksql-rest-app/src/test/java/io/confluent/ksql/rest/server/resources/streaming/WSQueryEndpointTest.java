@@ -53,6 +53,9 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.IPullQueryPublisher;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -713,5 +716,4 @@ public class WSQueryEndpointTest {
         OptionalInt.empty()
     );
   }
-  
 }

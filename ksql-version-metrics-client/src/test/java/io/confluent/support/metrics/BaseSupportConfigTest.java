@@ -127,39 +127,6 @@ public class BaseSupportConfigTest {
   }
 
   @Test
-  public void proactiveSupportConfigIsValidKafkaConfig() throws IOException {
-    // Given
-    Properties brokerConfiguration = defaultBrokerConfiguration();
-
-    // When
-    KafkaConfig cfg = KafkaConfig.fromProps(brokerConfiguration);
-
-    // Then
-    assertEquals(0, cfg.brokerId());
-    assertTrue(cfg.zkConnect().startsWith("localhost:"));
-  }
-
-  private Properties defaultBrokerConfiguration() throws IOException {
-    Properties brokerConfiguration = new Properties();
-    brokerConfiguration.load(BaseSupportConfigTest.class.getResourceAsStream("/default-server"
-                                                                             + ".properties"));
-    return brokerConfiguration;
-  }
-
-  @Test
-  public void canParseProactiveSupportConfiguration() throws IOException {
-    // Given
-    Properties brokerConfiguration = defaultBrokerConfiguration();
-
-    BaseSupportConfig supportConfig = new TestSupportConfig(brokerConfiguration);
-    // When/Then
-    assertTrue(supportConfig.getMetricsEnabled());
-    assertEquals("c0", supportConfig.getCustomerId());
-    assertTrue(supportConfig.isProactiveSupportEnabled());
-  }
-
-
-  @Test
   public void testGetDefaultProps() {
     // Given
     Properties overrideProps = new Properties();

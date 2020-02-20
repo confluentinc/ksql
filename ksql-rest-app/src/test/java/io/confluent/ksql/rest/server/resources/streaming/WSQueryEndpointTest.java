@@ -716,4 +716,5 @@ public class WSQueryEndpointTest {
         OptionalInt.empty()
     );
   }
+  
 }

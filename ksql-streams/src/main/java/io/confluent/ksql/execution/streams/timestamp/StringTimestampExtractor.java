@@ -15,36 +15,30 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
-import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.util.Objects;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.streams.processor.TimestampExtractor;
 
-public class StringTimestampExtractor implements TimestampExtractor {
+public class StringTimestampExtractor extends AbstractColumnTimestampExtractor {
   private final StringToTimestampParser timestampParser;
-  private final int timestampColumn;
   private final String format;
 
   StringTimestampExtractor(final String format, final int timestampColumn) {
+    super(timestampColumn);
+
     this.format = Objects.requireNonNull(format, "format can't be null");
-    Preconditions.checkArgument(timestampColumn >= 0, "timestampColumn must be >= 0");
-    this.timestampColumn = timestampColumn;
     this.timestampParser = new StringToTimestampParser(format);
   }
 
   @Override
-  public long extract(final ConsumerRecord<Object, Object> consumerRecord,
-                      final long previousTimestamp) {
-    final GenericRow row = (GenericRow) consumerRecord.value();
-    final String value = (String)row.get(timestampColumn);
+  public long extract(final GenericRow row) {
+    final String value = (String)row.get(timetampColumnIndex);
+
     try {
       return timestampParser.parse(value);
     } catch (final KsqlException e) {
-      throw new KsqlException("Unable to parse string timestamp from record."
-          + " record=" + consumerRecord
+      throw new KsqlException("Unable to parse string timestamp."
           + " timestamp=" + value
           + " timestamp_format=" + format,
           e);

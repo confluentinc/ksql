@@ -19,9 +19,11 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.streams.timestamp.AbstractColumnTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -30,6 +32,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.To;
@@ -45,19 +48,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -71,6 +69,8 @@ public class SinkBuilderTest {
 
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
+  private static final PhysicalSchema PHYSICAL_SCHEMA =
+      PhysicalSchema.from(SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -97,12 +97,52 @@ public class SinkBuilderTest {
   }
 
   @Test
+  public void shouldBuildKeySerdeCorrectly() {
+    // Given/When
+    buildDefaultSinkBuilder();
+
+    // Then:
+    verify(keySerdeFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
+  }
+
+  @Test
+  public void shouldBuildValueSerdeCorrectly() {
+    // Given/When
+    buildDefaultSinkBuilder();
+
+    // Then:
+    verify(queryBuilder).buildValueSerde(
+        VALUE_FORMAT,
+        PHYSICAL_SCHEMA,
+        queryContext
+    );
+  }
+
+  @Test
+  public void shouldWriteOutStreamWithCorrectSerdes() {
+    // Given/When
+    buildDefaultSinkBuilder();
+
+    // Then
+    verify(kStream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
+  }
+
+  @Test
+  public void shouldWriteOutStreamToCorrectTopic() {
+    // Given/When
+    buildDefaultSinkBuilder();
+
+    // Then
+    verify(kStream).to(eq(TOPIC), any());
+  }
+
+  @Test
   public void shouldBuildStreamUsingTransformTimestampWhenTimestampIsSpecified() {
     // Given/When
     SinkBuilder.build(
         SCHEMA,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        Optional.of(new TimestampColumn(ColumnName.of("GREEN"), Optional.empty())),
+        Optional.of(new TimestampColumn(ColumnName.of("BLUE"), Optional.empty())),
         TOPIC,
         kStream,
         keySerdeFactory,
@@ -112,7 +152,7 @@ public class SinkBuilderTest {
 
     // Then
     final InOrder inOrder = Mockito.inOrder(kStream);
-    inOrder.verify(kStream).transform(new SinkBuilder.TransformTimestamp<>(1));
+    inOrder.verify(kStream).transform(any());
     inOrder.verify(kStream).to(anyString(), any());
     inOrder.verifyNoMoreInteractions();
   }
@@ -120,16 +160,7 @@ public class SinkBuilderTest {
   @Test
   public void shouldBuildStreamWithoutTransformTimestampWhenNoTimestampIsSpecified() {
     // Given/When
-    SinkBuilder.build(
-        SCHEMA,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
-        Optional.empty(),
-        TOPIC,
-        kStream,
-        keySerdeFactory,
-        queryContext,
-        queryBuilder
-    );
+    buildDefaultSinkBuilder();
 
     // Then
     final InOrder inOrder = Mockito.inOrder(kStream);
@@ -141,38 +172,53 @@ public class SinkBuilderTest {
   public void shouldTransformTimestampRow() {
     // Given
     final long timestampColumnValue = 10001;
-    final int timestampColumnIndex = 2;
     final ProcessorContext context = mock(ProcessorContext.class);
-    when(row.get(timestampColumnIndex)).thenReturn(timestampColumnValue);
+    final AbstractColumnTimestampExtractor timestampExtractor
+        = mock(AbstractColumnTimestampExtractor.class);
+    when(timestampExtractor.extract(any())).thenReturn(timestampColumnValue);
 
     // When
     final Transformer<String, GenericRow, KeyValue<String, GenericRow>> transformer =
-        new SinkBuilder.TransformTimestamp<String>(timestampColumnIndex).get();
+        new SinkBuilder.TransformTimestamp<String>(timestampExtractor).get();
     transformer.init(context);
     final KeyValue<String, GenericRow> kv = transformer.transform("key", row);
 
     // Then
     assertNull(kv);
+    verify(timestampExtractor).extract(row);
     verify(context, Mockito.times(1))
         .forward(eq("key"), eq(row), toCaptor.capture());
     assertTrue(toCaptor.getValue().equals(To.all().withTimestamp(timestampColumnValue)));
   }
 
-  @Test
-  public void shouldNotTransformTimestampIfTimestampIndexNotProvided() {
+  @Test(expected = NullPointerException.class)
+  public void shouldThrowIfNegativeProcessorContext() {
     // Given
-    final int timestampColumnIndex = -1;
-    final ProcessorContext context = mock(ProcessorContext.class);
-    final GenericRow row = mock(GenericRow.class);
+    final AbstractColumnTimestampExtractor timestampExtractor
+        = mock(AbstractColumnTimestampExtractor.class);
 
-    // When
-    final Transformer<String, GenericRow, KeyValue<String, GenericRow>> transformer =
-        new SinkBuilder.TransformTimestamp<String>(timestampColumnIndex).get();
-    transformer.init(context);
-    final KeyValue<String, GenericRow> kv = transformer.transform("key", row);
+    // When/Then
+    new SinkBuilder.TransformTimestamp<String>(timestampExtractor)
+        .get()
+        .init(null);
+  }
 
-    // Then
-    assertThat(kv, is(KeyValue.pair("key", row)));
-    verifyZeroInteractions(context);
+  @Test(expected = NullPointerException.class)
+  public void shouldThrowIfNegativeTimestampExtractor() {
+    // When/Then
+    new SinkBuilder.TransformTimestamp<String>(null);
+  }
+
+  private void buildDefaultSinkBuilder() {
+    SinkBuilder.build(
+        SCHEMA,
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Optional.empty(),
+        TOPIC,
+        kStream,
+        keySerdeFactory,
+        queryContext,
+        queryBuilder
+    );
   }
 }

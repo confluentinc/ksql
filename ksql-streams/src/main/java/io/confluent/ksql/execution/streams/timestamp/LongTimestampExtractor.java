@@ -16,37 +16,14 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.streams.processor.TimestampExtractor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-
-public class LongTimestampExtractor implements TimestampExtractor {
-
-  private static final Logger log = LoggerFactory.getLogger(LongTimestampExtractor.class);
-  private final int timestampColumnindex;
-
+public class LongTimestampExtractor extends AbstractColumnTimestampExtractor {
   LongTimestampExtractor(final int timestampColumnindex) {
-    this.timestampColumnindex = timestampColumnindex;
+    super(timestampColumnindex);
   }
 
   @Override
-  public long extract(final ConsumerRecord<Object, Object> consumerRecord, final long l) {
-    if (timestampColumnindex < 0) {
-      return 0;
-    } else {
-      try {
-        if (consumerRecord.value() instanceof GenericRow) {
-          final GenericRow genericRow = (GenericRow) consumerRecord.value();
-          if (genericRow.get(timestampColumnindex) instanceof Long) {
-            return (long) genericRow.get(timestampColumnindex);
-          }
-        }
-      } catch (final Exception e) {
-        log.error("Exception in extracting timestamp for row: " + consumerRecord.value(), e);
-      }
-    }
-    return 0;
+  public long extract(final GenericRow row) {
+    return (long)row.get(timetampColumnIndex);
   }
 }

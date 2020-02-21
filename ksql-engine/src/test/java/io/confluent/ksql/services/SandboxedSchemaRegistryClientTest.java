@@ -88,7 +88,7 @@ public final class SandboxedSchemaRegistryClientTest {
     @Mock
     private SchemaRegistryClient delegate;
     @Mock
-    private Schema schema;
+    private AvroSchema schema;
     @Mock
     private SchemaMetadata schemaMetadata;
     private SchemaRegistryClient sandboxedClient;
@@ -140,8 +140,7 @@ public final class SandboxedSchemaRegistryClientTest {
     public void shouldSwallowRegister() throws Exception {
       // When:
       sandboxedClient.register("some subject", schema);
-      sandboxedClient.register("some subject", new AvroSchema(schema));
-      sandboxedClient.register("some subject", new AvroSchema(schema), 1, 1);
+      sandboxedClient.register("some subject", schema, 1, 1);
 
       // Then:
       verifyZeroInteractions(delegate);

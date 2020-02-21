@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -636,7 +637,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final org.apache.avro.Schema avroSchema = AvroSchemas
           .getAvroSchema(schema.valueSchema(), "test_" + topicName, ksqlConfig);
 
-      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
+      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

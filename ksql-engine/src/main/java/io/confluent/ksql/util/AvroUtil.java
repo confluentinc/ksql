@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
@@ -88,7 +89,7 @@ public final class AvroUtil {
   ) {
     try {
       return schemaRegistryClient.testCompatibility(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
     } catch (final IOException e) {
       throw new KsqlException(String.format(
           "Could not check Schema compatibility: %s", e.getMessage()

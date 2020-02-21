@@ -25,6 +25,10 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
+import io.vertx.ext.auth.AuthProvider;
+import io.vertx.ext.auth.htpasswd.HtpasswdAuthOptions;
+import io.vertx.ext.web.handler.AuthHandler;
+import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -144,6 +148,31 @@ public class Server {
 
   public int getActualPort() {
     return actualPort.get();
+  }
+
+  Optional<AuthHandler> getAuthHandler() {
+    final String authMethod = config.getString(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG);
+    switch (authMethod) {
+      case ApiServerConfig.AUTHENTICATION_METHOD_BASIC:
+        return Optional.of(basicAuthHandler());
+      case ApiServerConfig.AUTHENTICATION_METHOD_NONE:
+        return Optional.empty();
+      default:
+        throw new IllegalStateException(String.format(
+            "Unexpected value for %s: %s",
+            ApiServerConfig.AUTHENTICATION_METHOD_CONFIG,
+            authMethod
+        ));
+    }
+  }
+
+  private AuthHandler basicAuthHandler() {
+    final AuthProvider authProvider = new HtpasswdAuthOptions() // TODO: replace with JAAS
+        .setHtpasswdFile("some file")
+        .setPlainTextEnabled(true) // TODO: ?
+        .createProvider(vertx);
+    final String realm = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    return BasicAuthHandler.create(authProvider, realm);
   }
 
   private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {

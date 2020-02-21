@@ -66,17 +66,6 @@ public abstract class BaseSupportConfig {
   public static final String CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_DEFAULT = "24";
 
   /**
-   * <code>confluent.support.metrics.topic</code>
-   */
-  public static final String CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG =
-      "confluent.support.metrics.topic";
-  private static final String CONFLUENT_SUPPORT_METRICS_TOPIC_DOC =
-      "Internal topic used for metric collection. If missing, metrics will not be collected in a "
-          + "Kafka topic ";
-  public static final String CONFLUENT_SUPPORT_METRICS_TOPIC_DEFAULT =
-      "__confluent.support.metrics";
-
-  /**
    * <code>confluent.support.metrics.endpoint.insecure.enable</code>
    */
   public static final String CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_ENABLE_CONFIG =
@@ -142,10 +131,6 @@ public abstract class BaseSupportConfig {
     props.setProperty(
         CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_CONFIG,
         CONFLUENT_SUPPORT_METRICS_REPORT_INTERVAL_HOURS_DEFAULT
-    );
-    props.setProperty(
-        CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG,
-        CONFLUENT_SUPPORT_METRICS_TOPIC_DEFAULT
     );
     props.setProperty(
         CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_ENABLE_CONFIG,
@@ -377,10 +362,6 @@ public abstract class BaseSupportConfig {
           "Interval is not an integer number"
       );
     }
-  }
-
-  public String getKafkaTopic() {
-    return properties.getProperty(CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "");
   }
 
   public boolean getMetricsEnabled() {

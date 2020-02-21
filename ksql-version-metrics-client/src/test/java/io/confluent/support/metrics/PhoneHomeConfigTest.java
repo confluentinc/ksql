@@ -29,10 +29,8 @@ public class PhoneHomeConfigTest {
   public void testProductionEndpoints() {
     Properties overrideProps = new Properties();
     overrideProps.setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG, "c11");
-    overrideProps.setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "topic");
 
     BaseSupportConfig config = new PhoneHomeConfig(overrideProps, "TestComponent");
-    assertEquals("", config.getKafkaTopic());
     assertEquals(BaseSupportConfig.CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT, config.getCustomerId());
     assertEquals(EXPECTED_SECURE_ENDPOINT + "/TestComponent/anon",
                  config.getEndpointHttps());
@@ -47,7 +45,7 @@ public class PhoneHomeConfigTest {
                               BaseSupportConfig.CONFLUENT_SUPPORT_TEST_ID_DEFAULT);
 
     BaseSupportConfig config = new PhoneHomeConfig(overrideProps, "TestComponent");
-    assertEquals("", config.getKafkaTopic());
+
     assertEquals(BaseSupportConfig.CONFLUENT_SUPPORT_TEST_ID_DEFAULT, config.getCustomerId());
     assertEquals(EXPECTED_SECURE_ENDPOINT + "/TestComponent/test",
                  config.getEndpointHttps());

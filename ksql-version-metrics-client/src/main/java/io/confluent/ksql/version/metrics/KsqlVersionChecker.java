@@ -20,7 +20,6 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
-import io.confluent.support.metrics.submitters.Submitter;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -48,19 +47,6 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
     this.metricsCollector = new BasicCollector(moduleType, activenessStatusSupplier);
-  }
-
-  // This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
-  // returning null here to disable KafkaSubmitter and also turning off topic metrics collection in
-  // KsqlVersionCheckerConfig.
-  @Override
-  protected Submitter createKafkaSubmitter(final String supportTopic) {
-    return null;
-  }
-
-  @Override
-  protected boolean kafkaSubmitterReady(final String supportTopic) {
-    return false;
   }
 
   @Override

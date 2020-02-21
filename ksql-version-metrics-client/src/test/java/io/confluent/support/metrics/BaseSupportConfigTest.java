@@ -135,7 +135,6 @@ public class BaseSupportConfigTest {
     assertTrue(supportConfig.getMetricsEnabled());
     assertEquals("anonymous", supportConfig.getCustomerId());
     assertEquals(24 * 60 * 60 * 1000, supportConfig.getReportIntervalMs());
-    assertEquals("__confluent.support.metrics", supportConfig.getKafkaTopic());
     assertTrue(supportConfig.isHttpEnabled());
     assertTrue(supportConfig.isHttpsEnabled());
     assertTrue(supportConfig.isProactiveSupportEnabled());
@@ -197,21 +196,6 @@ public class BaseSupportConfigTest {
   }
 
   @Test
-  public void testOverrideTopic() {
-    // Given
-    Properties overrideProps = new Properties();
-    overrideProps.setProperty(
-        BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG,
-        "__another_example_topic"
-    );
-    // When
-    BaseSupportConfig supportConfig = new TestSupportConfig(overrideProps);
-
-    // Then
-    assertEquals("__another_example_topic", supportConfig.getKafkaTopic());
-  }
-
-  @Test
   public void isProactiveSupportEnabledFull() {
     // Given
     Properties serverProperties = new Properties();
@@ -229,8 +213,6 @@ public class BaseSupportConfigTest {
 
     serverProperties
         .setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENABLE_CONFIG, "false");
-    serverProperties
-        .setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "anyTopic");
     serverProperties.setProperty(
         BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_ENDPOINT_INSECURE_ENABLE_CONFIG,
         "true"
@@ -248,8 +230,6 @@ public class BaseSupportConfigTest {
   public void isProactiveSupportEnabledTopicOnly() {
     // Given
     Properties serverProperties = new Properties();
-    serverProperties
-        .setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "anyTopic");
     BaseSupportConfig supportConfig = new TestSupportConfig(serverProperties);
     // When/Then
     assertTrue(supportConfig.isProactiveSupportEnabled());

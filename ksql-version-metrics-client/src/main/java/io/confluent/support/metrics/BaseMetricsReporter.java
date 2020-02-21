@@ -67,8 +67,6 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
 
   private String customerId;
   private long reportIntervalMs;
-  private String supportTopic;
-  private Submitter kafkaSubmitter;
   private Submitter confluentSubmitter;
   private Collector metricsCollector;
   private final AvroSerializer encoder = new AvroSerializer();
@@ -108,13 +106,6 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
     metricsCollector.setRuntimeState(Collector.RuntimeState.Running);
 
     reportIntervalMs = supportConfig.getReportIntervalMs();
-    supportTopic = supportConfig.getKafkaTopic();
-
-    if (!supportTopic.isEmpty()) {
-      kafkaSubmitter = createKafkaSubmitter(supportTopic);
-    } else {
-      kafkaSubmitter = null;
-    }
 
     final String endpointHttp = supportConfig.getEndpointHttp();
     final String endpointHttps = supportConfig.getEndpointHttps();
@@ -132,18 +123,10 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
     }
   }
 
-  protected abstract Submitter createKafkaSubmitter(String supportTopic);
-
-  protected abstract boolean kafkaSubmitterReady(String supportTopic);
-
   protected abstract Collector metricsCollector();
 
   protected boolean reportingEnabled() {
-    return sendToKafkaEnabled() || sendToConfluentEnabled();
-  }
-
-  protected boolean sendToKafkaEnabled() {
-    return kafkaSubmitter != null;
+    return sendToConfluentEnabled();
   }
 
   protected boolean sendToConfluentEnabled() {
@@ -213,19 +196,6 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
       encodedMetricsRecord = encoder.serialize(metricsRecord);
     } catch (IOException e) {
       log.error("Could not serialize metrics record: {}", e.toString());
-    }
-
-    try {
-      if (sendToKafkaEnabled() && encodedMetricsRecord != null) {
-        // attempt to create the topic. If failures occur, try again in the next round, however
-        // the current batch of metrics will be lost.
-        if (kafkaSubmitterReady(supportTopic)) {
-          kafkaSubmitter.submit(encodedMetricsRecord);
-        }
-      }
-    } catch (RuntimeException e) {
-      log.error("Could not submit metrics to Kafka topic {}: {}", supportTopic,
-          e.getMessage());
     }
 
     try {

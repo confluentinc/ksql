@@ -30,7 +30,6 @@ public class PhoneHomeConfig extends BaseSupportConfig {
   private static final Logger log = LoggerFactory
       .getLogger(io.confluent.support.metrics.PhoneHomeConfig.class);
 
-  private static final boolean CONFLUENT_SUPPORT_METRICS_TOPIC_ENABLED_DEFAULT = false;
   private static final boolean CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT = false;
 
   /**
@@ -38,36 +37,25 @@ public class PhoneHomeConfig extends BaseSupportConfig {
    * endpoint.
    */
   public PhoneHomeConfig(final Properties originals, final String componentId) {
-    this(originals, componentId,
-        CONFLUENT_SUPPORT_METRICS_TOPIC_ENABLED_DEFAULT,
-        CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT);
+    this(originals, componentId, CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT);
   }
 
   private PhoneHomeConfig(final Properties originals, final String componentId,
-      final boolean supportMetricsTopicEnabled, final boolean supportCustomerIdEnabled) {
-    super(setupProperties(originals, supportMetricsTopicEnabled, supportCustomerIdEnabled),
-        getEndpointPath(componentId));
+      final boolean supportCustomerIdEnabled) {
+    super(setupProperties(originals, supportCustomerIdEnabled), getEndpointPath(componentId));
   }
 
   @SuppressWarnings("checkstyle:FinalParameters")
   private static Properties setupProperties(Properties originals,
-      final boolean supportMetricsTopicEnabled,
       final boolean supportCustomerIdEnabled) {
-    if (!supportCustomerIdEnabled || !supportMetricsTopicEnabled) {
-      //disable publish to topic
+    if (!supportCustomerIdEnabled) {
       if (originals == null) {
         originals = new Properties();
       }
-      if (!supportMetricsTopicEnabled) {
-        log.warn("Writing to metrics Kafka topic will be disabled");
-        originals.setProperty(BaseSupportConfig.CONFLUENT_SUPPORT_METRICS_TOPIC_CONFIG, "");
-      }
-      if (!supportCustomerIdEnabled) {
-        if (!isTestUser(getCustomerId(originals))) {
-          log.warn("Enforcing customer ID '{}'", CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
-          originals.setProperty(CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
-              CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
-        }
+      if (!isTestUser(getCustomerId(originals))) {
+        log.warn("Enforcing customer ID '{}'", CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
+        originals.setProperty(CONFLUENT_SUPPORT_CUSTOMER_ID_CONFIG,
+            CONFLUENT_SUPPORT_CUSTOMER_ID_DEFAULT);
       }
     }
     return originals;

@@ -30,13 +30,12 @@ import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -46,6 +45,8 @@ import org.slf4j.LoggerFactory;
 public final class DescribeConnectorExecutor {
 
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
+  @VisibleForTesting
+  protected static final String TOPICS_KEY = "topics";
 
   private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 
@@ -114,16 +115,23 @@ public final class DescribeConnectorExecutor {
       sources = ImmutableList.of();
     }
 
-    List<KsqlWarning> warnings;
-    List<String> topics;
-    try {
-      topics = getTopics(serviceContext.getAdminClient(), connector);
-      warnings = ImmutableList.of();
-    } catch (final Exception e) {
+    final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
+        .getConnectClient()
+        .topics(connectorName);
+
+    final List<KsqlWarning> warnings;
+    final List<String> topics;
+    if (topicsResponse.error().isPresent()) {
       topics = ImmutableList.of();
       warnings = ImmutableList.of(
-          new KsqlWarning("Could not list related topics due to " + e.getMessage())
-      );
+          new KsqlWarning("Could not list related topics due to error: "
+              + topicsResponse.error().get()));
+    } else {
+      topics = topicsResponse.datum()
+          .get()
+          .get(connectorName)
+          .getOrDefault(TOPICS_KEY, ImmutableList.of());
+      warnings = ImmutableList.of();
     }
 
     final ConnectorDescription description = new ConnectorDescription(
@@ -136,17 +144,5 @@ public final class DescribeConnectorExecutor {
     );
 
     return Optional.of(description);
-  }
-
-  private List<String> getTopics(final Admin admin, final Optional<Connector> connector)
-      throws Exception {
-    if (!connector.isPresent()) {
-      return ImmutableList.of();
-    }
-
-    return admin.listTopics().names().get(5, TimeUnit.SECONDS)
-        .stream()
-        .filter(connector.get()::matches)
-        .collect(Collectors.toList());
   }
 }

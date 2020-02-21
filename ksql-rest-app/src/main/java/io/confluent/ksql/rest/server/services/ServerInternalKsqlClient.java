@@ -61,7 +61,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql
   ) {
     final KsqlRequest request = new KsqlRequest(
-        sql, Collections.emptyMap(), Collections.emptyMap(), null);
+        sql, Collections.emptyMap(), Collections.emptyMap(), null, true);
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
 
     final Code statusCode = HttpStatus.getCode(response.getStatus());
@@ -71,6 +71,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     }
 
     return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
+  }
+
+  @Override
+  public RestResponse<KsqlEntityList> makeInternalKsqlRequest(
+      final URI serverEndpoint,
+      final String sql
+  ) {
+    return makeKsqlRequest(serverEndpoint, sql);
   }
 
   @Override

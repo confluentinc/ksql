@@ -106,13 +106,15 @@ public class WSQueryEndpointTest {
       "test-sql",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       Collections.emptyMap(),
-      null);
+      null,
+      false);
 
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest(
       "other-sql",
       ImmutableMap.of(),
       Collections.emptyMap(),
-      null);
+      null,
+      false);
 
   private static final long SEQUENCE_NUMBER = 2L;
   private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
@@ -120,7 +122,8 @@ public class WSQueryEndpointTest {
       "test-sql",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       Collections.emptyMap(),
-      SEQUENCE_NUMBER);
+      SEQUENCE_NUMBER,
+      false);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;

@@ -76,7 +76,7 @@ public class PropertyOverriderTest {
   public void shouldAllowSetKnownProperty() {
     // Given:
     final SessionProperties sessionProperties = 
-        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
@@ -102,7 +102,7 @@ public class PropertyOverriderTest {
   public void shouldFailOnInvalidSetPropertyValue() {
     // Given:
     final SessionProperties sessionProperties =
-        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -128,7 +128,7 @@ public class PropertyOverriderTest {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
     final SessionProperties sessionProperties =
-        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -156,7 +156,7 @@ public class PropertyOverriderTest {
         new SessionProperties(
             Collections.singletonMap(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-                mock(KsqlHostInfo.class), mock(URL.class));
+                mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:

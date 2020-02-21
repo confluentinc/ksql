@@ -46,7 +46,7 @@ public class PropertyExecutorTest {
   public void shouldSetProperty() {
     // Given:
     final SessionProperties sessionProperties =
-        new SessionProperties(new HashMap<>(), mock(KsqlHostInfo.class), mock(URL.class));
+        new SessionProperties(new HashMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
@@ -69,7 +69,8 @@ public class PropertyExecutorTest {
         new SessionProperties(
             Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none"),
             mock(KsqlHostInfo.class),
-            mock(URL.class));
+            mock(URL.class),
+            false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:

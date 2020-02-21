@@ -62,21 +62,21 @@ public class ListAllQueriesFunctionalTest {
   private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8089);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
-          .builder(TEST_HARNESS::kafkaBootstrapServers)
-          .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-          .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
-          .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-          .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-          .withProperties(ClientTrustStore.trustStoreProps())
-          .build();
+      .builder(TEST_HARNESS::kafkaBootstrapServers)
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
+      .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
+      .withProperties(ClientTrustStore.trustStoreProps())
+      .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
-          .builder(TEST_HARNESS::kafkaBootstrapServers)
-          .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
-          .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
-          .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-          .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-          .withProperties(ClientTrustStore.trustStoreProps())
-          .build();
+      .builder(TEST_HARNESS::kafkaBootstrapServers)
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
+      .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
+      .withProperties(ClientTrustStore.trustStoreProps())
+      .build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -99,33 +99,26 @@ public class ListAllQueriesFunctionalTest {
 
   @Test
   public void shouldShowAllQueries() {
-    // Given:
-    final List<KsqlEntity> entities0 = RestIntegrationTestUtil.makeKsqlRequest(
+    final List<KsqlEntity> allEntities0 = RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
         "Show Queries;"
     );
-    final List<RunningQuery> runningQueries0 = ((Queries) entities0.get(0)).getQueries();
-    assertThat(runningQueries0.size(), equalTo(1));
-    assertThat(runningQueries0.get(0).getKsqlHostInfo().orElse(null), equalTo(host0));
 
+    final List<RunningQuery> allRunningQueries0 = ((Queries) allEntities0.get(0)).getQueries();
+    assertThat(allRunningQueries0.size(), equalTo(2));
+    assertThat(allRunningQueries0.stream()
+        .map(RunningQuery::getKsqlHostInfo)
+        .map(host -> host.orElse(null))
+        .collect(Collectors.toSet()), containsInAnyOrder(host0, host1));
 
-    final List<KsqlEntity> entities1 = RestIntegrationTestUtil.makeKsqlRequest(
+    final List<KsqlEntity> allEntities1 = RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_1,
         "Show Queries;"
     );
-    final List<RunningQuery> runningQueries1 = ((Queries) entities1.get(0)).getQueries();
-    assertThat(runningQueries1.size(), equalTo(1));
-    assertThat(runningQueries1.get(0).getKsqlHostInfo().orElse(null), equalTo(host1));
 
-    // Then:
-    final List<KsqlEntity> allEntities = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
-        "Show All Queries;"
-    );
-
-    final List<RunningQuery> allRunningQueries = ((Queries) allEntities.get(0)).getQueries();
-    assertThat(allRunningQueries.size(), equalTo(2));
-    assertThat(allRunningQueries.stream()
+    final List<RunningQuery> allRunningQueries1 = ((Queries) allEntities1.get(0)).getQueries();
+    assertThat(allRunningQueries1.size(), equalTo(2));
+    assertThat(allRunningQueries1.stream()
         .map(RunningQuery::getKsqlHostInfo)
         .map(host -> host.orElse(null))
         .collect(Collectors.toSet()), containsInAnyOrder(host0, host1));
@@ -133,31 +126,24 @@ public class ListAllQueriesFunctionalTest {
 
   @Test
   public void shouldShowAllQueriesExtended() {
-    // Given:
-    final List<KsqlEntity> entities0 = RestIntegrationTestUtil.makeKsqlRequest(
+    final List<KsqlEntity> clusterEntities0 = RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
-        "Show Queries Extended;"
-    );
-    final List<QueryDescription> queryDescriptions0 = ((QueryDescriptionList) entities0.get(0)).getQueryDescriptions();
-    assertThat(queryDescriptions0.size(), equalTo(1));
-    assertThat(queryDescriptions0.get(0).getKsqlHostInfo().orElse(null), equalTo(host0));
-    
-    final List<KsqlEntity> entities1 = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_1,
-        "Show Queries Extended;"
-    );
-    final List<QueryDescription> queryDescriptions1 = ((QueryDescriptionList) entities1.get(0)).getQueryDescriptions();
-    assertThat(queryDescriptions1.size(), equalTo(1));
-    assertThat(queryDescriptions1.get(0).getKsqlHostInfo().orElse(null), equalTo(host1));
+        "Show Queries Extended;");
 
-    // Then:
-    final List<KsqlEntity> clusterEntities = RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
-        "Show All Queries Extended;");
+    final List<QueryDescription> clusterQueryDescriptions0 = ((QueryDescriptionList) clusterEntities0.get(0)).getQueryDescriptions();
+    assertThat(clusterQueryDescriptions0.size(), equalTo(2));
+    assertThat(clusterQueryDescriptions0.stream()
+        .map(QueryDescription::getKsqlHostInfo)
+        .map(host -> host.orElse(null))
+        .collect(Collectors.toSet()), containsInAnyOrder(host0, host1));
 
-    final List<QueryDescription> clusterQueryDescriptions = ((QueryDescriptionList) clusterEntities.get(0)).getQueryDescriptions();
-    assertThat(clusterQueryDescriptions.size(), equalTo(2));
-    assertThat(clusterQueryDescriptions.stream()
+    final List<KsqlEntity> clusterEntities1 = RestIntegrationTestUtil.makeKsqlRequest(
+            REST_APP_0,
+            "Show Queries Extended;");
+
+    final List<QueryDescription> clusterQueryDescriptions1 = ((QueryDescriptionList) clusterEntities1.get(0)).getQueryDescriptions();
+    assertThat(clusterQueryDescriptions1.size(), equalTo(2));
+    assertThat(clusterQueryDescriptions1.stream()
         .map(QueryDescription::getKsqlHostInfo)
         .map(host -> host.orElse(null))
         .collect(Collectors.toSet()), containsInAnyOrder(host0, host1));

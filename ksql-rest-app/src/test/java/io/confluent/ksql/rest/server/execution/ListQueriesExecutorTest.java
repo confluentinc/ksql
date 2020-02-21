@@ -62,6 +62,7 @@ public class ListQueriesExecutorTest {
   @Before
   public void setUp() {
     when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
+    when(sessionProperties.getIsInternalRequest()).thenReturn(true);
   }
 
   @Test

@@ -177,7 +177,8 @@ public final class KsqlTarget {
         ksql,
         localProperties.toMap(),
         serverProperties,
-        previousCommandSeqNum.orElse(null)
+        previousCommandSeqNum.orElse(null),
+        false
     );
   }
 

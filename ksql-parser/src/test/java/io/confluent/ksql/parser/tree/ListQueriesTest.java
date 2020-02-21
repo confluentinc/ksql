@@ -30,11 +30,11 @@ public class ListQueriesTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new ListQueries(Optional.of(SOME_LOCATION), true, true),
-            new ListQueries(Optional.of(OTHER_LOCATION), true, true)
+            new ListQueries(Optional.of(SOME_LOCATION), true),
+            new ListQueries(Optional.of(OTHER_LOCATION), true)
         )
         .addEqualityGroup(
-            new ListQueries(Optional.of(SOME_LOCATION), false, false)
+            new ListQueries(Optional.of(SOME_LOCATION), false)
         )
         .testEquals();
   }

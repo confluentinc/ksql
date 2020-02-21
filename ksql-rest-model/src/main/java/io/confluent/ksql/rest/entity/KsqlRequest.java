@@ -40,14 +40,16 @@ public class KsqlRequest {
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
   private final Optional<Long> commandSequenceNumber;
+  private final Optional<Boolean> isInternalRequest;
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
       @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
-      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
-  ) {
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber,
+      @JsonProperty("isInternalRequest") final Boolean isInternalRequest
+    ) {
     this.ksql = ksql == null ? "" : ksql;
     this.configOverrides = configOverrides == null
         ? ImmutableMap.of()
@@ -56,6 +58,7 @@ public class KsqlRequest {
         ? ImmutableMap.of()
         : ImmutableMap.copyOf(serializeClassValues(requestProperties));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
+    this.isInternalRequest = Optional.ofNullable(isInternalRequest);
   }
 
   public String getKsql() {
@@ -75,6 +78,10 @@ public class KsqlRequest {
     return commandSequenceNumber;
   }
 
+  public Optional<Boolean> getIsInternalRequest() {
+    return isInternalRequest;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -89,12 +96,13 @@ public class KsqlRequest {
     return Objects.equals(ksql, that.ksql)
         && Objects.equals(configOverrides, that.configOverrides)
         && Objects.equals(requestProperties, that.requestProperties)
-        && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
+        && Objects.equals(commandSequenceNumber, that.commandSequenceNumber)
+        && Objects.equals(isInternalRequest, that.isInternalRequest);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber);
+    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber, isInternalRequest);
   }
 
   @Override
@@ -104,6 +112,7 @@ public class KsqlRequest {
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
         + ", commandSequenceNumber=" + commandSequenceNumber
+        + ", isInternalRequest=" + isInternalRequest
         + '}';
   }
 

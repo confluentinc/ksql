@@ -64,7 +64,8 @@ public class KsqlRequestTest {
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":2}";
+      + "\"commandSequenceNumber\":2}"
+      + "\"isInternalRequest\":null}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
@@ -75,7 +76,26 @@ public class KsqlRequestTest {
       + "\"requestProperties\":{"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":null}";
+      + "\"commandSequenceNumber\":null}"
+      + "\"isInternalRequest\":null}";
+
+  private static final String A_JSON_REQUEST_WITH_NULL_INTERNAL_REQUEST= "{"
+      + "\"ksql\":\"sql\","
+      + "\"streamsProperties\":{"
+      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
+      + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
+      + TimestampExtractor.class.getCanonicalName() + "\""
+      + "},"
+      + "\"isInternalRequest\":null}";
+
+  private static final String A_JSON_REQUEST_WITH_INTERNAL_REQUEST= "{"
+      + "\"ksql\":\"sql\","
+      + "\"streamsProperties\":{"
+      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
+      + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
+      + TimestampExtractor.class.getCanonicalName() + "\""
+      + "},"
+      + "\"isInternalRequest\":true}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
       ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
@@ -87,32 +107,37 @@ public class KsqlRequestTest {
   private static final long SOME_COMMAND_NUMBER = 2L;
 
   private static final KsqlRequest A_REQUEST = new KsqlRequest(
-      "sql", SOME_PROPS, SOME_REQUEST_PROPS, null);
+      "sql", SOME_PROPS, SOME_REQUEST_PROPS, null, false);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
-      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER);
+      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, false);
+  private static final KsqlRequest A_REQUEST_WITH_INTERNAL_REQUEST =
+      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null, true);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldHandleNullStatement() {
-    assertThat(new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER)
-                   .getKsql(),
-               is(""));
+    assertThat(new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, null).getKsql(),
+        is(""));
   }
 
   @Test
   public void shouldHandleNullProps() {
-    assertThat(new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER)
-                   .getConfigOverrides(),
+    assertThat(new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, null).getConfigOverrides(),
         is(Collections.emptyMap()));
   }
 
   @Test
   public void shouldHandleNullCommandNumber() {
-    assertThat(new KsqlRequest(
-        "sql", SOME_PROPS, Collections.emptyMap(), null).getCommandSequenceNumber(),
-               is(Optional.empty()));
+    assertThat(
+      new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null, null).getCommandSequenceNumber(),
+          is(Optional.empty()));
+  }
+
+  @Test
+  public void shoudlHandleNullIsInternalRequest() {
+    assertThat(new KsqlRequest("sql", SOME_PROPS, null, null).getIsInternalRequest(), is(Optional.empty()));
   }
 
   @Test
@@ -122,6 +147,24 @@ public class KsqlRequestTest {
 
     // Then:
     assertThat(request, is(A_REQUEST));
+  }
+
+  @Test
+  public void shouldDeserializeFromJsonWithNullInternalRequest() {
+    // When:
+    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_NULL_INTERNAL_REQUEST);
+
+    // Then:
+    assertThat(request, is(A_REQUEST));
+  }
+
+  @Test
+  public void shouldDeserializeFromJsonWithInternalRequest() {
+    // When:
+    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_INTERNAL_REQUEST);
+
+    // Then:
+    assertThat(request, is(A_REQUEST_WITH_INTERNAL_REQUEST));
   }
 
   @Test
@@ -163,13 +206,13 @@ public class KsqlRequestTest {
   @Test
   public void shouldImplementHashCodeAndEqualsCorrectly() {
     new EqualsTester()
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
-            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("different-sql", SOME_PROPS,
-                                          SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("sql", ImmutableMap.of(),
-                                          SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null))
+        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, false),
+            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, false))
+        .addEqualityGroup(
+            new KsqlRequest("different-sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, false))
+        .addEqualityGroup(
+            new KsqlRequest("sql", ImmutableMap.of(), SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER, null))
+        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null, null))
         .testEquals();
   }
 
@@ -198,7 +241,8 @@ public class KsqlRequestTest {
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
         SOME_REQUEST_PROPS,
-        null);
+        null,
+        false);
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
@@ -217,7 +261,8 @@ public class KsqlRequestTest {
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
         ),
         SOME_REQUEST_PROPS,
-        null);
+        null,
+        false);
 
     // When:
     final Map<String, Object> props = request.getConfigOverrides();
@@ -236,7 +281,8 @@ public class KsqlRequestTest {
             ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, ImmutableList.of("some.type")
         ),
         SOME_REQUEST_PROPS,
-        null
+        null,
+        false
     );
 
     // When:

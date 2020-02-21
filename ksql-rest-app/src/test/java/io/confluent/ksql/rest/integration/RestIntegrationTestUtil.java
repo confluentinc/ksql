@@ -133,7 +133,8 @@ public final class RestIntegrationTestUtil {
         sql,
         ImmutableMap.of(),
         Collections.emptyMap(),
-        cmdSeqNum.orElse(null)
+        cmdSeqNum.orElse(null),
+        false
     );
 
     final URI listener = restApp.getHttpListener();

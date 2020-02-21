@@ -203,7 +203,8 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       emptyMap(),
-      0L);
+      0L,
+      false);
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .withRowTime()
@@ -404,7 +405,7 @@ public class KsqlResourceTest {
     // When:
     ksqlResource.handleKsqlStatements(
         securityContext,
-        new KsqlRequest("query", emptyMap(), emptyMap(), null)
+        new KsqlRequest("query", emptyMap(), emptyMap(), null, false)
     );
   }
 
@@ -1435,10 +1436,12 @@ public class KsqlResourceTest {
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-        new KsqlRequest("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n" + csas,
-                        localOverrides,
-                        emptyMap(),
-                        null),
+        new KsqlRequest(
+            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n" + csas,
+            localOverrides,
+            emptyMap(),
+            null,
+            false),
         CommandStatusEntity.class);
 
     // Then:
@@ -1536,7 +1539,7 @@ public class KsqlResourceTest {
 
     // When:
     final PropertiesList props = makeSingleRequest(
-        new KsqlRequest("list properties;", overrides, emptyMap(), null),
+        new KsqlRequest("list properties;", overrides, emptyMap(), null, false),
         PropertiesList.class);
 
     // Then:
@@ -2001,7 +2004,7 @@ public class KsqlResourceTest {
       final String ksql,
       final Long seqNum,
       final Code errorCode) {
-    return makeFailingRequest(new KsqlRequest(ksql, emptyMap(), emptyMap(), seqNum), errorCode);
+    return makeFailingRequest(new KsqlRequest(ksql, emptyMap(), emptyMap(), seqNum, false), errorCode);
   }
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
@@ -2030,7 +2033,7 @@ public class KsqlResourceTest {
       final Long seqNum,
       final Class<T> expectedEntityType) {
     return makeSingleRequest(
-        new KsqlRequest(sql, emptyMap(), emptyMap(), seqNum), expectedEntityType);
+        new KsqlRequest(sql, emptyMap(), emptyMap(), seqNum, false), expectedEntityType);
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(
@@ -2054,7 +2057,7 @@ public class KsqlResourceTest {
       final Map<String, ?> props,
       final Class<T> expectedEntityType
   ) {
-    final KsqlRequest request = new KsqlRequest(sql, props, emptyMap(), null);
+    final KsqlRequest request = new KsqlRequest(sql, props, emptyMap(), null, false);
     return makeMultipleRequest(request, expectedEntityType);
   }
 

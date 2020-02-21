@@ -71,14 +71,14 @@ public final class ListQueriesExecutor {
         ))
         .collect(Collectors.toList()));
     
-    if (listQueries.getShowAll()) {
+    if (!sessionProperties.getIsInternalRequest()) {
       final Set<HostInfo> hosts =
           DiscoverRemoteHostsUtil.getRemoteHosts(
               executionContext.getPersistentQueries(),
               sessionProperties.getKsqlHostInfo());
 
       hosts.forEach(hostInfo -> {
-        final KsqlEntityList response = serviceContext.getKsqlClient().makeKsqlRequest(
+        final KsqlEntityList response = serviceContext.getKsqlClient().makeInternalKsqlRequest(
             ServerUtil.buildRemoteUri(
                 sessionProperties.getLocalUrl(),
                 hostInfo.host(),
@@ -114,14 +114,14 @@ public final class ListQueriesExecutor {
             ))
         .collect(Collectors.toList()));
 
-    if (listQueries.getShowAll()) {
+    if (!sessionProperties.getIsInternalRequest()) {
       final Set<HostInfo> hosts =
           DiscoverRemoteHostsUtil.getRemoteHosts(
               executionContext.getPersistentQueries(),
               sessionProperties.getKsqlHostInfo());
 
       hosts.forEach(hostInfo -> {
-        final KsqlEntityList response = serviceContext.getKsqlClient().makeKsqlRequest(
+        final KsqlEntityList response = serviceContext.getKsqlClient().makeInternalKsqlRequest(
             ServerUtil.buildRemoteUri(
                 sessionProperties.getLocalUrl(),
                 hostInfo.host(),

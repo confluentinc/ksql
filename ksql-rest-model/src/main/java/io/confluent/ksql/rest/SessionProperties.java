@@ -32,20 +32,24 @@ public class SessionProperties {
   private final Map<String, Object> mutableScopedProperties;
   private final KsqlHostInfo ksqlHostInfo;
   private final URL localUrl;
+  private final boolean isInternalRequest;
 
   /**
    * @param mutableScopedProperties   The streamsProperties of the incoming request
    * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request 
    * @param localUrl                  The url of the server that handles the request
+   * @param isInternalRequest         Flag indicates whether the request is internal or not
    */
   public SessionProperties(
       final Map<String, Object> mutableScopedProperties,
       final KsqlHostInfo ksqlHostInfo,
-      final URL localUrl) {
+      final URL localUrl,
+      final boolean isInternalRequest) {
     this.mutableScopedProperties = 
         new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
     this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
     this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
+    this.isInternalRequest = Objects.requireNonNull(isInternalRequest, "isInternalRequest");
   }
 
   public Map<String, Object> getMutableScopedProperties() {
@@ -58,5 +62,9 @@ public class SessionProperties {
 
   public URL getLocalUrl() {
     return localUrl;
+  }
+
+  public boolean getIsInternalRequest() {
+    return isInternalRequest;
   }
 }

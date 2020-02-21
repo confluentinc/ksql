@@ -228,7 +228,7 @@ public class KsqlRestApplicationTest {
     // Then:
     verify(ksqlResource).handleKsqlStatements(
         securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null, true))
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
@@ -246,7 +246,7 @@ public class KsqlRestApplicationTest {
     // Then:
     verify(ksqlResource, never()).handleKsqlStatements(
         securityContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
   }
 
@@ -262,7 +262,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(commandRunner).start();
     inOrder.verify(ksqlResource).handleKsqlStatements(
         securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null, true))
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
@@ -278,7 +278,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
     inOrder.verify(ksqlResource).handleKsqlStatements(
         securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null, true))
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
@@ -316,7 +316,7 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(ksqlResource, serverState);
     verify(ksqlResource).handleKsqlStatements(
         securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
+        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null, true))
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));

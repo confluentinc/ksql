@@ -218,7 +218,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getStreamsProperties(),
               localHost,
-              localUrl
+              localUrl,
+              false
           )
       );
       return Response.ok(entities).build();
@@ -252,7 +253,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getConfigOverrides(),
               localHost, 
-              localUrl
+              localUrl,
+              request.getIsInternalRequest().orElse(false)
           ),
           request.getKsql()
       );
@@ -263,7 +265,8 @@ public class KsqlResource implements KsqlConfigurable {
           new SessionProperties(
               request.getConfigOverrides(),
               localHost,
-              localUrl
+              localUrl,
+              request.getIsInternalRequest().orElse(false)
           )
       );
       return Response.ok(entities).build();

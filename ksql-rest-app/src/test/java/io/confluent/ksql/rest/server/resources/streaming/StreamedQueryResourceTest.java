@@ -230,7 +230,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), null, false)
     );
   }
 
@@ -250,7 +250,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest("query", Collections.emptyMap(), null, false)
     );
   }
 
@@ -259,7 +259,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null, false)
     );
 
     // Then:
@@ -271,7 +271,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L, false)
     );
 
     // Then:
@@ -296,7 +296,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L, false)
     );
   }
 
@@ -310,7 +310,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     // Then:
@@ -332,7 +332,7 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -400,7 +400,7 @@ public class StreamedQueryResourceTest {
     final Response response =
         testResource.streamQuery(
             securityContext,
-            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null)
+            new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null, false)
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -539,7 +539,7 @@ public class StreamedQueryResourceTest {
     /// When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     // Then:
@@ -558,7 +558,7 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -581,7 +581,7 @@ public class StreamedQueryResourceTest {
     // When:
     final Response response = testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -627,7 +627,7 @@ public class StreamedQueryResourceTest {
     // When:
     testResource.streamQuery(
         securityContext,
-        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null)
+        new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null, false)
     );
   }
 

@@ -333,7 +333,8 @@ public final class TestExecutorUtil {
           new SessionProperties(
               requireNonNull(overrides, "overrides"),
               new KsqlHostInfo("host", 50),
-              buildUrl());
+              buildURL(),
+              false);
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
       this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
       this.schemaInjector = requireNonNull(schemaInjector, "schemaInjector");

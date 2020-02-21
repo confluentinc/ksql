@@ -709,18 +709,6 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
     assertThat(listQueries.getShowExtended(), is(false));
-    assertThat(listQueries.getShowAll(), is(false));
-  }
-
-  @Test
-  public void shouldSetShowAllForShowQueries() {
-    final String statementString = "SHOW ALL QUERIES;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-            .getStatement();
-    assertThat(statement, instanceOf(ListQueries.class));
-    final ListQueries listQueries = (ListQueries)statement;
-    assertThat(listQueries.getShowExtended(), is(false));
-    assertThat(listQueries.getShowAll(), is(true));
   }
 
   @Test
@@ -861,17 +849,6 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
     assertThat(listQueries.getShowExtended(), is(true));
-  }
-
-  @Test
-  public void shouldSetShowALLForShowQueriesDescriptions() {
-    final String statementString = "SHOW ALL QUERIES EXTENDED;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-            .getStatement();
-    assertThat(statement, instanceOf(ListQueries.class));
-    final ListQueries listQueries = (ListQueries)statement;
-    assertThat(listQueries.getShowExtended(), is(true));
-    assertThat(listQueries.getShowAll(), is(true));
   }
 
   private void assertQuerySucceeds(final String sql) {

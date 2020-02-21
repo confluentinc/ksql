@@ -21,7 +21,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AbstractUser;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
 import java.util.Objects;
@@ -79,8 +78,8 @@ public class DummyAuthProvider implements AuthProvider {
     resultHandler.handle(Future.succeededFuture(true));
   }
 
-  // TODO: what replaced AbstractUser given deprecation?
-  static class DummyUser extends AbstractUser {
+  @SuppressWarnings("deprecation") // TODO: what replaced AbstractUser given deprecation?
+  static class DummyUser extends io.vertx.ext.auth.AbstractUser {
 
     private final String username;
     private final String password;

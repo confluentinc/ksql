@@ -80,7 +80,7 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String TLS_CLIENT_AUTH_REQUIRED_DOC =
       "Is client auth required? One of none, request or required";
 
-  public static final String AUTHENTICATION_METHOD_CONFIG = "authentication.method";
+  public static final String AUTHENTICATION_METHOD_CONFIG = propertyName("authentication.method");
   public static final String AUTHENTICATION_METHOD_NONE = "NONE";
   public static final String AUTHENTICATION_METHOD_BASIC = "BASIC";
   public static final String AUTHENTICATION_METHOD_DOC =
@@ -93,10 +93,10 @@ public class ApiServerConfig extends AbstractConfig {
           AUTHENTICATION_METHOD_NONE,
           AUTHENTICATION_METHOD_BASIC
       );
-  public static final String AUTHENTICATION_REALM_CONFIG = "authentication.realm";
+  public static final String AUTHENTICATION_REALM_CONFIG = propertyName("authentication.realm");
   public static final String AUTHENTICATION_REALM_DOC =
       "Security realm to be used in authentication.";
-  public static final String AUTHENTICATION_ROLES_CONFIG = "authentication.roles";
+  public static final String AUTHENTICATION_ROLES_CONFIG = propertyName("authentication.roles");
   public static final String AUTHENTICATION_ROLES_DOC = "Valid roles to authenticate against.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
       Collections.unmodifiableList(Arrays.asList("*"));

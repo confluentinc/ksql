@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.api.auth.DummyAuthProvider;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -26,7 +27,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.auth.AuthProvider;
-import io.vertx.ext.auth.htpasswd.HtpasswdAuthOptions;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.util.HashSet;
@@ -167,10 +167,7 @@ public class Server {
   }
 
   private AuthHandler basicAuthHandler() {
-    final AuthProvider authProvider = new HtpasswdAuthOptions() // TODO: replace with JAAS
-        .setHtpasswdFile("some file")
-        .setPlainTextEnabled(true) // TODO: ?
-        .createProvider(vertx);
+    final AuthProvider authProvider = new DummyAuthProvider(vertx, config);
     final String realm = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
     return BasicAuthHandler.create(authProvider, realm);
   }

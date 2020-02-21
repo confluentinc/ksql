@@ -255,6 +255,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final Boolean KSQL_NEW_API_ENABLED_DEFAULT = false;
   public static final String KSQL_NEW_API_ENABLED_DOC = "Is the new Vert.x based API enabled?";
 
+  public static final String KSQL_TIMESTAMP_THROW_ON_INVALID = "ksql.timestamp.throw.on.invalid";
+  public static final Boolean KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT = false;
+  public static final String KSQL_TIMESTAMP_THROW_ON_INVALID_DOC = "If an incoming message "
+      + "contains an invalid timestamp, ksqlDB will log a warning and continue. To disable this "
+      + "behavior, and instead throw an exception to ensure that no data is missed, set "
+      + "ksql.timestamp.skip.invalid to true.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -608,6 +615,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_NEW_API_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_NEW_API_ENABLED_DOC
+        )
+        .define(
+            KSQL_TIMESTAMP_THROW_ON_INVALID,
+            Type.BOOLEAN,
+            KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_TIMESTAMP_THROW_ON_INVALID_DOC
         )
         .withClientSslSupport();
 

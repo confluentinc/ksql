@@ -18,7 +18,9 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -31,6 +33,7 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -301,7 +304,9 @@ public final class SourceBuilder {
   private static TimestampExtractor timestampExtractor(
       final KsqlConfig ksqlConfig,
       final LogicalSchema sourceSchema,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final SourceStep<?> streamSource,
+      final KsqlQueryBuilder queryBuilder
   ) {
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
         ksqlConfig,
@@ -314,7 +319,17 @@ public final class SourceBuilder {
         .map(Column::index)
         .orElse(-1);
 
-    return timestampPolicy.create(timestampIndex);
+    final QueryId queryId = queryBuilder.getQueryId();
+    final QueryContext queryContext = streamSource.getProperties().getQueryContext();
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
+
+    return timestampPolicy.create(
+        timestampIndex,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID),
+        queryBuilder.getProcessingLogContext()
+            .getLoggerFactory()
+            .getLogger(loggerNamePrefix)
+    );
   }
 
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
@@ -327,7 +342,9 @@ public final class SourceBuilder {
     final TimestampExtractor timestampExtractor = timestampExtractor(
         queryBuilder.getKsqlConfig(),
         streamSource.getSourceSchema(),
-        streamSource.getTimestampColumn()
+        streamSource.getTimestampColumn(),
+        streamSource,
+        queryBuilder
     );
     final Consumed<K, GenericRow> consumed = consumedFactory
         .create(keySerde, valueSerde)

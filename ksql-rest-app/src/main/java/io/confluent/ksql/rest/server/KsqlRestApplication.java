@@ -277,6 +277,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     displayWelcomeMessage();
   }
 
+  public int getActualVertxPort() {
+    if (apiServer == null) {
+      throw new IllegalStateException("No Vert.x api Server");
+    }
+    return apiServer.getActualPort();
+  }
+
   @VisibleForTesting
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();

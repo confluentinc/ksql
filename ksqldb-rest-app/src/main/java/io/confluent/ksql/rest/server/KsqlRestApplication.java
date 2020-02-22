@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -60,6 +61,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -246,6 +248,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
+      final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent
   ) {
@@ -273,12 +276,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+    this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-
     this.routingFilterFactory = initializeRoutingFilterFactory(
         ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
-    this.pullQueryExecutor = new PullQueryExecutor(ksqlEngine, routingFilterFactory);
   }
 
   @Override
@@ -606,6 +608,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
   }
 
+  @SuppressWarnings("checkstyle:MethodLength")
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -684,8 +687,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(ksqlConfig,
         heartbeatAgent, lagReportingAgent);
 
+    final Boolean collectMetrics = restConfig.getBoolean(
+        KsqlRestConfig.KSQL_COLLECT_PULL_QUERY_METRICS_CONFIG);
+    final Optional<PullQueryExecutorMetrics> metrics = collectMetrics
+        ? Optional.of(new PullQueryExecutorMetrics())
+        : empty();
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory);
+        ksqlEngine, routingFilterFactory, metrics);
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -759,6 +768,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         preconditions,
         configurables,
         rocksDBConfigSetterHandler,
+        pullQueryExecutor,
         heartbeatAgent,
         lagReportingAgent
     );

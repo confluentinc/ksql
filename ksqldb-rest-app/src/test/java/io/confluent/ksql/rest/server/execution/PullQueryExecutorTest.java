@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY);
+          engine.getEngine(), ROUTING_FILTER_FACTORY, Optional.empty());
 
       // Then:
       expectedException.expect(KsqlException.class);

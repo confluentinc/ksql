@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -126,6 +127,8 @@ public class KsqlRestApplicationTest {
   private PreparedStatement<?> preparedStatement;
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  @Mock
+  private PullQueryExecutor pullQueryExecutor;
   @Mock
   private HeartbeatAgent heartbeatAgent;
   @Mock
@@ -437,6 +440,7 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
+        pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent)
     );

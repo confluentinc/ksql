@@ -158,6 +158,11 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC =
       "Interval at which lag reports are broadcasted to servers.";
 
+  public static final String KSQL_COLLECT_PULL_QUERY_METRICS_CONFIG =
+      "ksql.pull.query.collect.metrics";
+  public static final String KSQL_COLLECT_PULL_QUERY_METRICS_DOC =
+      "Whether collecting JMX metrics is enabled or not.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -277,6 +282,12 @@ public class KsqlRestConfig extends RestConfig {
         5000L,
         Importance.MEDIUM,
         KSQL_LAG_REPORTING_SEND_INTERVAL_MS_DOC
+    ).define(
+        KSQL_COLLECT_PULL_QUERY_METRICS_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        KSQL_COLLECT_PULL_QUERY_METRICS_DOC
     );
   }
 

@@ -19,20 +19,23 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.streams.timestamp.AbstractColumnTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
@@ -68,20 +71,22 @@ public final class SinkBuilder {
     );
 
     final Optional<TransformTimestamp<K>> tsTransformer = timestampTransformer(
-        queryBuilder.getKsqlConfig(),
+        queryBuilder,
+        queryContext,
         schema,
         timestampColumn
     );
 
     final KStream<K, GenericRow> transformed = tsTransformer
-        .map(t -> stream.transform(t))
+        .map(t -> stream.transform(t, Named.as(StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
 
     transformed.to(topicName, Produced.with(keySerde, valueSerde));
   }
 
   private static  <K> Optional<TransformTimestamp<K>> timestampTransformer(
-      final KsqlConfig ksqlConfig,
+      final KsqlQueryBuilder queryBuilder,
+      final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final Optional<TimestampColumn> timestampColumn
   ) {
@@ -90,7 +95,7 @@ public final class SinkBuilder {
     }
 
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
-        ksqlConfig,
+        queryBuilder.getKsqlConfig(),
         sourceSchema,
         timestampColumn
     );
@@ -101,15 +106,32 @@ public final class SinkBuilder {
         .map(Column::index)
         .map(timestampPolicy::create)
         .filter(te -> te instanceof AbstractColumnTimestampExtractor)
-        .map(te -> new TransformTimestamp<>((AbstractColumnTimestampExtractor)te));
+        .map(te -> new TransformTimestamp<>(
+            (AbstractColumnTimestampExtractor)te,
+            queryBuilder
+                .getProcessingLogContext()
+                .getLoggerFactory()
+                .getLogger(
+                    QueryLoggerUtil.queryLoggerName(
+                        queryBuilder.getQueryId(),
+                        queryContext
+                    )
+                )
+            )
+        );
   }
 
   static class TransformTimestamp<K>
       implements TransformerSupplier<K, GenericRow, KeyValue<K, GenericRow>> {
-    final AbstractColumnTimestampExtractor timestampExtractor;
+    private final AbstractColumnTimestampExtractor timestampExtractor;
+    private final ProcessingLogger processingLogger;
 
-    TransformTimestamp(final AbstractColumnTimestampExtractor timestampExtractor) {
+    TransformTimestamp(
+        final AbstractColumnTimestampExtractor timestampExtractor,
+        final ProcessingLogger processingLogger
+    ) {
       this.timestampExtractor = requireNonNull(timestampExtractor, "timestampExtractor");
+      this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     }
 
     @Override
@@ -124,11 +146,19 @@ public final class SinkBuilder {
 
         @Override
         public KeyValue<K, GenericRow> transform(final K key, final GenericRow row) {
-          processorContext.forward(
-              key,
-              row,
-              To.all().withTimestamp(timestampExtractor.extract(row))
-          );
+          try {
+            processorContext.forward(
+                key,
+                row,
+                To.all().withTimestamp(timestampExtractor.extract(row))
+            );
+          } catch (final Exception e) {
+            processingLogger.error(
+                EngineProcessingLogMessageFactory
+                    .recordProcessingError("Error writing row with extracted timestamp: "
+                        + e.getMessage(), e, row)
+            );
+          }
 
           return null;
         }

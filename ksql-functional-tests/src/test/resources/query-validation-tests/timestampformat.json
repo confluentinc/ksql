@@ -46,6 +46,7 @@
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "value": {"ID": -2}, "timestamp": 1526075913000},
         {"topic": "test_topic", "value": {"ID": 3}, "timestamp": 1589234313000}
       ],
       "outputs": [
@@ -56,11 +57,12 @@
     {
       "name": "override output timestamp for CSAS using a string TIMESTAMP_FORMAT",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, EVENT_TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='EVENT_TS', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');",
+        "CREATE STREAM TEST (ID bigint, EVENT_TS varchar) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM TS WITH (timestamp='event_ts', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT id, event_ts FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1, "EVENT_TS": "2018-05-11T21:58:33Z"}, "timestamp": 10},
+        {"topic": "test_topic", "value": {"ID": 2, "EVENT_TS": "not a timestamp"}, "timestamp": 10},
         {"topic": "test_topic", "value": {"ID": 3, "EVENT_TS": "2019-05-11T21:58:33Z"}, "timestamp": 10}
       ],
       "outputs": [
@@ -76,6 +78,7 @@
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "value": {"ID": -2}, "timestamp": 1526075913000},
         {"topic": "test_topic", "value": {"ID": 3}, "timestamp": 1589234313000}
       ],
       "outputs": [
@@ -86,11 +89,12 @@
     {
       "name": "override output timestamp for CTAS using a string TIMESTAMP_FORMAT",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, EVENT_TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='EVENT_TS', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');",
+        "CREATE STREAM TEST (ID bigint, EVENT_TS varchar) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM TS WITH (timestamp='event_ts', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT id, event_ts FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 1, "EVENT_TS": "2018-05-11T21:58:33Z"}, "timestamp": 10},
+        {"topic": "test_topic", "value": {"ID": 2, "EVENT_TS": "not a timestamp"}, "timestamp": 10},
         {"topic": "test_topic", "value": {"ID": 3, "EVENT_TS": "2019-05-11T21:58:33Z"}, "timestamp": 10}
       ],
       "outputs": [
@@ -111,6 +115,16 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"EVENT_TS":1}, "timestamp": 1526075913000},
         {"topic": "OUTPUT", "value": {"EVENT_TS":2}, "timestamp": 1589234313000}
+      ]
+    },
+    {
+      "name": "Invalid timestamp value should throw an exception",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, EVENT_TS string) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TS WITH (timestamp='event_ts', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT id, event_ts FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 1, "EVENT_TS":  "not a timestamp"}}
       ]
     },
     {

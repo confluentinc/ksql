@@ -48,7 +48,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema).toString();
+    final String formatted = TabularRow.createHeader(20, schema, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -67,7 +67,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema).toString();
+    final String formatted = TabularRow.createHeader(20, schema, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -169,7 +169,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema).toString();
+    final String formatted = TabularRow.createHeader(20, schema, config).toString();
 
     // Then:
     assertThat(formatted, isEmptyString());
@@ -186,7 +186,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(3, schema).toString();
+    final String formatted = TabularRow.createHeader(3, schema, config).toString();
 
     // Then:
     assertThat(formatted,
@@ -196,11 +196,38 @@ public class TabularRowTest {
             + "+-----+-----+-----+"));
   }
 
+  @Test
+  public void shouldFormatCustomColumnWidth() {
+    // Given:
+    givenCustomColumnWidth(10);
+
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("baz"), SqlTypes.DOUBLE)
+        .build();
+
+    // When:
+    final String formatted = TabularRow.createHeader(999, schema, config).toString();
+
+    // Then:
+    assertThat(formatted,
+        is(""
+            + "+----------+----------+----------+\n"
+            + "|foo       |bar       |baz       |\n"
+            + "+----------+----------+----------+"));
+  }
+
   private void givenWrappingEnabled() {
     when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn(OnOff.ON.toString());
   }
 
   private void givenWrappingDisabled() {
     when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn("Not ON");
+  }
+
+  private void givenCustomColumnWidth(int width) {
+    when(config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)).thenReturn(width);
   }
 }

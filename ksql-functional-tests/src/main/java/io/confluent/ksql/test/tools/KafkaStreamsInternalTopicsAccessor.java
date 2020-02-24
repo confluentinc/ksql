@@ -16,8 +16,10 @@
 package io.confluent.ksql.test.tools;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.processor.internals.InternalTopologyBuilder;
 
 /**
  * Hack to get around the fact that the {@link TopologyTestDriver} class does not expose its set of
@@ -25,7 +27,7 @@ import org.apache.kafka.streams.TopologyTestDriver;
  */
 final class KafkaStreamsInternalTopicsAccessor {
 
-  private static final Field INTERNAL_TOPICS_FIELD = getInternalTopicsField();
+  private static final Field INTERNAL_TOPICS_BUILDER_FIELD = getInternalTopicsBuilderField();
 
   private KafkaStreamsInternalTopicsAccessor() {
   }
@@ -35,15 +37,22 @@ final class KafkaStreamsInternalTopicsAccessor {
       final TopologyTestDriver topologyTestDriver
   ) {
     try {
-      return (Set<String>) INTERNAL_TOPICS_FIELD.get(topologyTestDriver);
+      final InternalTopologyBuilder internalTopologyBuilder =
+          (InternalTopologyBuilder) INTERNAL_TOPICS_BUILDER_FIELD.get(topologyTestDriver);
+      final Set<String> internalTopics = new HashSet<>();
+      for (final InternalTopologyBuilder.TopicsInfo topicsInfo :
+          internalTopologyBuilder.topicGroups().values()) {
+        internalTopics.addAll(topicsInfo.repartitionSourceTopics.keySet());
+      }
+      return internalTopics;
     } catch (final IllegalAccessException e) {
       throw new AssertionError("Failed to get internal topic names", e);
     }
   }
 
-  private static Field getInternalTopicsField() {
+  private static Field getInternalTopicsBuilderField() {
     try {
-      final Field field = TopologyTestDriver.class.getDeclaredField("internalTopics");
+      final Field field = TopologyTestDriver.class.getDeclaredField("internalTopologyBuilder");
       field.setAccessible(true);
       return field;
     } catch (final NoSuchFieldException e) {

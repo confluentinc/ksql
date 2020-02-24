@@ -44,19 +44,15 @@ public final class KsqlClient implements AutoCloseable {
     JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule(false));
   }
 
+  public static final String DISABLE_HOSTNAME_VERIFICATION_PROP_NAME
+      = "ksql.client.disable.hostname.verification";
+  public static final String TLS_ENABLED_PROP_NAME = "ksql.client.enable.tls";
+
   private final Vertx vertx;
   private final HttpClient httpClient;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
   private final boolean isTls;
-
-  public KsqlClient(
-      final Map<String, String> clientProps,
-      final Optional<BasicCredentials> credentials,
-      final LocalProperties localProperties
-  ) {
-    this(clientProps, credentials, localProperties, new HttpClientOptions());
-  }
 
   public KsqlClient(
       final Map<String, String> clientProps,
@@ -68,6 +64,15 @@ public final class KsqlClient implements AutoCloseable {
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.vertx = Vertx.vertx();
+    if ("true".equals(clientProps.get(DISABLE_HOSTNAME_VERIFICATION_PROP_NAME))) {
+      httpClientOptions.setVerifyHost(false);
+    }
+    if ("true".equals(clientProps.get(TLS_ENABLED_PROP_NAME))) {
+      httpClientOptions.setSsl(true);
+      isTls = true;
+    } else {
+      isTls = false;
+    }
     final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
     if (trustStoreLocation != null) {
       httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
@@ -77,10 +82,6 @@ public final class KsqlClient implements AutoCloseable {
         httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
             .setPassword(clientProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
       }
-      httpClientOptions.setSsl(true);
-      this.isTls = true;
-    } else {
-      this.isTls = false;
     }
     this.httpClient = vertx.createHttpClient(httpClientOptions);
   }

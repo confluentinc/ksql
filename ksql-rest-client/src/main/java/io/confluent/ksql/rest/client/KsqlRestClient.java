@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.vertx.core.http.HttpClientOptions;
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URL;
@@ -58,7 +59,8 @@ public class KsqlRestClient implements Closeable {
       final Optional<BasicCredentials> creds
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
-    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties);
+    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties,
+        new HttpClientOptions());
     return new KsqlRestClient(client, serverAddress, localProperties);
   }
 

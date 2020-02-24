@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
@@ -645,12 +646,11 @@ public class KsqlClientTest {
   }
 
   private void startClientWithTls() {
-    Map<String, String> clientProps = new HashMap<>();
-    clientProps.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-        ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG));
-    clientProps.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-        ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG));
-    createClient(clientProps);
+    Map<String, String> props = new HashMap<>();
+    props.putAll(ClientTrustStore.trustStoreProps());
+    props.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    createClient(props);
   }
 
   private void startServerWithTls() throws Exception {

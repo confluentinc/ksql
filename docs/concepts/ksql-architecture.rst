@@ -34,7 +34,7 @@ KSQL Engine
     and builds corresponding Kafka Streams topologies.
     
     The KSQL engine is implemented in the
-    `KsqlEngine.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/KsqlEngine.java>`__
+    `KsqlEngine.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/engine/KsqlEngine.java>`__
     class.
 
 KSQL CLI

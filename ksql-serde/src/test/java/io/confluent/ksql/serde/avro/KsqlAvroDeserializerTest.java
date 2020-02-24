@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -210,8 +210,8 @@ public class KsqlAvroDeserializerTest {
   @Before
   public void setUp() {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
-        AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
-        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
+        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
     schemaRegistryClient = new MockSchemaRegistryClient();

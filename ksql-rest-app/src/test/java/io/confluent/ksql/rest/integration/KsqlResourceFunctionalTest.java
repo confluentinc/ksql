@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -162,11 +163,11 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.getSchemaRegistryClient()
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            AvroSchemas.getAvroSchema(
+            new AvroSchema(AvroSchemas.getAvroSchema(
                 schema.valueSchema(),
                 "books_value",
                 new KsqlConfig(REST_APP.getBaseConfig())
-            )
+            ))
         );
 
     // When:

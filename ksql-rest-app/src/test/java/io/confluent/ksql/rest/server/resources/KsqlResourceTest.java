@@ -63,6 +63,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -2220,7 +2221,7 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-        avroSchema);
+        new AvroSchema(avroSchema));
   }
 
   private static Matcher<Command> commandWithStatement(final String statement) {
@@ -2258,7 +2259,8 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema schema = org.apache.avro.Schema.create(Type.INT);
 
     try {
-      schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+      schemaRegistryClient.register(
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
     } catch (final Exception e) {
       fail(e.getMessage());
     }

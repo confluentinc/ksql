@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
@@ -48,7 +49,6 @@ import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
-import org.apache.avro.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,13 +130,13 @@ public class AvroUtilTest {
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
     // Given:
-    when(srClient.testCompatibility(anyString(), any(Schema.class))).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
 
     // Then:
-    verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any(Schema.class));
+    verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any(AvroSchema.class));
   }
 
   @Test
@@ -144,9 +144,9 @@ public class AvroUtilTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
-    when(srClient.testCompatibility(anyString(), any(Schema.class))).thenReturn(true);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -162,10 +162,10 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema
         .from(SCHEMA_WITH_MAPS, SerdeOption.none());
 
-    when(srClient.testCompatibility(anyString(), any(Schema.class))).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -181,10 +181,10 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.none());
 
-    when(srClient.testCompatibility(anyString(), any(Schema.class))).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -206,10 +206,10 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
-    when(srClient.testCompatibility(anyString(), any(Schema.class))).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -221,7 +221,7 @@ public class AvroUtilTest {
   @Test
   public void shouldNotThrowInvalidEvolution() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class))).thenReturn(true);
+    when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -230,7 +230,7 @@ public class AvroUtilTest {
   @Test
   public void shouldReturnInvalidEvolution() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class))).thenReturn(false);
+    when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(false);
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
@@ -242,7 +242,7 @@ public class AvroUtilTest {
   @Test
   public void shouldNotThrowInvalidEvolutionIfSubjectNotRegistered() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class)))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 404, 40401));
 
     // When:
@@ -252,7 +252,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnSrAuthorizationErrors() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class)))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
     // Expect:
@@ -271,7 +271,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class)))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 500, 40401));
 
     // Expect:
@@ -285,7 +285,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnAnyOtherEvolutionIOException() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any(Schema.class)))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new IOException("something"));
 
     // Expect:

@@ -36,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -640,7 +641,7 @@ public class KsqlEngineTest {
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
 
-    schemaRegistryClient.register("BAR-value", schema);
+    schemaRegistryClient.register("BAR-value", new AvroSchema(schema));
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -1131,7 +1132,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    verify(schemaRegistryClient, never()).register(any(), any(Schema.class));
+    verify(schemaRegistryClient, never()).register(any(), any(AvroSchema.class));
   }
 
   @Test
@@ -1281,7 +1282,8 @@ public class KsqlEngineTest {
   private void givenTopicWithSchema(final String topicName, final Schema schema) {
     try {
       givenTopicsExist(1, topicName);
-      schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+      schemaRegistryClient.register(
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
     } catch (final Exception e) {
       fail("invalid test:" + e.getMessage());
     }

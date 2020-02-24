@@ -30,7 +30,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
@@ -166,8 +166,8 @@ public class KsqlAvroSerializerTest {
   @Before
   public void setup() {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
-        AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
-        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
+        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
     deserializer = new KafkaAvroDeserializer(schemaRegistryClient, configs);

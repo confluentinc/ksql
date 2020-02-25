@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **14**
+Next KLIP number: **23**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -62,3 +62,4 @@ Next KLIP number: **14**
 | [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)               | Proposal       | N/A     |
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)              | Proposal       | N/A     |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)  | Proposal       | N/A     |
+| KLIP-22: Add consumer group id to CREATE STREAM and CREATE TABLE DSL  | Proposal       | N/A     |

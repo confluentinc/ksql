@@ -45,6 +45,7 @@ public interface KsqlTerminal {
   @FunctionalInterface
   interface StatusClosable extends Closeable {
 
+    @Override
     void close();
   }
 
@@ -57,6 +58,8 @@ public interface KsqlTerminal {
    * @return the closable that will remove the status message.
    */
   StatusClosable setStatusMessage(String message);
+
+  void printError(String message);
 
   void close();
 

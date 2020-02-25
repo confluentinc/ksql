@@ -323,7 +323,7 @@ public class Console implements Closeable {
 
   public void printError(final String shortMsg, final String fullMsg) {
     log.error(fullMsg);
-    writer().println(shortMsg);
+    terminal.printError(shortMsg);
   }
 
   public void printStreamedRow(final StreamedRow row) {

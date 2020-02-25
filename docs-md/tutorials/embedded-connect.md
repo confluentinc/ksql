@@ -82,6 +82,8 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:0.7.0
@@ -99,10 +101,9 @@ services:
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
       KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
-      KSQL_CONNECT_KEY_CONVERTER: "io.confluent.connect.avro.AvroConverter"
-      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
-      KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      KSQL_CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
       KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
       KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
       KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
@@ -111,7 +112,7 @@ services:
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
     volumes:
-      - ./confluentinc-kafka-connect-jdbc-5.3.2:/usr/share/kafka/plugins/jdbc
+      # - ./confluentinc-kafka-connect-jdbc-VERSION_YOU_DOWNLOADED:/usr/share/kafka/plugins/jdbc
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.7.0
@@ -128,6 +129,8 @@ services:
     container_name: postgres
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
 ```
 
 2. Get the JDBC connector
@@ -137,8 +140,12 @@ services:
 to your local working directory. Next, unzip the downloaded archive:
 
 ```bash
-unzip confluentinc-kafka-connect-jdbc-5.3.2.zip
+unzip confluentinc-kafka-connect-jdbc-*.zip
 ```
+
+Make sure to update the `docker-compose.yml` to uncomment the line mounting the volume in 
+`ksqldb-server`.
+
 
 3. Start ksqlDB and PostgreSQL
 ------------------------------
@@ -206,6 +213,7 @@ CREATE SOURCE CONNECTOR jdbc_source WITH (
   'connector.class'          = 'io.confluent.connect.jdbc.JdbcSourceConnector',
   'connection.url'           = 'jdbc:postgresql://postgres:5432/postgres',
   'connection.user'          = 'postgres',
+  'connection.password'      = 'password',
   'topic.prefix'             = 'jdbc_',
   'table.whitelist'          = 'driver_profiles',
   'mode'                     = 'incrementing',
@@ -225,7 +233,7 @@ interact with them just like any other {{ site.ak }} topic used by ksqlDB.
 
 In the ksqlDB CLI session, run the following command to verify that the
 `driver_profiles` table has been imported as a Kafka topic. Because you specified `jdbc_` as the topic
-prefix, you should see a `jdbc_user_profiles` topic in the output.
+prefix, you should see a `jdbc_driver_profiles` topic in the output.
 
 ```bash
 SHOW TOPICS;
@@ -276,6 +284,7 @@ continuous stream of location updates.
 
 ```sql
 CREATE STREAM driverLocations (
+  rowkey INTEGER KEY,
   driver_id INTEGER,
   latitude DOUBLE,
   longitude DOUBLE,
@@ -284,6 +293,7 @@ CREATE STREAM driverLocations (
 WITH (kafka_topic='driver_locations', value_format='json', partitions=1, key='driver_id');
 
 CREATE STREAM riderLocations (
+  rowkey INTEGER KEY,
   driver_id INTEGER,
   latitude DOUBLE,
   longitude DOUBLE

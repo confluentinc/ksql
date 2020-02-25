@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -24,7 +25,7 @@ import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Schema;
@@ -49,19 +50,24 @@ public final class JsonSerdeUtils {
    *         using the schema registry format (first byte magic byte, then
    *         four bytes for the schemaID).
    */
-  public static InputStream asStandardJson(@Nonnull final byte[] jsonWithMagic) {
+  public static <T> T readJsonSR(
+      @Nonnull final byte[] jsonWithMagic,
+      final ObjectMapper mapper,
+      final Class<? extends T> clazz
+  ) throws IOException {
     if (!hasMagicByte(jsonWithMagic)) {
       // don't log contents of jsonWithMagic to avoid leaking data into the logs
       throw new KsqlException(
           "Got unexpected JSON serialization format that did not start with the magic byte. If "
               + "this stream was not serialized using the JsonSchemaConverter, then make sure "
-              + "the stream is declared with JSON_SR format (not JSON).");
+              + "the stream is declared with JSON format (not JSON_SR).");
     }
 
-    return new ByteArrayInputStream(
+    return mapper.readValue(
         jsonWithMagic,
         SIZE_OF_SR_PREFIX,
-        jsonWithMagic.length - SIZE_OF_SR_PREFIX
+        jsonWithMagic.length - SIZE_OF_SR_PREFIX,
+        clazz
     );
   }
 

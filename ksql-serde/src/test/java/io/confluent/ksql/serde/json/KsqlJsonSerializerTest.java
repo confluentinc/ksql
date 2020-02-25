@@ -59,7 +59,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Parameterized.class)
 public class KsqlJsonSerializerTest {
@@ -218,7 +217,7 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     final JsonNode jsonNode = useSchemas
-        ? OBJECT_MAPPER.readTree(JsonSerdeUtils.asStandardJson(bytes))
+        ? JsonSerdeUtils.readJsonSR(bytes, OBJECT_MAPPER, JsonNode.class)
         : OBJECT_MAPPER.readTree(bytes);
 
     assertThat(jsonNode.size(), equalTo(7));

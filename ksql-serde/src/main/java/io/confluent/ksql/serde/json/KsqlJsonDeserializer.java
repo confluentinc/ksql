@@ -102,7 +102,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       // we require that the MAPPER enables USE_BIG_DECIMAL_FOR_FLOATS,
       // which is not currently available in the standard converters
       final JsonNode value = isJsonSchema
-          ? MAPPER.readTree(JsonSerdeUtils.asStandardJson(bytes))
+          ? JsonSerdeUtils.readJsonSR(bytes, MAPPER, JsonNode.class)
           : MAPPER.readTree(bytes);
 
       final Object coerced = enforceFieldType(

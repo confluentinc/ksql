@@ -111,6 +111,7 @@ public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+    config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());
 
     final Converter converter = new JsonSchemaConverter(schemaRegistryClient);
     converter.configure(config, false);

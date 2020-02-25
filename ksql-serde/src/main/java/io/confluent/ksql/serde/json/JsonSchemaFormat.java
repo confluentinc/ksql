@@ -27,7 +27,7 @@ public class JsonSchemaFormat implements Format {
 
   public static final String NAME = "JSON_SR";
 
-  private JsonSchemaData jsonData;
+  private final JsonSchemaData jsonData;
 
   public JsonSchemaFormat() {
     this.jsonData = new JsonSchemaData();

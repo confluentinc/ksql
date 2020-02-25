@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -34,11 +35,19 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class JsonSerdeUtilsTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private ObjectMapper mapper;
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
@@ -243,11 +252,10 @@ public class JsonSerdeUtilsTest {
     byte[] json = new byte[]{/* magic */ 0x00, /* id */ 0x00, 0x00, 0x00, 0x01, /* data */ 0x01};
 
     // When:
-    final InputStream inputStream = JsonSerdeUtils.asStandardJson(json);
-    final int read = inputStream.read();
+    JsonSerdeUtils.readJsonSR(json, mapper, Object.class);
 
     // Then:
-    assertThat(read, is(0x01));
+    Mockito.verify(mapper, Mockito.times(1)).readValue(json, 5, 1, Object.class);
   }
 
   @Test()
@@ -259,7 +267,7 @@ public class JsonSerdeUtilsTest {
     expectedException.expectMessage("Got unexpected JSON serialization format that did not start with the magic byte");
 
     // When:
-    JsonSerdeUtils.asStandardJson(json);
+    JsonSerdeUtils.readJsonSR(json, mapper, Object.class);
   }
 
   private static PersistenceSchema persistenceSchema(final Schema schema) {

@@ -102,7 +102,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         return useSchemas
-            ? MAPPER.readValue(JsonSerdeUtils.asStandardJson(data), Object.class)
+            ? JsonSerdeUtils.readJsonSR(data, MAPPER, Object.class)
             : MAPPER.readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);

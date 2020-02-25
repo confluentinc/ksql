@@ -453,7 +453,7 @@
         }
       },
       "title" : "streamSinkV1",
-      "required" : [ "@type", "properties", "source", "formats", "topicName", "timestampColumn" ]
+      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
     },
     "StreamSource" : {
       "type" : "object",
@@ -812,7 +812,7 @@
         }
       },
       "title" : "tableSinkV1",
-      "required" : [ "@type", "properties", "source", "formats", "topicName", "timestampColumn" ]
+      "required" : [ "@type", "properties", "source", "formats", "topicName" ]
     },
     "TableTableJoin" : {
       "type" : "object",

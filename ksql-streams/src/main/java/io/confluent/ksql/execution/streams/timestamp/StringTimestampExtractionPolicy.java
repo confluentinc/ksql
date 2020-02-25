@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import java.util.Objects;
-import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
@@ -38,7 +37,7 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
   }
 
   @Override
-  public TimestampExtractor create(final int timestampColumnIndex) {
+  public KsqlTimestampExtractor create(final int timestampColumnIndex) {
     return new StringTimestampExtractor(format, timestampColumnIndex);
   }
 

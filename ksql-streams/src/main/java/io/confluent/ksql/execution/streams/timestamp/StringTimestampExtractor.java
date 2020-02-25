@@ -15,25 +15,27 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.util.Objects;
 
-public class StringTimestampExtractor extends AbstractColumnTimestampExtractor {
+public class StringTimestampExtractor implements KsqlTimestampExtractor {
   private final StringToTimestampParser timestampParser;
+  private final int timestampColumn;
   private final String format;
 
   StringTimestampExtractor(final String format, final int timestampColumn) {
-    super(timestampColumn);
-
     this.format = Objects.requireNonNull(format, "format can't be null");
+    Preconditions.checkArgument(timestampColumn >= 0, "timestampColumn must be >= 0");
+    this.timestampColumn = timestampColumn;
     this.timestampParser = new StringToTimestampParser(format);
   }
 
   @Override
   public long extract(final GenericRow row) {
-    final String value = (String)row.get(timetampColumnIndex);
+    final String value = (String)row.get(timestampColumn);
 
     try {
       return timestampParser.parse(value);

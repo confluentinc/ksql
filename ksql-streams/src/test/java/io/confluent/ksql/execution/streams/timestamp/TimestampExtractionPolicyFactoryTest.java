@@ -63,7 +63,8 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(FailOnInvalidTimestamp.class));
   }
 
   @Test
@@ -100,7 +101,8 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(FailOnInvalidTimestamp.class));
   }
 
   @Test
@@ -121,7 +123,8 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(UsePartitionTimeOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(UsePartitionTimeOnInvalidTimestamp.class));
   }
 
   @Test

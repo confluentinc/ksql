@@ -19,7 +19,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
-import io.confluent.ksql.execution.streams.timestamp.AbstractColumnTimestampExtractor;
+import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -194,8 +194,8 @@ public class SinkBuilderTest {
   public void shouldTransformTimestampRow() {
     // Given
     final long timestampColumnValue = 10001;
-    final AbstractColumnTimestampExtractor timestampExtractor
-        = mock(AbstractColumnTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor
+        = mock(KsqlTimestampExtractor.class);
     when(timestampExtractor.extract(any())).thenReturn(timestampColumnValue);
 
     // When
@@ -217,8 +217,8 @@ public class SinkBuilderTest {
   public void shouldCallProcessingLoggerOnForwardError() {
     // Given
     final long timestampColumnValue = 10001;
-    final AbstractColumnTimestampExtractor timestampExtractor
-        = mock(AbstractColumnTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor
+        = mock(KsqlTimestampExtractor.class);
     when(timestampExtractor.extract(any())).thenReturn(timestampColumnValue);
     doThrow(KsqlException.class)
         .when(processorContext)
@@ -241,8 +241,8 @@ public class SinkBuilderTest {
   @Test
   public void shouldCallProcessingLoggerOnTimestampExtractorError() {
     // Given
-    final AbstractColumnTimestampExtractor timestampExtractor
-        = mock(AbstractColumnTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor
+        = mock(KsqlTimestampExtractor.class);
     doThrow(KsqlException.class).when(timestampExtractor).extract(row);
 
     // When
@@ -261,8 +261,8 @@ public class SinkBuilderTest {
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullProcessorContext() {
     // Given
-    final AbstractColumnTimestampExtractor timestampExtractor
-        = mock(AbstractColumnTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor
+        = mock(KsqlTimestampExtractor.class);
 
     // When/Then
     getTransformer(timestampExtractor, processingLogger).init(null);
@@ -277,8 +277,8 @@ public class SinkBuilderTest {
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullProcessingLogger() {
     // Given
-    final AbstractColumnTimestampExtractor timestampExtractor
-        = mock(AbstractColumnTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor
+        = mock(KsqlTimestampExtractor.class);
 
     // When/Then
     getTransformer(timestampExtractor, null);
@@ -298,7 +298,7 @@ public class SinkBuilderTest {
   }
 
   private Transformer<String, GenericRow, KeyValue<String, GenericRow>> getTransformer(
-      final AbstractColumnTimestampExtractor timestampExtractor,
+      final KsqlTimestampExtractor timestampExtractor,
       final ProcessingLogger processingLogger
   ) {
     return new SinkBuilder.TransformTimestamp<String>(timestampExtractor, processingLogger).get();

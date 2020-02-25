@@ -79,11 +79,11 @@ Topologies:
       --> Project
       <-- Join-this-join, Join-other-join
     Processor: Project (stores: [])
-      --> KSTREAM-TRANSFORM-0000000012
+      --> ApplyTimestampTransform-S1_JOIN_S2
       <-- Join-merge
-    Processor: KSTREAM-TRANSFORM-0000000012 (stores: [])
-      --> KSTREAM-SINK-0000000013
+    Processor: ApplyTimestampTransform-S1_JOIN_S2 (stores: [])
+      --> KSTREAM-SINK-0000000012
       <-- Project
-    Sink: KSTREAM-SINK-0000000013 (topic: S1_JOIN_S2)
-      <-- KSTREAM-TRANSFORM-0000000012
+    Sink: KSTREAM-SINK-0000000012 (topic: S1_JOIN_S2)
+      <-- ApplyTimestampTransform-S1_JOIN_S2
 

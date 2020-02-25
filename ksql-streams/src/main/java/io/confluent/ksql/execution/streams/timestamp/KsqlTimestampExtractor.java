@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,16 +16,13 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import io.confluent.ksql.GenericRow;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
-public class LongTimestampExtractor implements KsqlTimestampExtractor {
-  private final int timestampColumnindex;
-
-  LongTimestampExtractor(final int timestampColumnindex) {
-    this.timestampColumnindex = timestampColumnindex;
+public interface KsqlTimestampExtractor extends TimestampExtractor {
+  default long extract(final ConsumerRecord<Object, Object> record, final long previousTimestamp) {
+    return extract((GenericRow) record.value());
   }
 
-  @Override
-  public long extract(final GenericRow row) {
-    return (long)row.get(timestampColumnindex);
-  }
+  long extract(GenericRow row);
 }

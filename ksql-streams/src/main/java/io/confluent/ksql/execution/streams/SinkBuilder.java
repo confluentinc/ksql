@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
-import io.confluent.ksql.execution.streams.timestamp.AbstractColumnTimestampExtractor;
+import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -43,6 +43,8 @@ import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.To;
 
 public final class SinkBuilder {
+  private static final String TIMESTAMP_TRANSFORM_NAME = "ApplyTimestampTransform-";
+
   private SinkBuilder() {
   }
 
@@ -78,7 +80,8 @@ public final class SinkBuilder {
     );
 
     final KStream<K, GenericRow> transformed = tsTransformer
-        .map(t -> stream.transform(t, Named.as(StreamsUtil.buildOpName(queryContext))))
+        .map(t -> stream.transform(t, Named.as(TIMESTAMP_TRANSFORM_NAME
+            + StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
 
     transformed.to(topicName, Produced.with(keySerde, valueSerde));
@@ -105,9 +108,8 @@ public final class SinkBuilder {
         .map(c -> sourceSchema.findValueColumn(c).orElseThrow(IllegalStateException::new))
         .map(Column::index)
         .map(timestampPolicy::create)
-        .filter(te -> te instanceof AbstractColumnTimestampExtractor)
         .map(te -> new TransformTimestamp<>(
-            (AbstractColumnTimestampExtractor)te,
+            te,
             queryBuilder
                 .getProcessingLogContext()
                 .getLoggerFactory()
@@ -123,11 +125,11 @@ public final class SinkBuilder {
 
   static class TransformTimestamp<K>
       implements TransformerSupplier<K, GenericRow, KeyValue<K, GenericRow>> {
-    private final AbstractColumnTimestampExtractor timestampExtractor;
+    private final KsqlTimestampExtractor timestampExtractor;
     private final ProcessingLogger processingLogger;
 
     TransformTimestamp(
-        final AbstractColumnTimestampExtractor timestampExtractor,
+        final KsqlTimestampExtractor timestampExtractor,
         final ProcessingLogger processingLogger
     ) {
       this.timestampExtractor = requireNonNull(timestampExtractor, "timestampExtractor");

@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
+import com.google.protobuf.TextFormat.Printer;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
@@ -139,6 +140,20 @@ public final class RecordFormatter {
         : dateFormat.format(new Date(timestamp));
   }
 
+  private static Deserializer<?> newProtobufDeserializer(final SchemaRegistryClient srClient) {
+    final Printer printer = TextFormat.printer();
+    final KafkaProtobufDeserializer<?> inner = new KafkaProtobufDeserializer<>(srClient);
+
+    return (topic, data) -> {
+      final Message msg = inner.deserialize(topic, data);
+      if (msg == null) {
+        return null;
+      }
+
+      return printer.shortDebugString(msg);
+    };
+  }
+
   private static Deserializer<?> newJsonDeserializer() {
     final String replacement = UTF_8.newDecoder().replacement();
 
@@ -251,7 +266,7 @@ public final class RecordFormatter {
     ) {
       try {
         final Object result = deserializer.deserializer.deserialize(topicName, bytes.get());
-        return Optional.of(result == null ? "<null>" : deserializer.format(result));
+        return Optional.of(result == null ? "<null>" : result.toString());
       } catch (final Exception e) {
         return Optional.empty();
       }
@@ -276,7 +291,7 @@ public final class RecordFormatter {
 
       final Deserializer<?> deserializer = mapper.apply(inner);
 
-      return new NamedDeserializer(name, inner.doNotWrap, deserializer, inner::format);
+      return new NamedDeserializer(name, inner.doNotWrap, deserializer);
     }
 
     private static Deserializer<?> newSessionWindowedDeserializer(
@@ -287,7 +302,7 @@ public final class RecordFormatter {
 
       return (topic, data) -> {
         final Windowed<?> windowed = sessionDeser.deserialize(topic, data);
-        return "[" + inner.format(windowed.key())
+        return "[" + windowed.key()
             + "@" + windowed.window().start() + "/" + windowed.window().end() + "]";
       };
     }
@@ -302,17 +317,14 @@ public final class RecordFormatter {
         final Windowed<?> windowed = windowedDeser.deserialize(topic, data);
 
         // Exclude window end time for time-windowed as the end time is not in the serialized data:
-        return "[" + inner.format(windowed.key()) + "@" + windowed.window().start() + "/-]";
+        return "[" + windowed.key() + "@" + windowed.window().start() + "/-]";
       };
     }
   }
 
   enum Format {
-    AVRO(0, KafkaAvroDeserializer::new, Object::toString),
-    PROTOBUF(
-        0,
-        KafkaProtobufDeserializer::new,
-            o -> TextFormat.printer().shortDebugString((Message) o)),
+    AVRO(0, KafkaAvroDeserializer::new),
+    PROTOBUF(0, RecordFormatter::newProtobufDeserializer),
     JSON(RecordFormatter::newJsonDeserializer),
     KAFKA_INT(IntegerDeserializer::new),
     KAFKA_BIGINT(LongDeserializer::new),
@@ -321,25 +333,22 @@ public final class RecordFormatter {
     UNRECOGNISED_BYTES(BytesDeserializer::new);
 
     private final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory;
-    private Function<Object, String> formatObject;
 
     Format(final Supplier<Deserializer<?>> deserializerFactory) {
-      this(1, srClient -> deserializerFactory.get(), Object::toString);
+      this(1, srClient -> deserializerFactory.get());
     }
 
     @SuppressWarnings("unused")
     Format(
         final int usedOnlyToDifferentiateWhichConstructorIsCalled,
-        final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory,
-        final Function<Object, String> formatObject
+        final Function<SchemaRegistryClient, Deserializer<?>> deserializerFactory
     ) {
       this.deserializerFactory = requireNonNull(deserializerFactory, "deserializerFactory");
-      this.formatObject = requireNonNull(formatObject, "formatObject");
     }
 
     NamedDeserializer getDeserializer(final SchemaRegistryClient srClient) {
       final Deserializer<?> deserializer = deserializerFactory.apply(srClient);
-      return new NamedDeserializer(name(), this == UNRECOGNISED_BYTES, deserializer, formatObject);
+      return new NamedDeserializer(name(), this == UNRECOGNISED_BYTES, deserializer);
     }
   }
 
@@ -348,30 +357,20 @@ public final class RecordFormatter {
     final String name;
     final boolean doNotWrap;
     final Deserializer<?> deserializer;
-    private final Function<Object, String> formatObj;
 
     private NamedDeserializer(
         final String name,
         final boolean doNotWrap,
-        final Deserializer<?> deserializer,
-        final Function<Object, String> formatObj
+        final Deserializer<?> deserializer
     ) {
       this.name = requireNonNull(name, "name");
       this.doNotWrap = doNotWrap;
       this.deserializer = requireNonNull(deserializer, "deserializer");
-      this.formatObj = requireNonNull(formatObj, "formatObj");
     }
 
     @Override
     public String toString() {
       return name;
-    }
-
-    public String format(final Object o) {
-      if (o instanceof String) {
-        return (String) o;
-      }
-      return formatObj.apply(o);
     }
   }
 

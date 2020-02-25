@@ -560,7 +560,7 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldNotExcludeAvroOnValidProtobuf() {
+    public void shouldNotExcludeProtobufOnValidProtobuf() {
       // Given:
       givenProtoSchemaRegistered();
 
@@ -586,7 +586,7 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldNotExcludeTimeWindowedProtobufOnValidTimeWindowedAvro() {
+    public void shouldNotExcludeTimeWindowedProtobufOnValidTimeWindowedProtobuf() {
       // Given:
       givenProtoSchemaRegistered();
 
@@ -611,7 +611,7 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldNotExcludeSessionWindowedProtobufOnValidTimeWindowedAvro() {
+    public void shouldNotExcludeSessionWindowedProtobufOnValidTimeWindowedProtobuf() {
       // Given:
       givenProtoSchemaRegistered();
 

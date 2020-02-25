@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.processor.internals.InternalTopologyBuilder;
@@ -41,7 +42,9 @@ final class KafkaStreamsInternalTopicsAccessor {
     try {
       final Object internalTopologyBuilder = INTERNAL_TOPOLOGY_BUILDER_FIELD
           .get(topologyTestDriver);
-      return (Set<String>) INTERNAL_TOPIC_NAMES_FIELD.get(internalTopologyBuilder);
+      // Note - there is no memory barrier here so we could end up reading stale data if
+      // the internal topics are updated
+      return new HashSet<>((Set<String>) INTERNAL_TOPIC_NAMES_FIELD.get(internalTopologyBuilder));
     } catch (final IllegalAccessException e) {
       throw new AssertionError("Failed to get internal topic names", e);
     }

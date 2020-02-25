@@ -3,7 +3,7 @@ layout: page
 title: Check the Health of a ksqlDB Server
 tagline: Make sure that ksqlDB is up and running  
 description: Tips for ensuring that ksqlDB Server is well and healthy   
-keywords: ksqldb, diagnostics, troubleshooting
+keywords: ksqldb, diagnostics, troubleshooting, health, jmx
 ---
 
 Check a ksqlDB Server Running in a Native Deployment
@@ -80,4 +80,29 @@ If you're running ksqlDB server in a Docker container, run the
 the `ksql-server` container is `Up`. Check the health of the process in
 the container by running `docker logs <ksql-server-container-id>`.
 
-Page last revised on: {{ git_revision_date }}
+Check a headless ksqlDB Server running in a Docker Container 
+------------------------------------------------------------
+
+A headless deployment of ksqlDB Server doesn't have a REST server that you can
+query for health. Instead, you can probe the JMX port for liveness. A JMX probe
+is the most reliable way to determine readiness of a headless deployment.
+
+The following command probes the JMX port by using the Netcat utility.
+
+```bash
+nc -z <ksql-node>:1099
+```
+
+An exit code of 0 for an open port tells you that the container and ksqlDB JVM
+are running. This confirmation has a level of confidence that's similar to the
+REST health check.
+
+The general responsiveness on the port should be sufficient as a high-level
+health check. For a list of the available metrics you can collect, see  
+[JMX Metrics](server-config/index.md#jmx-metrics).
+
+!!! note
+    JMX indicates that the JVM is up and responsive. This test is similar to
+    confirming is the ksqlDB process is running, but a successful response
+    doesn't necessarily mean that the ksqlDB service is fully operational.
+    To get better exposure, you can monitor the nodes from {{ site.c3 }} or JMX.

@@ -97,6 +97,6 @@ public class TestTerminal implements KsqlTerminal {
 
   @Override
   public void printError(final String message) {
-    // Ignore
+    writer().println(message);
   }
 }

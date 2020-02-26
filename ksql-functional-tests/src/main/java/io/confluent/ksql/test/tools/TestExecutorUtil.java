@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -50,9 +51,12 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -302,7 +306,7 @@ public final class TestExecutorUtil {
       Iterable<ConfiguredKsqlPlan>, Iterator<ConfiguredKsqlPlan> {
     private final Iterator<ParsedStatement> statements;
     private final KsqlExecutionContext executionContext;
-    private final Map<String, Object> overrides;
+    private final SessionProperties sessionProperties;
     private final KsqlConfig ksqlConfig;
     private final StubKafkaService stubKafkaService;
     private final Optional<DefaultSchemaInjector> schemaInjector;
@@ -318,7 +322,11 @@ public final class TestExecutorUtil {
     ) {
       this.statements = requireNonNull(statements, "statements");
       this.executionContext = requireNonNull(executionContext, "executionContext");
-      this.overrides = requireNonNull(overrides, "overrides");
+      this.sessionProperties = 
+          new SessionProperties(
+              requireNonNull(overrides, "overrides"),
+              new KsqlHostInfo("host", 50),
+              buildURL());
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
       this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
       this.schemaInjector = requireNonNull(schemaInjector, "schemaInjector");
@@ -374,12 +382,12 @@ public final class TestExecutorUtil {
     private Optional<ConfiguredKsqlPlan> planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, overrides, ksqlConfig);
+          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
 
       if (prepared.getStatement() instanceof InsertValues) {
         StubInsertValuesExecutor.of(stubKafkaService, executionContext).execute(
             (ConfiguredStatement<InsertValues>) configured,
-            overrides,
+            sessionProperties,
             executionContext,
             executionContext.getServiceContext()
         );
@@ -461,6 +469,14 @@ public final class TestExecutorUtil {
 
     List<DataSource> getSources() {
       return sources;
+    }
+  }
+
+  private static URL buildURL() {
+    try {
+      return new URL("https://someHost:9876");
+    } catch (final MalformedURLException e) {
+      throw new AssertionError("Failed to test URL");
     }
   }
 }

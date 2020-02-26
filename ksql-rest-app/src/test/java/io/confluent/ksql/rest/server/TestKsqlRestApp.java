@@ -106,6 +106,8 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Optional<BasicCredentials> credentials;
   private ExecutableServer<KsqlRestConfig> restServer;
   private KsqlExecutionContext ksqlEngine;
+  private KsqlRestApplication ksqlRestApplication;
+
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
@@ -237,13 +239,16 @@ public class TestKsqlRestApp extends ExternalResource {
     return serviceContext.get();
   }
 
+  public int getActualVertxPort() {
+    return ksqlRestApplication.getActualVertxPort();
+  }
+
   @Override
   protected void before() {
     if (restServer != null) {
       after();
     }
 
-    final KsqlRestApplication ksqlRestApplication;
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
     try {
       ksqlRestApplication = KsqlRestApplication.buildApplication(

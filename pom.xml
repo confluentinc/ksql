@@ -62,8 +62,8 @@
         <module>ksql-benchmark</module>
         <module>ksql-functional-tests</module>
         <module>ksql-rocksdb-config-setter</module>
-        <module>ksql-api</module>
         <module>ksql-docker</module>
+        <module>ksql-api-reactive-streams-tck</module>
     </modules>
 
     <repositories>
@@ -122,6 +122,9 @@
         <icu.version>65.1</icu.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
+        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
+        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
+        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
     </properties>
 
     <dependencyManagement>
@@ -226,12 +229,6 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-version-metrics-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -239,6 +236,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>package-ksql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-api-reactive-streams-tck</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->
@@ -272,12 +275,6 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
                 <version>${confluent.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.confluent.support</groupId>
-                <artifactId>support-metrics-common</artifactId>
-                <version>${kafka.version}</version>
             </dependency>
 
             <dependency>

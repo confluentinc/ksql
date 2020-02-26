@@ -34,8 +34,6 @@ import org.apache.avro.generic.GenericData.Record;
 
 final class EndToEndEngineTestUtil {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   private EndToEndEngineTestUtil(){}
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {

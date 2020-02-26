@@ -81,6 +81,23 @@ public class EngineProcessingLogMessageFactoryTest {
   }
 
   @Test
+  public void shouldBuildRecordProcessingErrorCorrectlyIfNoException() {
+    // When:
+    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+        errorMsg, null
+    ).apply(config);
+
+    // Then:
+    final Struct msg = (Struct) msgAndSchema.value();
+    final Struct recordProcessingError =
+        msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
+    assertThat(
+        recordProcessingError.get(
+            ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE),
+        equalTo(Collections.emptyList()));
+  }
+
+  @Test
   public void shouldBuildRecordProcessingErrorWithNullRowIfIncludeRowsFalse() {
     // Given:
     final ProcessingLogConfig config = new ProcessingLogConfig(

@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -104,11 +105,11 @@ public enum CustomExecutors {
 
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<?> statement,
-      final Map<String, Object> mutableScopedProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionCtx,
       final ServiceContext serviceCtx
   ) {
-    return executor.execute(statement, mutableScopedProperties, executionCtx, serviceCtx);
+    return executor.execute(statement, sessionProperties, executionCtx, serviceCtx);
   }
 
   private static StatementExecutor insertValuesExecutor() {

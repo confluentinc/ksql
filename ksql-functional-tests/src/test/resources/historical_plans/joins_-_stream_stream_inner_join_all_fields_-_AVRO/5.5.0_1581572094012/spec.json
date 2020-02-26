@@ -1,193 +1,6 @@
 {
   "version" : "5.5.0",
   "timestamp" : 1581572094012,
-  "plan" : [ {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='AVRO');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "TEST",
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
-      "keyField" : "ID",
-      "timestampColumn" : null,
-      "topicName" : "left_topic",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "AVRO",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='AVRO');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "TEST_STREAM",
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
-      "keyField" : "ID",
-      "timestampColumn" : null,
-      "topicName" : "right_topic",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "AVRO",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INNER_JOIN AS SELECT *\nFROM TEST TT\nINNER JOIN TEST_STREAM T WITHIN 11 SECONDS ON ((T.ID = TT.ID))\nEMIT CHANGES",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "INNER_JOIN",
-      "schema" : "`ROWKEY` BIGINT KEY, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT, `TT_ID` BIGINT, `TT_NAME` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING",
-      "keyField" : "TT_ID",
-      "timestampColumn" : null,
-      "topicName" : "INNER_JOIN",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "AVRO",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : {
-      "sources" : [ "TEST", "TEST_STREAM" ],
-      "sink" : "INNER_JOIN",
-      "physicalPlan" : {
-        "@type" : "streamSinkV1",
-        "properties" : {
-          "queryContext" : "INNER_JOIN"
-        },
-        "source" : {
-          "@type" : "streamSelectV1",
-          "properties" : {
-            "queryContext" : "Project"
-          },
-          "source" : {
-            "@type" : "streamStreamJoinV1",
-            "properties" : {
-              "queryContext" : "Join"
-            },
-            "joinType" : "INNER",
-            "leftInternalFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
-              },
-              "valueFormat" : {
-                "format" : "AVRO",
-                "properties" : { }
-              },
-              "options" : [ ]
-            },
-            "rightInternalFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
-              },
-              "valueFormat" : {
-                "format" : "AVRO",
-                "properties" : { }
-              },
-              "options" : [ ]
-            },
-            "leftSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasLeft"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Left/Source"
-                },
-                "topicName" : "left_topic",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA",
-                    "properties" : { }
-                  },
-                  "valueFormat" : {
-                    "format" : "AVRO",
-                    "properties" : { }
-                  },
-                  "options" : [ ]
-                },
-                "timestampColumn" : null,
-                "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING"
-              },
-              "selectExpressions" : [ "ID AS TT_ID", "NAME AS TT_NAME", "ROWTIME AS TT_ROWTIME", "ROWKEY AS TT_ROWKEY" ]
-            },
-            "rightSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasRight"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Right/Source"
-                },
-                "topicName" : "right_topic",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA",
-                    "properties" : { }
-                  },
-                  "valueFormat" : {
-                    "format" : "AVRO",
-                    "properties" : { }
-                  },
-                  "options" : [ ]
-                },
-                "timestampColumn" : null,
-                "sourceSchema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING"
-              },
-              "selectExpressions" : [ "ID AS T_ID", "F1 AS T_F1", "ROWTIME AS T_ROWTIME", "ROWKEY AS T_ROWKEY" ]
-            },
-            "beforeMillis" : 11.000000000,
-            "afterMillis" : 11.000000000
-          },
-          "selectExpressions" : [ "TT_ROWTIME AS TT_ROWTIME", "TT_ROWKEY AS TT_ROWKEY", "TT_ID AS TT_ID", "TT_NAME AS TT_NAME", "T_ROWTIME AS T_ROWTIME", "T_ROWKEY AS T_ROWKEY", "T_ID AS T_ID", "T_F1 AS T_F1" ]
-        },
-        "formats" : {
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
-          },
-          "valueFormat" : {
-            "format" : "AVRO",
-            "properties" : { }
-          },
-          "options" : [ ]
-        },
-        "topicName" : "INNER_JOIN"
-      },
-      "queryId" : "CSAS_INNER_JOIN_0"
-    }
-  } ],
   "schemas" : {
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR> NOT NULL",
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR> NOT NULL",
@@ -195,47 +8,232 @@
     "CSAS_INNER_JOIN_0.Join.Right" : "STRUCT<T_ID BIGINT, T_F1 VARCHAR, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
     "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<TT_ROWTIME BIGINT, TT_ROWKEY BIGINT, TT_ID BIGINT, TT_NAME VARCHAR, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_F1 VARCHAR> NOT NULL"
   },
-  "configs" : {
-    "ksql.extension.dir" : "ext",
-    "ksql.streams.cache.max.bytes.buffering" : "0",
-    "ksql.security.extension.class" : null,
-    "ksql.transient.prefix" : "transient_",
-    "ksql.persistence.wrap.single.values" : "true",
-    "ksql.authorization.cache.expiry.time.secs" : "30",
-    "ksql.schema.registry.url" : "",
-    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
-    "ksql.output.topic.name.prefix" : "",
-    "ksql.streams.auto.offset.reset" : "earliest",
-    "ksql.query.pull.enable.standby.reads" : "false",
-    "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
-    "ksql.internal.topic.min.insync.replicas" : "1",
-    "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent3500161714550980076",
-    "ksql.internal.topic.replicas" : "1",
-    "ksql.insert.into.values.enabled" : "true",
-    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
-    "ksql.access.validator.enable" : "auto",
-    "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.streams.commit.interval.ms" : "2000",
-    "ksql.metric.reporters" : "",
-    "ksql.streams.auto.commit.interval.ms" : "0",
-    "ksql.metrics.extension" : null,
-    "ksql.streams.topology.optimization" : "all",
-    "ksql.execution.plan.enable" : "false",
-    "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
-    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.streams.num.stream.threads" : "4",
-    "ksql.authorization.cache.max.entries" : "10000",
-    "ksql.metrics.tags.custom" : "",
-    "ksql.pull.queries.enable" : "true",
-    "ksql.udfs.enabled" : "true",
-    "ksql.udf.enable.security.manager" : "true",
-    "ksql.connect.worker.config" : "",
-    "ksql.sink.window.change.log.additional.retention" : "1000000",
-    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.udf.collect.metrics" : "false",
-    "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
-  }
+  "inputs" : [ {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "zero"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "blah"
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "left_topic",
+    "key" : 10,
+    "value" : {
+      "ID" : 10,
+      "NAME" : "100"
+    },
+    "timestamp" : 11000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "foo"
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "right_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "F1" : "a"
+    },
+    "timestamp" : 15000
+  }, {
+    "topic" : "right_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "F1" : "newblah"
+    },
+    "timestamp" : 16000
+  }, {
+    "topic" : "left_topic",
+    "key" : 90,
+    "value" : {
+      "ID" : 90,
+      "NAME" : "ninety"
+    },
+    "timestamp" : 17000
+  }, {
+    "topic" : "left_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "NAME" : "bar"
+    },
+    "timestamp" : 30000
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 0,
+      "TT_ROWKEY" : 0,
+      "TT_ID" : 0,
+      "TT_NAME" : "zero"
+    },
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 11000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 10000,
+      "T_ROWKEY" : 0,
+      "T_ID" : 0,
+      "T_F1" : "blah"
+    },
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 10000,
+      "end" : 21000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+    "key" : 10,
+    "value" : {
+      "TT_ROWTIME" : 11000,
+      "TT_ROWKEY" : 10,
+      "TT_ID" : 10,
+      "TT_NAME" : "100"
+    },
+    "timestamp" : 11000,
+    "window" : {
+      "start" : 11000,
+      "end" : 22000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 13000,
+      "TT_ROWKEY" : 0,
+      "TT_ID" : 0,
+      "TT_NAME" : "foo"
+    },
+    "timestamp" : 13000,
+    "window" : {
+      "start" : 13000,
+      "end" : 24000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+    "key" : 0,
+    "value" : {
+      "T_ROWTIME" : 15000,
+      "T_ROWKEY" : 0,
+      "T_ID" : 0,
+      "T_F1" : "a"
+    },
+    "timestamp" : 15000,
+    "window" : {
+      "start" : 15000,
+      "end" : 26000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+    "key" : 100,
+    "value" : {
+      "T_ROWTIME" : 16000,
+      "T_ROWKEY" : 100,
+      "T_ID" : 100,
+      "T_F1" : "newblah"
+    },
+    "timestamp" : 16000,
+    "window" : {
+      "start" : 16000,
+      "end" : 27000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+    "key" : 90,
+    "value" : {
+      "TT_ROWTIME" : 17000,
+      "TT_ROWKEY" : 90,
+      "TT_ID" : 90,
+      "TT_NAME" : "ninety"
+    },
+    "timestamp" : 17000,
+    "window" : {
+      "start" : 17000,
+      "end" : 28000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+    "key" : 0,
+    "value" : {
+      "TT_ROWTIME" : 30000,
+      "TT_ROWKEY" : 0,
+      "TT_ID" : 0,
+      "TT_NAME" : "bar"
+    },
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 30000,
+      "end" : 41000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "blah",
+      "T_ROWKEY" : 0,
+      "T_ROWTIME" : 10000,
+      "TT_ID" : 0,
+      "TT_NAME" : "zero",
+      "TT_ROWKEY" : 0,
+      "TT_ROWTIME" : 0
+    },
+    "timestamp" : 10000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "blah",
+      "T_ROWKEY" : 0,
+      "T_ROWTIME" : 10000,
+      "TT_ID" : 0,
+      "TT_NAME" : "foo",
+      "TT_ROWKEY" : 0,
+      "TT_ROWTIME" : 13000
+    },
+    "timestamp" : 13000
+  }, {
+    "topic" : "INNER_JOIN",
+    "key" : 0,
+    "value" : {
+      "T_ID" : 0,
+      "T_F1" : "a",
+      "T_ROWKEY" : 0,
+      "T_ROWTIME" : 15000,
+      "TT_ID" : 0,
+      "TT_NAME" : "foo",
+      "TT_ROWKEY" : 0,
+      "TT_ROWTIME" : 13000
+    },
+    "timestamp" : 15000
+  } ]
 }

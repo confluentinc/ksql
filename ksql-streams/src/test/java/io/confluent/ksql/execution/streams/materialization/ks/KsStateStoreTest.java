@@ -37,7 +37,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.StoreQueryParams;
+import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
@@ -176,7 +176,7 @@ public class KsStateStoreTest {
     store.store(storeType);
 
     // Then:
-    verify(kafkaStreams).store(StoreQueryParams.fromNameAndType(STORE_NAME, storeType));
+    verify(kafkaStreams).store(StoreQueryParameters.fromNameAndType(STORE_NAME, storeType));
   }
 
   @Test

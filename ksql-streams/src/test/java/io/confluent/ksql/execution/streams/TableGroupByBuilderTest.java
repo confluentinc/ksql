@@ -25,6 +25,9 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -118,6 +121,10 @@ public class TableGroupByBuilderTest {
   private ArgumentCaptor<TableKeyValueMapper<Struct>> mapperCaptor;
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  @Mock
+  private ProcessingLogContext processingLogContext;
+  @Mock
+  private ProcessingLoggerFactory processingLoggerFactory;
 
   private PlanBuilder planBuilder;
   private TableGroupBy<Struct> groupBy;
@@ -133,6 +140,7 @@ public class TableGroupByBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceTable.filter(any())).thenReturn(filteredTable);
     when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
@@ -140,6 +148,8 @@ public class TableGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.build(any())).thenReturn(
         KTableHolder.unmaterialized(sourceTable, SCHEMA, mock(KeySerdeFactory.class)));
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,

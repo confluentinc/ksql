@@ -176,7 +176,8 @@ public class KsqlRequestTest {
         ImmutableMap.of(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
-        null);
+        null
+    );
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
@@ -194,7 +195,8 @@ public class KsqlRequestTest {
         Collections.singletonMap(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
         ),
-        null);
+        null
+    );
 
     // When:
     final Map<String, Object> props = request.getStreamsProperties();

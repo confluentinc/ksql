@@ -34,6 +34,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -76,11 +77,14 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class InsertValuesExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final Logger LOG = LoggerFactory.getLogger(InsertValuesExecutor.class);
   private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
 
   private final LongSupplier clock;
@@ -141,7 +145,7 @@ public class InsertValuesExecutor {
 
   public void execute(
       final ConfiguredStatement<InsertValues> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -453,6 +457,7 @@ public class InsertValuesExecutor {
         }
       }
 
+      LOG.error("Could not serialize row.", e);
       throw new KsqlException("Could not serialize row: " + row, e);
     }
   }

@@ -34,7 +34,7 @@ named `pageviews`. To see these examples in action, create the
 The following example creates a stream that has three columns from the
 `pageviews` topic: `viewtime`, `userid`, and `pageid`.
 
-ksqlDB can't infer the topic's data format, so you must provide the
+ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more

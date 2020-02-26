@@ -24,11 +24,11 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -65,7 +65,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -84,7 +84,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -105,7 +105,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -125,7 +125,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -144,7 +144,7 @@ public class ExplainExecutorTest {
     // When:
     CustomExecutors.EXPLAIN.execute(
         engine.configure("Explain SHOW TOPICS;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     );

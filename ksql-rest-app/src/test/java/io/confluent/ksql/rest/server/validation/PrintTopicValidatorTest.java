@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -74,7 +75,7 @@ public class PrintTopicValidatorTest {
     // When:
     CustomValidators.PRINT_TOPIC.validate(
         query,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         ksqlEngine,
         serviceContext
     );

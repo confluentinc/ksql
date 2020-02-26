@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
@@ -32,7 +33,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -45,7 +45,7 @@ public final class ExplainExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<Explain> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

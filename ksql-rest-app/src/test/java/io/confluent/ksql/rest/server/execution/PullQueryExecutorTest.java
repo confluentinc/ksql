@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
@@ -111,7 +112,7 @@ public class PullQueryExecutorTest {
       // When:
       CustomValidators.QUERY_ENDPOINT.validate(
           query,
-          ImmutableMap.of(),
+          mock(SessionProperties.class),
           engine.getEngine(),
           engine.getServiceContext()
       );

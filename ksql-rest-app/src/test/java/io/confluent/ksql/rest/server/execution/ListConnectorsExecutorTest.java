@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -112,7 +114,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -142,7 +144,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -171,7 +173,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -197,7 +199,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());

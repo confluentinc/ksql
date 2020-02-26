@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
@@ -112,9 +113,9 @@ public enum CustomValidators {
 
   public void validate(
       final ConfiguredStatement<?> statement,
-      final Map<String, Object> mutableScopedProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, mutableScopedProperties, executionContext, serviceContext);
+    validator.validate(statement, sessionProperties, executionContext, serviceContext);
   }
 }

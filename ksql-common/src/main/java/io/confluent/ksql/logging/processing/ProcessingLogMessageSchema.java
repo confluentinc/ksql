@@ -27,12 +27,14 @@ public final class ProcessingLogMessageSchema {
   public static final String DESERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String DESERIALIZATION_ERROR_FIELD_RECORD_B64 = "recordB64";
   public static final String DESERIALIZATION_ERROR_FIELD_CAUSE = "cause";
+  public static final String DESERIALIZATION_ERROR_FIELD_TOPIC = "topic";
 
   private static final Schema DESERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "DeserializationError")
       .field(DESERIALIZATION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_RECORD_B64, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)
+      .field(DESERIALIZATION_ERROR_FIELD_TOPIC, Schema.OPTIONAL_STRING_SCHEMA)
       .optional()
       .build();
 

@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -43,7 +44,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -82,7 +82,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> streams(
       final ConfiguredStatement<ListStreams> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -107,7 +107,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> tables(
       final ConfiguredStatement<ListTables> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -131,7 +131,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> columns(
       final ConfiguredStatement<ShowColumns> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

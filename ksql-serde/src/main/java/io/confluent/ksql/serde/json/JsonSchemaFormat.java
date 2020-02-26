@@ -23,13 +23,13 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import org.apache.kafka.connect.data.Schema;
 
-public class JsonFormat implements Format {
+public class JsonSchemaFormat implements Format {
 
-  public static final String NAME = JsonSchema.TYPE;
+  public static final String NAME = "JSON_SR";
 
-  private JsonSchemaData jsonData;
+  private final JsonSchemaData jsonData;
 
-  public JsonFormat() {
+  public JsonSchemaFormat() {
     this.jsonData = new JsonSchemaData();
   }
 
@@ -55,6 +55,6 @@ public class JsonFormat implements Format {
 
   @Override
   public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlJsonSerdeFactory(false);
+    return new KsqlJsonSerdeFactory(true);
   }
 }

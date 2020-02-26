@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.auth.DummyAuthProvider;
+import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -167,7 +167,7 @@ public class Server {
   }
 
   private AuthHandler basicAuthHandler() {
-    final AuthProvider authProvider = new DummyAuthProvider(vertx, config);
+    final AuthProvider authProvider = new JaasAuthProvider(this, config);
     final String realm = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
     return BasicAuthHandler.create(authProvider, realm);
   }

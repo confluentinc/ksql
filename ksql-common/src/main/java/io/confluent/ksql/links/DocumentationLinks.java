@@ -22,13 +22,16 @@ public final class DocumentationLinks {
   /*
   KSQL
    */
-  private static final String KSQL_DOCS_ROOT_URL = CONFLUENT_DOCS_ROOT_URL + "ksql/docs/";
+  private static final String KSQL_DOCS_ROOT_URL = "https://docs.ksqldb.io/en/latest/";
 
   private static final String SECURITY_DOCS_URL = KSQL_DOCS_ROOT_URL
-      + "installation/server-config/security.html";
+      + "operate-and-deploy/installation/server-config/security/";
 
   public static final String SECURITY_CLI_SSL_DOC_URL = SECURITY_DOCS_URL
-      + "#configuring-cli-for-https";
+      + "#configure-the-cli-for-https";
+
+  public static final String SECURITY_REQUIRED_ACLS_DOC_URL = SECURITY_DOCS_URL
+      + "#required-acls";
 
   /*
   Schema Registry

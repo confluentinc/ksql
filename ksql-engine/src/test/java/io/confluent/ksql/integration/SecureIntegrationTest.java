@@ -54,6 +54,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -84,6 +85,7 @@ import org.junit.rules.RuleChain;
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
+@SuppressWarnings("SameParameterValue")
 @Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 
@@ -153,7 +155,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryAgainstKafkaClusterOverSsl() throws Exception {
+  public void shouldRunQueryAgainstKafkaClusterOverSsl() {
     // Given:
     givenAllowAcl(ALL_USERS,
                   resource(CLUSTER, "kafka-cluster"),
@@ -183,7 +185,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueryAgainstKafkaClusterOverSaslSsl() throws Exception {
+  public void shouldRunQueryAgainstKafkaClusterOverSaslSsl() {
     // Given:
     final Map<String, Object> configs = getBaseKsqlConfig();
 
@@ -199,10 +201,10 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  public void shouldRunQueriesRequiringChangeLogsAndRepartitionTopicsWithMinimalPrefixedAcls()
-      throws Exception {
-
+  public void shouldWorkWithMinimalPrefixedAcls() {
+    // Given:
     final String serviceId = "my-service-id_";  // Defaults to "default_"
+    final String prefix = "_confluent-ksql-" + serviceId;
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
@@ -220,23 +222,24 @@ public class SecureIntegrationTest {
                   ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
 
     givenAllowAcl(NORMAL_USER,
-                  prefixedResource(TOPIC, "_confluent-ksql-my-service-id_"),
+                  prefixedResource(TOPIC, prefix),
                   ops(ALL));
 
     givenAllowAcl(NORMAL_USER,
-                  prefixedResource(GROUP, "_confluent-ksql-my-service-id_"),
+                  prefixedResource(GROUP, prefix),
                   ops(ALL));
 
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
     assertCanRunRepartitioningKsqlQuery();
+    assertCanAccessClusterConfig(prefix);
   }
 
   // Requires correctly configured schema-registry running
   //@Test
   @SuppressWarnings("unused")
-  public void shouldRunQueryAgainstSecureSchemaRegistry() throws Exception {
+  public void shouldRunQueryAgainstSecureSchemaRegistry() {
     // Given:
     final HostnameVerifier existing = HttpsURLConnection.getDefaultHostnameVerifier();
     HttpsURLConnection.setDefaultHostnameVerifier(
@@ -278,15 +281,22 @@ public class SecureIntegrationTest {
     execInitCreateStreamQueries();
   }
 
-  private void assertCanRunSimpleKsqlQuery() throws Exception {
+  private void assertCanRunSimpleKsqlQuery() {
     assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT * FROM %s;",
-                          outputTopic, INPUT_STREAM);
+        outputTopic, INPUT_STREAM);
   }
 
-  private void assertCanRunRepartitioningKsqlQuery() throws Exception {
+  private void assertCanRunRepartitioningKsqlQuery() {
     assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
-                          + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
-                          outputTopic, INPUT_STREAM);
+            + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
+        outputTopic, INPUT_STREAM);
+  }
+
+  private void assertCanAccessClusterConfig(final String resourcePrefix) {
+    // Creating topic with default replicas causes topic client to query cluster config to get
+    // default replica count:
+    serviceContext.getTopicClient()
+        .createTopic(resourcePrefix + "-foo", 1, TopicProperties.DEFAULT_REPLICAS);
   }
 
   private void assertCanRunKsqlQuery(

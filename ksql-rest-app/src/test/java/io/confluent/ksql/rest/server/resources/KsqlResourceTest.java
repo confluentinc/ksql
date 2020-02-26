@@ -1888,7 +1888,7 @@ public class KsqlResourceTest {
     expectedException.expect(exceptionStatusCode(is(Code.INTERNAL_SERVER_ERROR)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
-            + "' into the command topic: blah\nCaused by: blah"))));
+            + "' into the command topic.\nCaused by: blah"))));
 
     // When:
     makeRequest(statement);

@@ -236,7 +236,7 @@ public class DistributingExecutorTest {
     // Expect:
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(
-        "Could not write the statement 'statement' into the command topic: fail");
+        "Could not write the statement 'statement' into the command topic.");
     expectedException.expectCause(is(cause));
 
     // When:

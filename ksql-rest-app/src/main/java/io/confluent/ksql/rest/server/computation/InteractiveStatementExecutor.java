@@ -359,10 +359,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       return;
     }
 
-    ksqlEngine.getPersistentQuery(queryId.get())
-        .orElseThrow(() ->
-            new KsqlException(String.format("No running query with id %s was found", queryId)))
-        .close();
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    query.ifPresent(PersistentQueryMetadata::close);
   }
 
 }

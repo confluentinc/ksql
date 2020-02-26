@@ -94,7 +94,7 @@ public class CreateSourceFactoryTest {
   private static final SourceName SOME_NAME = SourceName.of("bob");
 
   private static final TableElement EXPLICIT_ROWKEY =
-      tableElement(Namespace.KEY, ROWKEY_NAME.name(), new Type(SqlTypes.INTEGER));
+      tableElement(Namespace.KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER));
 
   private static final TableElement ELEMENT1 =
       tableElement(VALUE, "bob", new Type(SqlTypes.STRING));
@@ -469,7 +469,7 @@ public class CreateSourceFactoryTest {
     // Given:
     givenProperty(
         CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
-        new StringLiteral(quote(ELEMENT2.getName().name()))
+        new StringLiteral(quote(ELEMENT2.getName().text()))
     );
     final CreateStream statement =
         new CreateStream(SOME_NAME, TABLE_ELEMENTS, true, withProperties);
@@ -494,7 +494,7 @@ public class CreateSourceFactoryTest {
     // Given:
     givenProperty(
         CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
-        new StringLiteral(quote(ELEMENT2.getName().name()))
+        new StringLiteral(quote(ELEMENT2.getName().text()))
     );
     final CreateTable statement =
         new CreateTable(SOME_NAME, TABLE_ELEMENTS, true, withProperties);
@@ -519,7 +519,7 @@ public class CreateSourceFactoryTest {
     // Given:
     givenProperties(ImmutableMap.of(
         CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
-        new StringLiteral(quote(ELEMENT1.getName().name())),
+        new StringLiteral(quote(ELEMENT1.getName().text())),
         CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY,
         new StringLiteral("%s")
     ));
@@ -735,7 +735,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, ROWTIME_NAME.name(), new Type(BIGINT))),
+        TableElements.of(tableElement(VALUE, ROWTIME_NAME.text(), new Type(BIGINT))),
         true,
         withProperties
     );
@@ -753,7 +753,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME.name(), new Type(BIGINT))),
+        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME.text(), new Type(BIGINT))),
         true,
         withProperties
     );
@@ -771,7 +771,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, WINDOWSTART_NAME.name(), new Type(BIGINT))),
+        TableElements.of(tableElement(VALUE, WINDOWSTART_NAME.text(), new Type(BIGINT))),
         true,
         withProperties
     );
@@ -789,7 +789,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, WINDOWEND_NAME.name(), new Type(BIGINT))),
+        TableElements.of(tableElement(VALUE, WINDOWEND_NAME.text(), new Type(BIGINT))),
         true,
         withProperties
     );
@@ -807,7 +807,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, ROWKEY_NAME.name(), new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement(VALUE, ROWKEY_NAME.text(), new Type(SqlTypes.STRING))),
         true,
         withProperties
     );
@@ -826,7 +826,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME.name(), new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement(KEY, ROWKEY_NAME.text(), new Type(SqlTypes.STRING))),
         true,
         withProperties
     );
@@ -842,7 +842,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME.name(), new Type(SqlTypes.INTEGER))),
+        TableElements.of(tableElement(KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER))),
         true,
         withProperties
     );

@@ -64,11 +64,11 @@ public final class UdfUtil {
       final FunctionName functionName, final Object[] args, final Class<?>... argTypes
   ) {
     if (args == null) {
-      throw new KsqlFunctionException("Null argument list for " + functionName.name() + ".");
+      throw new KsqlFunctionException("Null argument list for " + functionName.text() + ".");
     }
 
     if (args.length != argTypes.length) {
-      throw new KsqlFunctionException("Incorrect arguments for " + functionName.name() + ".");
+      throw new KsqlFunctionException("Incorrect arguments for " + functionName.text() + ".");
     }
 
     for (int i = 0; i < argTypes.length; i++) {
@@ -81,7 +81,7 @@ public final class UdfUtil {
             String.format(
                 "Incorrect arguments type for %s. "
                     + "Expected %s for arg number %d but found %s.",
-                functionName.name(),
+                functionName.text(),
                 argTypes[i].getCanonicalName(),
                 i,
                 args[i].getClass().getCanonicalName()

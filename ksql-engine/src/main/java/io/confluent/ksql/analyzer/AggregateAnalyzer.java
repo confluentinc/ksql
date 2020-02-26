@@ -74,7 +74,7 @@ class AggregateAnalyzer {
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
       if (aggFuncName.isPresent()) {
         throw new KsqlException("GROUP BY does not support aggregate functions: "
-            + aggFuncName.get().name() + " is an aggregate function.");
+            + aggFuncName.get().text() + " is an aggregate function.");
       }
       throwOnWindowBoundColumnIfWindowedAggregate(node);
     });
@@ -143,7 +143,7 @@ class AggregateAnalyzer {
       if (aggregateFunc) {
         if (aggFunctionName.isPresent()) {
           throw new KsqlException("Aggregate functions can not be nested: "
-              + aggFunctionName.get().name() + "(" + functionName.name() + "())");
+              + aggFunctionName.get().text() + "(" + functionName.text() + "())");
         }
 
         visitedAggFunction = true;

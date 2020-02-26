@@ -231,7 +231,7 @@ public final class ExpressionFormatter {
       final StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), context);
-      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().name())) {
+      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().text())) {
         arguments = "*";
       }
 

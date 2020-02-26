@@ -142,7 +142,7 @@ public class TopicDeleteInjector implements Injector {
         .filter(s -> s.getKafkaTopicName().equals(topicName))
         .map(DataSource::getName)
         .filter(name -> !sourceName.equals(name))
-        .map(SourceName::name)
+        .map(SourceName::text)
         .sorted()
         .collect(Collectors.joining(", "));
     if (!using.isEmpty()) {

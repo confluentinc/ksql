@@ -49,7 +49,7 @@ public final class StructKeyUtil {
 
     return new KeyBuilder(SchemaBuilder
         .struct()
-        .field(SchemaUtil.ROWKEY_NAME.name(), connectSchema)
+        .field(SchemaUtil.ROWKEY_NAME.text(), connectSchema)
         .build()
     );
   }
@@ -61,7 +61,7 @@ public final class StructKeyUtil {
 
     private KeyBuilder(final Schema keySchema) {
       this.keySchema = Objects.requireNonNull(keySchema, "keySchema");
-      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.name());
+      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.text());
     }
 
     public Struct build(final Object rowKey) {

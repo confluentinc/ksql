@@ -223,7 +223,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getTableFunctions(), hasSize(1));
-    assertThat(analysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
+    assertThat(analysis.getTableFunctions().get(0).getName().text(), equalTo("EXPLODE"));
   }
   
   @Test

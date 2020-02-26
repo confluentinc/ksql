@@ -65,7 +65,7 @@ public class PostConditions {
         .values();
 
     final String text = values.stream()
-        .map(s -> s.getDataSourceType() + ":" + s.getName().name()
+        .map(s -> s.getDataSourceType() + ":" + s.getName().text()
             + ", key:" + s.getKeyField().ref()
             + ", value:" + s.getSchema()
             + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()

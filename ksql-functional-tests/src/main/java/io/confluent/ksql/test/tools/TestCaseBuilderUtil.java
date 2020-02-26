@@ -150,7 +150,7 @@ public final class TestCaseBuilderUtil {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
-            e.getName().name(),
+            e.getName().text(),
             SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
 

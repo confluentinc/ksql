@@ -125,7 +125,7 @@ public class SchemaKGroupedTableTest {
         mock(ExecutionStep.class),
         IN_SCHEMA,
         keyFormat,
-        KeyField.of(IN_SCHEMA.value().get(0).ref()),
+        KeyField.of(IN_SCHEMA.value().get(0).name()),
         ksqlConfig,
         functionRegistry
     );

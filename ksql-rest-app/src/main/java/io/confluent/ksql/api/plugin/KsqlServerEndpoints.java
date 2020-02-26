@@ -235,10 +235,10 @@ public class KsqlServerEndpoints implements Endpoints {
     final List<Column> val = logicalSchema.value();
     final List<String> colNames = new ArrayList<>(key.size() + val.size());
     for (Column col : key) {
-      colNames.add(col.name().name());
+      colNames.add(col.name().text());
     }
     for (Column col : val) {
-      colNames.add(col.name().name());
+      colNames.add(col.name().text());
     }
     return colNames;
   }

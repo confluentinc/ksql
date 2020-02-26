@@ -34,7 +34,7 @@ public final class CodeGenUtil {
   }
 
   public static String functionName(final FunctionName fun, final int index) {
-    return fun.name() + "_" + index;
+    return fun.text() + "_" + index;
   }
 
 }

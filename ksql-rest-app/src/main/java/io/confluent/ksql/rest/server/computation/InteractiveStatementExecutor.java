@@ -273,7 +273,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
-      final String name = ((CreateAsSelect)statement.getStatement()).getName().name();
+      final String name = ((CreateAsSelect)statement.getStatement()).getName().text();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();

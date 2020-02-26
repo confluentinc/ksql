@@ -308,7 +308,7 @@ final class EngineExecutor {
     if (existing.getDataSourceType() != outputNode.getNodeOutputType()) {
       throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
               + " (%s) type is %s but select query result is %s.",
-          name.name(),
+          name.text(),
           existing.getDataSourceType(),
           outputNode.getNodeOutputType())
       );
@@ -355,9 +355,9 @@ final class EngineExecutor {
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyCol.map(c -> c.name().name()).orElse(null),
+        sinkKeyCol.map(c -> c.name().text()).orElse(null),
         sinkKeyCol.map(Column::type).orElse(null),
-        resultKeyCol.map(c -> c.name().name()).orElse(null),
+        resultKeyCol.map(c -> c.name().text()).orElse(null),
         resultKeyCol.map(Column::type).orElse(null)));
   }
 

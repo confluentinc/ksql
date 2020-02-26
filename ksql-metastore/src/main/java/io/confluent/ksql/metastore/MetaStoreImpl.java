@@ -88,7 +88,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
       throw new KsqlException(String.format(
           "Cannot add %s '%s': A %s with the same name already exists",
-          newType, name.name(), existingType));
+          newType, name.text(), existingType));
     }
   }
 
@@ -98,7 +98,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
       dataSources.compute(sourceName, (ignored, source) -> {
         if (source == null) {
           throw new KsqlException(String.format("No data source with name %s exists.",
-              sourceName.name()));
+              sourceName.text()));
         }
 
         final String sourceForQueriesMessage = source.referentialIntegrity
@@ -261,7 +261,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
         .map(sourceName -> {
           final SourceInfo sourceInfo = dataSources.get(sourceName);
           if (sourceInfo == null) {
-            throw new KsqlException("Unknown source: " + sourceName.name());
+            throw new KsqlException("Unknown source: " + sourceName.text());
           }
 
           return sourceInfo;

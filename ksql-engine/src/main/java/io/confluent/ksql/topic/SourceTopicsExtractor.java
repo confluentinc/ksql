@@ -60,7 +60,7 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
     final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
     final DataSource source = metaStore.getSource(structuredDataSourceName);
     if (source == null) {
-      throw new KsqlException(structuredDataSourceName.name() + " does not exist.");
+      throw new KsqlException(structuredDataSourceName.text() + " does not exist.");
     }
 
     // This method is called first with the primary kafka topic (or the node.getFrom() node)

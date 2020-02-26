@@ -38,7 +38,7 @@ public class KeyFieldTest {
       .valueColumn(ColumnName.of("field1"), SqlTypes.BIGINT)
       .build();
 
-  private static final ColumnName VALID_COL_REF = SCHEMA.value().get(0).ref();
+  private static final ColumnName VALID_COL_REF = SCHEMA.value().get(0).name();
   private static final SqlType VALID_COL_TYPE = SCHEMA.value().get(0).type();
 
   @Rule
@@ -128,7 +128,7 @@ public class KeyFieldTest {
   @Test
   public void shouldThrowIfKeyColumnTypeDoesNotMatchWithKeyFieldType() {
     // Given:
-    final KeyField keyField = KeyField.of(SCHEMA.value().get(1).ref());
+    final KeyField keyField = KeyField.of(SCHEMA.value().get(1).name());
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);

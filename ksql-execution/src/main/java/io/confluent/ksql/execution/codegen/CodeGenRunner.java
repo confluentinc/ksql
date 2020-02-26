@@ -227,7 +227,7 @@ public class CodeGenRunner {
                   + ", schema: " + schema.value()));
 
       spec.addParameter(
-          column.ref(),
+          column.name(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );

@@ -815,7 +815,7 @@ public class SchemaKStreamTest {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(stream.getSchema().key());
     for (final Column c : stream.getSchema().value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(stream.getName(), c.ref()), c.type());
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(stream.getName(), c.name()), c.type());
     }
     return builder.build();
   }

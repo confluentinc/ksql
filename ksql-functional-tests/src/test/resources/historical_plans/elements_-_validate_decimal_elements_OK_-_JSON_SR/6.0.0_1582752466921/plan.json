@@ -1,9 +1,7 @@
 {
-  "version" : "5.5.0",
-  "timestamp" : 1582741260923,
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (V0 DECIMAL(15, 14)) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (V0 DECIMAL(15, 14)) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON_SR');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
@@ -17,7 +15,7 @@
           "properties" : { }
         },
         "valueFormat" : {
-          "format" : "JSON",
+          "format" : "JSON_SR",
           "properties" : { }
         },
         "options" : [ ]
@@ -41,7 +39,7 @@
           "properties" : { }
         },
         "valueFormat" : {
-          "format" : "JSON",
+          "format" : "JSON_SR",
           "properties" : { }
         },
         "options" : [ ]
@@ -73,7 +71,7 @@
                 "properties" : { }
               },
               "valueFormat" : {
-                "format" : "JSON",
+                "format" : "JSON_SR",
                 "properties" : { }
               },
               "options" : [ ]
@@ -89,20 +87,17 @@
             "properties" : { }
           },
           "valueFormat" : {
-            "format" : "JSON",
+            "format" : "JSON_SR",
             "properties" : { }
           },
           "options" : [ ]
         },
-        "topicName" : "OUTPUT"
+        "topicName" : "OUTPUT",
+        "timestampColumn" : null
       },
       "queryId" : "CSAS_OUTPUT_0"
     }
   } ],
-  "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL"
-  },
   "configs" : {
     "ksql.extension.dir" : "ext",
     "ksql.streams.cache.max.bytes.buffering" : "0",
@@ -120,7 +115,7 @@
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
     "ksql.new.api.enabled" : "false",
-    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent7938322338186257046",
+    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent1100039036750056816",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",

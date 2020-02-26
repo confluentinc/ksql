@@ -212,7 +212,7 @@ public class DefaultConnectClientTest {
   public void testTopics() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+        WireMock.get(WireMock.urlEqualTo("/connectors/foo/topics"))
             .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)

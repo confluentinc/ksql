@@ -78,7 +78,8 @@ def job = {
         config.docker_tag = config.ksql_db_version
     } else {
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
-        config.revision = 'refs/heads/master'
+        // Use revision param if provided, otherwise default to master
+        config.revision = params.GIT_REVISION ?: 'refs/heads/master'
     }
 
     // Configure the maven repo settings so we can download from the beta artifacts repo

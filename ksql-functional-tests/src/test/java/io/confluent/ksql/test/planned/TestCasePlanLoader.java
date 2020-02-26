@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.planned;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -29,6 +30,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.RecordNode;
@@ -40,7 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -146,22 +148,32 @@ public final class TestCasePlanLoader {
     final PlannedTestPath planPath = versionDir.resolve(PlannedTestPath.PLAN_FILE);
     final PlannedTestPath specPath = versionDir.resolve(PlannedTestPath.SPEC_FILE);
     final PlannedTestPath topologyPath = versionDir.resolve(PlannedTestPath.TOPOLOGY_FILE);
+
+    return new TestCasePlan(
+        parseJson(specPath, JsonTestLoader.OBJECT_MAPPER, TestCaseSpecNode.class),
+        parseJson(planPath, PlannedTestUtils.PLAN_MAPPER, TestCasePlanNode.class),
+        slurp(topologyPath)
+    );
+  }
+
+  private static <T> T parseJson(final PlannedTestPath path, final ObjectMapper mapper,
+      final Class<T> type) {
     try {
-      return new TestCasePlan(
-          JsonTestLoader.OBJECT_MAPPER.readValue(slurp(specPath), TestCaseSpecNode.class),
-          PlannedTestUtils.PLAN_MAPPER.readValue(slurp(planPath), TestCasePlanNode.class),
-          slurp(topologyPath)
-      );
+      return mapper.readValue(slurp(path), type);
     } catch (final IOException e) {
-      throw new RuntimeException(e);
+      throw new TestFrameworkException("Error parsing json in file: " + path, e);
     }
   }
 
-  private static String slurp(final PlannedTestPath path) throws IOException {
-    return new String(
-        Files.readAllBytes(path.relativePath()),
-        Charset.defaultCharset()
-    );
+  private static String slurp(final PlannedTestPath path) {
+    try {
+      return new String(
+          Files.readAllBytes(path.relativePath()),
+          StandardCharsets.UTF_8
+      );
+    } catch (final IOException e) {
+      throw new TestFrameworkException("Error reading file: " + path, e);
+    }
   }
 
   private static TestCasePlan buildStatementsInTestCase(

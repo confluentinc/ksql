@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 
 public final class PlannedTestPath {
+
   private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
   private static final String BASE_DIRECTORY = "src/test/resources/";
   private static final String PLANS_DIR = "historical_plans/";
@@ -79,6 +80,11 @@ public final class PlannedTestPath {
   private static String formatName(final String originalName) {
     return originalName
         .replaceAll(INVALID_FILENAME_CHARS_PATTERN, "_");
+  }
+
+  @Override
+  public String toString() {
+    return path.toString();
   }
 }
 

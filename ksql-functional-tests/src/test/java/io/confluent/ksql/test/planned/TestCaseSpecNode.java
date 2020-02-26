@@ -1,12 +1,14 @@
 package io.confluent.ksql.test.planned;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.test.model.RecordNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public class TestCaseSpecNode {
+
   private final String version;
   private final long timestamp;
   private final Map<String, String> schemas;
@@ -23,8 +25,8 @@ public class TestCaseSpecNode {
     this.version = Objects.requireNonNull(version, "version");
     this.timestamp = timestamp;
     this.schemas = Objects.requireNonNull(schemas, "schemas");
-    this.inputs = inputs; // Objects.requireNonNull(inputs, "inputs");
-    this.outputs = outputs; // Objects.requireNonNull(outputs, "outputs");
+    this.inputs = ImmutableList.copyOf(Objects.requireNonNull(inputs, "inputs"));
+    this.outputs = ImmutableList.copyOf(Objects.requireNonNull(outputs, "outputs"));
   }
 
   public long getTimestamp() {

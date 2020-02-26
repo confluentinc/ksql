@@ -75,12 +75,15 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       .build();
 
   private final PersistenceSchema physicalSchema;
+  private final boolean isJsonSchema;
   private String target = "?";
 
   public KsqlJsonDeserializer(
-      final PersistenceSchema physicalSchema
+      final PersistenceSchema physicalSchema,
+      final boolean isJsonSchema
   ) {
     this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
+    this.isJsonSchema = isJsonSchema;
   }
 
   @Override
@@ -91,8 +94,15 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   @Override
   public Object deserialize(final String topic, final byte[] bytes) {
     try {
-      final JsonNode value = bytes == null
-          ? null
+      if (bytes == null) {
+        return null;
+      }
+
+      // don't use the JsonSchemaConverter to read this data because
+      // we require that the MAPPER enables USE_BIG_DECIMAL_FOR_FLOATS,
+      // which is not currently available in the standard converters
+      final JsonNode value = isJsonSchema
+          ? JsonSerdeUtils.readJsonSR(bytes, MAPPER, JsonNode.class)
           : MAPPER.readTree(bytes);
 
       final Object coerced = enforceFieldType(

@@ -44,7 +44,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-value");
@@ -58,7 +58,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value");
@@ -72,7 +72,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -86,7 +86,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -98,7 +98,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.getAllSubjects()).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient).getAllSubjects();
@@ -114,7 +114,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanUpInternalTopicAvroSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
     verify(schemaRegistryClient, times(5)).deleteSubject(any());

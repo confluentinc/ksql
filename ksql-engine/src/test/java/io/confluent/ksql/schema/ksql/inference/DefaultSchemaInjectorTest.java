@@ -286,7 +286,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID=5, VALUE_FORMAT='avro');"
     ));
   }
 
@@ -311,14 +311,14 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID=5, VALUE_FORMAT='avro');"
     ));
   }
 
   @Test
   public void shouldBuildNewCsStatementTextFromId() {
     // Given:
-    when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(cs.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
@@ -338,14 +338,14 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
     ));
   }
 
   @Test
   public void shouldBuildNewCtStatementTextFromId() {
     // Given:
-    when(ct.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(ct.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
@@ -365,7 +365,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -379,23 +379,23 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(SCHEMA_ID)));
+    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(SCHEMA_ID)));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID=5"));
+    assertThat(result.getStatementText(), containsString("SCHEMA_ID=5"));
   }
 
   @Test
   public void shouldNotOverwriteExistingSchemaId() {
     // Given:
-    when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
+    when(cs.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(42)));
+    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(42)));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='42'"));
+    assertThat(result.getStatementText(), containsString("SCHEMA_ID='42'"));
   }
 
   @Test

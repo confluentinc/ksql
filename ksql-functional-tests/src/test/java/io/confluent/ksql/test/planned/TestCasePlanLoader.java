@@ -153,7 +153,7 @@ public final class TestCasePlanLoader {
           slurp(topologyPath)
       );
     } catch (final IOException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Failed to parse spec at " + versionDir.path(), e);
     }
   }
 

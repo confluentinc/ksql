@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
@@ -73,13 +74,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final String kafkaTopicName,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         sourceTableStep,
         Formats.of(keyFormat, valueFormat, options),
-        kafkaTopicName
+        kafkaTopicName,
+        timestampColumn
     );
     return new SchemaKTable<>(
         step,

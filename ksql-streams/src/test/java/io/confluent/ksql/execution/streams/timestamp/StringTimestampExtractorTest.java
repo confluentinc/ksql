@@ -34,13 +34,7 @@ public class StringTimestampExtractorTest {
 
     final String stringTime = "2010-Jan-11";
     final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
-    final long actualTime = timestampExtractor.extract(new ConsumerRecord<>("topic",
-        1,
-        1,
-        null,
-        genericRow(stringTime)),
-        1
-    );
+    final long actualTime = timestampExtractor.extract(genericRow(stringTime));
     assertThat(actualTime, equalTo(expectedTime));
   }
 
@@ -52,6 +46,6 @@ public class StringTimestampExtractorTest {
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullFormat() {
-    new StringTimestampExtractor(null, -1);
+    new StringTimestampExtractor(null, 0);
   }
 }

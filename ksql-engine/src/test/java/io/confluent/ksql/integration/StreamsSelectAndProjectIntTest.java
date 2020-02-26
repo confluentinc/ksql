@@ -184,9 +184,8 @@ public class StreamsSelectAndProjectIntTest {
     final List<ConsumerRecord<byte[], byte[]>> records =
         TEST_HARNESS.verifyAvailableRecords(resultStream.toUpperCase(), 1);
 
-    final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     final long timestamp = records.get(0).timestamp();
-    assertThat(timestamp, equalTo(dateFormat.parse("2018-01-04").getTime()));
+    assertThat(timestamp, is(4L));
   }
 
   private void testTimestampColumnSelection(

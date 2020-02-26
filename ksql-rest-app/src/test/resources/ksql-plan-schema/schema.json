@@ -447,6 +447,9 @@
         },
         "topicName" : {
           "type" : "string"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "streamSinkV1",
@@ -803,6 +806,9 @@
         },
         "topicName" : {
           "type" : "string"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
         }
       },
       "title" : "tableSinkV1",

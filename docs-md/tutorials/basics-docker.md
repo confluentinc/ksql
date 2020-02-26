@@ -274,8 +274,11 @@ Your output should resemble:
       ksqlDB retrieves the schema from {{ site.sr }} and uses this to build
       the SQL schema for the table. You may still provide the schema if you wish.
       Until [Github issue #4462](https://github.com/confluentinc/ksql/issues/4462)
-      is complete, schema inference is only available where the key of the data
-      is a STRING, as is the case here.
+      is complete, schema inference is only available for the value columns. By
+      default, it is assumed the key schema is a single `KAFKA` formatted `STRING`
+      column and is called `ROWKEY`. It is also possible to supply just the key
+      column in the statement, allowing you to specify the key column type. For example:
+      `CREATE TABLE users_original (ROWKEY INT KEY) WITH (...);`
 
 !!! note
       The data generated has the same value in the {{ site.ak }} record's key

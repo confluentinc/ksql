@@ -39,7 +39,7 @@ the `userid` field is assigned as the table's KEY property.
       The KEY field is optional. For more information, see
       [Key Requirements](syntax-reference.md#key-requirements).
 
-ksqlDB can't infer the topic's data format, so you must provide the
+ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `JSON`. Other options are `Avro`, `DELIMITED` and `KAFKA`. For
 more information, see

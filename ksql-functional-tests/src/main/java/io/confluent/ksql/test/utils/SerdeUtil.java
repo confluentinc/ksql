@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
@@ -85,10 +85,7 @@ public final class SerdeUtil {
         final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
         final org.apache.avro.Schema avroSchema =
             new org.apache.avro.Schema.Parser().parse(schemaString);
-        return Optional.of(
-            new AvroFormat()
-                .toParsedSchema(new AvroData(1).toConnectSchema(avroSchema))
-        );
+        return Optional.of(new AvroSchema(avroSchema));
       } else if (format.equalsIgnoreCase(JsonFormat.NAME)) {
         final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
         return Optional.of(new JsonSchema(schemaString));

@@ -16,6 +16,8 @@
 package io.confluent.ksql.serde.connect;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -28,7 +30,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConnectSchemaTranslator {
+
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
+
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST);
 
   private static final Map<Type, Function<Schema, Schema>> CONNECT_TO_KSQL =
       ImmutableMap.<Type, Function<Schema, Schema>>builder()
@@ -46,12 +52,6 @@ public class ConnectSchemaTranslator {
       .put(Type.STRUCT, ConnectSchemaTranslator::toKsqlStructSchema)
       .build();
 
-  protected static class UnsupportedTypeException extends RuntimeException {
-    UnsupportedTypeException(final String error) {
-      super(error);
-    }
-  }
-
   @SuppressWarnings("MethodMayBeStatic") // Part of injectable API.
   public Schema toKsqlSchema(final Schema schema) {
     try {
@@ -59,6 +59,14 @@ public class ConnectSchemaTranslator {
       if (rowSchema.type() != Schema.Type.STRUCT) {
         throw new KsqlException("KSQL stream/table schema must be structured");
       }
+
+      if (rowSchema.fields().isEmpty()) {
+        throw new KsqlException("Schema for the message value does not include any columns with "
+            + "types that ksqlDB supports."
+            + System.lineSeparator()
+            + "schema: " + FORMATTER.format(schema));
+      }
+
       return rowSchema;
     } catch (final UnsupportedTypeException e) {
       throw new KsqlException("Unsupported type at root of schema: " + e.getMessage(), e);
@@ -122,5 +130,11 @@ public class ConnectSchemaTranslator {
       }
     }
     return schemaBuilder.optional().build();
+  }
+
+  private static class UnsupportedTypeException extends RuntimeException {
+    UnsupportedTypeException(final String error) {
+      super(error);
+    }
   }
 }

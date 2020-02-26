@@ -19,9 +19,7 @@ import static io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.Schema
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -43,11 +41,12 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -55,8 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,41 +80,33 @@ public class DefaultSchemaInjectorTest {
 
   private static final String SQL_TEXT = "Some SQL";
 
-  private static final List<Schema> UNSUPPORTED_SCHEMAS = ImmutableList.of(
-      SchemaBuilder.struct().field("byte", Schema.INT8_SCHEMA).build(),
-      SchemaBuilder.struct().field("short", Schema.INT16_SCHEMA).build(),
-      SchemaBuilder.struct().field("bytes", Schema.BYTES_SCHEMA).build(),
-      SchemaBuilder.struct().field("nonStringKeyMap", SchemaBuilder
-          .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)).build()
-  );
-
-  private static final Schema SUPPORTED_SCHEMA = SchemaBuilder.struct()
-      .field("intField", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("bigIntField", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("doubleField", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("stringField", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("booleanField", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .field("arrayField", SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA))
-      .field("mapField", SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA))
-      .field("structField", SchemaBuilder.struct()
-          .field("s0", Schema.OPTIONAL_INT64_SCHEMA).build())
-      .field("decimalField", DecimalUtil.builder(4, 2).build())
-      .build();
+  private static final List<? extends SimpleColumn> SUPPORTED_SCHEMAS = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("doubleField"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("stringField"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("booleanField"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("arrayField"), SqlTypes.array(SqlTypes.INTEGER))
+      .valueColumn(ColumnName.of("mapField"), SqlTypes.map(SqlTypes.BIGINT))
+      .valueColumn(ColumnName.of("structField"), SqlTypes.struct()
+          .field("s0", SqlTypes.BIGINT).build())
+      .valueColumn(ColumnName.of("decimalField"), SqlTypes.decimal(4, 2))
+      .build()
+      .value();
 
   private static final TableElements EXPECTED_KSQL_SCHEMA = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("INTFIELD"), new Type(SqlTypes.INTEGER)),
-      new TableElement(Namespace.VALUE, ColumnName.of("BIGINTFIELD"), new Type(SqlTypes.BIGINT)),
-      new TableElement(Namespace.VALUE, ColumnName.of("DOUBLEFIELD"), new Type(SqlTypes.DOUBLE)),
-      new TableElement(Namespace.VALUE, ColumnName.of("STRINGFIELD"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("BOOLEANFIELD"), new Type(SqlTypes.BOOLEAN)),
-      new TableElement(Namespace.VALUE, ColumnName.of("ARRAYFIELD"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
-      new TableElement(Namespace.VALUE, ColumnName.of("MAPFIELD"), new Type(SqlTypes.map(SqlTypes.BIGINT))),
-      new TableElement(Namespace.VALUE, ColumnName.of("STRUCTFIELD"), new Type(SqlStruct.builder()
-          .field("S0", SqlTypes.BIGINT)
+      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
+      new TableElement(Namespace.VALUE, ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
+      new TableElement(Namespace.VALUE, ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
+      new TableElement(Namespace.VALUE, ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(SqlTypes.BIGINT))),
+      new TableElement(Namespace.VALUE, ColumnName.of("structField"), new Type(SqlStruct.builder()
+          .field("s0", SqlTypes.BIGINT)
           .build())),
       new TableElement(Namespace.VALUE,
-          ColumnName.of("DECIMALFIELD"), new Type(SqlTypes.decimal(4, 2))
+          ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
   ));
 
   private static final int SCHEMA_ID = 5;
@@ -154,7 +143,7 @@ public class DefaultSchemaInjectorTest {
     ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct), ImmutableMap.of(), config);
 
     when(schemaSupplier.getValueSchema(eq(KAFKA_TOPIC), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     when(cs.getElements()).thenReturn(TableElements.of());
     when(ct.getElements()).thenReturn(TableElements.of());
@@ -243,7 +232,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldAddElementsToCsStatement() {
     // Given:
     when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -256,7 +245,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldAddElementsToCtStatement() {
     // Given:
     when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
@@ -269,7 +258,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldBuildNewCsStatementText() {
     // Given:
     when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -277,15 +266,15 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), is(
         "CREATE STREAM `cs` ("
-            + "INTFIELD INTEGER, "
-            + "BIGINTFIELD BIGINT, "
-            + "DOUBLEFIELD DOUBLE, "
-            + "STRINGFIELD STRING, "
-            + "BOOLEANFIELD BOOLEAN, "
-            + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<STRING, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
-            + "DECIMALFIELD DECIMAL(4, 2)) "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
@@ -294,7 +283,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldBuildNewCtStatementText() {
     // Given:
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.empty()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
@@ -302,15 +291,15 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), is(
         "CREATE TABLE `ct` ("
-            + "INTFIELD INTEGER, "
-            + "BIGINTFIELD BIGINT, "
-            + "DOUBLEFIELD DOUBLE, "
-            + "STRINGFIELD STRING, "
-            + "BOOLEANFIELD BOOLEAN, "
-            + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<STRING, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
-            + "DECIMALFIELD DECIMAL(4, 2)) "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
@@ -321,7 +310,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -329,15 +318,15 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), is(
         "CREATE STREAM `cs` ("
-            + "INTFIELD INTEGER, "
-            + "BIGINTFIELD BIGINT, "
-            + "DOUBLEFIELD DOUBLE, "
-            + "STRINGFIELD STRING, "
-            + "BOOLEANFIELD BOOLEAN, "
-            + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<STRING, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
-            + "DECIMALFIELD DECIMAL(4, 2)) "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
@@ -348,7 +337,7 @@ public class DefaultSchemaInjectorTest {
     when(ct.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
 
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
@@ -356,15 +345,15 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), is(
         "CREATE TABLE `ct` ("
-            + "INTFIELD INTEGER, "
-            + "BIGINTFIELD BIGINT, "
-            + "DOUBLEFIELD DOUBLE, "
-            + "STRINGFIELD STRING, "
-            + "BOOLEANFIELD BOOLEAN, "
-            + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<STRING, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
-            + "DECIMALFIELD DECIMAL(4, 2)) "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
@@ -373,7 +362,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldAddSchemaIdIfNotPresentAlready() {
     // Given:
     when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.empty()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -399,34 +388,14 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldThrowOnUnsupportedType() {
-    for (final Schema unsupportedSchema : UNSUPPORTED_SCHEMAS) {
-      // Given:
-      when(schemaSupplier.getValueSchema(any(), any()))
-          .thenReturn(SchemaResult.success(schemaAndId(unsupportedSchema, SCHEMA_ID)));
-
-      try {
-        // When:
-        injector.inject(ctStatement);
-
-        // Then:
-        fail("Expected KsqlStatementException. schema: " + unsupportedSchema);
-      } catch (final KsqlStatementException e) {
-        assertThat(e.getRawMessage(),
-            containsString("Schema contains types not supported by KSQL:"));
-
-        assertThat(e.getSqlStatement(), is(csStatement.getStatementText()));
-      }
-    }
-  }
-
-  @Test
   public void shouldEscapeAvroSchemaThatHasReservedColumnName() {
     // Given:
+    final SimpleColumn col0 = mock(SimpleColumn.class);
+    when(col0.ref()).thenReturn(ColumnName.of("CREATE"));
+    when(col0.type()).thenReturn(SqlTypes.BIGINT);
+
     when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(
-            SchemaBuilder.struct().field("CREATE", Schema.INT64_SCHEMA).build(),
-            SCHEMA_ID)));
+        .thenReturn(SchemaResult.success(schemaAndId(ImmutableList.of(col0), SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateTable> inject = injector.inject(ctStatement);
@@ -456,12 +425,6 @@ public class DefaultSchemaInjectorTest {
   ) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
-    return CreateSourceProperties.from(props);
-  }
-
-  private static CreateSourceProperties supportedPropsWithout(final String property) {
-    final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
-    assertThat("Invalid test", props.remove(property), is(notNullValue()));
     return CreateSourceProperties.from(props);
   }
 

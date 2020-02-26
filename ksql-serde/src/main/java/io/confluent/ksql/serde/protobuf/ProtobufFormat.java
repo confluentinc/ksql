@@ -20,12 +20,12 @@ import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import org.apache.kafka.connect.data.Schema;
 
-public class ProtobufFormat implements Format {
+public class ProtobufFormat extends ConnectFormat {
 
   public static final String NAME = ProtobufSchema.TYPE;
 
@@ -38,22 +38,15 @@ public class ProtobufFormat implements Format {
   }
 
   @Override
-  public boolean supportsSchemaInference() {
-    return true;
+  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+    return new ProtobufSerdeFactory();
   }
 
-  @Override
-  public Schema toConnectSchema(final ParsedSchema schema) {
+  protected Schema toConnectSchema(final ParsedSchema schema) {
     return protobufData.toConnectSchema((ProtobufSchema) schema);
   }
 
-  @Override
-  public ParsedSchema toParsedSchema(final Schema schema) {
+  protected ParsedSchema fromConnectSchema(final Schema schema) {
     return protobufData.fromConnectSchema(schema);
-  }
-
-  @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new ProtobufSerdeFactory();
   }
 }

@@ -21,14 +21,14 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
 
-public final class AvroFormat implements Format {
+public final class AvroFormat extends ConnectFormat {
 
   public static final String FULL_SCHEMA_NAME = "fullSchemaName";
   public static final String NAME = AvroSchema.TYPE;
@@ -38,21 +38,6 @@ public final class AvroFormat implements Format {
   @Override
   public String name() {
     return NAME;
-  }
-
-  @Override
-  public boolean supportsSchemaInference() {
-    return true;
-  }
-
-  @Override
-  public Schema toConnectSchema(final ParsedSchema schema) {
-    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
-  }
-
-  @Override
-  public ParsedSchema toParsedSchema(final Schema schema) {
-    return new AvroSchema(avroData.fromConnectSchema(schema));
   }
 
   @Override
@@ -72,5 +57,13 @@ public final class AvroFormat implements Format {
         .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     return new KsqlAvroSerdeFactory(schemaFullName);
+  }
+
+  protected Schema toConnectSchema(final ParsedSchema schema) {
+    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
+  }
+
+  protected ParsedSchema fromConnectSchema(final Schema schema) {
+    return new AvroSchema(avroData.fromConnectSchema(schema));
   }
 }

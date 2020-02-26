@@ -18,14 +18,22 @@ package io.confluent.ksql.serde.connect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 
 public class ConnectSchemaTranslatorTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   private final ConnectSchemaTranslator schemaTranslator = new ConnectSchemaTranslator();
 
   @Test
@@ -174,12 +182,38 @@ public class ConnectSchemaTranslatorTest {
 
   @Test
   public void shouldIgnoreUnsupportedType() {
+    // Given:
+    final Schema connectSchema = SchemaBuilder
+        .struct()
+        .field("unsupported", Schema.BYTES_SCHEMA)
+        .field("supported", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+
+    // When:
+    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+
+    // Then:
+    assertThat(ksqlSchema.fields(), hasSize(1));
+    assertThat(ksqlSchema.fields().get(0).name(), is("SUPPORTED"));
+  }
+
+  @Test
+  public void shouldThrowIfAllUnsupportedTypes() {
+    // Given:
     final Schema connectSchema = SchemaBuilder
         .struct()
         .field("bytesField", Schema.BYTES_SCHEMA)
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.fields().size(), equalTo(0));
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException
+        .expectMessage("Schema for the message value does not include any columns with "
+            + "types that ksqlDB supports."
+            + System.lineSeparator()
+            + "schema: bytesField BYTES");
+
+    // When:
+    schemaTranslator.toKsqlSchema(connectSchema);
   }
 }

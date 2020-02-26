@@ -18,20 +18,16 @@ package io.confluent.ksql.serde.json;
 import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import org.apache.kafka.connect.data.Schema;
 
-public class JsonFormat implements Format {
+public class JsonFormat extends ConnectFormat {
 
   public static final String NAME = JsonSchema.TYPE;
 
-  private JsonSchemaData jsonData;
-
-  public JsonFormat() {
-    this.jsonData = new JsonSchemaData();
-  }
+  private final JsonSchemaData jsonData = new JsonSchemaData();
 
   @Override
   public String name() {
@@ -39,22 +35,15 @@ public class JsonFormat implements Format {
   }
 
   @Override
-  public boolean supportsSchemaInference() {
-    return true;
+  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
+    return new KsqlJsonSerdeFactory();
   }
 
-  @Override
-  public Schema toConnectSchema(final ParsedSchema schema) {
+  protected Schema toConnectSchema(final ParsedSchema schema) {
     return jsonData.toConnectSchema((JsonSchema) schema);
   }
 
-  @Override
-  public ParsedSchema toParsedSchema(final Schema schema) {
+  protected ParsedSchema fromConnectSchema(final Schema schema) {
     return jsonData.fromConnectSchema(schema);
-  }
-
-  @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlJsonSerdeFactory();
   }
 }

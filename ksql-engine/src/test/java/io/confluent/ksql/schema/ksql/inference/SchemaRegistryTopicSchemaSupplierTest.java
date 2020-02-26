@@ -24,19 +24,19 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.function.Function;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +45,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaRegistryTopicSchemaSupplierTest {
 
@@ -58,13 +59,11 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Mock
   private SchemaRegistryClient srClient;
   @Mock
-  private Function<Schema, Schema> toKsqlTranslator;
-  @Mock
   private ParsedSchema parsedSchema;
   @Mock
-  private Schema connectSchema;
+  private SimpleColumn column1;
   @Mock
-  private Schema ksqlSchema;
+  private SimpleColumn column2;
   @Mock
   private Format format;
 
@@ -72,8 +71,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
   @Before
   public void setUp() throws Exception {
-    supplier = new SchemaRegistryTopicSchemaSupplier(
-        srClient, toKsqlTranslator, f -> format);
+    supplier = new SchemaRegistryTopicSchemaSupplier(srClient, f -> format);
 
     when(srClient.getLatestSchemaMetadata(any()))
         .thenReturn(new SchemaMetadata(SCHEMA_ID, -1, AVRO_SCHEMA));
@@ -85,10 +83,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
-    when(format.toConnectSchema(parsedSchema)).thenReturn(connectSchema);
-
-    when(toKsqlTranslator.apply(any()))
-        .thenReturn(ksqlSchema);
+    when(format.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
   }
 
   @Test
@@ -222,7 +217,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(format.toConnectSchema(any()))
+    when(format.toColumns(any()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -234,24 +229,6 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         "Unable to verify if the schema for topic some-topic is compatible with KSQL."));
     assertThat(result.failureReason.get().getMessage(), containsString(
         "it went boom"));
-    assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
-  }
-
-  @Test
-  public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToKsqlSchema() {
-    // Given:
-    when(toKsqlTranslator.apply(any()))
-        .thenThrow(new RuntimeException("big badda boom"));
-
-    // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.empty());
-
-    // Then:
-    assertThat(result.schemaAndId, is(Optional.empty()));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Unable to verify if the schema for topic some-topic is compatible with KSQL."));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "big badda boom"));
     assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
   }
 
@@ -279,16 +256,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     supplier.getValueSchema(TOPIC_NAME, Optional.empty());
 
     // Then:
-    verify(format).toConnectSchema(parsedSchema);
-  }
-
-  @Test
-  public void shouldPassWriteSchemaToKsqlTranslator() {
-    // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
-
-    // Then:
-    verify(toKsqlTranslator).apply(connectSchema);
+    verify(format).toColumns(parsedSchema);
   }
 
   @Test
@@ -299,7 +267,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));
     assertThat(result.schemaAndId.get().id, is(SCHEMA_ID));
-    assertThat(result.schemaAndId.get().schema, is(ksqlSchema));
+    assertThat(result.schemaAndId.get().columns, is(ImmutableList.of(column1, column2)));
   }
 
   private static Throwable notFoundException() {

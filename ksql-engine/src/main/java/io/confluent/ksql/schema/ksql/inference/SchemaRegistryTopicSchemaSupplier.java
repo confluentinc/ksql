@@ -20,16 +20,16 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.links.DocumentationLinks;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * A {@link TopicSchemaSupplier} that retrieves schemas from the Schema Registry.
@@ -37,13 +37,11 @@ import org.apache.kafka.connect.data.Schema;
 public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   private final SchemaRegistryClient srClient;
-  private final Function<Schema, Schema> toKsqlTranslator;
   private final Function<String, Format> formatFactory;
 
   public SchemaRegistryTopicSchemaSupplier(final SchemaRegistryClient srClient) {
     this(
         srClient,
-        new ConnectSchemaTranslator()::toKsqlSchema,
         FormatFactory::fromName
     );
   }
@@ -51,11 +49,9 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   @VisibleForTesting
   SchemaRegistryTopicSchemaSupplier(
       final SchemaRegistryClient srClient,
-      final Function<Schema, Schema> toKsqlTranslator,
       final Function<String, Format> formatFactory
   ) {
     this.srClient = Objects.requireNonNull(srClient, "srClient");
-    this.toKsqlTranslator = Objects.requireNonNull(toKsqlTranslator, "toKsqlTranslator");
     this.formatFactory = Objects.requireNonNull(formatFactory, "formatFactory");
   }
 
@@ -96,8 +92,8 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   ) {
     try {
       final Format format = formatFactory.apply(parsedSchema.schemaType());
-      final Schema connectSchema = toKsqlTranslator.apply(format.toConnectSchema(parsedSchema));
-      return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, id));
+      final List<SimpleColumn> columns = format.toColumns(parsedSchema);
+      return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e);
     }

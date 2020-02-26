@@ -23,19 +23,21 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.topic.TopicFactory;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -43,13 +45,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
  * Util class for common code used by test case builders
@@ -145,27 +143,25 @@ public final class TestCaseBuilderUtil {
       final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
 
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
-      final Optional<ParsedSchema> schema;
+      final Optional<ParsedSchema> valueSchema;
       if (valueFormat.getFormat().supportsSchemaInference()) {
-        // add avro schema
-        final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-        statement.getElements().forEach(e -> schemaBuilder.field(
-            e.getName().name(),
-            SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
-        );
+        final List<SimpleColumn> valueColumns = statement.getElements().stream()
+            .filter(e -> e.getNamespace() == Namespace.VALUE)
+            .map(e -> new TestColumn(e.getName(), e.getType().getSqlType()))
+            .collect(Collectors.toList());
 
-        schema = Optional.of(
-            valueFormat.getFormat().toParsedSchema(addNames(schemaBuilder.build()))
-        );
+        valueSchema = valueColumns.isEmpty()
+            ? Optional.empty()
+            : Optional.of(valueFormat.getFormat().toParsedSchema(valueColumns));
       } else {
-        schema = Optional.empty();
+        valueSchema = Optional.empty();
       }
 
       return new Topic(
           ksqlTopic.getKafkaTopicName(),
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
-          schema
+          valueSchema
       );
     };
 
@@ -190,35 +186,24 @@ public final class TestCaseBuilderUtil {
     }
   }
 
-  private static Schema addNames(final Schema schema) {
-    final SchemaBuilder builder;
-    switch (schema.type()) {
-      case BYTES:
-        DecimalUtil.requireDecimal(schema);
-        builder = DecimalUtil.builder(schema);
-        break;
-      case ARRAY:
-        builder = SchemaBuilder.array(addNames(schema.valueSchema()));
-        break;
-      case MAP:
-        builder = SchemaBuilder.map(
-            Schema.STRING_SCHEMA,
-            addNames(schema.valueSchema())
-        );
-        break;
-      case STRUCT:
-        builder = SchemaBuilder.struct();
-        builder.name("TestSchema" + UUID.randomUUID().toString().replace("-", ""));
-        for (final Field field : schema.fields()) {
-          builder.field(field.name(), addNames(field.schema()));
-        }
-        break;
-      default:
-        builder = SchemaBuilder.type(schema.type());
+  private static class TestColumn implements SimpleColumn {
+
+    private final ColumnName name;
+    private final SqlType type;
+
+    TestColumn(final ColumnName name, final SqlType type) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.type = Objects.requireNonNull(type, "type");
     }
-    if (schema.isOptional()) {
-      builder.optional();
+
+    @Override
+    public ColumnName ref() {
+      return name;
     }
-    return builder.build();
+
+    @Override
+    public SqlType type() {
+      return type;
+    }
   }
 }

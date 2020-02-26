@@ -14,7 +14,7 @@ available in the data, just like a the columns in a traditional SQL database tab
 KsqlDB supports both key and value columns. These map to the data held in the keys and values of the
 underlying {{ site.ak }} topic.
 
-A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-type),
+A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-types),
 and possibly a namespace.
 
 Key columns have a `KEY` namespace suffix. Key columns have the following restrictions:
@@ -39,7 +39,7 @@ Unquoted identifiers will be treated as upper-case, for example `col0` is equiva
 must contain only alpha-numeric and underscore characters.
 
 Identifiers containing invalid character, or where case needs to be preserved, can be quoted using
-back-tick quotes, for example ``col0``.
+back-tick quotes, for example `` `col0` ``.
 
 ## SQL data types
 

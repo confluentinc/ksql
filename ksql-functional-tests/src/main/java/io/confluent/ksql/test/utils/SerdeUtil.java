@@ -23,6 +23,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -91,6 +92,11 @@ public final class SerdeUtil {
       } else if (format.equalsIgnoreCase(JsonFormat.NAME)) {
         final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
         return Optional.of(new JsonSchema(schemaString));
+      } else if (format.equalsIgnoreCase(ProtobufFormat.NAME)) {
+        // since Protobuf schemas are not valid JSON, the schema JsonNode in
+        // this case is just a string
+        final String schemaString = schema.textValue();
+        return Optional.of(new ProtobufSchema(schemaString));
       }
     } catch (final Exception e) {
       throw new InvalidFieldException("schema", "failed to parse", e);

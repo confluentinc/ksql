@@ -1,4 +1,3 @@
-
 def config = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
@@ -72,7 +71,7 @@ def job = {
         if (config.revision == '') {
             error("If you are doing a release build you must provide a git sha.")
         }
-        
+
         config.revision = params.GIT_REVISION
         // For a release build we remove the -SNAPSHOT from the version.
         config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
@@ -163,7 +162,6 @@ def job = {
         dir('ksql-db') {
             archiveArtifacts artifacts: 'pom.xml'
             withCredentials([
-                usernamePassword(credentialsId: 'Jenkins Nexus Account', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME'),
                 usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
                 usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
                     withDockerServer([uri: dockerHost()]) {
@@ -182,13 +180,13 @@ def job = {
                             sh '''
                                 echo $ARTIFACTORY_PASSWORD | docker login confluent-docker.jfrog.io -u $ARTIFACTORY_USERNAME --password-stdin
                             '''
-                            writeFile file:'create-pip-conf-with-nexus.sh', text:libraryResource('scripts/create-pip-conf-with-nexus.sh')
-                            writeFile file:'create-pypirc-with-nexus.sh', text:libraryResource('scripts/create-pypirc-with-nexus.sh')
+                            writeFile file:'create-pip-conf-with-jfrog.sh', text:libraryResource('scripts/create-pip-conf-with-jfrog.sh')
+                            writeFile file:'create-pypirc-with-jfrog.sh', text:libraryResource('scripts/create-pypirc-with-jfrog.sh')
                             writeFile file:'setup-credential-store.sh', text:libraryResource('scripts/setup-credential-store.sh')
                             writeFile file:'set-global-user.sh', text:libraryResource('scripts/set-global-user.sh')
                             sh '''
-                                bash create-pip-conf-with-nexus.sh
-                                bash create-pypirc-with-nexus.sh
+                                bash create-pip-conf-with-jfrog.sh
+                                bash create-pypirc-with-jfrog.sh
                                 bash setup-credential-store.sh
                                 bash set-global-user.sh
                             '''
@@ -237,7 +235,7 @@ def job = {
         stage('Publish Maven Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                withCredentials([usernamePassword(credentialsId: 'Jenkins Nexus Account', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME')]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
@@ -246,8 +244,8 @@ def job = {
                             '''
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
-                                cmd += " -DaltDeploymentRepository=confluent-nexus-central::default::s3://staging-ksqldb-maven/maven"
-                                cmd += " -DrepositoryId=confluent-nexus-central"
+                                cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
+                                cmd += " -DrepositoryId=confluent-artifactory-central"
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
                                 sh cmd
                             }

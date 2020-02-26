@@ -26,13 +26,16 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.ws.rs.core.HttpHeaders;
 import org.apache.http.HttpStatus;
+import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
@@ -61,6 +64,13 @@ public class DefaultConnectClientTest {
       ConnectorType.SOURCE
   );
   private static final String AUTH_HEADER = "Basic FOOBAR";
+
+  private static final Map<String, ActiveTopicsInfo> SAMPLE_TOPICS = ImmutableMap.of(
+      "foo",
+      new ActiveTopicsInfo(
+          "foo",
+          ImmutableList.of("topicA", "topicB"))
+  );
 
   @Rule
   public WireMockRule wireMockRule = new WireMockRule(
@@ -168,7 +178,7 @@ public class DefaultConnectClientTest {
     final ConnectResponse<ConnectorStateInfo> response = client.status("foo");
 
     // Then:
-    final ConnectorStateInfo connectorStateInfo = response.datum().get();
+    final ConnectorStateInfo connectorStateInfo = response.datum().orElseThrow(AssertionError::new);
     // equals is not implemented on ConnectorStateInfo
     assertThat(connectorStateInfo.name(), is(SAMPLE_STATUS.name()));
     assertThat(connectorStateInfo.type(), is(SAMPLE_STATUS.type()));
@@ -195,6 +205,29 @@ public class DefaultConnectClientTest {
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is("foo")));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testTopics() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(SAMPLE_TOPICS)))
+    );
+
+    // When:
+    final ConnectResponse<Map<String, Map<String, List<String>>>> response = client.topics("foo");
+
+    // Then:
+    final Map<String, Map<String, List<String>>> activeTopics = response.datum()
+        .orElseThrow(AssertionError::new);
+    // equals is not implemented on ConnectorStateInfo
+    assertThat(activeTopics.keySet(), is(ImmutableSet.of("foo")));
+    assertThat(activeTopics.get("foo").get("topics"), is(ImmutableList.of("topicA", "topicB")));
     assertThat("Expected no error!", !response.error().isPresent());
   }
 

@@ -106,7 +106,8 @@ public class DefaultConnectClient implements ConnectClient {
           )
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_CREATED, Function.identity())));
+              createHandler(HttpStatus.SC_CREATED, new TypeReference<ConnectorInfo>() {},
+                  Function.identity())));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
@@ -130,7 +131,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, foo -> (List<String>) foo)));
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
+                  Function.identity())));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -155,7 +158,8 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, Function.identity())));
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
+                  Function.identity())));
 
       connectResponse.error()
           .ifPresent(error ->
@@ -180,7 +184,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, Function.identity())));
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
+                  Function.identity())));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -204,7 +210,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_NO_CONTENT, foo -> connector)));
+              createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
+                  foo -> connector)));
+
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not delete connector: {}.", error));
@@ -228,7 +236,9 @@ public class DefaultConnectClient implements ConnectClient {
               .connectTimeout(DEFAULT_TIMEOUT_MS)
               .execute()
               .handleResponse(
-                  createHandler(HttpStatus.SC_OK, Function.identity())));
+                  createHandler(HttpStatus.SC_OK,
+                      new TypeReference<Map<String, Map<String, List<String>>>>() {},
+                      Function.identity())));
 
       connectResponse.error()
           .ifPresent(
@@ -276,6 +286,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private static <T, C> ResponseHandler<ConnectResponse<T>> createHandler(
       final int expectedStatus,
+      final TypeReference<C> entityTypeRef,
       final Function<C, T> cast
   ) {
     return httpResponse -> {
@@ -289,7 +300,7 @@ public class DefaultConnectClient implements ConnectClient {
       final T data = cast.apply(
           entity == null
               ? null
-              : MAPPER.readValue(entity.getContent(), new TypeReference<T>() {})
+              : MAPPER.readValue(entity.getContent(), entityTypeRef)
       );
 
       return ConnectResponse.success(data, code);

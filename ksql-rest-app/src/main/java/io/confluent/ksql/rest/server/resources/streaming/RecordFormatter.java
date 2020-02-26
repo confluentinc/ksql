@@ -20,8 +20,12 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
+import com.google.protobuf.TextFormat.Printer;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -134,6 +138,20 @@ public final class RecordFormatter {
     return timestamp == ConsumerRecord.NO_TIMESTAMP
         ? "N/A"
         : dateFormat.format(new Date(timestamp));
+  }
+
+  private static Deserializer<?> newProtobufDeserializer(final SchemaRegistryClient srClient) {
+    final Printer printer = TextFormat.printer();
+    final KafkaProtobufDeserializer<?> inner = new KafkaProtobufDeserializer<>(srClient);
+
+    return (topic, data) -> {
+      final Message msg = inner.deserialize(topic, data);
+      if (msg == null) {
+        return null;
+      }
+
+      return printer.shortDebugString(msg);
+    };
   }
 
   private static Deserializer<?> newJsonDeserializer() {
@@ -257,13 +275,13 @@ public final class RecordFormatter {
 
   enum WindowSchema {
 
-    SESSION(SessionWindowedDeserializer::new),
+    SESSION(WindowSchema::newSessionWindowedDeserializer),
     HOPPING(WindowSchema::newTimeWindowedDeserializer),
     TUMBLING(WindowSchema::newTimeWindowedDeserializer);
 
-    private final Function<Deserializer<?>, Deserializer<?>> mapper;
+    private final Function<NamedDeserializer, Deserializer<?>> mapper;
 
-    WindowSchema(final Function<Deserializer<?>, Deserializer<?>> mapper) {
+    WindowSchema(final Function<NamedDeserializer, Deserializer<?>> mapper) {
       this.mapper = requireNonNull(mapper, "mapper");
     }
 
@@ -271,13 +289,29 @@ public final class RecordFormatter {
 
       final String name = name() + "(" + inner.name + ")";
 
-      final Deserializer<?> deserializer = mapper.apply(inner.deserializer);
+      final Deserializer<?> deserializer = mapper.apply(inner);
 
       return new NamedDeserializer(name, inner.doNotWrap, deserializer);
     }
 
-    private static Deserializer<?> newTimeWindowedDeserializer(final Deserializer<?> inner) {
-      final TimeWindowedDeserializer<?> windowedDeser = new TimeWindowedDeserializer<>(inner);
+    private static Deserializer<?> newSessionWindowedDeserializer(
+        final NamedDeserializer inner
+    ) {
+      final SessionWindowedDeserializer<?> sessionDeser
+          = new SessionWindowedDeserializer<>(inner.deserializer);
+
+      return (topic, data) -> {
+        final Windowed<?> windowed = sessionDeser.deserialize(topic, data);
+        return "[" + windowed.key()
+            + "@" + windowed.window().start() + "/" + windowed.window().end() + "]";
+      };
+    }
+
+    private static Deserializer<?> newTimeWindowedDeserializer(
+        final NamedDeserializer inner
+    ) {
+      final TimeWindowedDeserializer<?> windowedDeser
+          = new TimeWindowedDeserializer<>(inner.deserializer);
 
       return (topic, data) -> {
         final Windowed<?> windowed = windowedDeser.deserialize(topic, data);
@@ -290,6 +324,7 @@ public final class RecordFormatter {
 
   enum Format {
     AVRO(0, KafkaAvroDeserializer::new),
+    PROTOBUF(0, RecordFormatter::newProtobufDeserializer),
     JSON(RecordFormatter::newJsonDeserializer),
     KAFKA_INT(IntegerDeserializer::new),
     KAFKA_BIGINT(LongDeserializer::new),

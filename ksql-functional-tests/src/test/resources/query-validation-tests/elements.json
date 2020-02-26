@@ -40,6 +40,27 @@
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
+      "name": "validate without elements OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "format": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "format": "PROTOBUF",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
       "name": "validate without elements OK - JSON SCHEMA",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",

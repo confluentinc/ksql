@@ -175,7 +175,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         eof = true;
       } catch (final Exception exception) {
         LOGGER.error("", exception);
-        terminal.writer().println(ErrorMessageUtil.buildErrorMessage(exception));
+        terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+            exception.toString());
       }
       terminal.flush();
     }

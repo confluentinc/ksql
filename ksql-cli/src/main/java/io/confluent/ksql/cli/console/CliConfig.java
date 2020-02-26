@@ -27,6 +27,7 @@ import org.apache.kafka.common.config.ConfigException;
 public class CliConfig extends AbstractConfig {
 
   public static final String WRAP_CONFIG = "WRAP";
+  public static final String COLUMN_WIDTH_CONFIG = "COLUMN-WIDTH";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
@@ -37,6 +38,15 @@ public class CliConfig extends AbstractConfig {
           Importance.MEDIUM,
           "A value of 'OFF' will clip lines to ensure that query results do not exceed the "
               + "terminal width (i.e. each row will appear on a single line)."
+      )
+      .define(
+          COLUMN_WIDTH_CONFIG,
+          Type.INT,
+          0,
+          ConfigValidators.zeroOrPositive(),
+          Importance.MEDIUM,
+          "The width in characters of each column in tabular output. A value of '0' indicates "
+              + "column width should be based on terminal width and number of columns."
       );
 
   public CliConfig(final Map<?, ?> originals) {

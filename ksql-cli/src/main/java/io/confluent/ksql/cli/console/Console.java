@@ -323,7 +323,7 @@ public class Console implements Closeable {
 
   public void printError(final String shortMsg, final String fullMsg) {
     log.error(fullMsg);
-    writer().println(shortMsg);
+    terminal.printError(shortMsg);
   }
 
   public void printStreamedRow(final StreamedRow row) {
@@ -378,7 +378,7 @@ public class Console implements Closeable {
       case JSON:
         break;
       case TABULAR:
-        writer().println(TabularRow.createHeader(getWidth(), schema));
+        writer().println(TabularRow.createHeader(getWidth(), schema, config));
         break;
       default:
         throw new RuntimeException(String.format(

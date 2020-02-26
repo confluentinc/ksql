@@ -60,6 +60,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
+  private static final String TOPICS = "/topics";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
   private static final int MAX_ATTEMPTS = 3;
 
@@ -230,7 +231,7 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
-          () -> Request.Get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
+          () -> Request.Get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
               .setHeaders(headers())
               .socketTimeout(DEFAULT_TIMEOUT_MS)
               .connectTimeout(DEFAULT_TIMEOUT_MS)

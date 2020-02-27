@@ -240,7 +240,7 @@ public class InsertValuesExecutor {
   }
 
   private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
-    return "Failed to insert values into '" + insertValues.getTarget().name() + "'.";
+    return "Failed to insert values into '" + insertValues.getTarget().text() + "'.";
   }
 
   private void throwIfDisabled(final KsqlConfig config) {

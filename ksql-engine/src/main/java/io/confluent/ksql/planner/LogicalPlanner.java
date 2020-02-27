@@ -134,7 +134,7 @@ public class LogicalPlanner {
     final Into intoDataSource = analysis.getInto().get();
 
     return new KsqlStructuredDataOutputNode(
-        new PlanNodeId(intoDataSource.getName().name()),
+        new PlanNodeId(intoDataSource.getName().text()),
         sourcePlanNode,
         inputSchema,
         timestampColumn,
@@ -452,8 +452,8 @@ public class LogicalPlanner {
   ) {
     return schema.value().stream()
         .map(c -> SelectExpression.of(
-            ColumnName.generatedJoinColumnAlias(alias, c.ref()),
-            new UnqualifiedColumnReferenceExp(c.ref()))
+            ColumnName.generatedJoinColumnAlias(alias, c.name()),
+            new UnqualifiedColumnReferenceExp(c.name()))
         ).collect(Collectors.toList());
   }
 

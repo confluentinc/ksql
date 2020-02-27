@@ -76,9 +76,9 @@ public class StreamSelectKeyBuilderTest {
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.name()), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.text()), SqlTypes.BIGINT)
       // Note: Type of ROWKEY is old key's type:
-      .valueColumn(ColumnName.of(SchemaUtil.ROWKEY_NAME.name()), SqlTypes.STRING)
+      .valueColumn(ColumnName.of(SchemaUtil.ROWKEY_NAME.text()), SqlTypes.STRING)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);

@@ -142,7 +142,7 @@ public class RowGenerator {
     }
 
     final Struct keyStruct = new Struct(keySchema);
-    keyStruct.put(SchemaUtil.ROWKEY_NAME.name(), row.get(keyFieldIndex));
+    keyStruct.put(SchemaUtil.ROWKEY_NAME.text(), row.get(keyFieldIndex));
 
     return Pair.of(keyStruct, row);
   }

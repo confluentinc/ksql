@@ -107,8 +107,8 @@ public class SqlToJavaVisitorTest {
     sqlToJavaVisitor = new SqlToJavaVisitor(
         SCHEMA,
         functionRegistry,
-        ref -> ref.name().replace(".", "_"),
-        name -> name.name() + "_" + funCounter.getAndIncrement(),
+        ref -> ref.text().replace(".", "_"),
+        name -> name.text() + "_" + funCounter.getAndIncrement(),
         struct -> "schema" + structCounter.getAndIncrement()
     );
   }

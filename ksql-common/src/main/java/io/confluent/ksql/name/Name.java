@@ -39,7 +39,7 @@ public abstract class Name<T extends Name<?>> {
   // migrated to use Name instead of Strings to make
   // sure that we never lose type safety
   @JsonValue
-  public String name() {
+  public String text() {
     return name;
   }
 
@@ -51,7 +51,7 @@ public abstract class Name<T extends Name<?>> {
       return false;
     }
 
-    return name.startsWith(o.name());
+    return name.startsWith(o.text());
   }
 
   @Override
@@ -79,5 +79,4 @@ public abstract class Name<T extends Name<?>> {
   public String toString(final FormatOptions formatOptions) {
     return formatOptions.escape(name);
   }
-
 }

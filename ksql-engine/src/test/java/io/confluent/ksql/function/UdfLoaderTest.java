@@ -174,7 +174,7 @@ public class UdfLoaderTest {
         .getFunction(ImmutableList.of(schema));
 
     // Then:
-    assertThat(fun.name().name(), equalToIgnoringCase("floor"));
+    assertThat(fun.name().text(), equalToIgnoringCase("floor"));
   }
 
   @Test
@@ -498,7 +498,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(udfFactory, not(nullValue()));
     final KsqlScalarFunction function = udfFactory.getFunction(args);
-    assertThat(function.name().name(), equalToIgnoringCase("somefunction"));
+    assertThat(function.name().text(), equalToIgnoringCase("somefunction"));
 
   }
 

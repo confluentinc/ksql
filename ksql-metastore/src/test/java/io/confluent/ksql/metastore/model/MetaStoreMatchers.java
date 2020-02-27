@@ -128,7 +128,7 @@ public final class MetaStoreMatchers {
           (is(name), "field with name", "name") {
         @Override
         protected String featureValueOf(final Column actual) {
-          return actual.ref().name();
+          return actual.name().text();
         }
       };
     }
@@ -138,7 +138,7 @@ public final class MetaStoreMatchers {
           (is(name), "field with name", "name") {
         @Override
         protected String featureValueOf(final Column actual) {
-          return actual.ref().name();
+          return actual.name().text();
         }
       };
     }

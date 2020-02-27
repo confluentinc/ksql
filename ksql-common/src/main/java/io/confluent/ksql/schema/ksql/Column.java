@@ -33,7 +33,7 @@ public final class Column implements SimpleColumn {
     META
   }
 
-  private final ColumnName ref;
+  private final ColumnName name;
   private final SqlType type;
   private final Namespace namespace;
   private final int index;
@@ -47,17 +47,6 @@ public final class Column implements SimpleColumn {
       final SqlType type
   ) {
     return Column.of(name, type, Namespace.VALUE, Integer.MAX_VALUE);
-  }
-
-  /**
-   * @deprecated do not use in new code. Will be removed soon.
-   */
-  @Deprecated
-  public static Column legacySystemWindowColumn(
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return Column.of(name, type, Namespace.KEY, Integer.MAX_VALUE);
   }
 
   /**
@@ -78,12 +67,12 @@ public final class Column implements SimpleColumn {
   }
 
   private Column(
-      final ColumnName ref,
+      final ColumnName name,
       final SqlType type,
       final Namespace namespace,
       final int index
   ) {
-    this.ref = Objects.requireNonNull(ref, "name");
+    this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.namespace = Objects.requireNonNull(namespace, "namespace");
     this.index = index;
@@ -97,7 +86,7 @@ public final class Column implements SimpleColumn {
    * @return the name of the field, without any source / alias.
    */
   public ColumnName name() {
-    return ref;
+    return name;
   }
 
   /**
@@ -106,14 +95,6 @@ public final class Column implements SimpleColumn {
   @Override
   public SqlType type() {
     return type;
-  }
-
-  /**
-   * @return the column reference
-   */
-  @Override
-  public ColumnName ref() {
-    return ref;
   }
 
   /**
@@ -142,12 +123,12 @@ public final class Column implements SimpleColumn {
     return Objects.equals(index, that.index)
         && Objects.equals(namespace, that.namespace)
         && Objects.equals(type, that.type)
-        && Objects.equals(ref, that.ref);
+        && Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(index, namespace, ref, type);
+    return Objects.hash(index, namespace, name, type);
   }
 
   @Override
@@ -162,6 +143,6 @@ public final class Column implements SimpleColumn {
 
     final String fmtType = type.toString(formatOptions);
 
-    return ref.toString(formatOptions) + " " + fmtType + fmtNs;
+    return name.toString(formatOptions) + " " + fmtType + fmtNs;
   }
 }

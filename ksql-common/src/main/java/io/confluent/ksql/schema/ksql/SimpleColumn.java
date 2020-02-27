@@ -23,7 +23,7 @@ public interface SimpleColumn {
   /**
    * @return the column source and name
    */
-  ColumnName ref();
+  ColumnName name();
 
   /**
    * @return the type of the field.

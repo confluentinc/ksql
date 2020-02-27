@@ -143,7 +143,7 @@ public class UdtfLoader {
             method.getDeclaringClass(),
             outputType,
             udtfAnnotation.schemaProvider(),
-            functionName.name(),
+            functionName.text(),
             method.isVarArgs());
     return new KsqlTableFunction(
         schemaProviderFunction,

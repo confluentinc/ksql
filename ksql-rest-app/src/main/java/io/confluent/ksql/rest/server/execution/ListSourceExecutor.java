@@ -184,7 +184,7 @@ public final class ListSourceExecutor {
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
-          name.name()
+          name.text()
       ), statementText);
     }
 
@@ -221,7 +221,7 @@ public final class ListSourceExecutor {
         .filter(predicate)
         .map(q -> new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().name()),
+            ImmutableSet.of(q.getSinkName().text()),
             ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
             Optional.of(q.getState())
@@ -231,7 +231,7 @@ public final class ListSourceExecutor {
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {
     return new Stream(
-        dataSource.getName().name(),
+        dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getValueFormat().getFormat().name()
     );
@@ -239,7 +239,7 @@ public final class ListSourceExecutor {
 
   private static Table sourceTable(final KsqlTable<?> dataSource) {
     return new Table(
-        dataSource.getName().name(),
+        dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
         dataSource.getKsqlTopic().getKeyFormat().isWindowed()

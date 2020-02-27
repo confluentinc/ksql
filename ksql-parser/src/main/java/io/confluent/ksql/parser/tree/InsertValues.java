@@ -60,7 +60,7 @@ public class InsertValues extends Statement {
     if (!columns.isEmpty() && columns.size() != values.size()) {
       throw new KsqlException(
           "Expected number columns and values to match: "
-              + columns.stream().map(ColumnName::name).collect(Collectors.toList()) + ", "
+              + columns.stream().map(ColumnName::text).collect(Collectors.toList()) + ", "
               + values);
     }
   }

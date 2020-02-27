@@ -594,7 +594,7 @@ public class KsqlParserTest {
     final Query query = csas.getQuery();
     assertThat(query.getSelect().getSelectItems(), is(contains(new AllColumns(Optional.empty()))));
     assertThat(query.getWhere().get().toString().toUpperCase(), equalTo("(ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias().name().toUpperCase(), equalTo("ORDERS"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias().text().toUpperCase(), equalTo("ORDERS"));
   }
 
   @Test
@@ -640,7 +640,7 @@ public class KsqlParserTest {
     final Query query = (Query) statement;
     assertThat(query.getSelect().getSelectItems(), hasSize(2));
     assertThat(query.getWhere().get().toString(), equalTo("(ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias().name().toUpperCase(), equalTo("ORDERS"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias().text().toUpperCase(), equalTo("ORDERS"));
     Assert.assertTrue("window expression isn't present", query
         .getWindow().isPresent());
     assertThat(query.getWindow().get().toString().toUpperCase(),

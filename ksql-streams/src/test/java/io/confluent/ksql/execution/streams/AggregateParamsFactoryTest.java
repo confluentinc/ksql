@@ -46,8 +46,8 @@ public class AggregateParamsFactoryTest {
       .build();
 
   private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
-      INPUT_SCHEMA.value().get(0).ref(),
-      INPUT_SCHEMA.value().get(2).ref()
+      INPUT_SCHEMA.value().get(0).name(),
+      INPUT_SCHEMA.value().get(2).name()
   );
 
   private static final FunctionCall AGG0 = new FunctionCall(

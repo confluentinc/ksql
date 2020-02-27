@@ -46,10 +46,10 @@ public class TableRowsTableBuilder implements TableBuilder<TableRowsEntity> {
     final LogicalSchema schema = entity.getSchema();
 
     final Stream<String> keys = schema.key().stream()
-        .map(f -> f.ref().name() + " " + f.type() + " KEY");
+        .map(f -> f.name().text() + " " + f.type() + " KEY");
 
     final Stream<String> values = schema.value().stream()
-        .map(f -> f.ref().name() + " " + f.type());
+        .map(f -> f.name().text() + " " + f.type());
 
     return Stream.concat(keys, values)
         .collect(Collectors.toList());

@@ -192,7 +192,7 @@ class Analyzer {
       }
 
       final String topicName = sink.getProperties().getKafkaTopic()
-          .orElseGet(() -> topicPrefix + sink.getName().name());
+          .orElseGet(() -> topicPrefix + sink.getName().text());
 
       final KeyFormat keyFormat = buildKeyFormat();
       final Format format = getValueFormat(sink);
@@ -565,7 +565,7 @@ class Analyzer {
         }
 
         final String aliasPrefix = analysis.isJoin()
-            ? source.getAlias().name() + "_"
+            ? source.getAlias().text() + "_"
             : "";
 
         final LogicalSchema schema = source.getDataSource().getSchema();
@@ -589,7 +589,7 @@ class Analyzer {
               source.getAlias(),
               column.name());
 
-          final String alias = aliasPrefix + column.name().name();
+          final String alias = aliasPrefix + column.name().text();
 
           addSelectItem(selectItem, ColumnName.of(alias));
         }
@@ -613,7 +613,7 @@ class Analyzer {
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == FormatFactory.KAFKA)
           .map(AliasedDataSource::getAlias)
-          .map(SourceName::name)
+          .map(SourceName::text)
           .collect(Collectors.joining(", "));
 
       if (kafkaSources.isEmpty()) {

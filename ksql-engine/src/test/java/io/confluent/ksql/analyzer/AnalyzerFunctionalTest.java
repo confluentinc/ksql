@@ -196,7 +196,7 @@ public class AnalyzerFunctionalTest {
         .map(SelectExpression::getAlias)
         .collect(Collectors.toList());
 
-    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
+    assertThat(aliases.stream().map(ColumnName::text).collect(Collectors.toList()),
         contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
@@ -237,7 +237,7 @@ public class AnalyzerFunctionalTest {
         .map(SelectExpression::getAlias)
         .collect(Collectors.toList());
 
-    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
+    assertThat(aliases.stream().map(ColumnName::text).collect(Collectors.toList()),
         contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 

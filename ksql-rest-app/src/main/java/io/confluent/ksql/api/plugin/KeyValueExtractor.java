@@ -59,7 +59,7 @@ public final class KeyValueExtractor {
     final List<Column> valColumns = logicalSchema.value();
     final List<Object> vals = new ArrayList<>(valColumns.size());
     for (Column column : valColumns) {
-      final String colName = column.name().name();
+      final String colName = column.name().text();
       final Object val = values.getValue(colName);
       final Object coercedValue =
           val == null ? null : coerceObject(val, column.type(), sqlValueCoercer);

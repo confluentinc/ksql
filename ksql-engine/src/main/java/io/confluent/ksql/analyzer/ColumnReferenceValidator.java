@@ -84,18 +84,18 @@ class ColumnReferenceValidator {
       final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(sourceName, name);
       if (sourcesWithField.isEmpty()) {
         throw new KsqlException("Column '"
-            + sourceName.map(n -> n.name() + KsqlConstants.DOT + name.name())
-                .orElse(name.name())
+            + sourceName.map(n -> n.text() + KsqlConstants.DOT + name.text())
+                .orElse(name.text())
             + "' cannot be resolved.");
       }
 
       if (sourcesWithField.size() > 1) {
         final String possibilities = sourcesWithField.stream()
-            .map(source -> SchemaUtil.buildAliasedFieldName(source.name(), name.name()))
+            .map(source -> SchemaUtil.buildAliasedFieldName(source.text(), name.text()))
             .sorted()
             .collect(Collectors.joining(", "));
 
-        throw new KsqlException("Column '" + name.name() + "' is ambiguous. "
+        throw new KsqlException("Column '" + name.text() + "' is ambiguous. "
             + "Could be any of: " + possibilities);
       }
 

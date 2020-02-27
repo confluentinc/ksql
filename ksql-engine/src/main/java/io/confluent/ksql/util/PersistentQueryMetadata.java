@@ -120,4 +120,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public PersistenceSchemas getPersistenceSchemas() {
     return persistenceSchemas;
   }
+
+  @Override
+  public void stop() {
+    doClose(false);
+  }
 }

@@ -679,12 +679,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfCleanFalse() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
+        "create stream foo as select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    );
+    ).get(0);
     query.start();
 
     // When:
@@ -697,12 +697,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnEngineClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
+        "create stream foo as select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
-    );
+    ).get(0);
     query.start();
 
     // When:

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -86,5 +87,23 @@ public class TransientQueryMetadataTest {
     final InOrder inOrder = inOrder(rowQueue, kafkaStreams);
     inOrder.verify(rowQueue).close();
     inOrder.verify(kafkaStreams).close(any());
+  }
+
+  @Test
+  public void shouldCloseWithCleanUpTrue() {
+    // When:
+    query.close(true);
+
+    // Then:
+    verify(closeCallback).accept(query, true);
+  }
+
+  @Test
+  public void shouldCloseWithCleanUpTrueEvenIfPassedFalse() {
+    // When:
+    query.close(false);
+
+    // Then:
+    verify(closeCallback).accept(query, true);
   }
 }

@@ -104,8 +104,10 @@ public class TransientQueryMetadata extends QueryMetadata {
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
-    // Now safe to close:
-    super.close(cleanUp);
+    // Now safe to close
+    // We always pass cleanUp true, since transient queries should always have
+    // their internal topics cleaned up.
+    super.close(true);
     isRunning.set(false);
   }
 }

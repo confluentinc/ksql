@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
-<<<<<<< HEAD
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -41,12 +40,8 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 import java.util.ArrayList;
-import java.util.List;
-=======
-import java.io.InputStream;
-import java.net.SocketTimeoutException;
 import java.util.Collections;
->>>>>>> 0693542d5... added request properties to ksql request
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -225,7 +220,8 @@ public final class KsqlTarget {
       final Optional<Long> previousCommandSeqNum,
       final Function<Buffer, T> mapper
   ) {
-    final KsqlRequest ksqlRequest = createKsqlRequest(ksql, Collections.emptyMap(), previousCommandSeqNum);
+    final KsqlRequest ksqlRequest = createKsqlRequest(
+        ksql, Collections.emptyMap(), previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
     return executeSync(HttpMethod.POST, QUERY_PATH, ksqlRequest, resp -> pubRef.get(),
         (resp, vcf) -> {

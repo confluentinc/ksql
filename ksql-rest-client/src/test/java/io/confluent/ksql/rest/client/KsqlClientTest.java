@@ -54,6 +54,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public class KsqlClientTest {
     assertThat(server.getPath(), is("/ksql"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(getKsqlRequest(),
-        is(new KsqlRequest(ksql, properties, 123L)));
+        is(new KsqlRequest(ksql, properties, Collections.emptyMap(), 123L)));
   }
 
   @Test
@@ -161,7 +162,7 @@ public class KsqlClientTest {
     target.postKsqlRequest("some ksql", Optional.of(123L));
 
     // Then:
-    assertThat(getKsqlRequest().getStreamsProperties(), is(props));
+    assertThat(getKsqlRequest().getConfigOverrides(), is(props));
   }
 
   @Test
@@ -300,14 +301,15 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<List<StreamedRow>> response = target.postQueryRequest(sql, Optional.of(321L));
+    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
+        sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
 
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
-    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, 321L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
     assertThat(response.get(), is(expectedResponse));
   }
 
@@ -330,7 +332,7 @@ public class KsqlClientTest {
 
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
-    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, 321L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
 
     List<StreamedRow> rows = getElementsFromPublisher(numRows, response.getResponse());
     assertThat(rows, is(expectedResponse));
@@ -355,7 +357,7 @@ public class KsqlClientTest {
 
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
-    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, 321L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
 
     List<StreamedRow> rows = getElementsFromPublisher(numRows + 1, response.getResponse());
     assertThat(rows, is(expectedResponse));
@@ -374,7 +376,7 @@ public class KsqlClientTest {
         .postQueryRequestStreamed(sql, Optional.of(321L));
 
     // Then:
-    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, 321L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
 
     // When:
     response.getResponse().close();
@@ -401,7 +403,7 @@ public class KsqlClientTest {
 
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
-    assertThat(getKsqlRequest(), is(new KsqlRequest(command, properties, 123L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(command, properties, Collections.emptyMap(), 123L)));
 
     List<String> lines = getElementsFromPublisher(numRows, response.getResponse());
     assertThat(lines, is(expectedResponse));
@@ -420,7 +422,7 @@ public class KsqlClientTest {
         .postPrintTopicRequest(command, Optional.of(123L));
 
     // Then:
-    assertThat(getKsqlRequest(), is(new KsqlRequest(command, properties, 123L)));
+    assertThat(getKsqlRequest(), is(new KsqlRequest(command, properties, Collections.emptyMap(), 123L)));
 
     // When:
     response.getResponse().close();

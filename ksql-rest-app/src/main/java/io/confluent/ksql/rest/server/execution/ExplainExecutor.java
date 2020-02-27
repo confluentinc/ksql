@@ -105,14 +105,14 @@ public final class ExplainExecutor {
       metadata = sandbox.executeQuery(
           serviceContext,
           ConfiguredStatement.of(
-              preparedStatement, explain.getOverrides(), explain.getConfig()).cast()
+              preparedStatement, explain.getConfigOverrides(), explain.getConfig()).cast()
       );
     } else {
       metadata = sandbox
           .execute(
               serviceContext,
               ConfiguredStatement
-                  .of(preparedStatement, explain.getOverrides(), explain.getConfig()))
+                  .of(preparedStatement, explain.getConfigOverrides(), explain.getConfig()))
           .getQuery()
           .orElseThrow(() ->
               new IllegalStateException("The provided statement did not run a ksql query"));

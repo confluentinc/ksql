@@ -76,7 +76,7 @@ public final class ListPropertiesExecutor {
     final List<Property> mergedProperties = new ArrayList<>();
 
     statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides())
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides())
         .getAllConfigPropsWithSecretsObfuscated()
         .forEach((key, value) -> mergedProperties.add(new Property(key, "KSQL", value)));
 

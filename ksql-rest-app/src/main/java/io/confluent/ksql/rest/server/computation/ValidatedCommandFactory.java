@@ -103,11 +103,11 @@ public final class ValidatedCommandFactory {
         serviceContext,
         ConfiguredKsqlPlan.of(
             plan,
-            statement.getOverrides(),
+            statement.getConfigOverrides(),
             statement.getConfig()
         )
     );
     return Command.of(
-        ConfiguredKsqlPlan.of(plan, statement.getOverrides(), statement.getConfig()));
+        ConfiguredKsqlPlan.of(plan, statement.getConfigOverrides(), statement.getConfig()));
   }
 }

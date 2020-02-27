@@ -34,6 +34,7 @@ import java.io.Closeable;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -140,7 +141,8 @@ public class KsqlRestClient implements Closeable {
     if (properties != null) {
       target = target.properties(properties);
     }
-    return target.postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target.postQueryRequest(
+        ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(

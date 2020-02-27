@@ -36,6 +36,7 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -131,6 +132,7 @@ public final class RestIntegrationTestUtil {
     final KsqlRequest request = new KsqlRequest(
         sql,
         ImmutableMap.of(),
+        Collections.emptyMap(),
         cmdSeqNum.orElse(null)
     );
 

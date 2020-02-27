@@ -104,7 +104,7 @@ public final class ParserMatchers {
     return new TypeSafeMatcher<ConfiguredStatement<T>>() {
       @Override
       protected boolean matchesSafely(final ConfiguredStatement<T> item) {
-        return Objects.equals(properties, item.getOverrides())
+        return Objects.equals(properties, item.getConfigOverrides())
             && Objects.equals(config, item.getConfig());
       }
 
@@ -124,7 +124,7 @@ public final class ParserMatchers {
       @Override
       protected boolean matchesSafely(final ConfiguredStatement<T> item) {
         return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()))
-            && Objects.equals(properties, item.getOverrides())
+            && Objects.equals(properties, item.getConfigOverrides())
             && Objects.equals(config, item.getConfig());
       }
 

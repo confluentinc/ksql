@@ -201,21 +201,22 @@ public class StreamedQueryResource implements KsqlConfigurable {
           return handlePullQuery(
               securityContext.getServiceContext(),
               queryStmt,
-              request.getStreamsProperties()
+              request.getConfigOverrides(),
+              request.getRequestProperties()
           );
         }
 
         return handlePushQuery(
             securityContext.getServiceContext(),
             queryStmt,
-            request.getStreamsProperties()
+            request.getConfigOverrides()
         );
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
             securityContext.getServiceContext(),
-            request.getStreamsProperties(),
+            request.getConfigOverrides(),
             (PreparedStatement<PrintTopic>) statement);
       }
 
@@ -234,10 +235,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private Response handlePullQuery(
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> configOverrides,
+      final Map<String, Object> requestProperties
   ) {
     final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement,streamsProperties, ksqlConfig);
+        ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
     final TableRowsEntity entity = pullQueryExecutor
         .execute(configured, serviceContext);

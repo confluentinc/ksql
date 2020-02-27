@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonObject;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -170,15 +171,15 @@ public class KsqlClientUtilTest {
     // Given:
     Map<String, Object> props = new HashMap<>();
     props.put("auto.offset.reset", "latest");
-    KsqlRequest request = new KsqlRequest("some ksql", props, 21345L);
+    KsqlRequest request = new KsqlRequest("some ksql", props, Collections.emptyMap(), 21345L);
 
     // When:
     Buffer buff = KsqlClientUtil.serialize(request);
 
     // Then:
     assertThat(buff, is(notNullValue()));
-    String expectedJson = "{\"ksql\":\"some ksql\",\"streamsProperties\":{\"auto.offset.reset\":\""
-        + "latest\"},\"commandSequenceNumber\":21345}";
+    String expectedJson = "{\"ksql\":\"some ksql\",\"configOverrides\":{\"auto.offset.reset\":\""
+        + "latest\"},\"requestProperties\":{},\"commandSequenceNumber\":21345}";
     assertThat(new JsonObject(buff), is(new JsonObject(expectedJson)));
 
     // When:

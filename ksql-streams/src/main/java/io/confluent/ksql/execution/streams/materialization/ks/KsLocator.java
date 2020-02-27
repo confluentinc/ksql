@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -85,17 +86,26 @@ final class KsLocator implements Locator {
 
     final HostInfo activeHost = metadata.getActiveHost();
     final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
-    LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
 
-    final List<KsqlHostInfo> allHosts = Stream.concat(Stream.of(activeHost), standByHosts.stream())
-        .map(this::asKsqlHost)
-        .collect(Collectors.toList());
+    // If the lookup is for a forwarded request, only filter localhost
+    List<KsqlHostInfo> allHosts = null;
+    if (routingOptions.skipForwardRequest()) {
+      LOG.debug("Before filtering: Local host {} ", localHost);
+      allHosts = ImmutableList.of(new KsqlHostInfo(localHost.getHost(), localHost.getPort()));
+    } else {
+      LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
+      allHosts = Stream.concat(Stream.of(activeHost), standByHosts.stream())
+          .map(this::asKsqlHost)
+          .collect(Collectors.toList());
+    }
     final RoutingFilter routingFilter = routingFilterFactory.createRoutingFilter(routingOptions,
         allHosts, activeHost, applicationId, stateStoreName, metadata.getPartition());
 
-    // Filter out hosts based on active and liveness filters.
+    // Filter out hosts based on active, liveness and max lag filters.
     // The list is ordered by routing preference: active node is first, then standby nodes.
     // If heartbeat is not enabled, all hosts are considered alive.
+    // If the request is forwarded internally from another ksql server, only the max lag filter
+    // is applied.
     final List<KsqlNode> filteredHosts = allHosts.stream()
         .filter(routingFilter::filter)
         .map(this::asNode)

@@ -34,10 +34,19 @@ public interface SimpleKsqlClient {
       String sql
   );
 
+  /**
+   * Send pull query request to remote Ksql server.
+   * @param serverEndPoint the remote destination
+   * @param sql the pull query statement
+   * @param configOverrides the config overrides provided by the client
+   * @param requestProperties the request metadata provided by the server
+   * @return the result of pull query evaluation
+   */
   RestResponse<List<StreamedRow>> makeQueryRequest(
       URI serverEndPoint,
       String sql,
-      Map<String, ?> properties
+      Map<String, ?> configOverrides,
+      Map<String, ?> requestProperties
   );
 
   /**

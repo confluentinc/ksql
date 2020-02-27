@@ -152,7 +152,7 @@ public class InsertValuesExecutor {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
@@ -210,7 +210,7 @@ public class InsertValuesExecutor {
 
     final InsertValues insertValues = statement.getStatement();
     final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     try {
       final RowData row = extractRow(

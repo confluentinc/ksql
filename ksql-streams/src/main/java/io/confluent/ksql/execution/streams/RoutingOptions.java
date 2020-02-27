@@ -21,4 +21,6 @@ package io.confluent.ksql.execution.streams;
 public interface RoutingOptions {
   // The offset lag allowed from a given host
   long getOffsetLagAllowed();
+
+  boolean skipForwardRequest();
 }

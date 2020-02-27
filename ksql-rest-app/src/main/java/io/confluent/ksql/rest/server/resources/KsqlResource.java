@@ -250,7 +250,7 @@ public class KsqlResource implements KsqlConfigurable {
           SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
           new SessionProperties(
-              request.getStreamsProperties(),
+              request.getConfigOverrides(),
               localHost, 
               localUrl
           ),
@@ -261,7 +261,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           statements,
           new SessionProperties(
-              request.getStreamsProperties(),
+              request.getConfigOverrides(),
               localHost,
               localUrl
           )

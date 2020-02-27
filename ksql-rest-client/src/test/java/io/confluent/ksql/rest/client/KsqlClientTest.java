@@ -450,6 +450,39 @@ public class KsqlClientTest {
   }
 
   @Test
+  public void shouldFailToStartClientRequestWithNullKeystorePassword() throws Exception {
+    ksqlClient.close();
+    stopServer();
+
+    // Given:
+    startServerWithTls();
+    expectedEx.expect(KsqlRestClientException.class);
+    expectedEx
+        .expectMessage(
+            "java.io.IOException: Keystore was tampered with, or password was incorrect");
+
+    // When:
+    startClientWithTlsAndTruststorePassword(null);
+  }
+
+
+  @Test
+  public void shouldFailToStartClientRequestWithInvalidKeystorePassword() throws Exception {
+    ksqlClient.close();
+    stopServer();
+
+    // Given:
+    startServerWithTls();
+    expectedEx.expect(KsqlRestClientException.class);
+    expectedEx
+        .expectMessage(
+            "java.io.IOException: Keystore was tampered with, or password was incorrect");
+
+    // When:
+    startClientWithTlsAndTruststorePassword("iquwhduiqhwd");
+  }
+
+  @Test
   public void shouldFailtoMakeHttpRequestWhenServerIsHttps() throws Exception {
     ksqlClient.close();
     stopServer();
@@ -639,6 +672,10 @@ public class KsqlClientTest {
     for (int i = 0; i < numRows; i++) {
       String line = "this is row " + i;
       expectedResponse.add(line);
+      if (i % 2 == 0) {
+        // The server can include empty lines - we need to test this too
+        responseBuffer.appendString("\n");
+      }
       responseBuffer.appendString(line).appendString("\n");
     }
     server.setResponseBuffer(responseBuffer);
@@ -648,8 +685,15 @@ public class KsqlClientTest {
   private void startClientWithTls() {
     Map<String, String> props = new HashMap<>();
     props.putAll(ClientTrustStore.trustStoreProps());
-    props.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
     props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    createClient(props);
+  }
+
+  private void startClientWithTlsAndTruststorePassword(final String password) {
+    Map<String, String> props = new HashMap<>();
+    props.putAll(ClientTrustStore.trustStoreProps());
+    props.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
+    props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password);
     createClient(props);
   }
 

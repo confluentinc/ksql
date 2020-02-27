@@ -244,7 +244,8 @@ public final class KsqlTarget {
     try {
       response = vcf.get();
     } catch (Exception e) {
-      throw new KsqlRestClientException("Error issuing GET to KSQL server. path:" + path, e);
+      throw new KsqlRestClientException(
+          "Error issuing " + httpMethod + " to KSQL server. path:" + path, e);
     }
     return KsqlClientUtil.toRestResponse(response, path, mapper);
   }

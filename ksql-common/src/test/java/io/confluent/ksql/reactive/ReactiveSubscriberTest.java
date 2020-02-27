@@ -86,7 +86,7 @@ public class ReactiveSubscriberTest {
     assertThatEventually(afterSubScribeCalled::get, is(true));
     subscriber.onNext("record0");
     subscriber.onComplete();
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+    awaitLatch(latch);
     assertThat(wrongContext.get(), is(false));
     assertThat(handleValueCalled.get(), is(true));
   }

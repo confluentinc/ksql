@@ -308,6 +308,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     if (!queryResponse.isSuccessful()) {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
+      terminal.flush();
     } else {
       try (StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
         final StreamPublisher<StreamedRow> publisher = queryResponse.getResponse();
@@ -348,26 +349,29 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         makeKsqlRequest(printTopic, restClient::makePrintTopicRequest);
 
     if (topicResponse.isSuccessful()) {
-      final CompletableFuture<Void> future = new CompletableFuture<>();
-      final StreamPublisher<String> publisher = topicResponse.getResponse();
-      final PrintTopicSubscriber subscriber = new PrintTopicSubscriber(publisher.getContext(),
-          future);
-      topicResponse.getResponse().subscribe(subscriber);
 
-      terminal.handle(Terminal.Signal.INT, signal -> {
-        terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-        subscriber.close();
-        future.complete(null);
-      });
+      try (StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final StreamPublisher<String> publisher = topicResponse.getResponse();
+        final PrintTopicSubscriber subscriber = new PrintTopicSubscriber(publisher.getContext(),
+            future);
+        publisher.subscribe(subscriber);
 
-      try {
-        future.get();
-      } catch (Exception e) {
-        LOGGER.error("Unexpected exception in waiting for print topic completion", e);
-      } finally {
-        publisher.close();
+        terminal.handle(Terminal.Signal.INT, signal -> {
+          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+          subscriber.close();
+          future.complete(null);
+        });
+
+        try {
+          future.get();
+        } catch (Exception e) {
+          LOGGER.error("Unexpected exception in waiting for print topic completion", e);
+        } finally {
+          publisher.close();
+        }
+        terminal.writer().println("Topic printing ceased");
       }
-      terminal.writer().println("Topic printing ceased");
     } else {
       terminal.writer().println(topicResponse.getErrorMessage().getMessage());
     }
@@ -543,7 +547,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         return;
       }
       if (line.isEmpty()) {
-        close();
+        // Ignore it - the server can insert these
       } else {
         terminal.writer().println(line);
         terminal.flush();

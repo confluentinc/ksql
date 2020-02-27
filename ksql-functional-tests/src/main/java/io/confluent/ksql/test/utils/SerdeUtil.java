@@ -32,6 +32,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -66,7 +67,8 @@ public final class SerdeUtil {
     switch (format.name()) {
       case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
       case ProtobufFormat.NAME:   return new ValueSpecProtobufSerdeSupplier();
-      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier();
+      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false);
+      case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
       case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
       default:
@@ -86,7 +88,8 @@ public final class SerdeUtil {
         final org.apache.avro.Schema avroSchema =
             new org.apache.avro.Schema.Parser().parse(schemaString);
         return Optional.of(new AvroSchema(avroSchema));
-      } else if (format.equalsIgnoreCase(JsonFormat.NAME)) {
+      } else if (format.equalsIgnoreCase(JsonFormat.NAME)
+          || format.equalsIgnoreCase(JsonSchemaFormat.NAME)) {
         final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
         return Optional.of(new JsonSchema(schemaString));
       } else if (format.equalsIgnoreCase(ProtobufFormat.NAME)) {

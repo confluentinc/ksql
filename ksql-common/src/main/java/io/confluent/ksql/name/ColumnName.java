@@ -56,7 +56,7 @@ public class ColumnName extends Name<ColumnName> {
       final SourceName sourceName,
       final ColumnName ref
   ) {
-    return ColumnName.of(sourceName.name() + "_" + ref.name());
+    return ColumnName.of(sourceName.text() + "_" + ref.text());
   }
 
   @JsonCreator

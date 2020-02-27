@@ -253,7 +253,7 @@ public class SchemaKTableTest {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(table.getSchema().key());
     for (final Column c : table.getSchema().value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(table.getName(), c.ref()), c.type());
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(table.getName(), c.name()), c.type());
     }
     return builder.build();
   }

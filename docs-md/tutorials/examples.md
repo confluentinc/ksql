@@ -24,13 +24,17 @@ Prerequisite:
 Create a stream with three columns on the Kafka topic that is named
 `pageviews`.
 
-ksqlDB can't infer the topic's data format, so you must provide the format
+ksqlDB can't infer the topic values's data format, so you must provide the format
 of the values that are stored in the topic. In this example, the values
 format is `DELIMITED`.
 
+ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
+serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
+
 ```sql
 CREATE STREAM pageviews
-  (viewtime BIGINT,
+  (rowkey STRING KEY,
+   viewtime BIGINT,
    userid VARCHAR,
    pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews',

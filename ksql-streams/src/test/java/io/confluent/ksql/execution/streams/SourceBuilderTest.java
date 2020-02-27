@@ -101,13 +101,13 @@ public class SourceBuilderTest {
       .build();
 
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
-      .field(SchemaUtil.ROWKEY_NAME.name(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(SchemaUtil.ROWKEY_NAME.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
   private static final double A_KEY = 10.11;
 
   private static final Struct KEY = new Struct(KEY_SCHEMA)
-      .put(SchemaUtil.ROWKEY_NAME.name(), A_KEY);
+      .put(SchemaUtil.ROWKEY_NAME.text(), A_KEY);
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
       .withMetaAndKeyColsInValue(false);

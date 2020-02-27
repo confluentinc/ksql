@@ -27,6 +27,8 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -34,6 +36,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,9 +54,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class KsqlJsonDeserializerTest {
 
   private static final String SOME_TOPIC = "bob";
@@ -96,6 +101,14 @@ public class KsqlJsonDeserializerTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Parameters
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][]{{false}, {true}});
+  }
+
+  @Parameter
+  public boolean useSchemas;
 
   private Struct expectedOrder;
   private PersistenceSchema persistenceSchema;
@@ -161,7 +174,7 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfNotAnObject() {
     // Given:
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -279,7 +292,7 @@ public class KsqlJsonDeserializerTest {
         + "}").getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, addMagic(bytes));
 
     // Then:
     assertThat(result.schema(), is(persistenceSchema.ksqlSchema()));
@@ -292,7 +305,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -306,7 +319,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    final byte[] bytes = "24".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(IntNode.valueOf(23));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -330,7 +343,7 @@ public class KsqlJsonDeserializerTest {
 
     validCoercions.forEach(value -> {
 
-      final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      final byte[] bytes = addMagic(value.getBytes(StandardCharsets.UTF_8));
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -345,7 +358,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -369,7 +382,7 @@ public class KsqlJsonDeserializerTest {
 
     validCoercions.forEach(value -> {
 
-      final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      final byte[] bytes = addMagic(value.getBytes(StandardCharsets.UTF_8));
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -385,7 +398,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -410,7 +423,7 @@ public class KsqlJsonDeserializerTest {
 
     validCoercions.forEach(value -> {
 
-      final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      final byte[] bytes = addMagic(value.getBytes(StandardCharsets.UTF_8));
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -425,7 +438,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -453,7 +466,7 @@ public class KsqlJsonDeserializerTest {
 
     validCoercions.forEach((jsonValue, expectedValue) -> {
 
-      final byte[] bytes = jsonValue.getBytes(StandardCharsets.UTF_8);
+      final byte[] bytes = addMagic(jsonValue.getBytes(StandardCharsets.UTF_8));
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -475,7 +488,7 @@ public class KsqlJsonDeserializerTest {
 
     validCoercions.forEach(value -> {
 
-      final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      final byte[] bytes = addMagic(value.getBytes(StandardCharsets.UTF_8));
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -490,7 +503,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(DecimalUtil.builder(20, 19).build());
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -526,7 +539,7 @@ public class KsqlJsonDeserializerTest {
         .build()
     );
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -583,7 +596,7 @@ public class KsqlJsonDeserializerTest {
         .build()
     );
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expect(SerializationException.class);
@@ -632,7 +645,7 @@ public class KsqlJsonDeserializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonDeserializer(physicalSchema);
+    new KsqlJsonDeserializer(physicalSchema, false);
   }
 
   @Test
@@ -657,7 +670,7 @@ public class KsqlJsonDeserializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonDeserializer(physicalSchema);
+    new KsqlJsonDeserializer(physicalSchema, false);
   }
 
   @Test
@@ -698,7 +711,7 @@ public class KsqlJsonDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
     // Then:
     expectedException.expectCause(hasMessage(endsWith(", path: $")));
@@ -770,14 +783,22 @@ public class KsqlJsonDeserializerTest {
     this.persistenceSchema = PersistenceSchema
         .from((ConnectSchema) ksqlSchema, unwrap);
 
-    deserializer = new KsqlJsonDeserializer(persistenceSchema);
+    deserializer = new KsqlJsonDeserializer(persistenceSchema, useSchemas);
   }
 
-  private static byte[] serializeJson(final Object expected) {
+  private byte[] serializeJson(final Object expected) {
     try {
-      return OBJECT_MAPPER.writeValueAsBytes(expected);
+      return addMagic(OBJECT_MAPPER.writeValueAsBytes(expected));
     } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private byte[] addMagic(final byte[] json) {
+    if (useSchemas) {
+      return ArrayUtils.addAll(new byte[]{/*magic*/ 0x00, /*schema*/ 0x00, 0x00, 0x00, 0x01}, json);
+    } else {
+      return json;
     }
   }
 }

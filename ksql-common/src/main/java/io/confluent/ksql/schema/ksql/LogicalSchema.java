@@ -250,7 +250,7 @@ public final class LogicalSchema {
       }
 
       if (findColumnMatching(
-          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY)).and(withRef(c.ref()))
+          (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY)).and(withRef(c.name()))
           )).isPresent()) {
         continue;
       }
@@ -279,7 +279,7 @@ public final class LogicalSchema {
   }
 
   private static Predicate<Column> withRef(final ColumnName ref) {
-    return c -> c.ref().equals(ref);
+    return c -> c.name().equals(ref);
   }
 
   private static Predicate<Column> withName(final ColumnName name) {
@@ -298,7 +298,7 @@ public final class LogicalSchema {
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final Column column : columns) {
       final Schema colSchema = converter.toConnectSchema(column.type());
-      builder.field(column.ref().name(), colSchema);
+      builder.field(column.name().text(), colSchema);
     }
 
     return (ConnectSchema) builder.build();
@@ -331,7 +331,7 @@ public final class LogicalSchema {
     }
 
     public Builder keyColumn(final SimpleColumn col) {
-      return keyColumn(col.ref(), col.type());
+      return keyColumn(col.name(), col.type());
     }
 
     public Builder valueColumns(final Iterable<? extends SimpleColumn> column) {
@@ -340,7 +340,7 @@ public final class LogicalSchema {
     }
 
     public Builder valueColumn(final SimpleColumn col) {
-      return valueColumn(col.ref(), col.type());
+      return valueColumn(col.name(), col.type());
     }
 
     public Builder valueColumn(final ColumnName name, final SqlType type) {
@@ -367,14 +367,14 @@ public final class LogicalSchema {
     private void addColumn(final Column column) {
       switch (column.namespace()) {
         case KEY:
-          if (!seenKeys.add(column.ref())) {
+          if (!seenKeys.add(column.name())) {
             throw new KsqlException("Duplicate keys found in schema: " + column);
           }
           addImplicitRowKey = false;
           break;
 
         case VALUE:
-          if (!seenValues.add(column.ref())) {
+          if (!seenValues.add(column.name())) {
             throw new KsqlException("Duplicate values found in schema: " + column);
           }
           break;

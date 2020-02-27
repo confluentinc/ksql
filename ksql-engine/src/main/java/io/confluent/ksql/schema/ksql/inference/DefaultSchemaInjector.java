@@ -153,7 +153,7 @@ public class DefaultSchemaInjector implements Injector {
         .forEach(elements::add);
 
     valueColumns.stream()
-        .map(col -> new TableElement(Namespace.VALUE, col.ref(), new Type(col.type())))
+        .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
         .forEach(elements::add);
 
     return TableElements.of(elements);

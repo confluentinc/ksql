@@ -59,17 +59,17 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
   @Override
   public synchronized UdfFactory getUdfFactory(final FunctionName functionName) {
-    final UdfFactory udfFactory = udfs.get(functionName.name().toUpperCase());
+    final UdfFactory udfFactory = udfs.get(functionName.text().toUpperCase());
     if (udfFactory == null) {
       throw new KsqlException(
-          "Can't find any functions with the name '" + functionName.name() + "'");
+          "Can't find any functions with the name '" + functionName.text() + "'");
     }
     return udfFactory;
   }
 
   @Override
   public synchronized void addFunction(final KsqlScalarFunction ksqlFunction) {
-    final UdfFactory udfFactory = udfs.get(ksqlFunction.name().name().toUpperCase());
+    final UdfFactory udfFactory = udfs.get(ksqlFunction.name().text().toUpperCase());
     if (udfFactory == null) {
       throw new KsqlException("Unknown function factory: " + ksqlFunction.name());
     }
@@ -101,12 +101,12 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
   @Override
   public synchronized boolean isAggregate(final FunctionName functionName) {
-    return udafs.containsKey(functionName.name().toUpperCase());
+    return udafs.containsKey(functionName.text().toUpperCase());
   }
 
   @Override
   public synchronized boolean isTableFunction(final FunctionName functionName) {
-    return udtfs.containsKey(functionName.name().toUpperCase());
+    return udtfs.containsKey(functionName.text().toUpperCase());
   }
 
   @Override
@@ -115,7 +115,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.name().toUpperCase());
+    final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
     if (udafFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
@@ -130,7 +130,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       final FunctionName functionName,
       final List<SqlType> argumentTypes
   ) {
-    final TableFunctionFactory udtfFactory = udtfs.get(functionName.name().toUpperCase());
+    final TableFunctionFactory udtfFactory = udtfs.get(functionName.text().toUpperCase());
     if (udtfFactory == null) {
       throw new KsqlException("No table function with name " + functionName + " exists!");
     }
@@ -190,7 +190,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized AggregateFunctionFactory getAggregateFactory(
       final FunctionName functionName) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.name().toUpperCase());
+    final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
     if (udafFactory == null) {
       throw new KsqlException(
           "Can not find any aggregate functions with the name '" + functionName + "'");
@@ -202,7 +202,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized TableFunctionFactory getTableFunctionFactory(
       final FunctionName functionName) {
-    final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.name().toUpperCase());
+    final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.text().toUpperCase());
     if (tableFunctionFactory == null) {
       throw new KsqlException(
           "Can not find any table functions with the name '" + functionName + "'");
@@ -244,7 +244,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
         final KsqlScalarFunction ksqlFunction
     ) {
       final UdfMetadata metadata = new UdfMetadata(
-          ksqlFunction.name().name(),
+          ksqlFunction.name().text(),
           ksqlFunction.getDescription(),
           KsqlConstants.CONFLUENT_AUTHOR,
           "",

@@ -87,9 +87,9 @@ public class ConnectFormatTest {
 
     // Then:
     assertThat(result, hasSize(2));
-    assertThat(result.get(0).ref(), is(ColumnName.of("bob")));
+    assertThat(result.get(0).name(), is(ColumnName.of("bob")));
     assertThat(result.get(0).type(), is(SqlTypes.INTEGER));
-    assertThat(result.get(1).ref(), is(ColumnName.of("bert")));
+    assertThat(result.get(1).name(), is(ColumnName.of("bert")));
     assertThat(result.get(1).type(), is(SqlTypes.BIGINT));
   }
 

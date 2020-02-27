@@ -144,7 +144,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static String getSourceName(final PlanNode node) {
-    return node.getTheSourceNode().getAlias().name();
+    return node.getTheSourceNode().getAlias().text();
   }
 
   private static class JoinerFactory {

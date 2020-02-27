@@ -28,11 +28,11 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -83,7 +83,7 @@ public class ListQueriesExecutorTest {
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
-            ImmutableSet.of(metadata.getSinkName().name()),
+            ImmutableSet.of(metadata.getSinkName().text()),
             ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
             metadata.getQueryId(),
             Optional.of(metadata.getState())

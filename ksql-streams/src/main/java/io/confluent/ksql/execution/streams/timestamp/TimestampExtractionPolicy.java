@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
-import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 @JsonTypeInfo(
@@ -35,7 +34,7 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 })
 public interface TimestampExtractionPolicy {
 
-  TimestampExtractor create(int columnIndex);
+  KsqlTimestampExtractor create(int columnIndex);
 
   default ColumnName getTimestampField() {
     return null;

@@ -123,7 +123,7 @@ public class QueryAnalyzer {
         && analysis.getGroupByExpressions().isEmpty()) {
       final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
           .map(FunctionCall::getName)
-          .map(FunctionName::name)
+          .map(FunctionName::text)
           .collect(Collectors.joining(", "));
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);

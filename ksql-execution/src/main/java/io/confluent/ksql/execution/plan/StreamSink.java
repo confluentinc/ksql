@@ -16,9 +16,11 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
@@ -26,16 +28,20 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStep<KStreamHolder<K>>  source;
   private final Formats formats;
   private final String topicName;
+  private final Optional<TimestampColumn> timestampColumn;
 
   public StreamSink(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "topicName", required = true) final String topicName) {
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "timestampColumn") final Optional<TimestampColumn> timestampColumn
+  ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
+    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
   }
 
   public String getTopicName() {
@@ -60,6 +66,10 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
     return source;
   }
 
+  public Optional<TimestampColumn> getTimestampColumn() {
+    return timestampColumn;
+  }
+
   @Override
   public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitStreamSink(this);
@@ -77,12 +87,13 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
-        && Objects.equals(topicName, that.topicName);
+        && Objects.equals(topicName, that.topicName)
+        && Objects.equals(timestampColumn, that.timestampColumn);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, topicName);
+    return Objects.hash(properties, source, formats, topicName, timestampColumn);
   }
 }

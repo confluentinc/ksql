@@ -391,7 +391,7 @@ public class DefaultSchemaInjectorTest {
   public void shouldEscapeAvroSchemaThatHasReservedColumnName() {
     // Given:
     final SimpleColumn col0 = mock(SimpleColumn.class);
-    when(col0.ref()).thenReturn(ColumnName.of("CREATE"));
+    when(col0.name()).thenReturn(ColumnName.of("CREATE"));
     when(col0.type()).thenReturn(SqlTypes.BIGINT);
 
     when(schemaSupplier.getValueSchema(any(), any()))

@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
@@ -97,13 +98,15 @@ public class SchemaKStream<K> {
       final String kafkaTopicName,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final StreamSink<K> step = ExecutionStepFactory.streamSink(
         contextStacker,
         Formats.of(keyFormat, valueFormat, options),
         sourceStep,
-        kafkaTopicName
+        kafkaTopicName,
+        timestampColumn
     );
     return new SchemaKStream<>(
         step,
@@ -188,7 +191,7 @@ public class SchemaKStream<K> {
     final Optional<ColumnName> filtered = found
         // System columns can not be key fields:
         .filter(f -> !SchemaUtil.isSystemColumn(f.name()))
-        .map(Column::ref);
+        .map(Column::name);
 
     return KeyField.of(filtered);
   }
@@ -375,7 +378,7 @@ public class SchemaKStream<K> {
 
 
     final boolean namesMatch = existingKey
-        .map(kf -> kf.ref().equals(proposedKey.ref()))
+        .map(kf -> kf.name().equals(proposedKey.name()))
         .orElse(false);
 
     return namesMatch || isRowKey(columnName);
@@ -385,7 +388,7 @@ public class SchemaKStream<K> {
     // until we support structured keys, there will never be any key column other
     // than "ROWKEY" - furthermore, that key column is always prefixed at this point
     // unless it is a join, in which case every other source field is prefixed
-    return fieldName.equals(schema.key().get(0).ref());
+    return fieldName.equals(schema.key().get(0).name());
   }
 
   private static ColumnName fieldNameFromExpression(final Expression expression) {
@@ -434,7 +437,7 @@ public class SchemaKStream<K> {
 
     final Optional<ColumnName> newKeyCol = getSchema()
         .findValueColumn(aggregateKeyName)
-        .map(Column::ref);
+        .map(Column::name);
 
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,

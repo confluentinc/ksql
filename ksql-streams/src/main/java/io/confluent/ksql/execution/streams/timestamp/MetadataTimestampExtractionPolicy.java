@@ -33,8 +33,8 @@ public class MetadataTimestampExtractionPolicy implements TimestampExtractionPol
   }
 
   @Override
-  public TimestampExtractor create(final int columnIndex) {
-    return timestampExtractor;
+  public KsqlTimestampExtractor create(final int columnIndex) {
+    return new MetadataTimestampExtractor(timestampExtractor);
   }
 
   @Override

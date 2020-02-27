@@ -15,6 +15,9 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.name.ColumnName;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,11 +43,13 @@ public class StreamSinkTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSink<>(properties1, source1, formats1, "topic1"),
-            new StreamSink<>(properties1, source1, formats1, "topic1"))
-        .addEqualityGroup(new StreamSink<>(properties2, source1, formats1, "topic1"))
-        .addEqualityGroup(new StreamSink<>(properties1, source2, formats1, "topic1"))
-        .addEqualityGroup(new StreamSink<>(properties1, source1, formats2, "topic1"))
-        .addEqualityGroup(new StreamSink<>(properties1, source1, formats1, "topic2"));
+            new StreamSink<>(properties1, source1, formats1, "topic1", Optional.empty()),
+            new StreamSink<>(properties1, source1, formats1, "topic1", Optional.empty()))
+        .addEqualityGroup(new StreamSink<>(properties2, source1, formats1, "topic1", Optional.empty()))
+        .addEqualityGroup(new StreamSink<>(properties1, source2, formats1, "topic1", Optional.empty()))
+        .addEqualityGroup(new StreamSink<>(properties1, source1, formats2, "topic1", Optional.empty()))
+        .addEqualityGroup(new StreamSink<>(properties1, source1, formats1, "topic2", Optional.empty()))
+        .addEqualityGroup(new StreamSink<>(properties1, source1, formats1, "topic1",
+            Optional.of(new TimestampColumn(ColumnName.of("c1"), Optional.of("BIGINT")))));
   }
 }

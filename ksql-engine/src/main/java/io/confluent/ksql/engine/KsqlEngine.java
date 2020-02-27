@@ -264,8 +264,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     final String applicationId = query.getQueryApplicationId();
 
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
-      throw new IllegalStateException("query not stopped."
-          + " id " + applicationId + ", state: " + query.getState());
+      log.warn(
+          "Unregistering query that has not terminated. "
+              + "This may happen when streams threads are hung. State: " + query.getState()
+      );
     }
 
     if (!allLiveQueries.remove(query)) {

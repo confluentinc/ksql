@@ -158,8 +158,8 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldExposeSources() {
-    assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect(Collectors.toSet())));
-    assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect( Collectors.toSet())));
+    assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::text).collect(Collectors.toSet())));
+    assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::text).collect( Collectors.toSet())));
   }
 
   @Test

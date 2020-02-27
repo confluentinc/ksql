@@ -63,7 +63,7 @@ class UdafFactoryInvoker implements FunctionSignature {
     if (!Modifier.isStatic(method.getModifiers())) {
       throw new KsqlException("UDAF factory methods must be static " + method);
     }
-    final UdafTypes types = new UdafTypes(method, functionName.name(), typeParser);
+    final UdafTypes types = new UdafTypes(method, functionName.text(), typeParser);
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
     this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
@@ -83,7 +83,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(
-            functionName.name(),
+            functionName.text(),
             initArgs.udafIndex(),
             udaf,
             SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
@@ -94,7 +94,7 @@ class UdafFactoryInvoker implements FunctionSignature {
             method.getName());
       } else {
         function = new UdafAggregateFunction(
-            functionName.name(),
+            functionName.text(),
             initArgs.udafIndex(),
             udaf,
             SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),

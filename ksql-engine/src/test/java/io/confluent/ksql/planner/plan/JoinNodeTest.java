@@ -647,14 +647,14 @@ public class JoinNodeTest {
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "C0"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "L1"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "C0"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "R1"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.name() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "C0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "L1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "ROWKEY"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "C0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "R1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_" + "ROWKEY"), SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -794,7 +794,7 @@ public class JoinNodeTest {
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Column field = schema.findValueColumn(column.ref()).get();
+    final Column field = schema.findValueColumn(column.name()).get();
     return field.name();
   }
 
@@ -815,7 +815,7 @@ public class JoinNodeTest {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(schema.key());
     for (final Column c : schema.value()) {
-      builder.valueColumn(ColumnName.generatedJoinColumnAlias(alias, c.ref()), c.type());
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(alias, c.name()), c.type());
     }
     return builder.build();
   }

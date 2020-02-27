@@ -36,7 +36,7 @@ public final class UdfLoaderUtil {
 
   public static UdfFactory createTestUdfFactory(final KsqlScalarFunction udf) {
     final UdfMetadata metadata = new UdfMetadata(
-        udf.name().name(),
+        udf.name().text(),
         udf.getDescription(),
         "Test Author",
         "",

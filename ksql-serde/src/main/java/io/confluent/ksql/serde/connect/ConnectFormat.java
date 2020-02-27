@@ -62,7 +62,7 @@ public abstract class ConnectFormat implements Format {
   public ParsedSchema toParsedSchema(final List<SimpleColumn> columns) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     columns.forEach(col -> schemaBuilder.field(
-        col.ref().name(),
+        col.name().text(),
         SchemaConverters.sqlToConnectConverter().toConnectSchema(col.type()))
     );
 
@@ -130,7 +130,7 @@ public abstract class ConnectFormat implements Format {
     }
 
     @Override
-    public ColumnName ref() {
+    public ColumnName name() {
       return name;
     }
 

@@ -197,7 +197,7 @@ public final class TestCaseBuilderUtil {
     }
 
     @Override
-    public ColumnName ref() {
+    public ColumnName name() {
       return name;
     }
 

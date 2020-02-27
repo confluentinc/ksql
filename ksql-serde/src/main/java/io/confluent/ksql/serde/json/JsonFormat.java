@@ -36,7 +36,7 @@ public class JsonFormat extends ConnectFormat {
 
   @Override
   public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlJsonSerdeFactory();
+    return new KsqlJsonSerdeFactory(false);
   }
 
   protected Schema toConnectSchema(final ParsedSchema schema) {

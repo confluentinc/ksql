@@ -46,7 +46,7 @@ public final class TabularRow {
   ) {
     final List<String> headings = schema.columns().stream()
         .map(Column::name)
-        .map(ColumnName::name)
+        .map(ColumnName::text)
         .collect(Collectors.toList());
 
     return new TabularRow(

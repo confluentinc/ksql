@@ -185,6 +185,31 @@
       }
     },
     {
+      "name": "validate without value elements OK - JSON_SR SCHEMA",
+      "statements": [
+        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "format": "JSON"
+        },
+        {
+          "name": "OUTPUT",
+          "format": "JSON"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "validate with elements OK",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
@@ -258,7 +283,7 @@
     },
     {
       "name": "validate boolean elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 BOOLEAN) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -288,7 +313,7 @@
     },
     {
       "name": "validate int elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -318,7 +343,7 @@
     },
     {
       "name": "validate bigint elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -348,13 +373,23 @@
     },
     {
       "name": "validate double elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [{"topic": "input", "value": {"V0": 10.1}}],
       "outputs": [{"topic": "OUTPUT", "value": {"V0": 10.1}}]
+    },
+    {
+      "name": "validate decimal elements OK",
+      "format": ["JSON", "JSON_SR"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 DECIMAL(15,14)) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": 1.12345678901234}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 1.12345678901234}}]
     },
     {
       "name": "validate string elements OK",
@@ -368,7 +403,7 @@
     },
     {
       "name": "validate string elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 STRING) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -401,7 +436,7 @@
     },
     {
       "name": "validate array element OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -467,7 +502,7 @@
     },
     {
       "name": "validate struct element OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "JSON_SR", "AVRO", "PROTOBUF"],
       "statements": [
         "CREATE STREAM INPUT (V0 STRUCT<F0 STRING, F1 INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

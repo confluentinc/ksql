@@ -532,7 +532,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
-          tableElement.getName().name(),
+          tableElement.getName().text(),
           SchemaConverters.sqlToConnectConverter().toConnectSchema(tableElement.getType().getSqlType())
       );
     }

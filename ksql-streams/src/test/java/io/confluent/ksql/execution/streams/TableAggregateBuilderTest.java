@@ -87,8 +87,8 @@ public class TableAggregateBuilderTest {
       .valueColumn(ColumnName.of("RESULT1"), SqlTypes.STRING)
       .build();
   private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
-      INPUT_SCHEMA.value().get(0).ref(),
-      INPUT_SCHEMA.value().get(1).ref()
+      INPUT_SCHEMA.value().get(0).name(),
+      INPUT_SCHEMA.value().get(1).name()
   );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,

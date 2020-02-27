@@ -946,7 +946,7 @@ public final class PullQueryExecutor {
 
   private Struct asKeyStruct(final Object rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
+    key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
     return key;
   }
 

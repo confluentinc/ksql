@@ -142,13 +142,15 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final Formats formats,
       final ExecutionStep<KStreamHolder<K>> source,
-      final String topicName
+      final String topicName,
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSink<>(new ExecutionStepPropertiesV1(queryContext),
         source,
         formats,
-        topicName
+        topicName,
+        timestampColumn
     );
   }
 
@@ -244,14 +246,16 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final Formats formats,
-      final String topicName
+      final String topicName,
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSink<>(
         new ExecutionStepPropertiesV1(queryContext),
         source,
         formats,
-        topicName
+        topicName,
+        timestampColumn
     );
   }
 

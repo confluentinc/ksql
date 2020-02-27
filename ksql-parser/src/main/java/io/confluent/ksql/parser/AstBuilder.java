@@ -1164,7 +1164,7 @@ public class AstBuilder {
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
       if (sources.isPresent() && !sources.get().contains(name)) {
-        throw new KsqlException("'" + name.name() + "' is not a valid stream/table name or alias.");
+        throw new KsqlException("'" + name.text() + "' is not a valid stream/table name or alias.");
       }
     }
 

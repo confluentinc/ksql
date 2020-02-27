@@ -171,7 +171,7 @@ public final class AstSanitizer {
     ) {
       final DataSource source = metaStore.getSource(name);
       if (source == null) {
-        throw new InvalidColumnReferenceException(location, name.name() + " does not exist.");
+        throw new InvalidColumnReferenceException(location, name.text() + " does not exist.");
       }
 
       return source;

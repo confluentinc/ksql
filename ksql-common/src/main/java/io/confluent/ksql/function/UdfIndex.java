@@ -292,7 +292,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     @Override
     public String toString() {
-      return value != null ? value.name().name() : "EMPTY";
+      return value != null ? value.name().text() : "EMPTY";
     }
 
     int compare(final Node other) {

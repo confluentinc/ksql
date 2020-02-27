@@ -33,8 +33,10 @@ import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetadata {
+public abstract class QueryMetadata {
+
   private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
+
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
@@ -115,14 +117,35 @@ public class QueryMetadata {
     return sourceNames;
   }
 
+
+  /**
+   * Stops the query without cleaning up the external resources
+   * so that it can be resumed when we call {@link #start()}.
+   *
+   * <p>NOTE: {@link QueuedQueryMetadata} overrides this method
+   * since any time a transient query is stopped the external resources
+   * should be cleaned up.</p>
+   *
+   * @see #close()
+   */
+  public abstract void stop();
+
+  /**
+   * Closes the {@code QueryMetadata} and cleans up any of
+   * the resources associated with it (e.g. internal topics,
+   * schemas, etc...).
+   *
+   * @see QueryMetadata#stop()
+   */
   public void close() {
+    doClose(true);
+  }
+
+  protected void doClose(final boolean cleanUp) {
     kafkaStreams.close();
-    if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
+    if (cleanUp) {
       kafkaStreams.cleanUp();
       kafkaTopicClient.deleteInternalTopics(queryApplicationId);
-    } else {
-      log.error("Could not clean up the query with application id: {}. Query status is: {}",
-                queryApplicationId, kafkaStreams.state());
     }
     queryStateListener.ifPresent(QueryStateListener::close);
     StreamsErrorCollector.notifyApplicationClose(queryApplicationId);

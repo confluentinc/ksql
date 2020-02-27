@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static java.util.Collections.emptyMap;
 import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
@@ -23,7 +24,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,6 +40,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -739,6 +740,39 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
     handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+  }
+
+  @Test
+  public void shouldDoIdempotentTerminate() {
+    // Given:
+    final String queryStatement = "a persistent query";
+
+    final TerminateQuery terminate = mock(TerminateQuery.class);
+    expect(terminate.getQueryId()).andStubReturn(new QueryId("foo"));
+
+    expect(mockParser.parseSingleStatement(queryStatement))
+        .andStubReturn(terminate);
+
+    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+    query.close();
+    expectLastCall();
+
+    expect(mockEngine.terminateQuery(new QueryId("foo"), true)).andReturn(true).once();
+    expect(mockEngine.terminateQuery(new QueryId("foo"), true)).andReturn(false).once();
+
+    replayAll();
+    final QueuedCommand cmd = new QueuedCommand(
+        new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+        new Command(queryStatement, emptyMap(), emptyMap()),
+        Optional.empty()
+    );
+
+    // When:
+    statementExecutorWithMocks.handleStatement(cmd);
+    statementExecutorWithMocks.handleStatement(cmd);
+
+    // Then:
+    verify(mockParser, mockEngine);
   }
 
   private void tryDropThatViolatesReferentialIntegrity() {

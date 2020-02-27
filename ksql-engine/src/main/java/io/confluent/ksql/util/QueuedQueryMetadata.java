@@ -76,6 +76,11 @@ public class QueuedQueryMetadata extends QueryMetadata {
   }
 
   @Override
+  public void stop() {
+    close();
+  }
+
+  @Override
   public void close() {
     super.close();
     isRunning.set(false);

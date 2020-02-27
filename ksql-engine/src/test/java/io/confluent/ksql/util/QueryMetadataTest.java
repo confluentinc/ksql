@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -59,9 +60,11 @@ public class QueryMetadataTest {
   @Mock
   private Consumer<QueryMetadata> closeCallback;
   private QueryMetadata query;
+  private boolean cleanUp;
 
   @Before
   public void setup() {
+    cleanUp = false;
     query = new QueryMetadata(
         "foo",
         kafkaStreams,
@@ -72,8 +75,12 @@ public class QueryMetadataTest {
         topoplogy,
         Collections.emptyMap(),
         Collections.emptyMap(),
-        closeCallback
-    );
+        closeCallback) {
+      @Override
+      public void stop() {
+        doClose(cleanUp);
+      }
+    };
   }
 
   @Test
@@ -136,6 +143,24 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldNotCallCloseCallbackOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verifyNoMoreInteractions(closeCallback);
+  }
+
+  @Test
+  public void shouldCallKafkaStreamsCloseOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams).close();
+  }
+
+  @Test
   public void shouldCleanUpKStreamsAppAfterCloseOnClose() {
     // When:
     query.close();
@@ -144,6 +169,27 @@ public class QueryMetadataTest {
     final InOrder inOrder = inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams).close();
     inOrder.verify(kafkaStreams).cleanUp();
+  }
+
+  @Test
+  public void shouldNotCleanUpKStreamsAppOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams, never()).cleanUp();
+  }
+
+  @Test
+  public void shouldCallCleanupOnStopIfCleanup() {
+    // Given:
+    cleanUp = true;
+
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams).cleanUp();
   }
 
   @Test

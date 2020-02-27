@@ -136,4 +136,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   ) {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
+
+  @Override
+  public void stop() {
+    doClose(false);
+  }
 }

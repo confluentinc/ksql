@@ -18,7 +18,9 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 
+import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.http.ClientAuth;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -144,6 +146,7 @@ public class ApiServerConfig extends AbstractConfig {
           TLS_CLIENT_AUTH_REQUIRED,
           Type.STRING,
           DEFAULT_TLS_CLIENT_AUTH_REQUIRED,
+          ConfigValidators.enumValues(ClientAuth.class),
           Importance.MEDIUM,
           TLS_CLIENT_AUTH_REQUIRED_DOC)
       .define(
@@ -165,5 +168,7 @@ public class ApiServerConfig extends AbstractConfig {
     super(CONFIG_DEF, map);
   }
 
-
+  public ClientAuth getClientAuth() {
+    return ClientAuth.valueOf(getString(TLS_CLIENT_AUTH_REQUIRED).toUpperCase());
+  }
 }

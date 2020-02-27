@@ -21,7 +21,6 @@ import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
-import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -33,7 +32,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +53,7 @@ public class Server {
   private final int maxPushQueryCount;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
-  private AtomicInteger actualPort = new AtomicInteger(-1);
+  private final AtomicInteger actualPort = new AtomicInteger(-1);
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints) {
     this.vertx = Objects.requireNonNull(vertx);
@@ -148,7 +146,7 @@ public class Server {
     return actualPort.get();
   }
 
-  private HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
+  private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(apiServerConfig.getString(ApiServerConfig.LISTEN_HOST))
@@ -168,27 +166,9 @@ public class Server {
                   .setPath(apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PATH))
                   .setPassword(
                       apiServerConfig.getString(ApiServerConfig.TLS_TRUST_STORE_PASSWORD)))
-          .setClientAuth(
-              toClientAuth(apiServerConfig.getString(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED)));
+          .setClientAuth(apiServerConfig.getClientAuth());
     }
 
     return options;
   }
-
-  private static ClientAuth toClientAuth(final String val) {
-    switch (val) {
-      case "none":
-        return ClientAuth.NONE;
-      case "request":
-        return ClientAuth.REQUEST;
-      case "required":
-        return ClientAuth.REQUIRED;
-      default:
-        throw new ConfigException(
-            "Invalid value for %s (%s) should be one of 'none', 'request' or 'required'",
-            ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, val);
-    }
-  }
-
-
 }

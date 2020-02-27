@@ -306,10 +306,8 @@ public class StatementExecutor {
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
     final QueryId queryId = terminateQuery.getStatement().getQueryId();
 
-    ksqlEngine.getPersistentQuery(queryId)
-        .orElseThrow(() ->
-            new KsqlException(String.format("No running query with id %s was found", queryId)))
-        .close();
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId);
+    query.ifPresent(PersistentQueryMetadata::close);
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(

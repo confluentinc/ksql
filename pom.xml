@@ -29,7 +29,7 @@
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>0.7.0</version>
+    <version>0.7.1-SNAPSHOT</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>

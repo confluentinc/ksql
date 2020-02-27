@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -673,6 +674,63 @@ public class KsqlEngineTest {
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.start();
+
+    // When:
+    ksqlEngine.close();
+
+    // Then:
+    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
+    // Given:
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.get(0).start();
+
+    // When:
+    ksqlEngine.close();
+
+    // Then (there are no transient queries, so no internal topics should be deleted):
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueries() {
+    // Given:
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    // Then (there are no transient queries, so no internal topics should be deleted):
+    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test

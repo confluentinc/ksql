@@ -630,12 +630,11 @@ public final class IntegrationTestHarness extends ExternalResource {
 
   public void ensureSchema(
       final String topicName,
-      final PhysicalSchema schema,
-      final KsqlConfig ksqlConfig) {
+      final PhysicalSchema schema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
       final org.apache.avro.Schema avroSchema = AvroSchemas
-          .getAvroSchema(schema.valueSchema(), "test_" + topicName, ksqlConfig);
+          .getAvroSchema(schema.valueSchema(), "test_" + topicName);
 
       srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
     } catch (final Exception e) {

@@ -42,11 +42,15 @@ public class ProtobufFormat extends ConnectFormat {
     return new ProtobufSerdeFactory();
   }
 
+  @Override
   protected Schema toConnectSchema(final ParsedSchema schema) {
     return protobufData.toConnectSchema((ProtobufSchema) schema);
   }
 
-  protected ParsedSchema fromConnectSchema(final Schema schema) {
-    return protobufData.fromConnectSchema(schema);
+  @Override
+  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+    // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using
+    // default naming.
+    return new ProtobufData().fromConnectSchema(schema);
   }
 }

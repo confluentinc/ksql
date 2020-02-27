@@ -101,7 +101,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
+    final AvroDataTranslator translator = createAvroTranslator(schema);
 
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
@@ -118,7 +118,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
+    final AvroDataTranslator translator = createAvroTranslator(schema);
 
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
@@ -126,10 +126,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
     return new KsqlConnectDeserializer(avroConverter, translator);
   }
 
-  private AvroDataTranslator createAvroTranslator(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig
-  ) {
+  private AvroDataTranslator createAvroTranslator(final PersistenceSchema schema) {
     return new AvroDataTranslator(schema.serializedSchema(), fullSchemaName);
   }
 

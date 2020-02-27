@@ -39,11 +39,13 @@ public class JsonFormat extends ConnectFormat {
     return new KsqlJsonSerdeFactory(false);
   }
 
+  @Override
   protected Schema toConnectSchema(final ParsedSchema schema) {
     return jsonData.toConnectSchema((JsonSchema) schema);
   }
 
-  protected ParsedSchema fromConnectSchema(final Schema schema) {
+  @Override
+  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
     return jsonData.fromConnectSchema(schema);
   }
 }

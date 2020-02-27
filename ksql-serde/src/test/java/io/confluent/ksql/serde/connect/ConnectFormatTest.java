@@ -105,7 +105,7 @@ public class ConnectFormatTest {
     }
 
     @Override
-    protected ParsedSchema fromConnectSchema(final Schema schema) {
+    protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
       return parsedSchema;
     }
 

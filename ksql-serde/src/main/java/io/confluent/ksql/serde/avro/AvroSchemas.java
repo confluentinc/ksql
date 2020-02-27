@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -33,8 +32,8 @@ public final class AvroSchemas {
 
   public static org.apache.avro.Schema getAvroSchema(
       final PersistenceSchema schema,
-      final String name,
-      final KsqlConfig ksqlConfig) {
+      final String name
+  ) {
     return new AvroData(0).fromConnectSchema(
         getAvroCompatibleConnectSchema(schema.serializedSchema(), name)
     );

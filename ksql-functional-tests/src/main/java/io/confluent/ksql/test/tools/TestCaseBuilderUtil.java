@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -150,9 +151,11 @@ public final class TestCaseBuilderUtil {
             .map(e -> new TestColumn(e.getName(), e.getType().getSqlType()))
             .collect(Collectors.toList());
 
+        final FormatInfo formatInfo = valueFormat.getFormatInfo();
+
         valueSchema = valueColumns.isEmpty()
             ? Optional.empty()
-            : Optional.of(valueFormat.getFormat().toParsedSchema(valueColumns));
+            : Optional.of(valueFormat.getFormat().toParsedSchema(valueColumns, formatInfo));
       } else {
         valueSchema = Optional.empty();
       }

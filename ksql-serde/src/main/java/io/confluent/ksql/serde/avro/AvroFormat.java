@@ -51,19 +51,29 @@ public final class AvroFormat extends ConnectFormat {
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    final String schemaFullName = info
-        .getProperties()
-        .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
+  public KsqlSerdeFactory getSerdeFactory(final FormatInfo formatInfo) {
+    final String schemaFullName = getSchemaName(formatInfo);
     return new KsqlAvroSerdeFactory(schemaFullName);
   }
 
+  @Override
   protected Schema toConnectSchema(final ParsedSchema schema) {
     return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
   }
 
-  protected ParsedSchema fromConnectSchema(final Schema schema) {
-    return new AvroSchema(avroData.fromConnectSchema(schema));
+  @Override
+  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+    final String schemaFullName = getSchemaName(formatInfo);
+
+    final Schema avroCompatibleSchema = AvroSchemas
+        .getAvroCompatibleConnectSchema(schema, schemaFullName);
+
+    return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));
+  }
+
+  private static String getSchemaName(final FormatInfo info) {
+    return info
+        .getProperties()
+        .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
   }
 }

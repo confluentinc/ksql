@@ -22,16 +22,23 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.serde.FormatInfo;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+/**
+ * Base class for formats that internally leverage Connect's data model, i.e. it's {@link Schema}
+ * type.
+ *
+ * <p>Subclasses need only worry about conversion between the `ParsedSchema` returned from the
+ * Schema Registry and Connect's {@link Schema} type. This class handles the conversion between
+ * Connect's {@link Schema} type and KSQL's {@link SimpleColumn}.
+ */
 public abstract class ConnectFormat implements Format {
 
   private final Function<Schema, Schema> toKsqlTransformer;
@@ -59,61 +66,27 @@ public abstract class ConnectFormat implements Format {
         .collect(Collectors.toList());
   }
 
-  public ParsedSchema toParsedSchema(final List<SimpleColumn> columns) {
+  public ParsedSchema toParsedSchema(
+      final List<SimpleColumn> columns,
+      final FormatInfo formatInfo
+  ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     columns.forEach(col -> schemaBuilder.field(
         col.name().text(),
         SchemaConverters.sqlToConnectConverter().toConnectSchema(col.type()))
     );
 
-    final Schema connectSchema = ensureNamed(schemaBuilder.build());
-    return fromConnectSchema(connectSchema);
+    return fromConnectSchema(schemaBuilder.build(), formatInfo);
   }
 
   protected abstract Schema toConnectSchema(ParsedSchema schema);
 
-  protected abstract ParsedSchema fromConnectSchema(Schema schema);
+  protected abstract ParsedSchema fromConnectSchema(Schema schema, FormatInfo formatInfo);
 
   private static SimpleColumn toColumn(final Field field) {
     final ColumnName name = ColumnName.of(field.name());
     final SqlType type = SchemaConverters.connectToSqlConverter().toSqlType(field.schema());
     return new ConnectColumn(name, type);
-  }
-
-  private static Schema ensureNamed(final Schema schema) {
-    final SchemaBuilder builder;
-    switch (schema.type()) {
-      case BYTES:
-        DecimalUtil.requireDecimal(schema);
-        builder = DecimalUtil.builder(schema);
-        break;
-      case ARRAY:
-        builder = SchemaBuilder.array(ensureNamed(schema.valueSchema()));
-        break;
-      case MAP:
-        builder = SchemaBuilder.map(
-            Schema.STRING_SCHEMA,
-            ensureNamed(schema.valueSchema())
-        );
-        break;
-      case STRUCT:
-        builder = SchemaBuilder.struct();
-        if (schema.name() == null) {
-          builder.name("TestSchema" + UUID.randomUUID().toString().replace("-", ""));
-        } else {
-          builder.name(schema.name());
-        }
-        for (final Field field : schema.fields()) {
-          builder.field(field.name(), ensureNamed(field.schema()));
-        }
-        break;
-      default:
-        builder = SchemaBuilder.type(schema.type());
-    }
-    if (schema.isOptional()) {
-      builder.optional();
-    }
-    return builder.build();
   }
 
   private static final class ConnectColumn implements SimpleColumn {

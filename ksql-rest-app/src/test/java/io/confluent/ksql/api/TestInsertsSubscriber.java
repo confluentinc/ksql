@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.api;
 
-import io.confluent.ksql.api.server.BaseSubscriber;
-import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;

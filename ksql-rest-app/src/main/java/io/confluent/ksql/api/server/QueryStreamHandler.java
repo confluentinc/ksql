@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.impl.VertxCompletableFuture;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;

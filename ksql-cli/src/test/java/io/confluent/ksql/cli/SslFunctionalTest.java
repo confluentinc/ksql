@@ -30,6 +30,7 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -40,14 +41,14 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.EOFException;
 import java.net.URI;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLHandshakeException;
-import javax.ws.rs.ProcessingException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.http.HttpStatus;
@@ -109,15 +110,20 @@ public class SslFunctionalTest {
 
   @Before
   public void setUp() {
-    clientProps = Collections.emptyMap();
+    clientProps = new HashMap<>();
+    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
     sslContextFactory = new Server();
   }
 
   @Test
   public void shouldNotBeAbleToUseCliIfClientDoesNotTrustServerCert() {
+
+    // Given:
+    givenClientConfguredWithoutTruststore();
+
     // Then:
     expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectCause(is(instanceOf(ProcessingException.class)));
+    expectedException.expectCause(is(instanceOf(ExecutionException.class)));
     expectedException.expectCause(hasCause(is(instanceOf(SSLHandshakeException.class))));
 
     // When:
@@ -138,6 +144,9 @@ public class SslFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
+    // Given:
+    givenClientConfguredWithoutTruststore();
+
     // Then:
     expectedException.expect(either(
         both(hasCause(hasCause(hasMessage(
@@ -164,12 +173,21 @@ public class SslFunctionalTest {
 
   private void givenTrustStoreConfigured() {
     // HTTP:
-    clientProps = ClientTrustStore.trustStoreProps();
+    clientProps = new HashMap<>();
+    clientProps.putAll(ClientTrustStore.trustStoreProps());
+    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
 
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
     sslContextFactory.setTrustStorePassword(ClientTrustStore.trustStorePassword());
     sslContextFactory.setEndpointIdentificationAlgorithm("");
+  }
+
+  private void givenClientConfguredWithoutTruststore() {
+    clientProps = new HashMap<>();
+    clientProps.put(KsqlClient.DISABLE_HOSTNAME_VERIFICATION_PROP_NAME, "true");
+    clientProps.put(KsqlClient.TLS_ENABLED_PROP_NAME, "true");
   }
 
   private Code canMakeCliRequest() {

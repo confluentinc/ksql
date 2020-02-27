@@ -16,13 +16,12 @@
 package io.confluent.ksql.api.plugin;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.impl.Utils;
-import io.confluent.ksql.api.server.BaseSubscriber;
-import io.confluent.ksql.api.server.BufferedPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
@@ -32,6 +31,7 @@ import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -160,7 +160,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
   }
 
   private void handleResult(final InsertResult result) {
-    Utils.checkContext(context);
+    VertxUtils.checkContext(context);
     final boolean full = acksPublisher.accept(result);
     if (full) {
       if (!drainHandlerSet) {

@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.services;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -33,6 +32,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Response;
+import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.HttpStatus.Code;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
@@ -61,11 +62,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   ) {
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
     final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
-    return KsqlClientUtil.toRestResponse(
-        response,
-        KSQL_PATH,
-        r -> (KsqlEntityList) r.getEntity()
-    );
+
+    final Code statusCode = HttpStatus.getCode(response.getStatus());
+    if (statusCode != Code.OK) {
+      // It always returns ok
+      throw new IllegalStateException("Unexpected failure");
+    }
+
+    return RestResponse.successful(statusCode, (KsqlEntityList) response.getEntity());
   }
 
   @Override

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.tck;
 
-import io.confluent.ksql.api.server.BaseSubscriber;
+import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;

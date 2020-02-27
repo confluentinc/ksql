@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.impl.Utils;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
@@ -56,7 +56,7 @@ public class ConnectionQueryManager {
   }
 
   private void checkContext() {
-    Utils.checkContext(context);
+    VertxUtils.checkContext(context);
   }
 
   private class ConnectionQueries implements Handler<Void> {

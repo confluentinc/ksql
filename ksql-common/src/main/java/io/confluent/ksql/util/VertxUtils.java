@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.impl;
+package io.confluent.ksql.util;
 
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -24,9 +24,9 @@ import io.vertx.core.Vertx;
  * General purpose utils (not limited to the server, could be used by client too) for the API
  * module.
  */
-public final class Utils {
+public final class VertxUtils {
 
-  private Utils() {
+  private VertxUtils() {
   }
 
   /**

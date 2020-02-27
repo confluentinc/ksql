@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.impl.VertxCompletableFuture;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;

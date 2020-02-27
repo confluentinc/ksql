@@ -27,12 +27,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -272,11 +270,11 @@ public class RestTestExecutor implements Closeable {
         .collect(Collectors.toList());
   }
 
-  private Optional<QueryStream> sendQueryStatement(
+  private Optional<List<StreamedRow>> sendQueryStatement(
       final RestTestCase testCase,
       final String sql
   ) {
-    final RestResponse<QueryStream> resp = restClient.makeQueryRequest(sql, null);
+    final RestResponse<List<StreamedRow>> resp = restClient.makeQueryRequest(sql, null);
 
     if (resp.isErroneous()) {
       handleErrorResponse(testCase, resp);
@@ -474,7 +472,7 @@ public class RestTestExecutor implements Closeable {
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final RestResponse<QueryStream> resp = restClient.makeQueryRequest(querySql, null);
+      final RestResponse<List<StreamedRow>> resp = restClient.makeQueryRequest(querySql, null);
       if (resp.isErroneous()) {
         final KsqlErrorMessage errorMessage = resp.getErrorMessage();
         LOG.info("Server responded with an error code to a pull query. "
@@ -551,17 +549,8 @@ public class RestTestExecutor implements Closeable {
           .collect(Collectors.toList());
     }
 
-    static RqttResponse query(final QueryStream queryStream) {
-      final Builder<StreamedRow> responses = ImmutableList.builder();
-
-      while (queryStream.hasNext()) {
-        final StreamedRow row = queryStream.next();
-        responses.add(row);
-      }
-
-      queryStream.close();
-
-      return new RqttQueryResponse(responses.build());
+    static RqttResponse query(final List<StreamedRow> rows) {
+      return new RqttQueryResponse(rows);
     }
 
     void verify(

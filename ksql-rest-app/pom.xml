@@ -35,8 +35,6 @@
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>true</docker.skip-build>
         <docker.skip-test>true</docker.skip-test>
-        <vertx.version>3.8.5</vertx.version>
-        <reactive-streams.version>1.0.3</reactive-streams.version>
         <netty-tcnative-version>2.0.29.Final</netty-tcnative-version>
     </properties>
 

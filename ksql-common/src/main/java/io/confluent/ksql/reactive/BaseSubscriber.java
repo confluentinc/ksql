@@ -13,9 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.reactive;
 
-import io.confluent.ksql.api.impl.Utils;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Objects;
 import org.reactivestreams.Subscriber;
@@ -144,11 +144,11 @@ public class BaseSubscriber<T> implements Subscriber<T> {
   }
 
   protected final void checkContext() {
-    Utils.checkContext(context);
+    VertxUtils.checkContext(context);
   }
 
   private void runOnRightContext(final Runnable runnable) {
-    if (Utils.isEventLoopAndSameContext(context)) {
+    if (VertxUtils.isEventLoopAndSameContext(context)) {
       // Execute directly
       runnable.run();
     } else {

@@ -15,18 +15,9 @@
 
 package io.confluent.ksql.api.utils;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
 import java.net.URL;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 public class TestUtils {
-
-  public static void awaitLatch(CountDownLatch latch) throws Exception {
-    assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
-  }
 
   public static String findFilePath(String fileName) {
     ClassLoader cl = Thread.currentThread().getContextClassLoader();

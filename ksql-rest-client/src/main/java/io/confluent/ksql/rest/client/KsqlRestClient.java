@@ -28,17 +28,16 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.vertx.core.http.HttpClientOptions;
 import java.io.Closeable;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.Response;
 
 public class KsqlRestClient implements Closeable {
 
@@ -60,7 +59,8 @@ public class KsqlRestClient implements Closeable {
       final Optional<BasicCredentials> creds
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
-    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties);
+    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties,
+        new HttpClientOptions());
     return new KsqlRestClient(client, serverAddress, localProperties);
   }
 
@@ -91,21 +91,21 @@ public class KsqlRestClient implements Closeable {
     return target().getServerHealth();
   }
 
-  public Future<Response> makeAsyncHeartbeatRequest(
+  public void makeAsyncHeartbeatRequest(
       final KsqlHostInfoEntity host,
       final long timestamp
   ) {
-    return target().postAsyncHeartbeatRequest(host, timestamp);
+    target().postAsyncHeartbeatRequest(host, timestamp);
   }
 
   public RestResponse<ClusterStatusResponse> makeClusterStatusRequest() {
     return target().getClusterStatus();
   }
 
-  public Future<Response> makeAsyncLagReportingRequest(
+  public void makeAsyncLagReportingRequest(
       final LagReportingMessage lagReportingMessage
   ) {
-    return target().postAsyncLagReportingRequest(lagReportingMessage);
+    target().postAsyncLagReportingRequest(lagReportingMessage);
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
@@ -124,11 +124,17 @@ public class KsqlRestClient implements Closeable {
     return target().getStatus(commandId);
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
-    return target().postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
+  public RestResponse<StreamPublisher<StreamedRow>> makeQueryRequestStreamed(final String ksql,
+      final Long commandSeqNum) {
+    return target().postQueryRequestStreamed(ksql, Optional.ofNullable(commandSeqNum));
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(final String ksql,
+  public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
+      final Long commandSeqNum) {
+    return makeQueryRequest(ksql, commandSeqNum, null);
+  }
+
+  public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
       final Long commandSeqNum, final Map<String, ?> properties) {
     KsqlTarget target = target();
     if (properties != null) {
@@ -137,7 +143,7 @@ public class KsqlRestClient implements Closeable {
     return target.postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(
+  public RestResponse<StreamPublisher<String>> makePrintTopicRequest(
       final String ksql,
       final Long commandSeqNum
   ) {

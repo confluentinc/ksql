@@ -13,9 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.reactive;
 
-import io.confluent.ksql.api.impl.Utils;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
@@ -50,7 +50,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
     Objects.requireNonNull(subscriber);
-    if (Utils.isEventLoopAndSameContext(ctx)) {
+    if (VertxUtils.isEventLoopAndSameContext(ctx)) {
       doSubscribe(subscriber);
     } else {
       ctx.runOnContext(v -> doSubscribe(subscriber));
@@ -61,8 +61,12 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     ctx.runOnContext(v -> doClose());
   }
 
+  public Context getContext() {
+    return ctx;
+  }
+
   protected void checkContext() {
-    Utils.checkContext(ctx);
+    VertxUtils.checkContext(ctx);
   }
 
   protected final void sendError(final Exception e) {

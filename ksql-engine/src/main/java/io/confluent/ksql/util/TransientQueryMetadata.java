@@ -99,13 +99,18 @@ public class TransientQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public void close() {
+  public void stop() {
+    close();
+  }
+
+  @Override
+  protected void doClose(final boolean cleanUp) {
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
     // Now safe to close:
-    super.close();
+    super.doClose(cleanUp);
     isRunning.set(false);
   }
 }

@@ -236,7 +236,12 @@ public final class QueryExecutor {
         overrides,
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
-    );
+    ) {
+      @Override
+      public void stop() {
+        close();
+      }
+    };
   }
 
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {

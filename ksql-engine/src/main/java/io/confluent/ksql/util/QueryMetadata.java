@@ -36,7 +36,7 @@ import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetadata {
+public abstract class QueryMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
 
@@ -169,14 +169,39 @@ public class QueryMetadata {
     return everStarted;
   }
 
+
+  /**
+   * Stops the query without cleaning up the external resources
+   * so that it can be resumed when we call {@link #start()}.
+   *
+   * <p>NOTE: {@link TransientQueryMetadata} overrides this method
+   * since any time a transient query is stopped the external resources
+   * should be cleaned up.</p>
+   *
+   * @see #close()
+   */
+  public abstract void stop();
+
+  /**
+   * Closes the {@code QueryMetadata} and cleans up any of
+   * the resources associated with it (e.g. internal topics,
+   * schemas, etc...).
+   *
+   * @see QueryMetadata#stop()
+   */
   public void close() {
+    doClose(true);
+    closeCallback.accept(this);
+  }
+
+  protected void doClose(final boolean cleanUp) {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
 
-    kafkaStreams.cleanUp();
+    if (cleanUp) {
+      kafkaStreams.cleanUp();
+    }
 
     queryStateListener.ifPresent(QueryStateListener::close);
-
-    closeCallback.accept(this);
   }
 
   public void start() {

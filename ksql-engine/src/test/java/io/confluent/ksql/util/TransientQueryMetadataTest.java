@@ -23,7 +23,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
@@ -56,7 +56,7 @@ public class TransientQueryMetadataTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private BiConsumer<QueryMetadata, Boolean> closeCallback;
   private TransientQueryMetadata query;
 
   @Before
@@ -80,7 +80,7 @@ public class TransientQueryMetadataTest {
   @Test
   public void shouldCloseQueueBeforeTopologyToAvoidDeadLock() {
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     final InOrder inOrder = inOrder(rowQueue, kafkaStreams);

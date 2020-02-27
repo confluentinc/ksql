@@ -87,7 +87,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.common.acl.AclOperation;
@@ -152,7 +152,7 @@ public class StreamedQueryResourceTest {
   @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
-  private Consumer<QueryMetadata> queryCloseCallback;
+  private BiConsumer<QueryMetadata, Boolean> queryCloseCallback;
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock

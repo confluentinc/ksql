@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
@@ -47,7 +48,7 @@ public class QueryMetadata {
   private final Topology topology;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
+  private final BiConsumer<QueryMetadata, Boolean> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
@@ -66,7 +67,7 @@ public class QueryMetadata {
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
+      final BiConsumer<QueryMetadata, Boolean> closeCallback,
       final long closeTimeout
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -87,7 +88,10 @@ public class QueryMetadata {
     this.closeTimeout = closeTimeout;
   }
 
-  protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
+  protected QueryMetadata(
+      final QueryMetadata other,
+      final BiConsumer<QueryMetadata, Boolean> closeCallback
+  ) {
     this.statementString = other.statementString;
     this.kafkaStreams = other.kafkaStreams;
     this.executionPlan = other.executionPlan;
@@ -170,13 +174,19 @@ public class QueryMetadata {
   }
 
   public void close() {
+    close(true);
+  }
+
+  public void close(boolean cleanUp) {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
 
-    kafkaStreams.cleanUp();
+    if (cleanUp) {
+      kafkaStreams.cleanUp();
+    }
 
     queryStateListener.ifPresent(QueryStateListener::close);
 
-    closeCallback.accept(this);
+    closeCallback.accept(this, cleanUp);
   }
 
   public void start() {

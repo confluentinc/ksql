@@ -463,7 +463,7 @@ public class KsqlEngineTest {
         Collections.emptyMap())
         .get(1);
 
-    secondQuery.close();
+    secondQuery.close(true);
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -634,7 +634,7 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap()
     ).get(0);
 
-    query.close();
+    query.close(true);
 
     final Schema schema = SchemaBuilder
         .record("Test").fields()
@@ -670,10 +670,46 @@ public class KsqlEngineTest {
     query.start();
 
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnCloseIfCleanFalse() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    query.start();
+
+    // When:
+    query.close(false);
+
+    // Then:
+    verifyNoMoreInteractions(topicClient);
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnEngineClose() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    query.start();
+
+    // When:
+    ksqlEngine.close();
+
+    // Then:
+    verifyNoMoreInteractions(topicClient);
   }
 
   @Test
@@ -687,7 +723,7 @@ public class KsqlEngineTest {
     ).get(0);
 
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     verify(topicClient, never()).deleteInternalTopics(any());
@@ -708,7 +744,7 @@ public class KsqlEngineTest {
     ).get(0);
 
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
@@ -729,7 +765,7 @@ public class KsqlEngineTest {
     );
 
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
@@ -1147,7 +1183,7 @@ public class KsqlEngineTest {
         .get();
 
     // When:
-    sandBoxQuery.close();
+    sandBoxQuery.close(true);
 
     // Then:
     assertThat("main engine should not be updated",
@@ -1246,7 +1282,7 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO AS SELECT * FROM TEST1;",
         KSQL_CONFIG, Collections.emptyMap()
     ).get(0);
-    query.close();
+    query.close(true);
 
     // When:
     KsqlEngineTestUtil.execute(

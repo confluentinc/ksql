@@ -134,7 +134,7 @@ public class SecureIntegrationTest {
   public void after() {
     if (queryId != null) {
       ksqlEngine.getPersistentQuery(queryId)
-          .ifPresent(QueryMetadata::close);
+          .ifPresent(q -> q.close(true));
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();

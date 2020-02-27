@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -63,7 +63,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
+      final BiConsumer<QueryMetadata, Boolean> closeCallback,
       final long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -91,7 +91,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private PersistentQueryMetadata(
       final PersistentQueryMetadata other,
-      final Consumer<QueryMetadata> closeCallback
+      final BiConsumer<QueryMetadata, Boolean> closeCallback
   ) {
     super(other, closeCallback);
     this.id = other.id;
@@ -103,7 +103,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.dataSourceType = other.dataSourceType;
   }
 
-  public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
+  public PersistentQueryMetadata copyWith(final BiConsumer<QueryMetadata, Boolean> closeCallback) {
     return new PersistentQueryMetadata(this, closeCallback);
   }
 

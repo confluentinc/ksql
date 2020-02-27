@@ -60,6 +60,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -80,7 +81,7 @@ public final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final Consumer<QueryMetadata> queryCloseCallback;
+  private final BiConsumer<QueryMetadata, Boolean> queryCloseCallback;
   private final KsMaterializationFactory ksMaterializationFactory;
   private final KsqlMaterializationFactory ksqlMaterializationFactory;
   private final StreamsBuilder streamsBuilder;
@@ -91,7 +92,7 @@ public final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback) {
+      final BiConsumer<QueryMetadata, Boolean> queryCloseCallback) {
     this(
         ksqlConfig,
         overrides,
@@ -113,7 +114,7 @@ public final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback,
+      final BiConsumer<QueryMetadata, Boolean> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final KsqlMaterializationFactory ksqlMaterializationFactory,

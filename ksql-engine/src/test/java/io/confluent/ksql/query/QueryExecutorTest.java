@@ -55,7 +55,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -125,7 +125,7 @@ public class QueryExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private BiConsumer<QueryMetadata, Boolean> closeCallback;
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock

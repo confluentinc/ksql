@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +31,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -58,7 +59,7 @@ public class QueryMetadataTest {
   @Mock
   private QueryStateListener listener;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private BiConsumer<QueryMetadata, Boolean> closeCallback;
   private QueryMetadata query;
 
   @Before
@@ -107,10 +108,36 @@ public class QueryMetadataTest {
     query.registerQueryStateListener(listener);
 
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     verify(listener).close();
+  }
+
+  @Test
+  public void shouldCleanUpOnCloseIfCleanUpTrue() {
+    // Given:
+    query.registerQueryStateListener(listener);
+
+    // When:
+    query.close(true);
+
+    // Then:
+    verify(kafkaStreams).cleanUp();
+    verify(closeCallback).accept(query, true);
+  }
+
+  @Test
+  public void shouldNotCleanUpOnCloseIfCleanUpFalse() {
+    // Given:
+    query.registerQueryStateListener(listener);
+
+    // When:
+    query.close(false);
+
+    // Then:
+    verify(kafkaStreams, times(0)).cleanUp();
+    verify(closeCallback).accept(query, false);
   }
 
   @Test
@@ -128,18 +155,18 @@ public class QueryMetadataTest {
   @Test
   public void shouldCloseKStreamsAppOnCloseThenCloseCallback() {
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
     inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
-    inOrder.verify(closeCallback).accept(query);
+    inOrder.verify(closeCallback).accept(query, true);
   }
 
   @Test
   public void shouldCleanUpKStreamsAppAfterCloseOnClose() {
     // When:
-    query.close();
+    query.close(true);
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);

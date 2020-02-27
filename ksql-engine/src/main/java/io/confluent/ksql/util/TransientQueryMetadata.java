@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -47,7 +47,7 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
+      final BiConsumer<QueryMetadata, Boolean> closeCallback,
       final long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -105,7 +105,7 @@ public class TransientQueryMetadata extends QueryMetadata {
     rowQueue.close();
 
     // Now safe to close:
-    super.close();
+    super.close(true);
     isRunning.set(false);
   }
 }

@@ -238,7 +238,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
-    allLiveQueries.forEach(QueryMetadata::close);
+    allLiveQueries.forEach(q -> q.close(false));
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
   }
@@ -260,7 +260,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     engineMetrics.registerQuery(query);
   }
 
-  private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
+  private void unregisterQuery(
+      final ServiceContext serviceContext,
+      final QueryMetadata query,
+      final boolean cleanUp) {
     final String applicationId = query.getQueryApplicationId();
 
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
@@ -274,7 +277,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return;
     }
 
-    if (query.hasEverBeenStarted()) {
+    if (cleanUp && query.hasEverBeenStarted()) {
       SchemaRegistryUtil
           .cleanUpInternalTopicAvroSchemas(applicationId, serviceContext.getSchemaRegistryClient());
       serviceContext.getTopicClient().deleteInternalTopics(applicationId);

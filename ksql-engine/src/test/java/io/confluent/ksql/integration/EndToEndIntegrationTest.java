@@ -160,7 +160,7 @@ public class EndToEndIntegrationTest {
 
   @After
   public void after() {
-    toClose.forEach(QueryMetadata::close);
+    toClose.forEach(q -> q.close(true));
   }
 
   @Test

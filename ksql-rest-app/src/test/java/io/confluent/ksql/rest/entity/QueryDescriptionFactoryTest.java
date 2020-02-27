@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -80,7 +80,7 @@ public class QueryDescriptionFactoryTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
-  private Consumer<QueryMetadata> queryCloseCallback;
+  private BiConsumer<QueryMetadata, Boolean> queryCloseCallback;
   @Mock
   private KafkaStreams queryStreams;
   @Mock

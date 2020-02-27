@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 
 /**
  * Holds the mutable state and services of the engine.
@@ -60,7 +59,7 @@ final class EngineContext {
   private final QueryIdGenerator queryIdGenerator;
   private final ProcessingLogContext processingLogContext;
   private final KsqlParser parser;
-  private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
+  private final QueryCloseCallback outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
 
   static EngineContext create(
@@ -68,7 +67,7 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
+      final QueryCloseCallback onQueryCloseCallback
   ) {
     return new EngineContext(
         serviceContext,
@@ -85,7 +84,7 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
+      final QueryCloseCallback onQueryCloseCallback,
       final KsqlParser parser
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -105,7 +104,7 @@ final class EngineContext {
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
-        (sc, query) -> { /* No-op */ }
+        (sc, query, cleanUp) -> { /* No-op */ }
     );
 
     persistentQueries.forEach((queryId, query) ->
@@ -218,13 +217,18 @@ final class EngineContext {
     }
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
+  private void unregisterQuery(final QueryMetadata query, boolean cleanUp) {
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       persistentQueries.remove(persistentQuery.getQueryId());
       metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
     }
 
-    outerOnQueryCloseCallback.accept(serviceContext, query);
+    outerOnQueryCloseCallback.onClose(serviceContext, query, cleanUp);
+  }
+
+  @FunctionalInterface
+  interface QueryCloseCallback {
+    void onClose(ServiceContext serviceContext, QueryMetadata queryMetadata, boolean cleanUp);
   }
 }

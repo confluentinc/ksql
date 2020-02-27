@@ -102,7 +102,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       if (!closed) {
         closed = true;
         log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-        queryMetadata.close();
+        queryMetadata.close(true);
       }
     }
   }

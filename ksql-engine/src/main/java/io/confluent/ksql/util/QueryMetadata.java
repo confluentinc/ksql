@@ -172,10 +172,6 @@ public class QueryMetadata {
     return everStarted;
   }
 
-  public void close() {
-    close(true);
-  }
-
   public void close(final boolean cleanUp) {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
 

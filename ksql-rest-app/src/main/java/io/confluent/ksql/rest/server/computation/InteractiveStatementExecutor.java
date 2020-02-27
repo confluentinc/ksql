@@ -355,12 +355,12 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final Optional<QueryId> queryId = terminateQuery.getStatement().getQueryId();
 
     if (!queryId.isPresent()) {
-      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      ksqlEngine.getPersistentQueries().forEach(q -> q.close(true));
       return;
     }
 
     final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
-    query.ifPresent(PersistentQueryMetadata::close);
+    query.ifPresent(q -> q.close(true));
   }
 
 }

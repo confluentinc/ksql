@@ -81,7 +81,7 @@ public final class ValidatedCommandFactory {
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
     if (!queryId.isPresent()) {
-      context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      context.getPersistentQueries().forEach(q -> q.close(true));
       return Command.of(statement);
     }
 
@@ -89,7 +89,7 @@ public final class ValidatedCommandFactory {
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
             statement.getStatementText()))
-        .close();
+        .close(true);
     return Command.of(statement);
   }
 

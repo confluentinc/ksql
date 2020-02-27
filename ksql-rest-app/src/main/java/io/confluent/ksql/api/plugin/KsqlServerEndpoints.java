@@ -275,7 +275,7 @@ public class KsqlServerEndpoints implements Endpoints {
 
     @Override
     public void stop() {
-      queryMetadata.close();
+      queryMetadata.close(true);
     }
   }
 }

@@ -67,7 +67,7 @@ public class ClusterTerminator {
   }
 
   private void terminatePersistentQueries() {
-    ksqlEngine.getPersistentQueries().forEach(QueryMetadata::close);
+    ksqlEngine.getPersistentQueries().forEach(q -> q.close(true));
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {

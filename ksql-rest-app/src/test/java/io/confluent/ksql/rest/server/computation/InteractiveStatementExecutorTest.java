@@ -712,8 +712,8 @@ public class InteractiveStatementExecutorTest {
     );
 
     // Then:
-    verify(query0).close();
-    verify(query1).close();
+    verify(query0).close(true);
+    verify(query1).close(true);
   }
 
   @Test

@@ -101,7 +101,7 @@ class QueryStreamWriter implements StreamingOutput {
       log.error("Exception occurred while writing to connection stream: ", exception);
       outputException(out, exception);
     } finally {
-      queryMetadata.close();
+      queryMetadata.close(true);
     }
   }
 

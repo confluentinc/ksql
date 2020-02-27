@@ -132,7 +132,7 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     verify(executionContext).getPersistentQuery(QUERY_ID);
-    verify(query1).close();
+    verify(query1).close(true);
   }
 
   @Test
@@ -144,8 +144,8 @@ public class ValidatedCommandFactoryTest {
     commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    verify(query1).close();
-    verify(query2).close();
+    verify(query1).close(true);
+    verify(query2).close(true);
   }
 
   @Test

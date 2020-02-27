@@ -127,8 +127,8 @@ public class ClusterTerminatorTest {
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(persistentQuery0).close();
-    verify(persistentQuery1).close();
+    verify(persistentQuery0).close(true);
+    verify(persistentQuery1).close(true);
   }
 
   @Test
@@ -138,7 +138,7 @@ public class ClusterTerminatorTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(persistentQuery0, ksqlEngine);
-    inOrder.verify(persistentQuery0).close();
+    inOrder.verify(persistentQuery0).close(true);
     inOrder.verify(ksqlEngine).close();
   }
 
@@ -153,7 +153,7 @@ public class ClusterTerminatorTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, persistentQuery0);
-    inOrder.verify(persistentQuery0).close();
+    inOrder.verify(persistentQuery0).close(true);
     inOrder.verify(kafkaTopicClient).deleteTopics(Collections.singletonList("topic1"));
   }
 

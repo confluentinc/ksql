@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import static org.mockito.Mockito.mock;
+
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.processor.TimestampExtractor;
@@ -23,8 +25,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MetadataTimestampExtractorTest {

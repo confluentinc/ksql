@@ -118,8 +118,6 @@ public class AvroUtilTest {
   @Mock
   private CreateSourceCommand ddlCommand;
 
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-
   @Before
   public void setUp() {
     when(ddlCommand.getFormats()).thenReturn(FORMATS);
@@ -133,7 +131,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
 
     // Then:
     verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any(AvroSchema.class));
@@ -145,11 +143,11 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME));
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -165,10 +163,10 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME));
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -184,10 +182,10 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME));
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -209,10 +207,10 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME));
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -224,7 +222,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   @Test
@@ -236,7 +234,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   @Test
@@ -246,7 +244,7 @@ public class AvroUtilTest {
         .thenThrow(new RestClientException("Unknown subject", 404, 40401));
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   @Test
@@ -265,7 +263,7 @@ public class AvroUtilTest {
     )));
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   @Test
@@ -279,7 +277,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not connect to Schema Registry service");
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   @Test
@@ -293,7 +291,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not check Schema compatibility");
 
     // When:
-    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient);
   }
 
   private static LogicalSchema toKsqlSchema(final String avroSchemaString) {

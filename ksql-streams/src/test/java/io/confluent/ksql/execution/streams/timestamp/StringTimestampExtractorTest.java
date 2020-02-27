@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Test;
 
 public class StringTimestampExtractorTest {

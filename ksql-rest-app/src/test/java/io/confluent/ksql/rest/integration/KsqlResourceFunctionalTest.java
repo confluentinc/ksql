@@ -40,7 +40,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroSchemas;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
@@ -165,8 +164,7 @@ public class KsqlResourceFunctionalTest {
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
             new AvroSchema(AvroSchemas.getAvroSchema(
                 schema.valueSchema(),
-                "books_value",
-                new KsqlConfig(REST_APP.getBaseConfig())
+                "books_value"
             ))
         );
 

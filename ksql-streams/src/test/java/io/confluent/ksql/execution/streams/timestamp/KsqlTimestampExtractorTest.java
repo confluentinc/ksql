@@ -1,11 +1,11 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.Test;
-
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Test;
 
 public class KsqlTimestampExtractorTest {
   @Test

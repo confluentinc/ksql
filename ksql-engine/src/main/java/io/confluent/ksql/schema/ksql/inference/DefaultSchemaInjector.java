@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
-import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -25,15 +24,12 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.ArrayList;
@@ -41,7 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * An injector which injects the value columns into the supplied {@code statement}.
@@ -58,9 +53,6 @@ import org.apache.kafka.connect.data.Schema;
  * <p>If any of the above are not true then the {@code statement} is returned unchanged.
  */
 public class DefaultSchemaInjector implements Injector {
-
-  private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
-      w -> !IdentifierUtil.isValid(w), Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 
@@ -140,7 +132,7 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement,
       final SchemaAndId schema
   ) {
-    final TableElements elements = buildElements(schema.schema, preparedStatement);
+    final TableElements elements = buildElements(schema.columns, preparedStatement);
 
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
@@ -152,17 +144,16 @@ public class DefaultSchemaInjector implements Injector {
   }
 
   private static TableElements buildElements(
-      final Schema valueSchema,
+      final List<? extends SimpleColumn> valueColumns,
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
-    throwOnInvalidSchema(valueSchema);
-
     final List<TableElement> elements = new ArrayList<>();
 
     getKeyColumns(preparedStatement)
         .forEach(elements::add);
 
-    getColumnsFromSchema(valueSchema)
+    valueColumns.stream()
+        .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
         .forEach(elements::add);
 
     return TableElements.of(elements);
@@ -173,23 +164,6 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     return preparedStatement.getStatement().getElements().stream()
         .filter(e -> e.getNamespace() == Namespace.KEY);
-  }
-
-  private static Stream<TableElement> getColumnsFromSchema(final Schema schema) {
-    return SchemaParser.parse(FORMATTER.format(schema), TypeRegistry.EMPTY).stream();
-  }
-
-  private static void throwOnInvalidSchema(final Schema schema) {
-    try {
-      SchemaConverters.connectToSqlConverter().toSqlType(schema);
-    } catch (final Exception e) {
-      throw new KsqlException(
-          "Schema contains types not supported by KSQL: " + e.getMessage()
-              + System.lineSeparator()
-              + "Schema: " + schema,
-          e
-      );
-    }
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

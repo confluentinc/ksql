@@ -35,8 +35,7 @@ public final class AvroUtil {
   public static void throwOnInvalidSchemaEvolution(
       final String statementText,
       final CreateSourceCommand ddl,
-      final SchemaRegistryClient schemaRegistryClient,
-      final KsqlConfig ksqlConfig
+      final SchemaRegistryClient schemaRegistryClient
   ) {
     final io.confluent.ksql.execution.plan.Formats formats = ddl.getFormats();
     final FormatInfo format = formats.getValueFormat();
@@ -51,8 +50,7 @@ public final class AvroUtil {
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
         format.getProperties()
-            .getOrDefault(AvroFormat.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
-        ksqlConfig
+            .getOrDefault(AvroFormat.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
     );
 
     final String topicName = ddl.getTopicName();

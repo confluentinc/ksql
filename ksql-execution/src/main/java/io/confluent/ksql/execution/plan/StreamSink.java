@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;

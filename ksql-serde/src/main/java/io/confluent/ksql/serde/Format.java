@@ -19,11 +19,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.concurrent.ThreadSafe;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * A {@code Format} is a serialization specification of a Kafka topic
@@ -73,21 +74,30 @@ public interface Format {
   }
 
   /**
-   * Converts the {@link ParsedSchema} returned by Confluent Schema Registry
-   * into a Connect Schema, which ksqlDB can use to infer the stream or table
-   * schema.
+   * Converts the {@link ParsedSchema} returned by Confluent Schema Registry into a list of columns,
+   * which ksqlDB can use to infer the stream or table schema.
    *
    * <p>If this Format {@link #supportsSchemaInference()}, it is expected that
    * this method will be implemented.</p>
    *
    * @param schema the {@code ParsedSchema} returned from Schema Registry
-   * @return the corresponding Kafka Connect schema for the {@code schema} param
+   * @return the list of columns the schema defines
    */
-  default Schema toConnectSchema(ParsedSchema schema) {
+  default List<SimpleColumn> toColumns(ParsedSchema schema) {
     throw new KsqlException("Format does not implement Schema Registry support: " + name());
   }
 
-  default ParsedSchema toParsedSchema(Schema schema) {
+  /**
+   * Converts a list of columns into a {@link ParsedSchema}.
+   *
+   * <p>Currently only used to support the testing tool, which calls this method to obtain the
+   * {@link ParsedSchema} with which to populate the Schema Registry.
+   *
+   * @param columns the list of columns
+   * @param formatInfo the format info potentially containing additional info required to convert
+   * @return the {@code ParsedSchema} which will be added to the Schema Registry
+   */
+  default ParsedSchema toParsedSchema(List<SimpleColumn> columns, FormatInfo formatInfo) {
     throw new KsqlException("Format does not implement Schema Registry support: " + name());
   }
 

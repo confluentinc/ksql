@@ -17,13 +17,12 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSinkTest {

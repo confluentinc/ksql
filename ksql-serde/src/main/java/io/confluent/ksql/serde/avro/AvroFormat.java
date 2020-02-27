@@ -21,14 +21,14 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
 
-public final class AvroFormat implements Format {
+public final class AvroFormat extends ConnectFormat {
 
   public static final String FULL_SCHEMA_NAME = "fullSchemaName";
   public static final String NAME = AvroSchema.TYPE;
@@ -38,21 +38,6 @@ public final class AvroFormat implements Format {
   @Override
   public String name() {
     return NAME;
-  }
-
-  @Override
-  public boolean supportsSchemaInference() {
-    return true;
-  }
-
-  @Override
-  public Schema toConnectSchema(final ParsedSchema schema) {
-    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
-  }
-
-  @Override
-  public ParsedSchema toParsedSchema(final Schema schema) {
-    return new AvroSchema(avroData.fromConnectSchema(schema));
   }
 
   @Override
@@ -66,11 +51,29 @@ public final class AvroFormat implements Format {
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    final String schemaFullName = info
+  public KsqlSerdeFactory getSerdeFactory(final FormatInfo formatInfo) {
+    final String schemaFullName = getSchemaName(formatInfo);
+    return new KsqlAvroSerdeFactory(schemaFullName);
+  }
+
+  @Override
+  protected Schema toConnectSchema(final ParsedSchema schema) {
+    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
+  }
+
+  @Override
+  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+    final String schemaFullName = getSchemaName(formatInfo);
+
+    final Schema avroCompatibleSchema = AvroSchemas
+        .getAvroCompatibleConnectSchema(schema, schemaFullName);
+
+    return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));
+  }
+
+  private static String getSchemaName(final FormatInfo info) {
+    return info
         .getProperties()
         .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
-    return new KsqlAvroSerdeFactory(schemaFullName);
   }
 }

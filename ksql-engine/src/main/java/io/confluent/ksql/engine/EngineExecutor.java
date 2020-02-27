@@ -290,7 +290,7 @@ final class EngineExecutor {
     }
 
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient, ksqlConfig);
+    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient);
     return Optional.of(ddl);
   }
 

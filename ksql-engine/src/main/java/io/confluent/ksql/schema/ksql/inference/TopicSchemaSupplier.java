@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * Supplier of schemas for topics
@@ -37,15 +39,21 @@ public interface TopicSchemaSupplier {
   final class SchemaAndId {
 
     final int id;
-    final Schema schema;
+    final List<? extends SimpleColumn> columns;
 
-    private SchemaAndId(final Schema schema, final int id) {
+    private SchemaAndId(
+        final List<? extends SimpleColumn> columns,
+        final int id
+    ) {
       this.id = id;
-      this.schema = Objects.requireNonNull(schema, "schema");
+      this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     }
 
-    static SchemaAndId schemaAndId(final Schema schema, final int id) {
-      return new SchemaAndId(schema, id);
+    static SchemaAndId schemaAndId(
+        final List<? extends SimpleColumn> columns,
+        final int id
+    ) {
+      return new SchemaAndId(columns, id);
     }
   }
 

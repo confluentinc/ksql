@@ -217,7 +217,7 @@ final class EngineContext {
     }
   }
 
-  private void unregisterQuery(final QueryMetadata query, boolean cleanUp) {
+  private void unregisterQuery(final QueryMetadata query, final boolean cleanUp) {
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       persistentQueries.remove(persistentQuery.getQueryId());

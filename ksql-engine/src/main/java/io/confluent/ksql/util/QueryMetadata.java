@@ -28,7 +28,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
@@ -177,7 +176,7 @@ public class QueryMetadata {
     close(true);
   }
 
-  public void close(boolean cleanUp) {
+  public void close(final boolean cleanUp) {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
 
     if (cleanUp) {

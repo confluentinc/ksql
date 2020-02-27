@@ -146,7 +146,7 @@ public abstract class QueryMetadata {
 
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
-      return kafkaStreams.allMetadata();
+      return ImmutableList.copyOf(kafkaStreams.allMetadata());
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }

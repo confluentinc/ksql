@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -713,6 +714,37 @@ public class InteractiveStatementExecutorTest {
     // Then:
     verify(query0).close();
     verify(query1).close();
+  }
+
+  @Test
+  public void shouldDoIdempotentTerminate() {
+    // Given:
+    final String queryStatement = "a persistent query";
+
+    final TerminateQuery terminate = mock(TerminateQuery.class);
+    when(terminate.getQueryId()).thenReturn(Optional.of(new QueryId("foo")));
+
+    when(mockParser.parseSingleStatement(any()))
+        .thenReturn(PreparedStatement.of(queryStatement, terminate));
+
+    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+
+    when(mockEngine.getPersistentQuery(new QueryId("foo")))
+        .thenReturn(Optional.of(query))
+        .thenReturn(Optional.empty());
+
+    final QueuedCommand cmd = new QueuedCommand(
+        new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
+        new Command("terminate all", emptyMap(), emptyMap(), Optional.empty()),
+        Optional.empty(),
+        0L
+    );
+
+    // When:
+    statementExecutorWithMocks.handleStatement(cmd);
+    statementExecutorWithMocks.handleStatement(cmd);
+
+    // Then should not throw
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

@@ -36,7 +36,7 @@ import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetadata {
+public abstract class QueryMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
 
@@ -180,9 +180,7 @@ public class QueryMetadata {
    *
    * @see #close()
    */
-  public void stop() {
-    doClose(false);
-  }
+  public abstract void stop();
 
   /**
    * Closes the {@code QueryMetadata} and cleans up any of
@@ -191,7 +189,7 @@ public class QueryMetadata {
    *
    * @see QueryMetadata#stop()
    */
-  public final void close() {
+  public void close() {
     doClose(true);
     closeCallback.accept(this);
   }

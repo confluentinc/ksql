@@ -20,7 +20,6 @@ import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
@@ -71,24 +70,27 @@ public class JaasAuthProvider implements AuthProvider {
 
     final String contextName = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
 
-    server.getWorkerExecutor().executeBlocking(
-        p -> getUser(contextName, username, password, p),
-        resultHandler
-    );
+    getUser(contextName, username, password, userResult -> {
+      if (userResult.succeeded()) {
+        resultHandler.handle(Future.succeededFuture(userResult.result()));
+      } else {
+        resultHandler.handle(Future.failedFuture("invalid username/password"));
+      }
+    });
   }
 
   private void getUser(
       final String contextName,
       final String username,
       final String password,
-      final Promise<User> promise
+      final Handler<AsyncResult<JaasUser>> handler
   ) {
     final LoginContext lc;
     try {
       lc = new LoginContext(contextName, new BasicCallbackHandler(username, password));
     } catch (LoginException | SecurityException e) {
       log.error("Failed to create LoginContext. " + e.getMessage());
-      promise.fail("Failed to create LoginContext.");
+      handler.handle(Future.failedFuture("Failed to create LoginContext."));
       return;
     }
 
@@ -96,11 +98,12 @@ public class JaasAuthProvider implements AuthProvider {
       lc.login();
     } catch (LoginException le) {
       log.error("Failed to log in. " + le.getMessage());
-      promise.fail("Failed to log in: Invalid username/password.");
+      handler.handle(Future.failedFuture("Failed to log in: Invalid username/password."));
       return;
     }
 
-    promise.complete(new JaasUser(username, this));
+    final JaasUser result = new JaasUser(username, this);
+    handler.handle(Future.succeededFuture(result));
   }
 
   private void checkUserPermission(

@@ -107,7 +107,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,20 +130,15 @@ public final class PullQueryExecutor {
 
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
-  private final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics;
-  private final Time time;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
-      final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics
+      final KsqlConfig ksqlConfig
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.pullQueryExecutorMetrics = Objects.requireNonNull(
-        pullQueryExecutorMetrics, "pullQueryExecutorMetrics");
-    this.time = Time.SYSTEM;
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -159,7 +153,8 @@ public final class PullQueryExecutor {
 
   public TableRowsEntity execute(
       final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -200,25 +195,18 @@ public final class PullQueryExecutor {
           analysis,
           whereInfo,
           queryId,
-          contextStacker);
+          contextStacker,
+          pullQueryExecutorMetrics);
 
-      final long start = time.milliseconds();
-      TableRowsEntity tableRowsEntity = handlePullQuery(
+      return handlePullQuery(
           statement,
           executionContext,
           serviceContext,
           pullQueryContext
       );
-
-      if (pullQueryExecutorMetrics.isPresent()) {
-        pullQueryExecutorMetrics.get().recordLocalRequests(1);
-        pullQueryExecutorMetrics.get().recordRemoteRequests(1);
-        pullQueryExecutorMetrics.get().recordRequests(time.milliseconds() - start);
-      }
-
-      return tableRowsEntity;
-
     } catch (final Exception e) {
+      pullQueryExecutorMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),
@@ -272,7 +260,7 @@ public final class PullQueryExecutor {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
                statement.getStatementText(), node.location(), System.currentTimeMillis());
-      pullQueryExecutorMetrics
+      pullQueryContext.pullQueryExecutorMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       return queryRowsLocally(
           statement,
@@ -281,7 +269,7 @@ public final class PullQueryExecutor {
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());
-      pullQueryExecutorMetrics
+      pullQueryContext.pullQueryExecutorMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
       return forwardTo(node, statement, serviceContext);
     }
@@ -419,6 +407,7 @@ public final class PullQueryExecutor {
     private final WhereInfo whereInfo;
     private final QueryId queryId;
     private final QueryContext.Stacker contextStacker;
+    private final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics;
 
     private PullQueryContext(
         final Struct key,
@@ -426,7 +415,9 @@ public final class PullQueryExecutor {
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,
         final QueryId queryId,
-        final QueryContext.Stacker contextStacker
+        final QueryContext.Stacker contextStacker,
+        final Optional<PullQueryExecutorMetrics> pullQueryExecutorMetrics
+
     ) {
       this.key = Objects.requireNonNull(key, "key");
       this.mat = Objects.requireNonNull(mat, "materialization");
@@ -434,6 +425,8 @@ public final class PullQueryExecutor {
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
+      this.pullQueryExecutorMetrics = Objects.requireNonNull(
+          pullQueryExecutorMetrics, "pullQueryExecutorMetrics");
     }
 
     public Struct getKey() {

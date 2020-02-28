@@ -260,6 +260,11 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_ANY_KEY_NAME_ENABLED = "ksql.any.key.name.enabled";
 
+  public static final String KSQL_QUERY_PULL_METRICS_ENABLED =
+      "ksql.query.pull.metrics.enabled";
+  public static final String KSQL_QUERY_PULL_METRICS_ENABLED_DOC =
+      "Whether collecting JMX metrics for pull queries is enabled or not.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT

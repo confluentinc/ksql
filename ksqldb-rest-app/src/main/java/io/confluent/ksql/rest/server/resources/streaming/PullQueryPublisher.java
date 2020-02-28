@@ -29,6 +29,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, serviceContext)
+        () -> pullQueryExecutor.execute(query, serviceContext, Optional.empty())
     );
 
     subscriber.onSubscribe(subscription);

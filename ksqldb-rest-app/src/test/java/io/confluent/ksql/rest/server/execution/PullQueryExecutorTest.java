@@ -71,14 +71,14 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, Optional.empty());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
 
       // Then:
       expectedException.expect(KsqlException.class);
       expectedException.expectMessage(containsString("Pull queries are disabled"));
 
       // When:
-      pullQueryExecutor.execute(query, engine.getServiceContext());
+      pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty());
     }
   }
 

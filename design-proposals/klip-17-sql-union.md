@@ -35,6 +35,7 @@ However, this approach has several drawbacks.
 and underlying KS topology.
 1. The is no conceptual reason that the first statement should be any different from any other
 statement inserting into `all_orders`, yet the first must be a `CSAS`, while the latter `INSERT INTO`.
+(The `CSAS` is effectively a `CS` and an `INSERT INTO` combined).
 1. It makes it more complicated for a user to drop `all_orders` as they must first terminate all the queries
 that right to it, which may be many. 
 1. It meant there was no longer a (1 - 0..1) relationship between a data source and a persistent query.
@@ -49,15 +50,15 @@ and operating KSQL more tiresome, and potentially hurt adoption.
 
 The later drawbacks are stopping other improvements to KSQL. Including, though not limited to:
 
-* [KLIP-18](klip-18-distributed-metastore .md): Distributed Metastore: which requires the (1 - 0..1) 
+* [KLIP-18][18]: Distributed Metastore: which requires the (1 - 0..1)
 relationship between data source and persistent query that this KLIP will restore.
-* [KLIP-19](klip-19-materialize-views.md): Introduce Materialized Views: which looks to clarify the 
+See the KLIP-17 section in KLIP-18 for details of why this is needed.
+* [KLIP-19][19]: Introduce Materialized Views: which looks to clarify the
 semantic difference between a view and a table/stream and their associated semantics. 
 This KLIP is related because it removes `INSERT INTO` which inserts into an existing stream.
-* [KLIP-20](klip-20_remove_terminate.md): Remove `TERMINATE` statement: which requires the (1 - 0..1)
+* [KLIP-20][20]: Remove `TERMINATE` statement: which requires the (1 - 0..1)
 relationship between data source and persistent query that this KLIP will restore.
-* [KLIP-21](klip-21_correct_insert_values_semantics.md): Correct 'INSERT VALUES' semantics: which 
-depends on [KLIP-19](klip-19-materialize-views.md).
+* [KLIP-21][21]: Correct 'INSERT VALUES' semantics: which depends on [KLIP-19][19].
 
 We propose removing `INSERT INTO` functionality and replacing it with support for the standard SQL 
 `UNION ALL` operator. 
@@ -102,7 +103,7 @@ of `INSERT INTO`:
 * Under the hood it will use a single KS topology,
 * meaning only a single copy of reference table state-stores
 * and only a single query to terminate before the sink stream can be dropped, (or non at all with 
-[KLIP-20](klip-20_remove_terminate.md)).
+[KLIP-20][20]).
 
 ## What is in scope
 
@@ -113,15 +114,17 @@ of `INSERT INTO`:
 
 ## What is not in scope
 
-* Introduction of `UNION` operator: which removes duplicates from the result set.
-We may choose to introduce this later, but is not required in any MVP.
+* Introduction of `UNION` operator: which removes duplicates from the result set. Each record in a
+stream is an immutable fact. Hence the concept of a duplicate does not exist.
 * Introduction of `UNION ALL` support on tables. though it may not be much work to add this later. 
 Support for tables is not required to remove `INSERT INTO` and unblock the other KLIPs, 
 hence it has been de-scoped.
 * And changes to `INSERT VALUES` functionality: this KLIP does not address any issues with `INSERT VALUES`. 
-These will be covered by [KLIP-21](klip-21_correct_insert_values_semantics.md).
+These will be covered by [KLIP-21][21].
 * Type coercion: the SQL standard only requires the matching columns from each `SELECT` in the union
-to have 'similar data types'. Such type coercion is not required for an MVP and may be added later. 
+to have 'similar data types'. Such type coercion is not required for an MVP and may be added later.
+* Ordering guarantees: `UNION ALL` will not offer any cross-topic-partitioning ordering guarantees.
+If this is deemed useful, it can be looked at in a follow on KLIP.
 
 ## Value/Return
 
@@ -139,39 +142,52 @@ See [UNION docs on w3schools](https://www.w3schools.com/sql/sql_union.asp) for e
 
 Under the hood this PR will require support for sub-queries to be added to our query planning pipeline.
 Each `SELECT` in the union will be added to the logical plan as a sub-query, and translated into a suitable
-physical plan, and ultimately building built into a single KS topology.
+physical plan, and ultimately building built into a single KS topology using `KStream.merge()`.
 
 The CLI will be updated to detect `INSERT INTO` statements and inform the user they are no longer supported, 
 and what to do instead, linking to more documentation. This can be done through a general pattern that can 
 be used for other removed statement types.
+
+### Ordering Guarantees
+
+`KStream.merge` does not offer any ordering guarantees between records in the different streams
+being merged. It does preserve relative ordering of records within each input stream.
+
+`UNION ALL` will be implemented using `KStream.merge`, hence we propose that the initial `UNION ALL`
+will likewise offer no cross-stream ordering guarantees. It may be possible to add ordering later,
+via additional syntax, but this is out of scope for this KLIP.
 
 ## Test plan
 
 Suitable `QueryTranslationTest` cases will be added to cover the use of `UNION ALL`. 
 At a minimum this should replicate the QTT tests that exist for `INSERT INTO`.
 
-If [KLIP-6: Execution Plans](klip-6-execution-plans.md) has not been merged then any existing 
-`INSERT ALL` statements in the command topic will result in an error.  If it has been merged, 
-the query may execute, which would be bad, unless we add code to explicitly disable this. 
-Hence testing in this area is crucial. 
+Now that [KLIP-6: Execution Plans][6] has been merged any existing `INSERT INTO` query in a users
+command topic would likely execute on a server restart, which would be bad. Explicit code will be
+need to disable this (breaking change), or provide an upgrade route for such queries. Hence testing
+in this area is crucial.
 
 ## Documentation Updates
 
 The removal of `INSERT INTO` will obviously necessitate many areas of documentation being updated. 
 Luckily `INSERT INTO` is not heavily used in demos or examples.
 
-A new section will be added to the syntax reference to cover the use of `UNION ALL`. Not much beyond 
-that would be needed in our docs as this is a standard SQL operator, and hence well documented. 
+A new section will be added to the syntax reference to cover the use of `UNION ALL`. This will also
+call out `UNION ALL` ordering guarantees, i.e. relative order of messages in source partitions is
+preserved, but there is no cross-stream ordering guarantees.
+
+Not much beyond that would be needed in our docs as this is a standard SQL operator, and hence well
+documented.
 
 The release notes will include details of how to migrate `INSERT INTO` statements to use `UNION ALL`.
 
 # Compatibility Implications
 
-Removal of `INSERT ALL` is clearly a breaking change. However, we _must_ remove it if we are to unlock
+Removal of `INSERT INTO` is clearly a breaking change. However, we _must_ remove it if we are to unlock
 the other planned work. 
 
 It is believed the proposed `UNION ALL` operator will be able to replicate all functionality currently 
-possible with `INSERT ALL`, with the exception that you will no longer be able to run additional statements
+possible with `INSERT INTO`, with the exception that you will no longer be able to run additional statements
 later to add to the set of sources being merged. For example, at the moment you can choose to run additional
 `INSERT INTO` statements at any time to include another source into the merge, where as with unions we'll
 need support for updating the running query, which will come in time.
@@ -191,3 +207,9 @@ ability to do future optimisations that would simply not be possible across the 
 ## Security Implications
 
 None.
+
+[6]: klip-6-execution-plans.md
+[18]: https://github.com/confluentinc/ksql/pull/4659
+[19]: https://github.com/confluentinc/ksql/pull/4177
+[20]: https://github.com/confluentinc/ksql/pull/4126
+[21]: tbd

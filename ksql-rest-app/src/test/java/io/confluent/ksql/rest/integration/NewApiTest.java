@@ -60,6 +60,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -169,6 +170,11 @@ public class NewApiTest {
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
+  }
+
+  @AfterClass
+  public static void classTearDown() {
+    REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
 
   private Vertx vertx;

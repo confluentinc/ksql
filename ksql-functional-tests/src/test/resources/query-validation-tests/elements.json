@@ -2,7 +2,7 @@
   "tests": [
     {
       "name": "validate without elements FAILS",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED", "JSON", "KAFKA"],
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='{FORMAT}');"
       ],
@@ -40,153 +40,8 @@
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
-      "name": "validate without elements OK - PROTOBUF",
-      "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
-        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
-          "format": "PROTOBUF"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "PROTOBUF",
-          "partitions": 4
-        }
-      ],
-      "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
-    },
-    {
-      "name": "validate without elements OK - JSON SCHEMA",
-      "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "JSON",
-          "partitions": 4
-        }
-      ],
-      "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
-    },
-    {
-      "name": "with invalid or reserved words in schema - JSON",
-      "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"type": "object","properties": {
-            "@timestamp": {"type": "integer"},
-            "from": {"type": "integer"}
-          }},
-          "format": "JSON"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "JSON"
-        }
-      ],
-      "inputs": [{"topic": "input", "value": {"@timestamp": 4, "from": 5}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"@TIMESTAMP": 4, "FROM": 5}}],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT"}
-        ]
-      }
-    },
-    {
-      "name": "validate without value elements OK - AVRO",
-      "statements": [
-        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='AvRo');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "AVRO"
-        }
-      ],
-      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` INT"}
-        ]
-      }
-    },
-    {
-      "name": "validate without value elements OK - PROTOBUF",
-      "statements": [
-        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='PROTOBUF');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
-          "format": "PROTOBUF"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "PROTOBUF"
-        }
-      ],
-      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` INT"}
-        ]
-      }
-    },
-    {
-      "name": "validate without value elements OK - JSON SCHEMA",
-      "statements": [
-        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
-        },
-        {
-          "name": "OUTPUT",
-          "format": "JSON"
-        }
-      ],
-      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` BIGINT"}
-        ]
-      }
-    },
-    {
       "name": "validate with elements OK",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON"],
       "statements": [
         "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -258,7 +113,7 @@
     },
     {
       "name": "validate boolean elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 BOOLEAN) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -288,7 +143,7 @@
     },
     {
       "name": "validate int elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -318,7 +173,7 @@
     },
     {
       "name": "validate bigint elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -348,7 +203,7 @@
     },
     {
       "name": "validate double elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -368,7 +223,7 @@
     },
     {
       "name": "validate string elements OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 STRING) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -401,7 +256,7 @@
     },
     {
       "name": "validate array element OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -434,7 +289,7 @@
     },
     {
       "name": "validate map element OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 MAP<STRING, INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -467,7 +322,7 @@
     },
     {
       "name": "validate struct element OK",
-      "format": ["JSON", "AVRO", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (V0 STRUCT<F0 STRING, F1 INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -504,7 +359,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}],\"connect.name\":\"blah\"}"
+        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}]}"
       },
       "topics": [
         {

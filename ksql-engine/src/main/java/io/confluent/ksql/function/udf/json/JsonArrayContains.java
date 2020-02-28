@@ -47,9 +47,10 @@ public class JsonArrayContains {
   static final String DESCRIPTION = "Parses a JSON array and determines whether or not the "
       + "supplied value is contained within the array.";
 
-  private static final JsonFactory PARSER_FACTORY =
-      new JsonFactory(new JsonFactoryBuilder().disable(CANONICALIZE_FIELD_NAMES))
-          .setCodec(JsonMapper.INSTANCE.mapper);
+  private static final JsonFactory PARSER_FACTORY = new JsonFactoryBuilder()
+      .disable(CANONICALIZE_FIELD_NAMES)
+      .build()
+      .setCodec(JsonMapper.INSTANCE.mapper);
 
   private static final EnumMap<JsonToken, Predicate<Object>> TOKEN_COMPAT;
 

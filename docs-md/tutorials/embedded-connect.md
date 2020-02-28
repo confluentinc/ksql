@@ -86,7 +86,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.7.0
+    image: confluentinc/ksqldb-server:0.7.1
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -115,7 +115,7 @@ services:
       # - ./confluentinc-kafka-connect-jdbc-VERSION_YOU_DOWNLOADED:/usr/share/kafka/plugins/jdbc
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.7.0
+    image: confluentinc/ksqldb-cli:0.7.1
     container_name: ksqldb-cli
     depends_on:
       - broker

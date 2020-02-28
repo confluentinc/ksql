@@ -36,14 +36,14 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForBooleanValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Boolean>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Boolean>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> Boolean.TRUE),
         SearchedCaseFunction.whenClause(() -> false, () -> Boolean.FALSE),
         SearchedCaseFunction.whenClause(() -> true, () -> Boolean.TRUE)
     );
 
     // When:
-    Boolean result = SearchedCaseFunction.searchedCaseFunction(
+    final Boolean result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -55,7 +55,7 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForIntegerValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> 1),
         SearchedCaseFunction.whenClause(() -> false, () -> 2),
         SearchedCaseFunction.whenClause(() -> true, () -> 3),
@@ -63,7 +63,7 @@ public class SearchedCaseFunctionTest {
     );
 
     // When:
-    Integer result = SearchedCaseFunction.searchedCaseFunction(
+    final Integer result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -75,7 +75,7 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForBigIntValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Long>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Long>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> 1L),
         SearchedCaseFunction.whenClause(() -> false, () -> 2L),
         SearchedCaseFunction.whenClause(() -> false, () -> 3L),
@@ -83,7 +83,7 @@ public class SearchedCaseFunctionTest {
     );
 
     // When:
-    Long result = SearchedCaseFunction.searchedCaseFunction(
+    final Long result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -95,7 +95,7 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForDoubleValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Double>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Double>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> 1.0),
         SearchedCaseFunction.whenClause(() -> false, () -> 2.0),
         SearchedCaseFunction.whenClause(() -> false, () -> 3.0),
@@ -103,7 +103,7 @@ public class SearchedCaseFunctionTest {
     );
 
     // When:
-    Double result = SearchedCaseFunction.searchedCaseFunction(
+    final Double result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -115,7 +115,7 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForStringValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<String>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<String>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> "foo"),
         SearchedCaseFunction.whenClause(() -> false, () -> "bar"),
         SearchedCaseFunction.whenClause(() -> false, () -> "tab"),
@@ -123,7 +123,7 @@ public class SearchedCaseFunctionTest {
     );
 
     // When:
-    String result = SearchedCaseFunction.searchedCaseFunction(
+    final String result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -135,13 +135,13 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForArrayValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<List<String>>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<List<String>>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> ImmutableList.of("foo", "bar")),
         SearchedCaseFunction.whenClause(() -> true, () -> ImmutableList.of("tab", "ksql"))
     );
 
     // When:
-    List<String> result = SearchedCaseFunction.searchedCaseFunction(
+    final List<String> result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -153,13 +153,13 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForMapValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Map<String, Double>>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Map<String, Double>>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> ImmutableMap.of("foo", 1.0)),
         SearchedCaseFunction.whenClause(() -> true, () -> ImmutableMap.of("tab", 2.0))
     );
 
     // When:
-    Map<String, Double> result = SearchedCaseFunction.searchedCaseFunction(
+    final Map<String, Double> result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -171,13 +171,13 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForStructValues() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Map<String, Object>>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Map<String, Object>>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> ImmutableMap.of("foo", 1.0)),
         SearchedCaseFunction.whenClause(() -> true, () -> ImmutableMap.of("tab", "ksql"))
     );
 
     // When:
-    Map<String, Object> result = SearchedCaseFunction.searchedCaseFunction(
+    final Map<String, Object> result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> null
     );
@@ -189,7 +189,7 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldReturnDefaultIfNoMatch() {
     // Given:
-    List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> false, () -> 1),
         SearchedCaseFunction.whenClause(() -> false, () -> 2),
         SearchedCaseFunction.whenClause(() -> false, () -> 3),
@@ -197,7 +197,7 @@ public class SearchedCaseFunctionTest {
     );
 
     // When:
-    Integer result = SearchedCaseFunction.searchedCaseFunction(
+    final Integer result = SearchedCaseFunction.searchedCaseFunction(
         lazyWhenClauses,
         () -> 10
     );

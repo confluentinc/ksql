@@ -17,13 +17,18 @@ package io.confluent.ksql.test.model;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -34,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @JsonDeserialize(using = RecordNode.Deserializer.class)
+@JsonSerialize(using = RecordNode.Serializer.class)
 public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -69,7 +75,7 @@ public final class RecordNode {
   public Record build(final Map<String, Topic> topics) {
     final Topic topic = topics.get(topicName);
 
-    final Object recordValue = buildValue(topic);
+    final Object recordValue = buildValue();
 
     return new Record(
         topic,
@@ -81,16 +87,26 @@ public final class RecordNode {
     );
   }
 
+  public static RecordNode from(final Record record) {
+    return new RecordNode(
+        record.getTopic().getName(),
+        Optional.ofNullable(record.rawKey()),
+        record.getJsonValue().orElse(NullNode.getInstance()),
+        record.timestamp(),
+        Optional.ofNullable(record.getWindow())
+    );
+  }
+
   public Optional<WindowData> getWindow() {
     return window;
   }
 
-  private Object buildValue(final Topic topic) {
-    if (value.asText().equals("null")) {
+  private Object buildValue() {
+    if (value instanceof NullNode) {
       return null;
     }
 
-    if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
+    if (value instanceof TextNode) {
       return value.asText();
     }
 
@@ -125,6 +141,32 @@ public final class RecordNode {
           .getOptional("window", node, jp, WindowData.class);
 
       return new RecordNode(topic, key, value, timestamp, window);
+    }
+  }
+
+  public static class Serializer extends JsonSerializer<RecordNode> {
+
+    @Override
+    public void serialize(
+        final RecordNode record,
+        final JsonGenerator jsonGenerator,
+        final SerializerProvider serializerProvider
+    ) throws IOException {
+      jsonGenerator.writeStartObject();
+      jsonGenerator.writeStringField("topic", record.topicName);
+      if (record.key.isPresent()) {
+        jsonGenerator.writeObjectField("key", record.key);
+      } else {
+        jsonGenerator.writeNullField("key");
+      }
+      jsonGenerator.writeObjectField("value", record.value);
+      if (record.timestamp.isPresent()) {
+        jsonGenerator.writeNumberField("timestamp", record.timestamp.get());
+      }
+      if (record.window.isPresent()) {
+        jsonGenerator.writeObjectField("window", record.window);
+      }
+      jsonGenerator.writeEndObject();
     }
   }
 }

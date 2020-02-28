@@ -36,52 +36,12 @@ public class ComparisonExpression extends Expression {
 
     private final String value;
 
-    Type(String value) {
+    Type(final String value) {
       this.value = value;
     }
 
     public String getValue() {
       return value;
-    }
-
-    public Type flip() {
-      switch (this) {
-        case EQUAL:
-          return EQUAL;
-        case NOT_EQUAL:
-          return NOT_EQUAL;
-        case LESS_THAN:
-          return GREATER_THAN;
-        case LESS_THAN_OR_EQUAL:
-          return GREATER_THAN_OR_EQUAL;
-        case GREATER_THAN:
-          return LESS_THAN;
-        case GREATER_THAN_OR_EQUAL:
-          return LESS_THAN_OR_EQUAL;
-        case IS_DISTINCT_FROM:
-          return IS_DISTINCT_FROM;
-        default:
-          throw new IllegalArgumentException("Unsupported comparison: " + this);
-      }
-    }
-
-    public Type negate() {
-      switch (this) {
-        case EQUAL:
-          return NOT_EQUAL;
-        case NOT_EQUAL:
-          return EQUAL;
-        case LESS_THAN:
-          return GREATER_THAN_OR_EQUAL;
-        case LESS_THAN_OR_EQUAL:
-          return GREATER_THAN;
-        case GREATER_THAN:
-          return LESS_THAN_OR_EQUAL;
-        case GREATER_THAN_OR_EQUAL:
-          return LESS_THAN;
-        default:
-          throw new IllegalArgumentException("Unsupported comparison: " + this);
-      }
     }
   }
 
@@ -89,12 +49,15 @@ public class ComparisonExpression extends Expression {
   private final Expression left;
   private final Expression right;
 
-  public ComparisonExpression(Type type, Expression left, Expression right) {
+  public ComparisonExpression(final Type type, final Expression left, final Expression right) {
     this(Optional.empty(), type, left, right);
   }
 
   public ComparisonExpression(
-      Optional<NodeLocation> location, Type type, Expression left, Expression right
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Expression left,
+      final Expression right
   ) {
     super(location);
     this.type = requireNonNull(type, "type");
@@ -115,12 +78,12 @@ public class ComparisonExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitComparisonExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -128,7 +91,7 @@ public class ComparisonExpression extends Expression {
       return false;
     }
 
-    ComparisonExpression that = (ComparisonExpression) o;
+    final ComparisonExpression that = (ComparisonExpression) o;
     return (type == that.type)
         && Objects.equals(left, that.left)
         && Objects.equals(right, that.right);

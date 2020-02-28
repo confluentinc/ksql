@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 
 /**
@@ -30,16 +31,16 @@ import java.util.Optional;
  */
 public final class KsMaterialization implements Materialization {
 
-  private final Optional<WindowType> windowType;
+  private final Optional<WindowInfo> windowInfo;
   private final KsStateStore stateStore;
   private final Locator locator;
 
   KsMaterialization(
-      final Optional<WindowType> windowType,
+      final Optional<WindowInfo> windowInfo,
       final Locator locator,
       final KsStateStore stateStore
   ) {
-    this.windowType = requireNonNull(windowType, "windowType");
+    this.windowInfo = requireNonNull(windowInfo, "windowInfo");
     this.stateStore = requireNonNull(stateStore, "stateStore");
     this.locator = requireNonNull(locator, "locator");
   }
@@ -56,33 +57,36 @@ public final class KsMaterialization implements Materialization {
 
   @Override
   public Optional<WindowType> windowType() {
-    return windowType;
+    return windowInfo.map(WindowInfo::getType);
   }
 
   @Override
   public MaterializedTable nonWindowed() {
-    if (windowType.isPresent()) {
+    if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
     return new KsMaterializedTable(stateStore);
   }
 
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type
   @Override
   public MaterializedWindowedTable windowed() {
-    if (!windowType.isPresent()) {
+    if (!windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has non-windowed key");
     }
 
-    switch (windowType.get()) {
+    final WindowInfo wndInfo = windowInfo.get();
+    final WindowType wndType = wndInfo.getType();
+    switch (wndType) {
       case SESSION:
         return new KsMaterializedSessionTable(stateStore);
 
       case HOPPING:
       case TUMBLING:
-        return new KsMaterializedWindowTable(stateStore);
+        return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get());
 
       default:
-        throw new UnsupportedOperationException("Unknown window type: " + windowType.get());
+        throw new UnsupportedOperationException("Unknown window type: " + wndInfo);
     }
   }
 }

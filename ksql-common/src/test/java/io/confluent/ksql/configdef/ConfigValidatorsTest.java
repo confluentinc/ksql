@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
@@ -180,6 +181,81 @@ public class ConfigValidatorsTest {
 
     // When:
     validator.ensureValid("propName", "value");
+  }
+
+  @Test
+  public void shouldThrowOnInvalidURL() {
+    // Given:
+    final Validator validator = ConfigValidators.validUrl();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage(
+            "Invalid value INVALID for configuration propName: Not valid URL: no protocol: INVALID");
+
+    // When:
+    validator.ensureValid("propName", "INVALID");
+  }
+
+  @Test
+  public void shouldNotThrowOnValidURL() {
+    // Given:
+    final Validator validator = ConfigValidators.validUrl();
+
+    // When:
+    validator.ensureValid("propName", "http://valid:25896/somePath");
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldNotThrowOnValidRegex() {
+    // Given
+    final Validator validator = ConfigValidators.validRegex();
+
+    // When:
+    validator.ensureValid("propName", Collections.singletonList("prefix_.*"));
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldThrowOnInvalidRegex() {
+    // Given:
+    final Validator validator = ConfigValidators.validRegex();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("Not valid regular expression: ");
+
+    // When:
+    validator.ensureValid("propName", Collections.singletonList("*_suffix"));
+  }
+
+  @Test
+  public void shouldThrowOnNoRegexList() {
+    // Given:
+    final Validator validator = ConfigValidators.validRegex();
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("validator should only be used with LIST of STRING defs");
+
+    // When:
+    validator.ensureValid("propName", "*.*");
+  }
+
+  @Test
+  public void shouldThrowOnNoStringRegexList() {
+    // Given:
+    final Validator validator = ConfigValidators.validRegex();
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("validator should only be used with LIST of STRING defs");
+
+    // When:
+    validator.ensureValid("propName", Collections.singletonList(1));
   }
 
   private enum TestEnum {

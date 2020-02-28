@@ -26,7 +26,7 @@ public class TestUdfWithNoPackage {
   @Test
   public void shouldCompileMethodsWithNoPackage() throws Exception {
     // Given:
-    double version = Double.parseDouble(System.getProperty("java.specification.version"));
+    final double version = Double.parseDouble(System.getProperty("java.specification.version"));
     if (version < 1.9) {
       assertThat(this.getClass().getPackage(), nullValue());
     } else {

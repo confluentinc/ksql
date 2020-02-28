@@ -21,7 +21,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -37,20 +39,32 @@ public final class EngineProcessingLogMessageFactory {
   }
 
   public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
-      String errorMsg, Throwable exception, GenericRow record
+      final String errorMsg, final Throwable exception, final GenericRow record
+  ) {
+    return recordProcessingError(errorMsg, Optional.of(exception), record);
+  }
+
+  public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
+      final String errorMsg, final GenericRow record
+  ) {
+    return recordProcessingError(errorMsg, Optional.empty(), record);
+  }
+
+  private static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
+      final String errorMsg, final Optional<Throwable> exception, final GenericRow record
   ) {
     return (config) -> {
-      Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
+      final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
-      Struct recordProcessingError =
+      final Struct recordProcessingError =
           new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
       struct.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, recordProcessingError);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
           errorMsg
       );
-      List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
-      cause.remove(0);
+      final List<String> cause = exception.map(EngineProcessingLogMessageFactory::getCause)
+          .orElse(Collections.emptyList());
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
           cause
@@ -66,13 +80,19 @@ public final class EngineProcessingLogMessageFactory {
     };
   }
 
-  private static String serializeRow(ProcessingLogConfig config, GenericRow record) {
+  private static List<String> getCause(final Throwable e) {
+    final List<String> cause = ErrorMessageUtil.getErrorMessages(e);
+    cause.remove(0);
+    return cause;
+  }
+
+  private static String serializeRow(final ProcessingLogConfig config, final GenericRow record) {
     if (!config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       return null;
     }
     try {
-      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
-    } catch (Throwable t) {
+      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.values());
+    } catch (final Throwable t) {
       LOGGER.error("error serializing record for processing log", t);
       return null;
     }

@@ -75,15 +75,15 @@ public interface ConnectClient {
     private final Optional<String> error;
     private final int httpCode;
 
-    public static <T> ConnectResponse<T> success(T datum, int code) {
+    public static <T> ConnectResponse<T> success(final T datum, final int code) {
       return new ConnectResponse<>(datum, null, code);
     }
 
-    public static <T> ConnectResponse<T> failure(String error, int code) {
+    public static <T> ConnectResponse<T> failure(final String error, final int code) {
       return new ConnectResponse<>(null, error, code);
     }
 
-    private ConnectResponse(T datum, String error, int code) {
+    private ConnectResponse(final T datum, final String error, final int code) {
       KsqlPreconditions.checkArgument(
           datum != null ^ error != null,
           "expected exactly one of datum or error to be null"

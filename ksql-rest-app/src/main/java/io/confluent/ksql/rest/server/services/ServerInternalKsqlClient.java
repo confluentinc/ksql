@@ -19,15 +19,19 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.core.Response;
 
 /**
@@ -40,14 +44,14 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   private static final String KSQL_PATH = "/ksql";
 
   private final KsqlResource ksqlResource;
-  private final ServiceContext serviceContext;
+  private final KsqlSecurityContext securityContext;
 
   public ServerInternalKsqlClient(
       final KsqlResource ksqlResource,
-      final ServiceContext serviceContext
+      final KsqlSecurityContext securityContext
   ) {
     this.ksqlResource = requireNonNull(ksqlResource, "ksqlResource");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.securityContext = requireNonNull(securityContext, "securityContext");
   }
 
   @Override
@@ -56,7 +60,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql
   ) {
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
-    final Response response = ksqlResource.handleKsqlStatements(serviceContext, request);
+    final Response response = ksqlResource.handleKsqlStatements(securityContext, request);
     return KsqlClientUtil.toRestResponse(
         response,
         KSQL_PATH,
@@ -67,7 +71,30 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<List<StreamedRow>> makeQueryRequest(
       final URI serverEndpoint,
-      final String sql
+      final String sql,
+      final Map<String, ?> properties
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void makeAsyncHeartbeatRequest(
+      final URI serverEndPoint,
+      final KsqlHostInfo host,
+      final long timestamp
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public RestResponse<ClusterStatusResponse> makeClusterStatusRequest(final URI serverEndPoint) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void makeAsyncLagReportRequest(
+      final URI serverEndPoint,
+      final LagReportingMessage lagReportingMessage
   ) {
     throw new UnsupportedOperationException();
   }

@@ -41,37 +41,37 @@ public class UdfUtilTest {
 
   @Test
   public void shouldPassIfArgsAreCorrect() {
-    Object[] args = new Object[]{"TtestArg1", 10L};
+    final Object[] args = new Object[]{"TtestArg1", 10L};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Long.class);
   }
 
   @Test(expected = KsqlException.class)
   public void shouldFailIfTypeIsIncorrect() {
-    Object[] args = new Object[]{"TtestArg1", 10L};
+    final Object[] args = new Object[]{"TtestArg1", 10L};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Boolean.class);
   }
 
   @Test(expected = KsqlException.class)
   public void shouldFailIfArgCountIsTooFew() {
-    Object[] args = new Object[]{"TtestArg1", 10L};
+    final Object[] args = new Object[]{"TtestArg1", 10L};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Boolean.class, String.class);
   }
 
   @Test(expected = KsqlException.class)
   public void shouldFailIfArgCountIsTooMany() {
-    Object[] args = new Object[]{"TtestArg1", 10L};
+    final Object[] args = new Object[]{"TtestArg1", 10L};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class);
   }
 
   @Test
   public void shouldPassWithNullArgs() {
-    Object[] args = new Object[]{"TtestArg1", null};
+    final Object[] args = new Object[]{"TtestArg1", null};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Long.class);
   }
 
   @Test
   public void shouldHandleSubTypes() {
-    Object[] args = new Object[]{1.345, 55};
+    final Object[] args = new Object[]{1.345, 55};
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, Number.class, Number.class);
   }
 
@@ -149,18 +149,18 @@ public class UdfUtilTest {
 
   @Test
   public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
-    Type type = getClass().getDeclaredMethod("mapType", Map.class)
+    final Type type = getClass().getDeclaredMethod("mapType", Map.class)
         .getGenericParameterTypes()[0];
-    ParamType schema = UdfUtil.getSchemaFromType(type);
+    final ParamType schema = UdfUtil.getSchemaFromType(type);
     assertThat(schema, instanceOf(MapType.class));
     assertThat(((MapType) schema).value(), equalTo(ParamTypes.INTEGER));
   }
 
   @Test
   public void shouldGetArraySchemaFromListClass() throws NoSuchMethodException {
-    Type type = getClass().getDeclaredMethod("listType", List.class)
+    final Type type = getClass().getDeclaredMethod("listType", List.class)
         .getGenericParameterTypes()[0];
-    ParamType schema = UdfUtil.getSchemaFromType(type);
+    final ParamType schema = UdfUtil.getSchemaFromType(type);
     assertThat(schema, instanceOf(ArrayType.class));
     assertThat(((ArrayType) schema).element(), equalTo(ParamTypes.DOUBLE));
   }
@@ -181,10 +181,10 @@ public class UdfUtilTest {
   @Test
   public void shouldGetGenericSchemaFromType() throws NoSuchMethodException {
     // Given:
-    Type genericType = getClass().getMethod("genericType").getGenericReturnType();
+    final Type genericType = getClass().getMethod("genericType").getGenericReturnType();
 
     // When:
-    ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
 
     // Then:
     MatcherAssert.assertThat(returnType, CoreMatchers.is(GenericType.of("T")));
@@ -193,10 +193,10 @@ public class UdfUtilTest {
   @Test
   public void shouldGetGenericSchemaFromParameterizedType() throws NoSuchMethodException {
     // Given:
-    Type genericType = getClass().getMethod("genericMapType").getGenericReturnType();
+    final Type genericType = getClass().getMethod("genericMapType").getGenericReturnType();
 
     // When:
-    ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
 
     // Then:
     assertThat(returnType, is(MapType.of(GenericType.of("T"))));
@@ -219,10 +219,10 @@ public class UdfUtilTest {
   }
 
   @SuppressWarnings("unused")
-  private void mapType(Map<String, Integer> map) {
+  private void mapType(final Map<String, Integer> map) {
   }
 
   @SuppressWarnings("unused")
-  private void listType(List<Double> list) {
+  private void listType(final List<Double> list) {
   }
 }

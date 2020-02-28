@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +28,7 @@ public class InListExpressionTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final ColumnRef SOME_NAME = ColumnRef.withoutSource(ColumnName.of("bob"));
+  private static final ColumnName SOME_NAME = ColumnName.of("bob");
   private static final List<Expression> SOME_EXPRESSIONS = ImmutableList.of(
       new StringLiteral("jane"));
   private static final List<Expression> OTHER_EXPRESSIONS = ImmutableList.of(

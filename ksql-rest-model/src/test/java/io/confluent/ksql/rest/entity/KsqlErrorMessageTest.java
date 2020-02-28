@@ -54,7 +54,7 @@ public class KsqlErrorMessageTest {
   private static String serialize(final KsqlErrorMessage errorMessage) {
     try {
       return OBJECT_MAPPER.writeValueAsString(errorMessage);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException("test invalid", e);
     }
   }
@@ -62,7 +62,7 @@ public class KsqlErrorMessageTest {
   private static KsqlErrorMessage deserialize(final String json) {
     try {
       return OBJECT_MAPPER.readValue(json, KsqlErrorMessage.class);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       if (e.getCause() instanceof RuntimeException) {
         throw (RuntimeException) e.getCause();
       }

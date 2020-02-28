@@ -39,7 +39,7 @@ public class UdfFactoryTest {
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
     expectedException.expect(KafkaException.class);
-    expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[STRING, BIGINT]");
+    expectedException.expectMessage("Function 'TestFunc' does not accept parameters (STRING, BIGINT)");
 
     factory.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.BIGINT));
   }

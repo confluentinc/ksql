@@ -21,7 +21,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -79,7 +79,7 @@ public class ClusterTerminator {
         .map(Pattern::compile)
         .collect(Collectors.toList());
 
-    final List<DataSource<?>> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+    final List<DataSource> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
 
     deleteTopics(topicNames(toDelete));
     cleanUpSinkAvroSchemas(subjectNames(toDelete));
@@ -123,7 +123,7 @@ public class ClusterTerminator {
     }
   }
 
-  private static List<DataSource<?>> getSourcesToDelete(
+  private static List<DataSource> getSourcesToDelete(
       final List<Pattern> patterns,
       final MetaStore metaStore
   ) {
@@ -136,16 +136,16 @@ public class ClusterTerminator {
         .collect(Collectors.toList());
   }
 
-  private static Set<String> topicNames(final List<DataSource<?>> sources) {
+  private static Set<String> topicNames(final List<DataSource> sources) {
     return sources.stream()
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> subjectNames(final List<DataSource<?>> sources) {
+  private static Set<String> subjectNames(final List<DataSource> sources) {
     return sources.stream()
-        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO)
+        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO)
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)

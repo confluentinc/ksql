@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Map;
 
 /**
  * An interface that allows for arbitrary validation code of a prepared statement
@@ -43,7 +43,7 @@ public interface StatementValidator<T extends Statement> {
    */
   void validate(
       ConfiguredStatement<T> statement,
-      Map<String, Object> mutableScopedProperties,
+      SessionProperties sessionProperties,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext) throws KsqlException;
 }

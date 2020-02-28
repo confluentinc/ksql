@@ -21,12 +21,10 @@ import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -74,16 +72,13 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
         if (windowStart.contains(next.key.window().startTime())) {
 
-          final Window window = Window.of(
-              next.key.window().startTime(),
-              Optional.of(next.key.window().endTime())
-          );
+          final long rowTime = next.key.window().end();
 
           final WindowedRow row = WindowedRow.of(
               stateStore.schema(),
-              key, window,
+              next.key,
               next.value,
-              next.key.window().end()
+              rowTime
           );
 
           builder.add(row);

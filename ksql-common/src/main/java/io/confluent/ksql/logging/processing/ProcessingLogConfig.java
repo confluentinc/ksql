@@ -17,6 +17,7 @@ package io.confluent.ksql.logging.processing;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Set;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -124,6 +125,10 @@ public class ProcessingLogConfig extends AbstractConfig {
           Importance.HIGH,
           INCLUDE_ROWS_DOC
       );
+
+  public static Set<String> configNames() {
+    return CONFIG_DEF.names();
+  }
 
   public ProcessingLogConfig(final Map<?, ?> properties) {
     super(CONFIG_DEF, properties);

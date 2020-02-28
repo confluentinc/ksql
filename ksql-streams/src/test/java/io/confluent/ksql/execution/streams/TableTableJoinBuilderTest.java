@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Struct;
@@ -34,20 +33,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableTableJoinBuilderTest {
-  private static final SourceName LEFT = SourceName.of("LEFT");
-  private static final SourceName RIGHT = SourceName.of("RIGHT");
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-      .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .build();
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
+      .build();
+
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -68,7 +64,6 @@ public class TableTableJoinBuilderTest {
   private TableTableJoin<Struct> join;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void init() {
     when(left.build(any())).thenReturn(
         KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, keySerdeFactory));

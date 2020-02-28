@@ -35,7 +35,7 @@ public final class RocksDBConfigSetterHandler {
       try {
         ((org.apache.kafka.common.Configurable) Utils.newInstance(clazz))
             .configure(ksqlConfig.originals());
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new ConfigException(
             "Failed to configure Configurable RocksDBConfigSetter. "
                 + StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG + ": " + clazz.getName(),

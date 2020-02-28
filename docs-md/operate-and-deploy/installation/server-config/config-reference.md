@@ -314,6 +314,29 @@ statements.
     `ksql.persistence.ensure.value.is.struct` setting, because it has no
     concept of an outer record or structure.
 
+### ksql.query.pull.enable.standby.reads
+
+Config to enable/disable forwarding pull queries to standby hosts when the active is dead. This means that stale values may be returned 
+for these queries since standby hosts receive updates from the changelog topic (to which the active writes to) asynchronously.
+Turning on this configuration, effectively sacrifices consistency for higher availability. 
+
+Setting to `true` guarantees high availability for pull queries. If set to `false`, pull queries will fail when the active is dead and 
+until a new active is elected. Default value is `false`. 
+
+For using this functionality, the server must be configured with `ksql.streams.num.standby.replicas` >= `1`, so standbys are actually enabled for the 
+underlying Kafka Streams topologies. We also recommend `ksql.heartbeat.enable=true`, to ensure pull queries quickly route around dead/failed servers, 
+without wastefully attempting to open connections to it (which can be slow & resource in-efficient). 
+
+### ksql.query.pull.max.allowed.offset.lag
+
+Config to control the maximum lag tolerated by a pull query against a table, expressed as the number of messages a given table-partition is behind, compared to the 
+changelog topic. This is applied to all servers, both active and standbys included. This can be overridden per query, from the CLI (using `SET` command) or 
+the pull query REST endpoint (by including it in the request e.g: `"streamsProperties": {"ksql.query.pull.max.allowed.offset.lag": "100"}`). 
+
+By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
+`ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag. 
+
+
 ksqlDB Server Settings
 ----------------------
 
@@ -388,6 +411,20 @@ A list of tags to be included with emitted
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
+### ksql.streams.state.dir
+
+Sets the storage directory for stateful operations, like aggregations and
+joins, to a durable location. By default, state is stored in the
+`/tmp/kafka-streams` directory.
+
+!!! note
+    The state storage directory must be unique for every server running on the
+    machine. Otherwise, servers may appear to be stuck and not doing any work.
+
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
+is `KSQL_KSQL_STREAMS_STATE_DIR`.
+
 Confluent Control Center Settings
 ---------------------------------
 
@@ -421,6 +458,11 @@ ksqlDB Processing Log Settings
 
 The following configuration settings control the behavior of the
 [ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+
+!!! note
+    To enable security for the KSQL Processing Log, assign log4j properties
+    as shown in
+    [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/security/log4j-secure.properties).
 
 ### ksql.logging.processing.topic.auto.create
 

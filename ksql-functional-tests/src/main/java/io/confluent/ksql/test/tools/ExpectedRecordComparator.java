@@ -148,7 +148,7 @@ public final class ExpectedRecordComparator {
   }
 
   private static boolean compareBoolean(final Object actualValue, final JsonNode expectedValue) {
-    return expectedValue.asBoolean() == (Boolean) actualValue;
+    return actualValue instanceof Boolean && expectedValue.asBoolean() == (Boolean) actualValue;
   }
 
   private static boolean compareNull(final Object actualValue, final JsonNode expectedValue) {

@@ -18,11 +18,11 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -46,10 +45,9 @@ public final class SchemaKSourceFactory {
 
   public static SchemaKStream<?> buildSource(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final QueryContext.Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final boolean windowed = dataSource.getKsqlTopic().getKeyFormat().isWindowed();
     switch (dataSource.getDataSourceType()) {
@@ -59,14 +57,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         ) : buildStream(
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         );
 
       case KTABLE:
@@ -75,14 +71,12 @@ public final class SchemaKSourceFactory {
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         ) : buildTable(
             builder,
             dataSource,
             contextStacker,
-            keyField,
-            alias
+            keyField
         );
 
       default:
@@ -92,10 +86,9 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKStream<?> buildWindowedStream(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
@@ -106,8 +99,7 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKStream(
@@ -121,10 +113,9 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKStream<?> buildStream(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
       throw new IllegalArgumentException("windowed");
@@ -135,8 +126,7 @@ public final class SchemaKSourceFactory {
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKStream(
@@ -150,10 +140,9 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKTable<?> buildWindowedTable(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
@@ -164,8 +153,7 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
         windowInfo,
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKTable(
@@ -179,10 +167,9 @@ public final class SchemaKSourceFactory {
 
   private static SchemaKTable<?> buildTable(
       final KsqlQueryBuilder builder,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final Stacker contextStacker,
-      final KeyField keyField,
-      final SourceName alias
+      final KeyField keyField
   ) {
     if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
       throw new IllegalArgumentException("windowed");
@@ -193,8 +180,7 @@ public final class SchemaKSourceFactory {
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         buildFormats(dataSource),
-        dataSource.getTimestampColumn(),
-        alias
+        dataSource.getTimestampColumn()
     );
 
     return schemaKTable(
@@ -210,7 +196,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final AbstractStreamSource<KStreamHolder<K>> streamSource,
+      final SourceStep<KStreamHolder<K>> streamSource,
       final KeyField keyField
   ) {
     return new SchemaKStream<>(
@@ -227,7 +213,7 @@ public final class SchemaKSourceFactory {
       final KsqlQueryBuilder builder,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
-      final AbstractStreamSource<KTableHolder<K>> tableSource,
+      final SourceStep<KTableHolder<K>> tableSource,
       final KeyField keyField
   ) {
     return new SchemaKTable<>(
@@ -240,7 +226,7 @@ public final class SchemaKSourceFactory {
     );
   }
 
-  private static Formats buildFormats(final DataSource<?> dataSource) {
+  private static Formats buildFormats(final DataSource dataSource) {
     return Formats.of(
         dataSource.getKsqlTopic().getKeyFormat(),
         dataSource.getKsqlTopic().getValueFormat(),

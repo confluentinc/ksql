@@ -31,12 +31,12 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ImmutableList<FunctionCall> tableFunctions;
 
   public StreamFlatMap(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "tableFunctions", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "tableFunctions", required = true) final
       List<FunctionCall> tableFunctions
   ) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+    this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(Objects.requireNonNull(tableFunctions));
   }
@@ -53,7 +53,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(PlanBuilder builder) {
+  public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitFlatMap(this);
   }
 
@@ -65,4 +65,22 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     return source;
   }
 
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final StreamFlatMap<?> that = (StreamFlatMap<?>) o;
+    return Objects.equals(properties, that.properties)
+        && Objects.equals(source, that.source)
+        && Objects.equals(tableFunctions, that.tableFunctions);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(properties, source, tableFunctions);
+  }
 }

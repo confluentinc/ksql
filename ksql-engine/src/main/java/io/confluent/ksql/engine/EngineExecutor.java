@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -43,7 +44,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -53,11 +53,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -137,7 +139,30 @@ final class EngineExecutor {
     );
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  QueryMetadata executeQuery(final ConfiguredStatement<Query> statement,
+      final Consumer<GenericRow> rowConsumer) {
+    final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
+    final OutputNode outputNode = plans.logicalPlan.getNode().get();
+    final QueryExecutor executor = engineContext.createQueryExecutor(
+        ksqlConfig,
+        overriddenProperties,
+        serviceContext
+    );
+    return executor.buildTransientQuery(
+        statement.getStatementText(),
+        plans.physicalPlan.getQueryId(),
+        getSourceNames(outputNode),
+        plans.physicalPlan.getPhysicalPlan(),
+        buildPlanSummary(
+            plans.physicalPlan.getQueryId(),
+            plans.physicalPlan.getPhysicalPlan()),
+        outputNode.getSchema(),
+        rowConsumer
+    );
+  }
+
+  // Known to be non-empty
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
@@ -228,22 +253,25 @@ final class EngineExecutor {
   private Optional<DdlCommand> maybeCreateSinkDdl(
       final String sql,
       final KsqlStructuredDataOutputNode outputNode,
-      final KeyField keyField) {
+      final KeyField keyField
+  ) {
     if (!outputNode.isDoCreateInto()) {
       validateExistingSink(outputNode, keyField);
       return Optional.empty();
     }
-    final CreateSourceCommand ddl;
+
     final Formats formats = Formats.of(
         outputNode.getKsqlTopic().getKeyFormat(),
         outputNode.getKsqlTopic().getValueFormat(),
         outputNode.getSerdeOptions()
     );
+
+    final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref().map(ColumnRef::name),
+          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
@@ -253,13 +281,14 @@ final class EngineExecutor {
       ddl = new CreateTableCommand(
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
-          keyField.ref().map(ColumnRef::name),
+          keyField.ref(),
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
           outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
       );
     }
+
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
     AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient, ksqlConfig);
     return Optional.of(ddl);
@@ -270,7 +299,7 @@ final class EngineExecutor {
       final KeyField keyField
   ) {
     final SourceName name = outputNode.getIntoSourceName();
-    final DataSource<?> existing = engineContext.getMetaStore().getSource(name);
+    final DataSource existing = engineContext.getMetaStore().getSource(name);
 
     if (existing == null) {
       throw new KsqlException(String.format("%s does not exist.", outputNode));
@@ -279,7 +308,7 @@ final class EngineExecutor {
     if (existing.getDataSourceType() != outputNode.getNodeOutputType()) {
       throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
               + " (%s) type is %s but select query result is %s.",
-          name.name(),
+          name.text(),
           existing.getDataSourceType(),
           outputNode.getNodeOutputType())
       );
@@ -326,9 +355,9 @@ final class EngineExecutor {
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyCol.map(c -> c.name().name()).orElse(null),
+        sinkKeyCol.map(c -> c.name().text()).orElse(null),
         sinkKeyCol.map(Column::type).orElse(null),
-        resultKeyCol.map(c -> c.name().name()).orElse(null),
+        resultKeyCol.map(c -> c.name().text()).orElse(null),
         resultKeyCol.map(Column::type).orElse(null)));
   }
 

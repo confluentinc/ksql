@@ -25,6 +25,7 @@ import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -84,11 +85,6 @@ class UdafTypes {
   ParameterInfo getInputSchema(final String inSchema) {
     validateStructAnnotation(inputType, inSchema, "paramSchema");
     final ParamType inputSchema = getSchemaFromType(inputType, inSchema);
-    //Currently, aggregate functions cannot have reified types as input parameters.
-    if (!GenericsUtil.constituentGenerics(inputSchema).isEmpty()) {
-      throw new KsqlException("Generic type parameters containing reified types are not currently"
-          + " supported. " + functionInfo);
-    }
     return new ParameterInfo("val", inputSchema, "", false);
   }
 
@@ -103,7 +99,7 @@ class UdafTypes {
   }
 
   private void validateTypes(final Type t) {
-    if (isUnsupportedType((Class<?>) getRawType(t))) {
+    if (!(t instanceof TypeVariable) && isUnsupportedType((Class<?>) getRawType(t))) {
       throw new KsqlException(String.format(invalidClassErrorMsg, t));
     }
   }

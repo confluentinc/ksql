@@ -50,63 +50,63 @@ public final class SchemaWalker {
 
   public interface Visitor<S, F> {
 
-    default S visitSchema(Schema schema) {
+    default S visitSchema(final Schema schema) {
       throw new UnsupportedOperationException("Unsupported schema type: " + schema);
     }
 
-    default S visitPrimitive(Schema schema) {
+    default S visitPrimitive(final Schema schema) {
       return visitSchema(schema);
     }
 
-    default S visitBoolean(Schema schema) {
+    default S visitBoolean(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitInt8(Schema schema) {
+    default S visitInt8(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitInt16(Schema schema) {
+    default S visitInt16(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitInt32(Schema schema) {
+    default S visitInt32(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitInt64(Schema schema) {
+    default S visitInt64(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitFloat32(Schema schema) {
+    default S visitFloat32(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitFloat64(Schema schema) {
+    default S visitFloat64(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitString(Schema schema) {
+    default S visitString(final Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default S visitBytes(Schema schema) {
+    default S visitBytes(final Schema schema) {
       return visitSchema(schema);
     }
 
-    default S visitArray(Schema schema, S element) {
+    default S visitArray(final Schema schema, final S element) {
       return visitSchema(schema);
     }
 
-    default S visitMap(Schema schema, S key, S value) {
+    default S visitMap(final Schema schema, final S key, final S value) {
       return visitSchema(schema);
     }
 
-    default S visitStruct(Schema schema, List<? extends F> fields) {
+    default S visitStruct(final Schema schema, final List<? extends F> fields) {
       return visitSchema(schema);
     }
 
-    default F visitField(Field field, S type) {
+    default F visitField(final Field field, final S type) {
       return null;
     }
   }

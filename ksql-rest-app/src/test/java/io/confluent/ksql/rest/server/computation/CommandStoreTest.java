@@ -25,6 +25,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -72,12 +74,7 @@ public class CommandStoreTest {
   private static final String COMMAND_TOPIC_NAME = "command";
   private static final TopicPartition COMMAND_TOPIC_PARTITION =
       new TopicPartition(COMMAND_TOPIC_NAME, 0);
-  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
-      Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
-  private static final Map<String, Object> OVERRIDE_PROPERTIES =
-      Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
   private static final Duration TIMEOUT = Duration.ofMillis(1000);
-  private static final AtomicInteger COUNTER = new AtomicInteger();
   private static final String statementText = "test-statement";
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofSeconds(30);
 
@@ -91,18 +88,16 @@ public class CommandStoreTest {
   @Mock
   private CommandTopic commandTopic;
   @Mock
-  private Statement statement;
-  @Mock
-  private CommandIdAssigner commandIdAssigner;
-  @Mock
   private Producer<CommandId, Command> transactionalProducer;
-
-  private ConfiguredStatement<?> configured;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
-  private final Command command =
-      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+  private final Command command = new Command(
+      statementText,
+      Collections.emptyMap(),
+      Collections.emptyMap(),
+      Optional.empty()
+  );
   private final RecordMetadata recordMetadata = new RecordMetadata(
       COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
@@ -137,10 +132,6 @@ public class CommandStoreTest {
 
   @Before
   public void setUp() {
-    when(commandIdAssigner.getCommandId(any()))
-        .thenAnswer(invocation -> new CommandId(
-            CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
-
     when(transactionalProducer.send(any(ProducerRecord.class))).thenReturn(testFuture);
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
@@ -149,13 +140,9 @@ public class CommandStoreTest {
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
-    configured = ConfiguredStatement.of(
-        PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
-
     commandStore = new CommandStore(
         COMMAND_TOPIC_NAME,
         commandTopic,
-        commandIdAssigner,
         sequenceNumberFutureStore,
         Collections.emptyMap(),
         Collections.emptyMap(),
@@ -166,13 +153,12 @@ public class CommandStoreTest {
   @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
   }
 
   @Test
@@ -183,27 +169,25 @@ public class CommandStoreTest {
         .thenReturn(testFuture);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
-    // When:
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    // When (Then: don't throw):
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Should:
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(transactionalProducer.send(any(ProducerRecord.class))).thenAnswer(
         invocation -> {
           final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
@@ -218,7 +202,7 @@ public class CommandStoreTest {
     );
 
     // When:
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
     // Then:
     verify(transactionalProducer).send(any(ProducerRecord.class));
@@ -244,21 +228,25 @@ public class CommandStoreTest {
 
   @Test
   public void shouldDistributeCommand() {
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(transactionalProducer.send(any(ProducerRecord.class))).thenReturn(testFuture);
 
     // When:
-    commandStore.enqueueCommand(configured, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
     // Then:
-    //verify(transactionalProducer).send(same(commandId), any());
+    verify(transactionalProducer).send(new ProducerRecord<>(
+        COMMAND_TOPIC_NAME,
+        COMMAND_TOPIC_PARTITION.partition(),
+        commandId,
+        command
+    ));
   }
 
   @Test
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(configured, transactionalProducer);
+        commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));

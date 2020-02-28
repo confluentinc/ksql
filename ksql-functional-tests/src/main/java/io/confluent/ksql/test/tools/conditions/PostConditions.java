@@ -40,11 +40,11 @@ public class PostConditions {
       Pattern.compile(MATCH_NOTHING)
   );
 
-  private final Matcher<Iterable<DataSource<?>>> sourcesMatcher;
+  private final Matcher<Iterable<DataSource>> sourcesMatcher;
   private final Pattern topicBlackList;
 
   public PostConditions(
-      final Matcher<Iterable<DataSource<?>>> sourcesMatcher,
+      final Matcher<Iterable<DataSource>> sourcesMatcher,
       final Pattern topicBlackList
   ) {
     this.sourcesMatcher = requireNonNull(sourcesMatcher, "sourcesMatcher");
@@ -56,25 +56,27 @@ public class PostConditions {
       final Collection<String> topicNames
   ) {
     verifyMetaStore(metaStore);
-    veriftyTopics(topicNames);
+    verifyTopics(topicNames);
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {
-    final Collection<DataSource<?>> values = metaStore
+    final Collection<DataSource> values = metaStore
         .getAllDataSources()
         .values();
 
     final String text = values.stream()
-        .map(s -> s.getDataSourceType() + ":" + s.getName().name()
+        .map(s -> s.getDataSourceType() + ":" + s.getName().text()
             + ", key:" + s.getKeyField().ref()
-            + ", value:" + s.getSchema())
+            + ", value:" + s.getSchema()
+            + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()
+        )
         .collect(Collectors.joining(System.lineSeparator()));
 
     assertThat("metastore sources after the statements have run:"
         + System.lineSeparator() + text, values, sourcesMatcher);
   }
 
-  private void veriftyTopics(final Collection<String> topicNames) {
+  private void verifyTopics(final Collection<String> topicNames) {
     final Set<String> blackListed = topicNames.stream()
         .filter(topicBlackList.asPredicate())
         .collect(Collectors.toSet());

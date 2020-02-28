@@ -54,8 +54,12 @@ public final class KsqlQueryBuilder {
   private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
 
   public static KsqlQueryBuilder of(
-      StreamsBuilder streamsBuilder, KsqlConfig ksqlConfig, ServiceContext serviceContext,
-      ProcessingLogContext processingLogContext, FunctionRegistry functionRegistry, QueryId queryId
+      final StreamsBuilder streamsBuilder,
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final FunctionRegistry functionRegistry,
+      final QueryId queryId
   ) {
     return new KsqlQueryBuilder(
         streamsBuilder,
@@ -71,9 +75,14 @@ public final class KsqlQueryBuilder {
 
   @VisibleForTesting
   KsqlQueryBuilder(
-      StreamsBuilder streamsBuilder, KsqlConfig ksqlConfig, ServiceContext serviceContext,
-      ProcessingLogContext processingLogContext, FunctionRegistry functionRegistry, QueryId queryId,
-      KeySerdeFactory keySerdeFactory, ValueSerdeFactory valueSerdeFactory
+      final StreamsBuilder streamsBuilder,
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final FunctionRegistry functionRegistry,
+      final QueryId queryId,
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.streamsBuilder = requireNonNull(streamsBuilder, "streamsBuilder");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -113,7 +122,7 @@ public final class KsqlQueryBuilder {
     return queryId;
   }
 
-  public KsqlQueryBuilder withKsqlConfig(KsqlConfig newConfig) {
+  public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
     return of(
         streamsBuilder,
         newConfig,
@@ -124,15 +133,15 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  public QueryContext.Stacker buildNodeContext(String context) {
+  public QueryContext.Stacker buildNodeContext(final String context) {
     return new QueryContext.Stacker()
         .push(context);
   }
 
   public Serde<Struct> buildKeySerde(
-      FormatInfo format, PhysicalSchema schema, QueryContext queryContext
+      final FormatInfo format, final PhysicalSchema schema, final QueryContext queryContext
   ) {
-    String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     return keySerdeFactory.create(
         format,
@@ -145,9 +154,12 @@ public final class KsqlQueryBuilder {
   }
 
   public Serde<Windowed<Struct>> buildKeySerde(
-      FormatInfo format, WindowInfo window, PhysicalSchema schema, QueryContext queryContext
+      final FormatInfo format,
+      final WindowInfo window,
+      final PhysicalSchema schema,
+      final QueryContext queryContext
   ) {
-    String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     return keySerdeFactory.create(
         format,
@@ -161,9 +173,11 @@ public final class KsqlQueryBuilder {
   }
 
   public Serde<GenericRow> buildValueSerde(
-      FormatInfo format, PhysicalSchema schema, QueryContext queryContext
+      final FormatInfo format,
+      final PhysicalSchema schema,
+      final QueryContext queryContext
   ) {
-    String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     track(loggerNamePrefix, schema.valueSchema());
 
@@ -177,7 +191,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  private void track(String loggerNamePrefix, PersistenceSchema schema) {
+  private void track(final String loggerNamePrefix, final PersistenceSchema schema) {
     if (schemas.containsKey(loggerNamePrefix)) {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }

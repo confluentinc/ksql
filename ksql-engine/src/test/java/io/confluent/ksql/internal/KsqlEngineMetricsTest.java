@@ -31,9 +31,9 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +66,8 @@ public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
-  private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
+  private static final String metricNamePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+      + KSQL_SERVICE_ID;
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
 
   @Mock
@@ -358,7 +359,7 @@ public class KsqlEngineMetricsTest {
   private static class TestKsqlMetricsExtension implements KsqlMetricsExtension {
 
     @Override
-    public void configure(Map<String, ?> config) {
+    public void configure(final Map<String, ?> config) {
     }
 
     @Override

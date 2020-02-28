@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.materialization.ks;
 
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -146,7 +146,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedTable() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT * FROM " + USER_TABLE + ";"
     );
@@ -161,7 +161,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE STREAM " + output + " AS"
             + " SELECT * FROM " + USER_STREAM + ";"
     );
@@ -179,7 +179,7 @@ public class KsMaterializationFunctionalTest {
     try (TestKsqlContext ksqlNoAppServer = TEST_HARNESS.ksqlContextBuilder().build()) {
       initializeKsql(ksqlNoAppServer);
 
-      PersistentQueryMetadata query = executeQuery(
+      final PersistentQueryMetadata query = executeQuery(
           ksqlNoAppServer,
           "CREATE TABLE " + output + " AS"
               + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
@@ -197,7 +197,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedTable() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -231,7 +231,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedStream() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " GROUP BY USERID;"
@@ -265,7 +265,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForTumblingWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -286,7 +286,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.empty());
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
@@ -310,7 +310,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForHoppingWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
@@ -332,7 +332,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.empty());
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
@@ -355,7 +355,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForSessionWindowed() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -376,7 +376,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     rows.forEach((k, v) -> {
-      final Window w = Window.of(k.window().startTime(), Optional.of(k.window().endTime()));
+      final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
@@ -399,7 +399,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWithKeyFieldsInProjection() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*), USERID AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -436,7 +436,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWitMultipleAggregationColumns() {
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -472,7 +472,7 @@ public class KsMaterializationFunctionalTest {
     // Note: HAVING clause are handled centrally by KsqlMaterialization
 
     // Given:
-    PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryMetadata query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(*) AS COUNT FROM " + USER_TABLE
             + " GROUP BY USERID"
@@ -537,7 +537,7 @@ public class KsMaterializationFunctionalTest {
 
   private static Struct asKeyStruct(final String rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
+    key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
     return key;
   }
 
@@ -578,20 +578,20 @@ public class KsMaterializationFunctionalTest {
   private static void initializeKsql(final TestKsqlContext ksqlContext) {
     ksqlContext.ensureStarted();
 
-    ksqlContext.sql("CREATE TABLE " + USER_TABLE + " "
-        + USER_DATA_PROVIDER.ksqlSchemaString()
+    ksqlContext.sql("CREATE TABLE " + USER_TABLE
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
         + "    key = '" + USER_DATA_PROVIDER.key() + "'"
         + ");"
     );
 
     ksqlContext.sql("CREATE STREAM " + USER_STREAM + " "
-        + USER_DATA_PROVIDER.ksqlSchemaString()
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString() + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
         + "    key = '" + USER_DATA_PROVIDER.key() + "'"
         + ");"
     );

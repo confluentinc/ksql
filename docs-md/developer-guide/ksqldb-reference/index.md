@@ -68,3 +68,5 @@ Execution
 ---------
 
 - [RUN SCRIPT](run-script.md)
+
+Page last revised on: {{ git_revision_date }}

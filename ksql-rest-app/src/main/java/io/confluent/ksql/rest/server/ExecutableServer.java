@@ -30,7 +30,10 @@ public class ExecutableServer<T extends RestConfig> implements Executable {
   private final ApplicationServer<T> server;
   private final List<ExecutableApplication<T>> apps;
 
-  public ExecutableServer(ApplicationServer<T> server, List<ExecutableApplication<T>> apps) {
+  public ExecutableServer(
+      final ApplicationServer<T> server,
+      final List<ExecutableApplication<T>> apps
+  ) {
     this.server = server;
     this.apps = apps;
   }
@@ -40,7 +43,7 @@ public class ExecutableServer<T extends RestConfig> implements Executable {
     apps.forEach(server::registerApplication);
     server.start();
 
-    for (ExecutableApplication<T> app : apps) {
+    for (final ExecutableApplication<T> app : apps) {
       app.startAsync();
     }
   }

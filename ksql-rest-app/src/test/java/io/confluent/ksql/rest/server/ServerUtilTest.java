@@ -32,7 +32,7 @@ public class ServerUtilTest {
   @Test(expected = ConfigException.class)
   public void shouldThrowConfigExceptionIfInvalidServerAddress() {
     // Given:
-    KsqlRestConfig restConfig =
+    final KsqlRestConfig restConfig =
         new KsqlRestConfig(
             Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
                 "invalid"));
@@ -44,7 +44,7 @@ public class ServerUtilTest {
   @Test
   public void shouldReturnServerAddress() {
     // Given:
-    KsqlRestConfig restConfig =
+    final KsqlRestConfig restConfig =
         new KsqlRestConfig(
             Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
                 "http://localhost:8088, http://localhost:9099"));

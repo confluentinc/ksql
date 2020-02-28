@@ -29,10 +29,9 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -68,7 +67,7 @@ public class SourceDescriptionFactoryTest {
     consumerCollector.close();
   }
 
-  private static DataSource<?> buildDataSource(
+  private static DataSource buildDataSource(
       final String kafkaTopicName,
       final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
@@ -77,8 +76,8 @@ public class SourceDescriptionFactoryTest {
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     return new KsqlStream<>(
@@ -86,7 +85,7 @@ public class SourceDescriptionFactoryTest {
         SourceName.of("stream"),
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.value().get(0).ref()),
+        KeyField.none(),
         timestampColumn,
         false,
         topic
@@ -110,7 +109,7 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
     consumerCollector.onConsume(buildRecords(kafkaTopicName));
     StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 
@@ -118,7 +117,6 @@ public class SourceDescriptionFactoryTest {
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());
@@ -136,13 +134,12 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnEmptyTimestampColumn() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
 
     // When
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());
@@ -155,17 +152,16 @@ public class SourceDescriptionFactoryTest {
   public void shouldReturnTimestampColumnIfPresent() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final DataSource<?> dataSource = buildDataSource(
+    final DataSource dataSource = buildDataSource(
         kafkaTopicName,
         Optional.of(
-            new TimestampColumn(ColumnRef.withoutSource(ColumnName.of("foo")), Optional.empty()))
+            new TimestampColumn(ColumnName.of("foo"), Optional.empty()))
     );
 
     // When
     final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
-        "json",
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty());

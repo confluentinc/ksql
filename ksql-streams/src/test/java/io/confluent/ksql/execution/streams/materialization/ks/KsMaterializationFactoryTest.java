@@ -30,6 +30,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -49,6 +50,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializationFactoryTest {
 
+  private static final String APPLICATION_ID = "app_id";
   private static final String STORE_NAME = "someStore";
   private static final URL DEFAULT_APP_SERVER = buildDefaultAppServer();
 
@@ -87,7 +89,7 @@ public class KsMaterializationFactoryTest {
         materializationFactory
     );
 
-    when(locatorFactory.create(any(), any(), any(), any())).thenReturn(locator);
+    when(locatorFactory.create(any(), any(), any(), any(), any())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
@@ -112,7 +114,7 @@ public class KsMaterializationFactoryTest {
     // When:
     final Optional<KsMaterialization> result = factory
         .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig);
+            ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -122,14 +124,15 @@ public class KsMaterializationFactoryTest {
   public void shouldBuildLocatorWithCorrectParams() {
     // When:
     factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig);
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(locatorFactory).create(
         STORE_NAME,
         kafkaStreams,
         keySerializer,
-        DEFAULT_APP_SERVER
+        DEFAULT_APP_SERVER,
+        APPLICATION_ID
     );
   }
 
@@ -137,7 +140,7 @@ public class KsMaterializationFactoryTest {
   public void shouldBuildStateStoreWithCorrectParams() {
     // When:
     factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig);
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(storeFactory).create(
@@ -151,15 +154,16 @@ public class KsMaterializationFactoryTest {
   @Test
   public void shouldBuildMaterializationWithCorrectParams() {
     // Given:
-    final Optional<WindowType> windowType = Optional.of(WindowType.SESSION);
+    final Optional<WindowInfo> windowInfo =
+        Optional.of(WindowInfo.of(WindowType.SESSION, Optional.empty()));
 
     // When:
-    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowType, streamsProperties,
-        ksqlConfig);
+    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowInfo, streamsProperties,
+        ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(materializationFactory).create(
-        windowType,
+        windowInfo,
         locator,
         stateStore
     );
@@ -170,7 +174,7 @@ public class KsMaterializationFactoryTest {
     // When:
     final Optional<KsMaterialization> result = factory
         .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig);
+            ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result,  is(Optional.of(materialization)));

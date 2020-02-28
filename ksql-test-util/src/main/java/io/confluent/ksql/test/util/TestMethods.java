@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public final class TestMethods {
 
   private static final Map<Type, Object> BUILT_IN_DEFAULTS = ImmutableMap.<Type, Object>builder()
+      .put(boolean.class, false)
       .put(int.class, 0)
       .put(long.class, 0L)
       .put(float.class, 0.0f)
@@ -181,9 +182,9 @@ public final class TestMethods {
     public void invokeMethod(final T instanceUnderTest) throws Throwable {
       try {
         method.invoke(instanceUnderTest, args);
-      } catch (IllegalAccessException e) {
+      } catch (final IllegalAccessException e) {
         throw new AssertionError("Invoke failed", e);
-      } catch (InvocationTargetException e) {
+      } catch (final InvocationTargetException e) {
         throw e.getCause();
       }
     }

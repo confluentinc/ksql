@@ -16,14 +16,12 @@
 package io.confluent.ksql.parser.json;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Optional;
 
 public class ExpressionTestCase {
@@ -34,8 +32,8 @@ public class ExpressionTestCase {
 
   static final Expression EXPRESSION_NEEDS_QUOTES = new DereferenceExpression(
       Optional.empty(),
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("FOO"), ColumnName.of("STREAM"))),
+      new UnqualifiedColumnReferenceExp(ColumnName.of("STREAM")),
       "bar"
   );
-  static final String EXPRESSION_NEEDS_QUOTES_TXT = "\"FOO.`STREAM`->`bar`\"";
+  static final String EXPRESSION_NEEDS_QUOTES_TXT = "\"`STREAM`->`bar`\"";
 }

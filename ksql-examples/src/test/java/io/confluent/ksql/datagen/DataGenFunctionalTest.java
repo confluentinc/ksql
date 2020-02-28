@@ -51,7 +51,7 @@ public class DataGenFunctionalTest {
       "quickstart", "users",
       "key-format", "kafka",
       "value-format", "json",
-      "maxInterval", "1",
+      "msgRate", "100",
       "iterations", "" + DEFAULT_MESSAGE_COUNT
   );
 

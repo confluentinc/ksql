@@ -37,7 +37,9 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -46,11 +48,11 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
@@ -87,16 +89,20 @@ public class RecoveryTest {
   private final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
 
+  private KsqlSecurityContext securityContext;
+
   @Mock
   @SuppressWarnings("unchecked")
-  private Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
+  private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
 
 
   @Before
-  public void setup() { }
+  public void setup() {
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+  }
 
   @After
   public void tearDown() {
@@ -105,7 +111,7 @@ public class RecoveryTest {
     serviceContext.close();
   }
 
-  private KsqlEngine createKsqlEngine() {
+  private KsqlEngine createKsqlEngine(final QueryIdGenerator queryIdGenerator) {
     final KsqlEngineMetrics engineMetrics = mock(KsqlEngineMetrics.class);
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
@@ -116,27 +122,25 @@ public class RecoveryTest {
 
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
-    private final CommandIdAssigner commandIdAssigner;
     private int offset;
-    private Producer<CommandId, Command> transactionalProducer;
+    private final Producer<CommandId, Command> transactionalProducer;
 
     FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
-      this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
       this.transactionalProducer = transactionalProducer;
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final Producer<CommandId, Command> transactionalProducer) {
-      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+    public QueuedCommandStatus enqueueCommand(
+        final CommandId commandId,
+        final Command command,
+        final Producer<CommandId, Command> transactionalProducer
+    ) {
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
-              new Command(
-                  statement.getStatementText(),
-                  Collections.emptyMap(),
-                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
+              command,
               Optional.empty(),
               commandSequenceNumber));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
@@ -192,7 +196,8 @@ public class RecoveryTest {
     final ServerState serverState;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
-      this.ksqlEngine = createKsqlEngine();
+      final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
+      this.ksqlEngine = createKsqlEngine(queryIdGenerator);
       this.fakeCommandQueue = new FakeCommandQueue(commandLog, transactionalProducer);
       serverState = new ServerState();
       serverState.setReady();
@@ -220,7 +225,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          Optional.of((sc, metastore, statement) -> { })
+          Optional.of((sc, metastore, statement) -> { }),
+          mock(Errors.class)
       );
 
       this.statementExecutor.configure(ksqlConfig);
@@ -237,7 +243,7 @@ public class RecoveryTest {
 
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
-        final Response response = ksqlResource.handleKsqlStatements(serviceContext,
+        final Response response = ksqlResource.handleKsqlStatements(securityContext,
             new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
@@ -301,8 +307,8 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<DataSource<?>> {
-    final DataSource<?> source;
+      extends TypeSafeDiagnosingMatcher<DataSource> {
+    final DataSource source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
@@ -310,7 +316,7 @@ public class RecoveryTest {
     final Matcher<Optional<TimestampColumn>> extractionColumnMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final DataSource<?> source) {
+    StructuredDataSourceMatcher(final DataSource source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -336,7 +342,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final DataSource<?> other,
+        final DataSource other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -381,12 +387,12 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<DataSource<?>> sameSource(final DataSource<?> source) {
+  private static Matcher<DataSource> sameSource(final DataSource source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<SourceName, Matcher<DataSource<?>>> sourceMatchers;
+    final Map<SourceName, Matcher<DataSource>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
@@ -416,7 +422,7 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<SourceName, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
+      for (final Entry<SourceName, Matcher<DataSource>> e : sourceMatchers.entrySet()) {
         final SourceName name = e.getKey();
         if (!test(
             e.getValue(),
@@ -562,7 +568,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );
@@ -574,7 +580,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;"
+        "TERMINATE CSAS_B_0;"
     );
     shouldRecover(commands);
   }
@@ -584,7 +590,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -596,7 +602,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_1;",
+        "TERMINATE CSAS_B_0;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -615,7 +621,7 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()),
+            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of(), Optional.empty()),
             Optional.empty(),
             0L
         )
@@ -625,7 +631,7 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldRecoverQueryIDsByOffset() {
+  public void shouldRecoverQueryIDs() {
     commands.addAll(
         ImmutableList.of(
             new QueuedCommand(
@@ -634,7 +640,8 @@ public class RecoveryTest {
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
                     Collections.emptyMap(),
-                    null
+                    null,
+                    Optional.empty()
                 ),
                 Optional.empty(),
                 2L
@@ -644,7 +651,8 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM C AS SELECT * FROM A;",
                     Collections.emptyMap(),
-                    null
+                    null,
+                    Optional.empty()
                 ),
                 Optional.empty(),
                 7L
@@ -656,7 +664,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_7")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
   }
 
 }

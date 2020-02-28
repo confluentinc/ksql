@@ -40,7 +40,7 @@ import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -93,7 +93,7 @@ public class QueryExecutorTest {
       .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
       SerdeOption.none()
@@ -107,7 +107,7 @@ public class QueryExecutorTest {
   @Mock
   private KStream<Struct, GenericRow> kstream;
   @Mock
-  private DataSource<?> sink;
+  private DataSource sink;
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock
@@ -170,7 +170,7 @@ public class QueryExecutorTest {
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
-    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
@@ -303,7 +303,8 @@ public class QueryExecutorTest {
         any(),
         eq(Optional.empty()),
         eq(properties),
-        eq(ksqlConfig)
+        eq(ksqlConfig),
+        any()
     );
   }
 

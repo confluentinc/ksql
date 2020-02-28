@@ -3,7 +3,7 @@
     {
       "name": "string to date",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, date varchar, format varchar) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, date varchar, format varchar) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM TS AS select id, stringtodate(date, format) as ts from test;"
       ],
       "inputs": [

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
 public interface SimpleColumn {
@@ -22,7 +23,7 @@ public interface SimpleColumn {
   /**
    * @return the column source and name
    */
-  ColumnRef ref();
+  ColumnName name();
 
   /**
    * @return the type of the field.

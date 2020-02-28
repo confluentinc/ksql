@@ -22,7 +22,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -30,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Immutable
-abstract class StructuredDataSource<K> implements DataSource<K> {
+abstract class StructuredDataSource<K> implements DataSource {
 
   private final SourceName dataSourceName;
   private final DataSourceType dataSourceType;
@@ -64,9 +63,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
     this.casTarget = casTarget;
 
-    if (schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)).isPresent()
-        || schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)).isPresent()) {
-      throw new IllegalArgumentException("Schema contains implicit columns in value schema");
+    if (schema.valueContainsAny(SchemaUtil.systemColumnNames())) {
+      throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
   }
 

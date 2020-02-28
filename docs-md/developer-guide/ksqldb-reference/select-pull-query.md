@@ -35,7 +35,7 @@ request/response flows. For asynchronous application flows, see
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-The WHERE clause must contain a single value of `ROWKEY` to retieve and may
+The WHERE clause must contain a single value of `ROWKEY` to retrieve and may
 optionally include bounds on WINDOWSTART if the materialized table is windowed.
 
 Example
@@ -52,9 +52,9 @@ formatted datestrings to represent date times. For example, the previous
 query is equivalent to the following:
 
 ```sql
-    SELECT * FROM pageviews_by_region
-      WHERE ROWKEY = 'Region_1'
-        AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
+SELECT * FROM pageviews_by_region
+  WHERE ROWKEY = 'Region_1'
+    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
 ```
 
 You can specify time zones within the datestring. For example,

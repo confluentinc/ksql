@@ -25,12 +25,10 @@ import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,12 +44,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-@SuppressWarnings("UnstableApiUsage")
 public class KsqlJsonDeserializer implements Deserializer<Object> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -59,6 +57,9 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+
+  private static final Schema STRING_ARRAY = SchemaBuilder
+      .array(Schema.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
@@ -74,78 +75,85 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       .build();
 
   private final PersistenceSchema physicalSchema;
+  private final boolean isJsonSchema;
+  private String target = "?";
 
   public KsqlJsonDeserializer(
-      final PersistenceSchema physicalSchema
+      final PersistenceSchema physicalSchema,
+      final boolean isJsonSchema
   ) {
     this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
+    this.isJsonSchema = isJsonSchema;
   }
 
   @Override
-  public void configure(final Map<String, ?> map, final boolean b) {
+  public void configure(final Map<String, ?> map, final boolean isKey) {
+    this.target = isKey ? "key" : "value";
   }
 
   @Override
   public Object deserialize(final String topic, final byte[] bytes) {
     try {
-      final Object value = deserialize(bytes);
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("Deserialized value. topic:{}, row:{}", topic, value);
-      }
-      return value;
-    } catch (final Exception e) {
-      throw new SerializationException(
-          "Error deserializing JSON message from topic: " + topic, e);
-    }
-  }
-
-  private Object deserialize(final byte[] bytes) {
-    try {
       if (bytes == null) {
         return null;
       }
 
-      final JsonNode value = MAPPER.readTree(bytes);
-      return enforceFieldType(this, physicalSchema.serializedSchema(), value);
-    } catch (IOException e) {
-      throw new SerializationException(e);
+      // don't use the JsonSchemaConverter to read this data because
+      // we require that the MAPPER enables USE_BIG_DECIMAL_FOR_FLOATS,
+      // which is not currently available in the standard converters
+      final JsonNode value = isJsonSchema
+          ? JsonSerdeUtils.readJsonSR(bytes, MAPPER, JsonNode.class)
+          : MAPPER.readTree(bytes);
+
+      final Object coerced = enforceFieldType(
+          "$",
+          new JsonValueContext(value, physicalSchema.serializedSchema())
+      );
+
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deserialized {}. topic:{}, row:{}", target, topic, coerced);
+      }
+
+      return coerced;
+    } catch (final Exception e) {
+      throw new SerializationException(
+          "mvn " + target + " from topic: " + topic, e);
     }
   }
 
   private static Object enforceFieldType(
-      final KsqlJsonDeserializer deserializer,
-      final Schema schema,
-      final JsonNode columnVal
+      final String pathPart,
+      final JsonValueContext context
   ) {
-    return enforceFieldType(new JsonValueContext(deserializer, schema, columnVal));
-  }
-
-  private static Object enforceFieldType(final JsonValueContext context) {
     if (context.val == null || context.val instanceof NullNode) {
       return null;
     }
 
-    final Function<JsonValueContext, Object> handler = HANDLERS.getOrDefault(
-        context.schema.type(),
-        type -> {
-          throw new KsqlException("Type is not supported: " + type);
-        });
-    return handler.apply(context);
+    try {
+      final Function<JsonValueContext, Object> handler = HANDLERS.getOrDefault(
+          context.schema.type(),
+          type -> {
+            throw new KsqlException("Type is not supported: " + type);
+          });
+      return handler.apply(context);
+    } catch (final CoercionException e) {
+      throw new CoercionException(e.getRawMessage(), pathPart + e.getPath(), e);
+    } catch (final Exception e) {
+      throw new CoercionException(e.getMessage(), pathPart, e);
+    }
   }
 
   private static String processString(final JsonValueContext context) {
     if (context.val instanceof ObjectNode) {
       try {
         return MAPPER.writeValueAsString(MAPPER.treeToValue(context.val, Object.class));
-      } catch (JsonProcessingException e) {
+      } catch (final JsonProcessingException e) {
         throw new KsqlException("Unexpected inability to write value as string: " + context.val);
       }
     }
     if (context.val instanceof ArrayNode) {
-      return Streams.stream(context.val.elements())
-          .map(val -> processString(
-              new JsonValueContext(context.deserializer, context.schema, val)
-          ))
+      return enforceElementTypeForArray(new JsonValueContext(context.val, STRING_ARRAY)).stream()
+          .map(Objects::toString)
           .collect(Collectors.joining(", ", "[", "]"));
     }
     return context.val.asText();
@@ -171,10 +179,16 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       throw invalidConversionException(context.val, context.schema);
     }
 
+    int idx = 0;
     final ArrayNode list = (ArrayNode) context.val;
     final List<Object> array = new ArrayList<>(list.size());
     for (final JsonNode item : list) {
-      array.add(enforceFieldType(context.deserializer, context.schema.valueSchema(), item));
+      final Object element = enforceFieldType(
+          "[" + idx++ + "]",
+          new JsonValueContext(item, context.schema.valueSchema())
+      );
+
+      array.add(element);
     }
     return array;
   }
@@ -186,17 +200,20 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
     final ObjectNode map = (ObjectNode) context.val;
     final Map<String, Object> ksqlMap = new HashMap<>(map.size());
-    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
       final Entry<String, JsonNode> e = it.next();
-      ksqlMap.put(
-          enforceFieldType(
-              context.deserializer,
-              Schema.OPTIONAL_STRING_SCHEMA,
-              new TextNode(e.getKey()))
-              .toString(),
-          enforceFieldType(
-              context.deserializer, context.schema.valueSchema(), e.getValue())
+
+      final String key = (String) enforceFieldType(
+          "." + e.getKey() + ".key",
+          new JsonValueContext(new TextNode(e.getKey()), Schema.OPTIONAL_STRING_SCHEMA)
       );
+
+      final Object value = enforceFieldType(
+          "." + e.getKey() + ".value",
+          new JsonValueContext(e.getValue(), context.schema.valueSchema())
+      );
+
+      ksqlMap.put(key, value);
     }
     return ksqlMap;
   }
@@ -210,7 +227,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     final ObjectNode jsonFields = (ObjectNode) context.val;
     final Map<String, JsonNode> upperCasedFields = upperCaseKeys(jsonFields);
 
-    for (Field ksqlField : context.schema.fields()) {
+    for (final Field ksqlField : context.schema.fields()) {
       // the "case insensitive" strategy leverages that all KSQL fields are internally
       // case sensitive - if they were specified without quotes, then they are upper-cased
       // during parsing. any ksql fields that are case insensitive, therefore, will be matched
@@ -222,9 +239,8 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       }
 
       final Object coerced = enforceFieldType(
-          context.deserializer,
-          ksqlField.schema(),
-          fieldValue
+          "." + ksqlField.name(),
+          new JsonValueContext(fieldValue, ksqlField.schema())
       );
 
       columnStruct.put(ksqlField.name(), coerced);
@@ -235,7 +251,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private static Map<String, JsonNode> upperCaseKeys(final ObjectNode map) {
     final Map<String, JsonNode> result = new HashMap<>(map.size());
-    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
       final Entry<String, JsonNode> entry = it.next();
       // what happens if we have two fields with the same name and different case?
       result.put(entry.getKey().toUpperCase(), entry.getValue());
@@ -257,20 +273,37 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     );
   }
 
-  private static class JsonValueContext {
+  private static final class JsonValueContext {
 
-    private final KsqlJsonDeserializer deserializer;
     private final Schema schema;
     private final JsonNode val;
 
     JsonValueContext(
-        final KsqlJsonDeserializer deserializer,
-        final Schema schema,
-        final JsonNode val
+        final JsonNode val,
+        final Schema schema
     ) {
-      this.deserializer = Objects.requireNonNull(deserializer);
       this.schema = Objects.requireNonNull(schema, "schema");
       this.val = val;
+    }
+  }
+
+  private static final class CoercionException extends RuntimeException {
+
+    private final String path;
+    private final String message;
+
+    CoercionException(final String message, final String path, final Throwable cause) {
+      super(message + ", path: " + path, cause);
+      this.message = Objects.requireNonNull(message, "message");
+      this.path = Objects.requireNonNull(path, "path");
+    }
+
+    public String getRawMessage() {
+      return message;
+    }
+
+    public String getPath() {
+      return path;
     }
   }
 }

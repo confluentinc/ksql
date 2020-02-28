@@ -33,12 +33,12 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   private final ExecutionStep<? extends KStreamHolder<?>> source;
 
   public StreamSelectKey(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<? extends KStreamHolder<?>> source,
-      @JsonProperty(value = "keyExpression", required = true) Expression keyExpression
+      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
   ) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+    this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.keyExpression = Objects.requireNonNull(keyExpression, "keyExpression");
   }
@@ -63,19 +63,19 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   }
 
   @Override
-  public KStreamHolder<Struct> build(PlanBuilder builder) {
+  public KStreamHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitStreamSelectKey(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamSelectKey that = (StreamSelectKey) o;
+    final StreamSelectKey that = (StreamSelectKey) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source);
   }

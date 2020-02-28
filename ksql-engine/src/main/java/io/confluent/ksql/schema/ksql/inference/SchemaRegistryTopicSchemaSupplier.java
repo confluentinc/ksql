@@ -16,20 +16,18 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.connect.avro.AvroDataConfig;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.links.DocumentationLinks;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.avro.Schema.Parser;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Schema;
 
@@ -39,66 +37,48 @@ import org.apache.kafka.connect.data.Schema;
 public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   private final SchemaRegistryClient srClient;
-  private final Function<String, org.apache.avro.Schema> toAvroTranslator;
-  private final Function<org.apache.avro.Schema, Schema> toConnectTranslator;
   private final Function<Schema, Schema> toKsqlTranslator;
+  private final Function<String, Format> formatFactory;
 
   public SchemaRegistryTopicSchemaSupplier(final SchemaRegistryClient srClient) {
     this(
         srClient,
-        schema -> new Parser().parse(schema),
-        new AvroData(new AvroDataConfig(Collections.emptyMap()))::toConnectSchema,
-        new ConnectSchemaTranslator()::toKsqlSchema);
+        new ConnectSchemaTranslator()::toKsqlSchema,
+        FormatFactory::fromName
+    );
   }
 
   @VisibleForTesting
   SchemaRegistryTopicSchemaSupplier(
       final SchemaRegistryClient srClient,
-      final Function<String, org.apache.avro.Schema> toAvroTranslator,
-      final Function<org.apache.avro.Schema, Schema> toConnectTranslator,
-      final Function<Schema, Schema> toKsqlTranslator
+      final Function<Schema, Schema> toKsqlTranslator,
+      final Function<String, Format> formatFactory
   ) {
     this.srClient = Objects.requireNonNull(srClient, "srClient");
-    this.toAvroTranslator = Objects.requireNonNull(toAvroTranslator, "toAvroTranslator");
-    this.toConnectTranslator = Objects.requireNonNull(toConnectTranslator, "toConnectTranslator");
     this.toKsqlTranslator = Objects.requireNonNull(toKsqlTranslator, "toKsqlTranslator");
+    this.formatFactory = Objects.requireNonNull(formatFactory, "formatFactory");
   }
 
   @Override
   public SchemaResult getValueSchema(final String topicName, final Optional<Integer> schemaId) {
-
-    final Optional<SchemaMetadata> metadata = getSchema(topicName, schemaId);
-    if (!metadata.isPresent()) {
-      return notFound(topicName);
-    }
-
-    try {
-      final Schema connectSchema = toConnectSchema(metadata.get().getSchema());
-
-      return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, metadata.get().getId()));
-    } catch (final Exception e) {
-      return notCompatible(topicName, metadata.get().getSchema(), e);
-    }
-  }
-
-  private Optional<SchemaMetadata> getSchema(
-      final String topicName,
-      final Optional<Integer> schemaId
-  ) {
     try {
       final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final int id;
 
       if (schemaId.isPresent()) {
-        return Optional.of(srClient.getSchemaMetadata(subject, schemaId.get()));
+        id = schemaId.get();
+      } else {
+        id = srClient.getLatestSchemaMetadata(subject).getId();
       }
 
-      return Optional.of(srClient.getLatestSchemaMetadata(subject));
+      final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
+      return fromParsedSchema(topicName, id, schema);
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
         case HttpStatus.SC_UNAUTHORIZED:
         case HttpStatus.SC_FORBIDDEN:
-          return Optional.empty();
+          return notFound(topicName);
         default:
           throw new KsqlException("Schema registry fetch for topic "
               + topicName + " request failed.", e);
@@ -109,15 +89,23 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     }
   }
 
-  private Schema toConnectSchema(final String avroSchemaString) {
-    final org.apache.avro.Schema avroSchema = toAvroTranslator.apply(avroSchemaString);
-    final Schema connectSchema = toConnectTranslator.apply(avroSchema);
-    return toKsqlTranslator.apply(connectSchema);
+  public SchemaResult fromParsedSchema(
+      final String topic,
+      final int id,
+      final ParsedSchema parsedSchema
+  ) {
+    try {
+      final Format format = formatFactory.apply(parsedSchema.schemaType());
+      final Schema connectSchema = toKsqlTranslator.apply(format.toConnectSchema(parsedSchema));
+      return SchemaResult.success(SchemaAndId.schemaAndId(connectSchema, id));
+    } catch (final Exception e) {
+      return notCompatible(topic, parsedSchema.canonicalString(), e);
+    }
   }
 
   private static SchemaResult notFound(final String topicName) {
     return SchemaResult.failure(new KsqlException(
-        "Avro schema for message values on topic " + topicName
+        "Schema for message values on topic " + topicName
             + " does not exist in the Schema Registry."
             + "Subject: " + topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
             + System.lineSeparator()
@@ -126,11 +114,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "- The topic itself does not exist"
             + "\t-> Use SHOW TOPICS; to check"
             + System.lineSeparator()
-            + "- Messages on the topic are not Avro serialized"
+            + "- Messages on the topic are not serialized using a format Schema Registry supports"
             + "\t-> Use PRINT '" + topicName + "' FROM BEGINNING; to verify"
             + System.lineSeparator()
-            + "- Messages on the topic have not been serialized using the Confluent Schema "
-            + "Registry Avro serializer"
+            + "- Messages on the topic have not been serialized using a Confluent Schema "
+            + "Registry supported serializer"
             + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
             + System.lineSeparator()
             + "- The schema is registered on a different instance of the Schema Registry"

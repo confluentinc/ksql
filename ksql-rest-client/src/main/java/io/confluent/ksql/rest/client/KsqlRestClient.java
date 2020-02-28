@@ -20,10 +20,13 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.Closeable;
 import java.io.InputStream;
@@ -33,7 +36,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 
 public class KsqlRestClient implements Closeable {
 
@@ -86,6 +91,23 @@ public class KsqlRestClient implements Closeable {
     return target().getServerHealth();
   }
 
+  public Future<Response> makeAsyncHeartbeatRequest(
+      final KsqlHostInfoEntity host,
+      final long timestamp
+  ) {
+    return target().postAsyncHeartbeatRequest(host, timestamp);
+  }
+
+  public RestResponse<ClusterStatusResponse> makeClusterStatusRequest() {
+    return target().getClusterStatus();
+  }
+
+  public Future<Response> makeAsyncLagReportingRequest(
+      final LagReportingMessage lagReportingMessage
+  ) {
+    return target().postAsyncLagReportingRequest(lagReportingMessage);
+  }
+
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
     return target().postKsqlRequest(ksql, Optional.empty());
   }
@@ -104,6 +126,15 @@ public class KsqlRestClient implements Closeable {
 
   public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
     return target().postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
+  }
+
+  public RestResponse<QueryStream> makeQueryRequest(final String ksql,
+      final Long commandSeqNum, final Map<String, ?> properties) {
+    KsqlTarget target = target();
+    if (properties != null) {
+      target = target.properties(properties);
+    }
+    return target.postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(

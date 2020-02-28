@@ -37,11 +37,10 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -95,7 +94,7 @@ public class TemporaryEngine extends ExternalResource {
     );
 
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
-    UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, Optional.empty(),
+    final UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, Optional.empty(),
         typeParser, true
     );
     udtfLoader.loadUdtfFromClass(TestUdtf1.class, "whatever");
@@ -114,7 +113,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends DataSource<?>> T givenSource(
+  public <T extends DataSource> T givenSource(
       final DataSourceType type,
       final String name
   ) {
@@ -122,11 +121,11 @@ public class TemporaryEngine extends ExternalResource {
 
     final KsqlTopic topic = new KsqlTopic(
         name,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
-    final DataSource<?> source;
+    final DataSource source;
     switch (type) {
       case KSTREAM:
         source =
@@ -135,7 +134,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
+                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic
@@ -148,7 +147,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
+                KeyField.of(ColumnName.of("val")),
                 Optional.empty(),
                 false,
                 topic
@@ -191,12 +190,12 @@ public class TemporaryEngine extends ExternalResource {
   public static class TestUdtf1 {
 
     @Udtf
-    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+    public List<Integer> foo1(@UdfParameter(value = "foo") final int foo) {
       return ImmutableList.of(1);
     }
 
     @Udtf
-    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+    public List<Double> foo2(@UdfParameter(value = "foo") final double foo) {
       return ImmutableList.of(1.0d);
     }
   }
@@ -206,12 +205,12 @@ public class TemporaryEngine extends ExternalResource {
   public static class TestUdtf2 {
 
     @Udtf
-    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+    public List<Integer> foo1(@UdfParameter(value = "foo") final int foo) {
       return ImmutableList.of(1);
     }
 
     @Udtf
-    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+    public List<Double> foo2(@UdfParameter(value = "foo") final double foo) {
       return ImmutableList.of(1.0d);
     }
   }

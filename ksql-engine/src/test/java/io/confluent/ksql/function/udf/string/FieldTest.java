@@ -27,7 +27,7 @@ public class FieldTest {
   @Test
   public void shouldFindFirstArgument() {
     // When:
-    int pos = field.field("hello", "hello", "world");
+    final int pos = field.field("hello", "hello", "world");
 
     // Then:
     assertThat(pos, equalTo(1));
@@ -36,7 +36,7 @@ public class FieldTest {
   @Test
   public void shouldFindSecondArgument() {
     // When:
-    int pos = field.field("world", "hello", "world");
+    final int pos = field.field("world", "hello", "world");
 
     // Then:
     assertThat(pos, equalTo(2));
@@ -45,7 +45,7 @@ public class FieldTest {
   @Test
   public void shouldFindArgumentWhenOneIsNull() {
     // When:
-    int pos = field.field("world", null, "world");
+    final int pos = field.field("world", null, "world");
 
     // Then:
     assertThat(pos, equalTo(2));
@@ -54,7 +54,7 @@ public class FieldTest {
   @Test
   public void shouldNotFindMissing() {
     // When:
-    int pos = field.field("missing", "hello", "world");
+    final int pos = field.field("missing", "hello", "world");
 
     // Then:
     assertThat(pos, equalTo(0));
@@ -63,7 +63,7 @@ public class FieldTest {
   @Test
   public void shouldNotFindIfNoArgs() {
     // When:
-    int pos = field.field("missing");
+    final int pos = field.field("missing");
 
     // Then:
     assertThat(pos, equalTo(0));
@@ -72,7 +72,7 @@ public class FieldTest {
   @Test
   public void shouldNotFindNull() {
     // When:
-    int pos = field.field(null, null, "world");
+    final int pos = field.field(null, null, "world");
 
     // Then:
     assertThat(pos, equalTo(0));

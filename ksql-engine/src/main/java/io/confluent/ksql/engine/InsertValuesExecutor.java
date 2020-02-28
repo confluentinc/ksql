@@ -28,13 +28,14 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -43,7 +44,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -54,6 +55,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.HashMap;
@@ -75,11 +77,14 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class InsertValuesExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final Logger LOG = LoggerFactory.getLogger(InsertValuesExecutor.class);
   private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
 
   private final LongSupplier clock;
@@ -140,16 +145,19 @@ public class InsertValuesExecutor {
 
   public void execute(
       final ConfiguredStatement<InsertValues> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     final InsertValues insertValues = statement.getStatement();
+    final MetaStore metaStore = executionContext.getMetaStore();
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
+    final DataSource dataSource = getDataSource(config, metaStore, insertValues);
+
     final ProducerRecord<byte[], byte[]> record =
-        buildRecord(statement, executionContext, serviceContext);
+        buildRecord(statement, metaStore, dataSource, serviceContext);
 
     try {
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
@@ -168,21 +176,12 @@ public class InsertValuesExecutor {
     }
   }
 
-  private ProducerRecord<byte[], byte[]> buildRecord(
-      final ConfiguredStatement<InsertValues> statement,
-      final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+  private DataSource getDataSource(
+      final KsqlConfig ksqlConfig,
+      final MetaStore metaStore,
+      final InsertValues insertValues
   ) {
-    throwIfDisabled(statement.getConfig());
-
-    final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-
-    final DataSource<?> dataSource = executionContext
-        .getMetaStore()
-        .getSource(insertValues.getTarget());
-
+    final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
           + insertValues.getTarget());
@@ -192,11 +191,32 @@ public class InsertValuesExecutor {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(ksqlConfig);
+    if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert values into read-only topic: "
+          + dataSource.getKafkaTopicName());
+    }
+
+    return dataSource;
+  }
+
+  private ProducerRecord<byte[], byte[]> buildRecord(
+      final ConfiguredStatement<InsertValues> statement,
+      final MetaStore metaStore,
+      final DataSource dataSource,
+      final ServiceContext serviceContext
+  ) {
+    throwIfDisabled(statement.getConfig());
+
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
     try {
       final RowData row = extractRow(
           insertValues,
           dataSource,
-          executionContext.getMetaStore(),
+          metaStore,
           config);
 
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
@@ -211,7 +231,7 @@ public class InsertValuesExecutor {
           key,
           value
       );
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
           statement.getStatementText(),
@@ -220,7 +240,7 @@ public class InsertValuesExecutor {
   }
 
   private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
-    return "Failed to insert values into '" + insertValues.getTarget().name() + "'.";
+    return "Failed to insert values into '" + insertValues.getTarget().text() + "'.";
   }
 
   private void throwIfDisabled(final KsqlConfig config) {
@@ -234,7 +254,7 @@ public class InsertValuesExecutor {
 
   private RowData extractRow(
       final InsertValues insertValues,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config
   ) {
@@ -281,7 +301,7 @@ public class InsertValuesExecutor {
       final LogicalSchema schema,
       final Map<ColumnName, Object> values
   ) {
-    return new GenericRow(
+    return new GenericRow().appendAll(
         schema
             .value()
             .stream()
@@ -293,7 +313,7 @@ public class InsertValuesExecutor {
 
   @SuppressWarnings("UnstableApiUsage")
   private static List<ColumnName> implicitColumns(
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final List<Expression> values
   ) {
     final LogicalSchema schema = dataSource.getSchema();
@@ -340,19 +360,19 @@ public class InsertValuesExecutor {
       final Map<ColumnName, Object> values,
       final KeyField keyField
   ) {
-    final Optional<ColumnRef> keyFieldName = keyField.ref();
+    final Optional<ColumnName> keyFieldName = keyField.ref();
     if (keyFieldName.isPresent()) {
-      final ColumnRef key = keyFieldName.get();
-      final Object keyValue = values.get(key.name());
+      final ColumnName key = keyFieldName.get();
+      final Object keyValue = values.get(key);
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
         if (keyValue == null) {
-          values.put(key.name(), rowKeyValue);
+          values.put(key, rowKeyValue);
         } else {
-          values.put(SchemaUtil.ROWKEY_NAME, keyValue.toString());
+          values.put(SchemaUtil.ROWKEY_NAME, keyValue);
         }
-      } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
+      } else if (keyValue != null && !Objects.equals(keyValue, rowKeyValue)) {
         throw new KsqlException(String.format(
             "Expected ROWKEY and %s to match but got %s and %s respectively.",
             key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));
@@ -362,14 +382,14 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
-        .findColumn(ColumnRef.withoutSource(column))
+        .findColumn(column)
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }
 
   private byte[] serializeKey(
       final Struct keyValue,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
@@ -398,7 +418,7 @@ public class InsertValuesExecutor {
 
   private byte[] serializeValue(
       final GenericRow row,
-      final DataSource<?> dataSource,
+      final DataSource dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
@@ -421,7 +441,7 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
+      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {
@@ -437,6 +457,7 @@ public class InsertValuesExecutor {
         }
       }
 
+      LOG.error("Could not serialize row.", e);
       throw new KsqlException("Could not serialize row: " + row, e);
     }
   }
@@ -468,7 +489,7 @@ public class InsertValuesExecutor {
         throw (RuntimeException) e.getCause();
       }
       throw new RuntimeException(e);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }

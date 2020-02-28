@@ -16,8 +16,9 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -39,7 +40,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION CONCAT;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -47,13 +48,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("CONCAT")
             && functionList.getType().equals(FunctionType.SCALAR);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });
@@ -65,7 +66,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION MAX;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -73,13 +74,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("MAX")
             && functionList.getType().equals(FunctionType.AGGREGATE);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });
@@ -91,7 +92,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -99,13 +100,13 @@ public class DescribeFunctionExecutorTest {
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
-      protected boolean matchesSafely(FunctionDescriptionList item) {
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
         return functionList.getName().equals("TEST_UDTF1")
             && functionList.getType().equals(FunctionType.TABLE);
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(functionList.getName());
       }
     });

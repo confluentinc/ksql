@@ -56,7 +56,7 @@ public class RowTest {
       .put("k0", "key")
       .put("k1", 11);
 
-  private static final GenericRow A_VALUE = new GenericRow("v0-v", 1.0d);
+  private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 1283535L;
 
   @Rule
@@ -97,7 +97,7 @@ public class RowTest {
             Row.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            Row.of(SCHEMA, A_KEY, new GenericRow(null, null), A_ROWTIME)
+            Row.of(SCHEMA, A_KEY, GenericRow.genericRow(null, null), A_ROWTIME)
         )
         .addEqualityGroup(
             Row.of(SCHEMA, A_KEY, A_VALUE, -1L)

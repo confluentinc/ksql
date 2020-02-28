@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
@@ -270,6 +271,42 @@ public class DecimalUtilTest {
   public void shouldEnsureFitIfExactMatch() {
     // No Exception When:
     DecimalUtil.ensureFit(new BigDecimal("1.2"), DECIMAL_SCHEMA);
+  }
+
+  @Test
+  public void shouldGetSchemaFromDecimal2_2() {
+    // When:
+    final SqlType schema = DecimalUtil.fromValue(new BigDecimal(".12"));
+
+    // Then:
+    assertThat(schema, is(SqlTypes.decimal(2, 2)));
+  }
+
+  @Test
+  public void shouldGetSchemaFromDecimal2_0() {
+    // When:
+    final SqlType schema = DecimalUtil.fromValue(new BigDecimal("12."));
+
+    // Then:
+    assertThat(schema, is(SqlTypes.decimal(2, 0)));
+  }
+
+  @Test
+  public void shouldGetSchemaFromDecimal1_0() {
+    // When:
+    final SqlType schema = DecimalUtil.fromValue(new BigDecimal("0"));
+
+    // Then:
+    assertThat(schema, is(SqlTypes.decimal(1, 0)));
+  }
+
+  @Test
+  public void shouldGetSchemaFromDecimal10_5() {
+    // When:
+    final SqlType schema = DecimalUtil.fromValue(new BigDecimal("12345.12345"));
+
+    // Then:
+    assertThat(schema, is(SqlTypes.decimal(10, 5)));
   }
 
   @Test

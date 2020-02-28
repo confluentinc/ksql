@@ -29,11 +29,11 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   private final Formats internalFormats;
 
   public StreamGroupByKey(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<KStreamHolder<Struct>> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats) {
+    this.properties = Objects.requireNonNull(props, "props");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
     this.source = Objects.requireNonNull(source, "source");
   }
@@ -58,19 +58,19 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(PlanBuilder builder) {
+  public KGroupedStreamHolder build(final PlanBuilder builder) {
     return builder.visitStreamGroupByKey(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamGroupByKey that = (StreamGroupByKey) o;
+    final StreamGroupByKey that = (StreamGroupByKey) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats);

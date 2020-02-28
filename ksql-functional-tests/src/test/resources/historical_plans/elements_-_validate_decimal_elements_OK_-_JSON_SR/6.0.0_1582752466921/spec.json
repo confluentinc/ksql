@@ -1,0 +1,22 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1582752466921,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 DECIMAL(15, 14)> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "V0" : 1.12345678901234
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "V0" : 1.12345678901234
+    }
+  } ]
+}

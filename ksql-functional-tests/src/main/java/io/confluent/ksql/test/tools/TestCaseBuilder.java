@@ -81,7 +81,6 @@ public final class TestCaseBuilder {
           test.topics(),
           test.outputs(),
           test.inputs(),
-          explicitFormat,
           ee.isPresent(),
           functionRegistry
       );

@@ -72,7 +72,7 @@ public class ExtensionSecurityManagerTest {
   public static Process exec() {
     try {
       return Runtime.getRuntime().exec("cmd");
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return null;
     }
   }

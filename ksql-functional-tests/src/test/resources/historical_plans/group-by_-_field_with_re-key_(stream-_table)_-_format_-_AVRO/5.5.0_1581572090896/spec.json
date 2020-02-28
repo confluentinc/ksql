@@ -1,0 +1,152 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572090896,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<DATA VARCHAR, KSQL_COL_1 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d1"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d2"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d1"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d2"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "DATA" : "d1"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+    "key" : "d2",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d2",
+      "KSQL_INTERNAL_COL_1" : 0
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+    "key" : "d2",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d2",
+      "KSQL_INTERNAL_COL_1" : 0
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0,
+      "KSQL_AGG_VARIABLE_0" : 1
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d2",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d2",
+      "KSQL_INTERNAL_COL_1" : 0,
+      "KSQL_AGG_VARIABLE_0" : 1
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0,
+      "KSQL_AGG_VARIABLE_0" : 2
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d2",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d2",
+      "KSQL_INTERNAL_COL_1" : 0,
+      "KSQL_AGG_VARIABLE_0" : 2
+    }
+  }, {
+    "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+    "key" : "d1",
+    "value" : {
+      "KSQL_INTERNAL_COL_0" : "d1",
+      "KSQL_INTERNAL_COL_1" : 0,
+      "KSQL_AGG_VARIABLE_0" : 3
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d1",
+    "value" : {
+      "DATA" : "d1",
+      "KSQL_COL_1" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d2",
+    "value" : {
+      "DATA" : "d2",
+      "KSQL_COL_1" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d1",
+    "value" : {
+      "DATA" : "d1",
+      "KSQL_COL_1" : 2
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d2",
+    "value" : {
+      "DATA" : "d2",
+      "KSQL_COL_1" : 2
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "d1",
+    "value" : {
+      "DATA" : "d1",
+      "KSQL_COL_1" : 3
+    }
+  } ]
+}

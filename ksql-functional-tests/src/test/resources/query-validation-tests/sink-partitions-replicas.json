@@ -26,7 +26,7 @@
       "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
-      "name": "Use the legacy default sink properties for the sink topic if default partitions and replicas were set.",
+      "name": "Use the legacy default sink properties for the sink topic if default partitions and replicas were set",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S as SELECT * FROM test;"

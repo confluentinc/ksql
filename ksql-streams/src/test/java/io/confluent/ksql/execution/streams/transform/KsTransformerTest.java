@@ -38,7 +38,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsTransformerTest {
 
   private static final long KEY = 10L;
-  private static final GenericRow VALUE = new GenericRow(12);
+  private static final GenericRow VALUE = GenericRow.genericRow(12);
   private static final String RESULT = "the result";
   private static final long ROWTIME = 123456L;
 

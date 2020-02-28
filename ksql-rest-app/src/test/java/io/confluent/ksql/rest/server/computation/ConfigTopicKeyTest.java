@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import java.nio.charset.StandardCharsets;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -37,10 +36,9 @@ public class ConfigTopicKeyTest {
   private final byte[] SERIALIZED
       = "{\"string\":{\"value\":\"string-key-value\"}}".getBytes(StandardCharsets.UTF_8);
 
-  private final Serializer<ConfigTopicKey> serializer
-      = InternalTopicJsonSerdeUtil.getJsonSerializer(false);
+  private final Serializer<ConfigTopicKey> serializer = InternalTopicSerdes.serializer();
   private final Deserializer<ConfigTopicKey> deserializer
-      = InternalTopicJsonSerdeUtil.getJsonDeserializer(ConfigTopicKey.class, false);
+      = InternalTopicSerdes.deserializer(ConfigTopicKey.class);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -104,7 +102,7 @@ public class ConfigTopicKeyTest {
   @Test
   public void shouldThrowOnStringKeyWithNoValue() {
     // Then:
-    expectedException.expect(illegalString(NullPointerException.class, ""));
+    expectedException.expect(SerializationException.class);
 
     // When:
     deserializer.deserialize("", "{\"string\":{}}".getBytes(StandardCharsets.UTF_8));

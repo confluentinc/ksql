@@ -1,0 +1,225 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572100859,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE, B DECIMAL(2, 1)> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I INT, L BIGINT, D DOUBLE, B DECIMAL(2, 1)> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : null,
+      "l" : null,
+      "d" : null
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 0,
+      "l" : 0,
+      "d" : 0.0,
+      "b" : "0.0"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 1,
+      "l" : 1,
+      "d" : 1.0,
+      "b" : "1.0"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 1,
+      "l" : 1,
+      "d" : 1.1,
+      "b" : "1.1"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 1,
+      "l" : 1,
+      "d" : 1.5,
+      "b" : "1.5"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 1,
+      "l" : 1,
+      "d" : 1.7,
+      "b" : "1.7"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : 1,
+      "l" : 1,
+      "d" : 2.0,
+      "b" : "2.0"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : -1,
+      "l" : -1,
+      "d" : -1.0,
+      "b" : "-1.0"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : -1,
+      "l" : -1,
+      "d" : -1.1,
+      "b" : "-1.1"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : -1,
+      "l" : -1,
+      "d" : -1.5,
+      "b" : "-1.5"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : -1,
+      "l" : -1,
+      "d" : -1.7,
+      "b" : "-1.7"
+    }
+  }, {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "i" : -1,
+      "l" : -1,
+      "d" : -2.0,
+      "b" : "-2.0"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : null,
+      "L" : null,
+      "D" : null,
+      "B" : null
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 0,
+      "L" : 0,
+      "D" : 0.0,
+      "B" : 0.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 1,
+      "L" : 1,
+      "D" : 1.0,
+      "B" : 1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 1,
+      "L" : 1,
+      "D" : 2.0,
+      "B" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 1,
+      "L" : 1,
+      "D" : 2.0,
+      "B" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 1,
+      "L" : 1,
+      "D" : 2.0,
+      "B" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : 1,
+      "L" : 1,
+      "D" : 2.0,
+      "B" : 2.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : -1,
+      "L" : -1,
+      "D" : -1.0,
+      "B" : -1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : -1,
+      "L" : -1,
+      "D" : -1.0,
+      "B" : -1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : -1,
+      "L" : -1,
+      "D" : -1.0,
+      "B" : -1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : -1,
+      "L" : -1,
+      "D" : -1.0,
+      "B" : -1.0
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "I" : -1,
+      "L" : -1,
+      "D" : -2.0,
+      "B" : -2.0
+    }
+  } ]
+}

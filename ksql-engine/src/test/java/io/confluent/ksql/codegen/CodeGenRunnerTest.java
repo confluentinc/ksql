@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.codegen;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -32,37 +31,44 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +88,7 @@ public class CodeGenRunnerTest {
     private static final String COL_INVALID_JAVA = "col!Invalid:(";
 
     private static final LogicalSchema META_STORE_SCHEMA = LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
@@ -119,11 +126,12 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
+    private static final int DECIMAL_INDEX = 16;
     private static final int INVALID_JAVA_IDENTIFIER_INDEX = 17;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
         .toConnectSchema(
-            META_STORE_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL15")))
+            META_STORE_SCHEMA.findValueColumn(ColumnName.of("COL15"))
                 .get()
                 .type());
 
@@ -172,8 +180,8 @@ public class CodeGenRunnerTest {
 
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "codegen_test",
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
         );
 
         final KsqlStream<?> ksqlStream = new KsqlStream<>(
@@ -181,7 +189,7 @@ public class CodeGenRunnerTest {
             SourceName.of("CODEGEN_TEST"),
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
+            KeyField.of(ColumnName.of("COL0")),
             Optional.empty(),
             false,
             ksqlTopic
@@ -189,9 +197,7 @@ public class CodeGenRunnerTest {
 
         metaStore.putSource(ksqlStream);
 
-        final LogicalSchema schema = META_STORE_SCHEMA.withAlias(SourceName.of("CODEGEN_TEST"));
-
-        codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+        codeGenRunner = new CodeGenRunner(META_STORE_SCHEMA, ksqlConfig, functionRegistry);
     }
 
     @Test
@@ -211,7 +217,7 @@ public class CodeGenRunnerTest {
     @Test
     public void testIsNull() {
         final String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Select");
@@ -229,7 +235,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleMultiDimensionalArray() {
         // Given:
         final String simpleQuery = "SELECT col14[1][1] FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         // When:
         final Object result = codeGenRunner.buildCodeGenFromParseTree
@@ -243,10 +249,11 @@ public class CodeGenRunnerTest {
     @Test
     public void testIsNotNull() {
         final String simpleQuery = "SELECT col0 IS NOT NULL FROM CODEGEN_TEST EMIT CHANGES;";
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
+        final ExpressionMetadata expressionEvaluatorMetadata0 =
+            codeGenRunner.buildCodeGenFromParseTree(
+                analysis.getSelectExpressions().get(0).getExpression(), "Filter");
 
         assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(1));
 
@@ -288,7 +295,7 @@ public class CodeGenRunnerTest {
         expectedException.expect(KsqlException.class);
         expectedException.expectMessage("Code generation failed for Filter: "
             + "Cannot compare ARRAY values. "
-            + "expression:(CODEGEN_TEST.COL9 = CODEGEN_TEST.COL10)");
+            + "expression:(COL9 = COL10)");
         expectedException.expectCause(hasMessage(equalTo("Cannot compare ARRAY values")));
 
         // When:
@@ -302,7 +309,7 @@ public class CodeGenRunnerTest {
         expectedException.expect(KsqlException.class);
         expectedException.expectMessage("Code generation failed for Filter: "
             + "Cannot compare MAP values. "
-            + "expression:(CODEGEN_TEST.COL11 = CODEGEN_TEST.COL12)");
+            + "expression:(COL11 = COL12)");
         expectedException.expectCause(hasMessage(equalTo("Cannot compare MAP values")));
 
         // When:
@@ -430,6 +437,12 @@ public class CodeGenRunnerTest {
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(true));
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(false));
         assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(false));
+
+        // decimal
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("1.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("0.1"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("2.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalBetweenClauseScalar(DECIMAL_INDEX, null, new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
     }
 
     @Test
@@ -451,6 +464,12 @@ public class CodeGenRunnerTest {
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(false));
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(true));
         assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(true));
+
+        // decimal
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("1.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("0.1"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(false));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, new BigDecimal("2.0"), new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
+        assertThat(evalNotBetweenClauseScalar(DECIMAL_INDEX, null, new BigDecimal("0.1"), new BigDecimal("1.9")), is(true));
     }
 
     @Test
@@ -487,11 +506,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenArrayValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with ARRAY values. "
-            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter:");
+        expectedException.expectMessage("expression:(NOT (COL9 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with ARRAY values")));
+            equalTo("Cannot compare ARRAY values")));
 
         // When:
         evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
@@ -501,11 +519,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenMapValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with MAP values. "
-            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter: ");
+        expectedException.expectMessage("expression:(NOT (COL11 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with MAP values")));
+            equalTo("Cannot compare MAP values")));
 
         // When:
         evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
@@ -515,11 +532,10 @@ public class CodeGenRunnerTest {
     public void testInvalidBetweenBooleanValue() {
         // Given:
         expectedException.expect(KsqlException.class);
-        expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute BETWEEN with BOOLEAN values. "
-            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
+        expectedException.expectMessage("Code generation failed for Filter: ");
+        expectedException.expectMessage("expression:(NOT (COL6 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
+            equalTo("Unexpected boolean comparison: >=")));
 
         // When:
         evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");
@@ -592,7 +608,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleMathUdfs() {
         // Given:
         final String query =
-            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
+            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34E0), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15L, 3, 1.5);
 
@@ -667,6 +683,42 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(result, is("value1"));
+    }
+
+    @Test
+    public void shouldHandleCreateArray() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT ARRAY['foo', COL" + STRING_INDEX1 + "] FROM codegen_test EMIT CHANGES;", metaStore)
+            .getSelectExpressions()
+            .get(0)
+            .getExpression();
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Array")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(ImmutableList.of("foo", "S1")));
+    }
+
+    @Test
+    public void shouldHandleCreateMap() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT MAP('foo' := 'foo', 'bar' := COL" + STRING_INDEX1 + ") FROM codegen_test EMIT CHANGES;", metaStore)
+            .getSelectExpressions()
+            .get(0)
+            .getExpression();
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Map")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(ImmutableMap.of("foo", "foo", "bar", "S1")));
     }
 
     @Test
@@ -868,7 +920,7 @@ public class CodeGenRunnerTest {
 
     private List<Object> executeExpression(final String query,
                                            final Map<Integer, Object> inputValues) {
-        final Analysis analysis = analyzeQuery(query, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(query, metaStore);
 
         final GenericRow input = buildRow(inputValues);
 
@@ -913,7 +965,7 @@ public class CodeGenRunnerTest {
     private boolean evalBooleanExpr(
         final String queryFormat, final int cola, final int colb, final Object[] values) {
         final String simpleQuery = String.format(queryFormat, cola, colb);
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
@@ -930,12 +982,24 @@ public class CodeGenRunnerTest {
     }
 
     private boolean evalBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        final String simpleQuery;
+        if (val instanceof Double) {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %e AND %E EMIT CHANGES;", col, min, max);
+        } else {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        }
+
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalNotBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        final String simpleQuery;
+        if (val instanceof Double) {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %e AND %E EMIT CHANGES;", col, min, max);
+        } else {
+            simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
+        }
+
         return evalBetweenClause(simpleQuery, col, val);
     }
 
@@ -955,7 +1019,7 @@ public class CodeGenRunnerTest {
     }
 
     private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
-        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+        final ImmutableAnalysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner
             .buildCodeGenFromParseTree(analysis.getWhereExpression().get(), "Filter");
@@ -975,11 +1039,11 @@ public class CodeGenRunnerTest {
     }
 
     private static GenericRow genericRow(final Object... columns) {
-        return genericRow(Arrays.asList(columns));
+        return GenericRow.genericRow(columns);
     }
 
     private static GenericRow genericRow(final List<Object> columns) {
-        return new GenericRow(columns);
+        return new GenericRow().appendAll(columns);
     }
 
     public static final class WhenCondition implements Kudf {
@@ -1003,5 +1067,21 @@ public class CodeGenRunnerTest {
             }
             return args[0];
         }
+    }
+
+    private ImmutableAnalysis analyzeQuery(final String query, final MetaStore metaStore) {
+        final Analysis analysis = AnalysisTestUtil.analyzeQuery(query, metaStore);
+        return new RewrittenAnalysis(
+            analysis,
+            new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+                @Override
+                public Optional<Expression> visitQualifiedColumnReference(
+                    final QualifiedColumnReferenceExp node,
+                    final Context<Void> ctx
+                ) {
+                    return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+                }
+            }::process
+        );
     }
 }

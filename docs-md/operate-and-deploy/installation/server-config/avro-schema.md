@@ -94,7 +94,7 @@ CREATE STREAM pageviews
 ### Create a New Table by Reading Avro-formatted Data
 
 The following statement shows how to create a new `users` table by
-reading from a {{ site.ak }} topic that has Avro-formatted messages.
+reading from a {{ site.ak }} topic that has Avro-formatted message values.
 
 ```sql
 CREATE TABLE users
@@ -108,6 +108,23 @@ the CREATE statement. ksqlDB infers this information automatically from
 the latest registered Avro schema for the `pageviews-avro-topic` topic.
 ksqlDB uses the most recent schema at the time the statement is first
 executed.
+
+Note: the Avro schema must be registered in the {{ site.sr }} under the
+subject `users-avro-topic-value`.
+
+By default, the key of the data will be assumed to be a single `KAFKA`
+serialized `STRING` called `ROWKEY`. If the key schema differs, then you
+can provide just the key column in the statement. For example, the following
+creates the `users` table with a 64-bit integer key and infers the value
+columns from the Avro schema.
+
+```sql
+CREATE TABLE users (ROWKEY BIGINT KEY)
+  WITH (KAFKA_TOPIC='users-avro-topic',
+        VALUE_FORMAT='AVRO',
+        KEY='userid');
+```
+
 
 ### Create a New Stream with Selected Fields of Avro-formatted Data
 

@@ -22,13 +22,14 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -42,14 +43,17 @@ public class ProjectNode extends PlanNode {
   public ProjectNode(
       final PlanNodeId id,
       final PlanNode source,
+      final List<SelectExpression> projectExpressions,
       final LogicalSchema schema,
-      final Optional<ColumnRef> keyFieldName
+      final Optional<ColumnName> keyFieldName
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
-    this.projectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
+    this.projectExpressions = ImmutableList.copyOf(
+        Objects.requireNonNull(projectExpressions, "projectExpressions")
+    );
     this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
 

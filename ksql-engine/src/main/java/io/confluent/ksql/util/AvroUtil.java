@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
@@ -37,9 +38,9 @@ public final class AvroUtil {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig
   ) {
-    final Formats formats = ddl.getFormats();
+    final io.confluent.ksql.execution.plan.Formats formats = ddl.getFormats();
     final FormatInfo format = formats.getValueFormat();
-    if (format.getFormat() != Format.AVRO) {
+    if (FormatFactory.of(format) != FormatFactory.AVRO) {
       return;
     }
 
@@ -49,7 +50,8 @@ public final class AvroUtil {
     );
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
-        format.getFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+        format.getProperties()
+            .getOrDefault(AvroFormat.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
         ksqlConfig
     );
 
@@ -75,7 +77,7 @@ public final class AvroUtil {
       return schemaRegistryClient
           .getLatestSchemaMetadata(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
           .getSchema();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       return "Could not get registered schema due to exception: " + e.getMessage();
     }
   }
@@ -87,7 +89,7 @@ public final class AvroUtil {
   ) {
     try {
       return schemaRegistryClient.testCompatibility(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
     } catch (final IOException e) {
       throw new KsqlException(String.format(
           "Could not check Schema compatibility: %s", e.getMessage()

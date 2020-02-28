@@ -35,7 +35,7 @@ public final class QueryContext {
     this(Collections.emptyList());
   }
 
-  private QueryContext(List<String> context) {
+  private QueryContext(final List<String> context) {
     this.context = ImmutableList.copyOf(Objects.requireNonNull(context));
     for (final String frame : context) {
       if (frame.contains(DELIMITER)) {
@@ -45,7 +45,7 @@ public final class QueryContext {
   }
 
   @JsonCreator
-  private QueryContext(String context) {
+  private QueryContext(final String context) {
     this(ImmutableList.copyOf(context.split(DELIMITER)));
   }
 
@@ -63,7 +63,7 @@ public final class QueryContext {
     return formatContext();
   }
 
-  private QueryContext push(String ...context) {
+  private QueryContext push(final String ...context) {
     return new QueryContext(
         new ImmutableList.Builder<String>()
             .addAll(this.context)
@@ -80,15 +80,15 @@ public final class QueryContext {
       this.queryContext = new QueryContext();
     }
 
-    public static Stacker of(QueryContext queryContext) {
+    public static Stacker of(final QueryContext queryContext) {
       return new Stacker(queryContext);
     }
 
-    private Stacker(QueryContext queryContext) {
+    private Stacker(final QueryContext queryContext) {
       this.queryContext = Objects.requireNonNull(queryContext);
     }
 
-    public Stacker push(String... context) {
+    public Stacker push(final String... context) {
       return new Stacker(queryContext.push(context));
     }
 
@@ -97,7 +97,7 @@ public final class QueryContext {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       return o instanceof Stacker
           && Objects.equals(queryContext, ((Stacker) o).queryContext);
     }
@@ -109,7 +109,7 @@ public final class QueryContext {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     return o instanceof QueryContext
         && Objects.equals(context, ((QueryContext) o).context);
   }

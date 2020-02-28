@@ -54,6 +54,24 @@
       ]
     },
     {
+      "name": "DECIMAL literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, 2.345 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0,2.345"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, ID BIGINT, KSQL_COL_1 DECIMAL(4,3)"}
+        ]
+      }
+    },
+    {
       "name": "BIGINT literal positive overflow",
       "statements": [
         "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",

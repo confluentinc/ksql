@@ -28,11 +28,11 @@ public final class Type extends Expression {
 
   private final SqlType sqlType;
 
-  public Type(SqlType sqlType) {
+  public Type(final SqlType sqlType) {
     this(Optional.empty(), sqlType);
   }
 
-  public Type(Optional<NodeLocation> location, SqlType sqlType) {
+  public Type(final Optional<NodeLocation> location, final SqlType sqlType) {
     super(location);
     this.sqlType = requireNonNull(sqlType, "sqlType");
   }
@@ -42,19 +42,19 @@ public final class Type extends Expression {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitType(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    Type type = (Type) o;
+    final Type type = (Type) o;
     return Objects.equals(sqlType, type.sqlType);
   }
 

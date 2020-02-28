@@ -18,9 +18,7 @@ package io.confluent.ksql.schema.ksql.inference;
 import static io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId.schemaAndId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
@@ -75,7 +73,7 @@ public class DefaultSchemaInjectorTest {
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
-      "VALUE_FORMAT", new StringLiteral("json"),
+      "VALUE_FORMAT", new StringLiteral("delimited"),
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
   );
   private static final Map<String, Literal> SUPPORTED_PROPS = ImmutableMap.of(
@@ -381,7 +379,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId().get(), is(SCHEMA_ID));
+    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(SCHEMA_ID)));
 
     assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID=5"));
   }
@@ -395,8 +393,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getAvroSchemaId().get(),
-        is(42));
+    assertThat(result.getStatement().getProperties().getAvroSchemaId(), is(Optional.of(42)));
 
     assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='42'"));
   }
@@ -416,7 +413,7 @@ public class DefaultSchemaInjectorTest {
         fail("Expected KsqlStatementException. schema: " + unsupportedSchema);
       } catch (final KsqlStatementException e) {
         assertThat(e.getRawMessage(),
-            containsString("Failed to convert schema to KSQL model:"));
+            containsString("Schema contains types not supported by KSQL:"));
 
         assertThat(e.getSqlStatement(), is(csStatement.getStatementText()));
       }
@@ -446,7 +443,6 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expect(not(instanceOf(KsqlStatementException.class)));
     expectedException.expectMessage("Oh no");
 
     // When:

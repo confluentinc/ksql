@@ -1,0 +1,38 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572089787,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MESSAGE VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ELEM VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "1",
+    "value" : {
+      "message" : "something"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "test_topic",
+    "key" : "2",
+    "value" : {
+      "message" : null
+    },
+    "timestamp" : 0
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "1",
+    "value" : {
+      "ELEM" : "something"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "2",
+    "value" : {
+      "ELEM" : null
+    },
+    "timestamp" : 0
+  } ]
+}

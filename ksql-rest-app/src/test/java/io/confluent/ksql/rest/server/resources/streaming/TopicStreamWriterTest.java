@@ -42,23 +42,27 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicStreamWriterTest {
 
-  @Mock public KafkaConsumer<String, Bytes> kafkaConsumer;
-  @Mock public SchemaRegistryClient schemaRegistry;
+  @Mock
+  public KafkaConsumer<Bytes, Bytes> kafkaConsumer;
+  @Mock
+  public SchemaRegistryClient schemaRegistry;
   private ValidatingOutputStream out;
 
   @Before
   public void setup() {
-    final Iterator<ConsumerRecords<String, Bytes>> records = StreamingTestUtils.generate(
+    final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> "key" + i,
-        i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
+        i -> new Bytes(("key-" + i).getBytes(Charsets.UTF_8)),
+        i -> new Bytes(("value-" + i).getBytes(Charsets.UTF_8)));
+
     when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
+
     out = new ValidatingOutputStream();
   }
 
   @Test
-  public void testIntervalOneAndLimitTwo() {
+  public void shouldIntervalOneAndLimitTwo() {
     // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
@@ -74,15 +78,22 @@ public class TopicStreamWriterTest {
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Format:STRING",
-        "key0 , value0",
-        "key1 , value1"
+        "Key format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "Value format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key-0, value: value-0",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key-1, value: value-1",
+        System.lineSeparator()
     );
     out.assertWrites(expected);
   }
 
   @Test
-  public void testIntervalTwoAndLimitTwo() {
+  public void shouldIntervalTwoAndLimitTwo() {
     // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
@@ -94,21 +105,28 @@ public class TopicStreamWriterTest {
     );
 
     // When:
-    ValidatingOutputStream out = new ValidatingOutputStream();
+    final ValidatingOutputStream out = new ValidatingOutputStream();
     writer.write(out);
 
     // Then:
     final List<String> expected = ImmutableList.of(
-        "Format:STRING",
-        "key0 , value0",
-        "key2 , value2"
+        "Key format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "Value format: ",
+        "KAFKA_STRING",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key-0, value: value-0",
+        System.lineSeparator(),
+        "rowtime: N/A, key: key-2, value: value-2",
+        System.lineSeparator()
     );
     out.assertWrites(expected);
   }
 
   private static class ValidatingOutputStream extends OutputStream {
 
-    private final List<byte[]> recordedWrites;
+    private final List<String> recordedWrites;
 
     ValidatingOutputStream() {
       this.recordedWrites = new ArrayList<>();
@@ -117,19 +135,22 @@ public class TopicStreamWriterTest {
     @Override public void write(final int b) { /* not called*/ }
 
     @Override
-    public void write(final byte[] b) {
-      recordedWrites.add(b);
+    public void write(final byte[] bytes, int off, int len) {
+      recordedWrites.add(new String(bytes, off, len, Charsets.UTF_8));
     }
 
     void assertWrites(final List<String> expected) {
-      assertThat(recordedWrites, hasSize(expected.size()));
+
       for (int i = 0; i < recordedWrites.size(); i++) {
-        final byte[] bytes = recordedWrites.get(i);
-        assertThat(
-            new String(bytes, Charsets.UTF_8),
-            containsString(expected.get(i)));
+        final String actual = recordedWrites.get(i);
+        if (expected.size() <= i) {
+          break;
+        }
+
+        assertThat(actual, containsString(expected.get(i)));
       }
+
+      assertThat(recordedWrites, hasSize(expected.size()));
     }
   }
-
 }

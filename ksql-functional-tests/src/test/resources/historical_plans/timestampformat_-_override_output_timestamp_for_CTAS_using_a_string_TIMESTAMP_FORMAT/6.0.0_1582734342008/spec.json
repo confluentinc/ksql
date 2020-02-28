@@ -1,0 +1,50 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1582734342008,
+  "schemas" : {
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL",
+    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 1,
+      "EVENT_TS" : "2018-05-11T21:58:33Z"
+    },
+    "timestamp" : 10
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 2,
+      "EVENT_TS" : "not a timestamp"
+    },
+    "timestamp" : 10
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "ID" : 3,
+      "EVENT_TS" : "2019-05-11T21:58:33Z"
+    },
+    "timestamp" : 10
+  } ],
+  "outputs" : [ {
+    "topic" : "TS",
+    "key" : "",
+    "value" : {
+      "ID" : 1,
+      "EVENT_TS" : "2018-05-11T21:58:33Z"
+    },
+    "timestamp" : 1526075913000
+  }, {
+    "topic" : "TS",
+    "key" : "",
+    "value" : {
+      "ID" : 3,
+      "EVENT_TS" : "2019-05-11T21:58:33Z"
+    },
+    "timestamp" : 1557611913000
+  } ]
+}

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -31,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.FakeException;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
@@ -56,6 +56,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
@@ -78,9 +79,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -110,6 +110,7 @@ public class ConsoleTest {
   private final CliSpecificCommand cliCommand;
   private final SourceDescription sourceDescription = new SourceDescription(
       "TestSource",
+      Optional.empty(),
       Collections.emptyList(),
       Collections.emptyList(),
       buildTestSchema(SqlTypes.INTEGER, SqlTypes.STRING),
@@ -119,10 +120,12 @@ public class ConsoleTest {
       "stats",
       "errors",
       true,
+      "kafka",
       "avro",
       "kadka-topic",
       2,
-      1
+      1,
+      "statement"
   );
 
   @Parameterized.Parameters(name = "{0}")
@@ -151,7 +154,7 @@ public class ConsoleTest {
   @Test
   public void testPrintGenericStreamedRow() {
     // Given:
-    final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
+    final StreamedRow row = StreamedRow.row(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);
@@ -233,10 +236,10 @@ public class ConsoleTest {
   @Test
   public void testPrintPropertyList() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("k1", 1);
-    properties.put("k2", "v2");
-    properties.put("k3", true);
+    final List<Property> properties = new ArrayList<>();
+    properties.add(new Property("k1", "KSQL", "1"));
+    properties.add(new Property("k2", "KSQL", "v2"));
+    properties.add(new Property("k3", "KSQL", "true"));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList())
@@ -251,33 +254,40 @@ public class ConsoleTest {
       assertThat(output, is("[ {\n"
           + "  \"@type\" : \"properties\",\n"
           + "  \"statementText\" : \"e\",\n"
-          + "  \"properties\" : {\n"
-          + "    \"k1\" : 1,\n"
-          + "    \"k2\" : \"v2\",\n"
-          + "    \"k3\" : true\n"
-          + "  },\n"
+          + "  \"properties\" : [ {\n"
+          + "    \"name\" : \"k1\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"1\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"k2\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"v2\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"k3\",\n"
+          + "    \"scope\" : \"KSQL\",\n"
+          + "    \"value\" : \"true\"\n"
+          + "  } ],\n"
           + "  \"overwrittenProperties\" : [ ],\n"
           + "  \"defaultProperties\" : [ ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Property | Default override | Effective Value \n"
-          + "-----------------------------------------------\n"
-          + " k1       | SERVER           | 1               \n"
-          + " k2       | SERVER           | v2              \n"
-          + " k3       | SERVER           | true            \n"
-          + "-----------------------------------------------\n"));
+          + " Property | Scope | Default override | Effective Value \n"
+          + "-------------------------------------------------------\n"
+          + " k1       | KSQL  | SERVER           | 1               \n"
+          + " k2       | KSQL  | SERVER           | v2              \n"
+          + " k3       | KSQL  | SERVER           | true            \n"
+          + "-------------------------------------------------------\n"));
     }
   }
-
   @Test
   public void testPrintQueries() {
     // Given:
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), new QueryId("0")));
+            "select * from t1", Collections.singleton("Test"), Collections.singleton("Test topic"), new QueryId("0"), Optional.of("Foobar")));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -293,18 +303,20 @@ public class ConsoleTest {
           + "  \"@type\" : \"queries\",\n"
           + "  \"statementText\" : \"e\",\n"
           + "  \"queries\" : [ {\n"
+          + "    \"queryString\" : \"select * from t1\",\n"
           + "    \"sinks\" : [ \"Test\" ],\n"
+          + "    \"sinkKafkaTopics\" : [ \"Test topic\" ],\n"
           + "    \"id\" : \"0\",\n"
-          + "    \"queryString\" : \"select * from t1\"\n"
+          + "    \"state\" : \"Foobar\"\n"
           + "  } ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
-          + " Query ID | Kafka Topic | Query String     \n"
-          + "-------------------------------------------\n"
-          + " 0        | Test        | select * from t1 \n"
-          + "-------------------------------------------\n"
+          + " Query ID | Status | Sink Name | Sink Kafka Topic | Query String     \n"
+          + "---------------------------------------------------------------------\n"
+          + " 0        | Foobar | Test      | Test topic       | select * from t1 \n"
+          + "---------------------------------------------------------------------\n"
           + "For detailed information on a Query run: EXPLAIN <Query ID>;\n"));
     }
   }
@@ -326,10 +338,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -337,6 +349,7 @@ public class ConsoleTest {
             "some sql",
             new SourceDescription(
                 "TestSource",
+                Optional.empty(),
                 readQueries,
                 writeQueries,
                 fields,
@@ -346,10 +359,12 @@ public class ConsoleTest {
                 "stats",
                 "errors",
                 false,
+                "kafka",
                 "avro",
                 "kadka-topic",
                 1,
-                1
+                1,
+                "sql statement"
             ),
             Collections.emptyList()
         )
@@ -366,15 +381,20 @@ public class ConsoleTest {
           + "  \"statementText\" : \"some sql\",\n"
           + "  \"sourceDescription\" : {\n"
           + "    \"name\" : \"TestSource\",\n"
+          + "    \"windowType\" : null,\n"
           + "    \"readQueries\" : [ {\n"
+          + "      \"queryString\" : \"read query\",\n"
           + "      \"sinks\" : [ \"sink1\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"queryString\" : \"read query\"\n"
+          + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
+          + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"queryString\" : \"write query\"\n"
+          + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"
@@ -468,10 +488,12 @@ public class ConsoleTest {
           + "    \"statistics\" : \"stats\",\n"
           + "    \"errorStats\" : \"errors\",\n"
           + "    \"extended\" : false,\n"
-          + "    \"format\" : \"avro\",\n"
+          + "    \"keyFormat\" : \"kafka\",\n"
+          + "    \"valueFormat\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 1,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"sql statement\"\n"
           + "  },\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
@@ -573,6 +595,7 @@ public class ConsoleTest {
           + "  },\n"
           + "  \"sources\" : [ {\n"
           + "    \"name\" : \"TestSource\",\n"
+          + "    \"windowType\" : null,\n"
           + "    \"readQueries\" : [ ],\n"
           + "    \"writeQueries\" : [ ],\n"
           + "    \"fields\" : [ {\n"
@@ -610,10 +633,12 @@ public class ConsoleTest {
           + "    \"statistics\" : \"stats\",\n"
           + "    \"errorStats\" : \"errors\",\n"
           + "    \"extended\" : true,\n"
-          + "    \"format\" : \"avro\",\n"
+          + "    \"keyFormat\" : \"kafka\",\n"
+          + "    \"valueFormat\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"statement\"\n"
           + "  } ],\n"
           + "  \"topics\" : [ \"a-jdbc-topic\" ],\n"
           + "  \"warnings\" : [ ]\n"
@@ -968,10 +993,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), Optional.of("Running"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), Optional.of("Running"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -979,6 +1004,7 @@ public class ConsoleTest {
             "e",
             new SourceDescription(
                 "TestSource",
+                Optional.empty(),
                 readQueries,
                 writeQueries,
                 buildTestSchema(SqlTypes.STRING),
@@ -988,9 +1014,11 @@ public class ConsoleTest {
                 "stats",
                 "errors",
                 true,
+                "kafka",
                 "avro",
                 "kadka-topic",
-                2, 1
+                2, 1,
+                "sql statement text"
             ),
             Collections.emptyList()
         ))
@@ -1007,15 +1035,20 @@ public class ConsoleTest {
           + "  \"statementText\" : \"e\",\n"
           + "  \"sourceDescription\" : {\n"
           + "    \"name\" : \"TestSource\",\n"
+          + "    \"windowType\" : null,\n"
           + "    \"readQueries\" : [ {\n"
+          + "      \"queryString\" : \"read query\",\n"
           + "      \"sinks\" : [ \"sink1\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink1 topic\" ],\n"
           + "      \"id\" : \"readId\",\n"
-          + "      \"queryString\" : \"read query\"\n"
+          + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"writeQueries\" : [ {\n"
+          + "      \"queryString\" : \"write query\",\n"
           + "      \"sinks\" : [ \"sink2\" ],\n"
+          + "      \"sinkKafkaTopics\" : [ \"sink2 topic\" ],\n"
           + "      \"id\" : \"writeId\",\n"
-          + "      \"queryString\" : \"write query\"\n"
+          + "      \"state\" : \"Running\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
           + "      \"name\" : \"ROWTIME\",\n"
@@ -1045,10 +1078,12 @@ public class ConsoleTest {
           + "    \"statistics\" : \"stats\",\n"
           + "    \"errorStats\" : \"errors\",\n"
           + "    \"extended\" : true,\n"
-          + "    \"format\" : \"avro\",\n"
+          + "    \"keyFormat\" : \"kafka\",\n"
+          + "    \"valueFormat\" : \"avro\",\n"
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 2,\n"
-          + "    \"replication\" : 1\n"
+          + "    \"replication\" : 1,\n"
+          + "    \"statement\" : \"sql statement text\"\n"
           + "  },\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
@@ -1057,10 +1092,11 @@ public class ConsoleTest {
           + "Name                 : TestSource\n"
           + "Type                 : TABLE\n"
           + "Key field            : key\n"
-          + "Key format           : STRING\n"
           + "Timestamp field      : 2000-01-01\n"
+          + "Key format           : kafka\n"
           + "Value format         : avro\n"
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)\n"
+          + "Statement            : sql statement text\n"
           + "\n"
           + " Field   | Type                      \n"
           + "-------------------------------------\n"
@@ -1071,13 +1107,13 @@ public class ConsoleTest {
           + "\n"
           + "Queries that read from this TABLE\n"
           + "-----------------------------------\n"
-          + "readId : read query\n"
+          + "readId (Running) : read query\n"
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>\n"
           + "\n"
           + "Queries that write from this TABLE\n"
           + "-----------------------------------\n"
-          + "writeId : write query\n"
+          + "writeId (Running) : write query\n"
           + "\n"
           + "For query topology and execution plan please run: EXPLAIN <QueryId>\n"
           + "\n"
@@ -1333,6 +1369,20 @@ public class ConsoleTest {
     // Given:
     when(lineSupplier.get())
         .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0;")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdBeingTerminatedWithSemiColonAndWhitespace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0; \n")
         .thenReturn("not a CLI command;");
 
     // When:

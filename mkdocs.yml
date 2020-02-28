@@ -38,7 +38,7 @@ nav:
       - Push Queries: concepts/queries/push.md
       - Pull Queries: concepts/queries/pull.md
     # - Processing Guarantees: concepts/ksqldb-processing-guarantees.md # future
-    # - Schemas: concepts/ksqldb-schemas.md # future
+    - Schemas: concepts/schemas.md
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
     - Joins:
@@ -100,7 +100,7 @@ nav:
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
-      - Functions Index: developer-guide/ksqldb-reference/index.md 
+      - Functions Index: developer-guide/ksqldb-reference/functions.md
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md
@@ -116,9 +116,8 @@ nav:
       - Deploy:
           - Install ksqlDB: operate-and-deploy/installation/index.md
           - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
-          - Install ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
+          - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
           # - Install ksqlDB locally: installation/installing.md # leave in docs.confluent.io
-          # - Upgrade ksqlDB: installation/upgrading.md # possibly unnecessary in a Dockerized world
           - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
@@ -126,6 +125,7 @@ nav:
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               # - Integrate ksqlDB with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md # leave in docs.confluent.io
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
+          - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
@@ -136,6 +136,7 @@ nav:
       - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md # Could be the canonical quickstart
       # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # leave in docs.confluent.io
       - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
+      - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
@@ -186,10 +187,11 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.3
-        kafkarelease: 5.3.1-ccs5.4.0-ccs-SNAPSHOT
-        ksqldbversion: 0.6.0
-        release: 0.6.0
-        releasepostbranch: 5.4.0-SNAPSHOT-post
+        kafkaversion: 2.4
+        kafkarelease: 5.4.0-ccs
+        ksqldbversion: 0.7.0
+        release: 0.7.0
+        cprelease: 5.4.0
+        releasepostbranch: 5.4.0-post
         scalaversion: 2.12
         version: 5.4

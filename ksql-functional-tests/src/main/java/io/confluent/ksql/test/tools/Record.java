@@ -19,14 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -34,23 +26,12 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 
 public class Record {
 
-  final Topic topic;
+  private final Topic topic;
   private final Object key;
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
   private final Optional<JsonNode> jsonValue;
-
-  public Record(
-      final Topic topic,
-      final Object key,
-      final Object value,
-      final JsonNode jsonValue,
-      final long timestamp,
-      final WindowData window
-  ) {
-    this(topic, key, value, jsonValue, Optional.of(timestamp), window);
-  }
 
   public Record(
       final Topic topic,
@@ -68,27 +49,12 @@ public class Record {
     this.window = window;
   }
 
-  Serializer<?> keySerializer() {
-    final Serializer<String> stringDe = Serdes.String().serializer();
-    if (window == null) {
-      return stringDe;
-    }
-
-    return window.type == WindowData.Type.SESSION
-        ? new SessionWindowedSerializer<>(stringDe)
-        : new TimeWindowedSerializer<>(stringDe);
+  public Topic getTopic() {
+    return topic;
   }
 
-  @SuppressWarnings("rawtypes")
-  Deserializer keyDeserializer() {
-    if (window == null) {
-      return Serdes.String().deserializer();
-    }
-
-    final Deserializer<String> inner = Serdes.String().deserializer();
-    return window.type == WindowData.Type.SESSION
-        ? new SessionWindowedDeserializer<>(inner)
-        : new TimeWindowedDeserializer<>(inner, window.size());
+  public Object rawKey() {
+    return key;
   }
 
   public Object key() {
@@ -125,20 +91,10 @@ public class Record {
     return jsonValue;
   }
 
-  /**
-   * Coerce the key value to the correct type.
-   *
-   * <p>The type of the key loaded from the JSON test case file may not be the exact match on type,
-   * e.g. JSON will load a small number as an integer, but the key type of the source might be a
-   * long.
-   *
-   * @param keyCoercer function to coerce the key to the right type
-   * @return a new Record with the correct key type.
-   */
-  public Record coerceKey(final Function<Object, Object> keyCoercer) {
+  public Record withKey(final Object key) {
     return new Record(
         topic,
-        keyCoercer.apply(key),
+        key,
         value,
         jsonValue.orElse(null),
         timestamp,

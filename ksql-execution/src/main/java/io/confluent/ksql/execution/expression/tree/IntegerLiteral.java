@@ -25,11 +25,11 @@ public class IntegerLiteral extends Literal {
 
   private final int value;
 
-  public IntegerLiteral(int value) {
+  public IntegerLiteral(final int value) {
     this(Optional.empty(), value);
   }
 
-  public IntegerLiteral(Optional<NodeLocation> location, int value) {
+  public IntegerLiteral(final Optional<NodeLocation> location, final int value) {
     super(location);
     this.value = value;
   }
@@ -40,12 +40,12 @@ public class IntegerLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitIntegerLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -53,7 +53,7 @@ public class IntegerLiteral extends Literal {
       return false;
     }
 
-    IntegerLiteral that = (IntegerLiteral) o;
+    final IntegerLiteral that = (IntegerLiteral) o;
     return value == that.value;
   }
 

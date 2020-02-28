@@ -1,0 +1,22 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572100023,
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<BAR INT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<BAR INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input_topic",
+    "key" : "x",
+    "value" : {
+      "bar" : 1
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "x",
+    "value" : {
+      "BAR" : 1
+    }
+  } ]
+}

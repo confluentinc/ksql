@@ -26,6 +26,8 @@ import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
+import java.time.Duration;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +49,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.empty());
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -135,6 +138,12 @@ public class KsMaterializationTest {
   }
 
   private void givenWindowType(final Optional<WindowType> windowType) {
-    materialization = new KsMaterialization(windowType, locator, stateStore);
+    final Optional<WindowInfo> windowInfo = windowType
+        .map(wt -> WindowInfo.of(wt, wt.requiresWindowSize()
+            ? Optional.of(Duration.ofSeconds(1))
+            : Optional.empty())
+        );
+
+    materialization = new KsMaterialization(windowInfo, locator, stateStore);
   }
 }

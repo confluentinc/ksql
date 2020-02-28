@@ -15,7 +15,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -23,11 +22,10 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import org.apache.kafka.common.serialization.Serde;
@@ -45,36 +43,27 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinBuilderTest {
-  private static final SourceName LEFT = SourceName.of("LEFT");
-  private static final SourceName RIGHT = SourceName.of("RIGHT");
-  private static final SourceName ALIAS = SourceName.of("ALIAS");
+
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
-      .build()
-      .withAlias(LEFT)
-      .withMetaAndKeyColsInValue();
+      .build();
+
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(RIGHT)
-      .withMetaAndKeyColsInValue();
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
-      .build()
-      .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .build();
+
   private static final PhysicalSchema LEFT_PHYSICAL =
-      PhysicalSchema.from(LEFT_SCHEMA.withoutAlias(), SerdeOption.none());
-  private static final Formats LEFT_FMT = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.JSON),
+      PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+
+  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
+
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -111,7 +100,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
+    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any())).thenReturn(
@@ -135,7 +124,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
         LEFT_FMT,
@@ -144,9 +133,8 @@ public class StreamTableJoinBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
         LEFT_FMT,
@@ -158,7 +146,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   private void givenInnerJoin() {
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
-    join = new StreamTableJoin(
+    join = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
         LEFT_FMT,
@@ -265,6 +253,6 @@ public class StreamTableJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(Format.JSON), LEFT_PHYSICAL, leftCtx);
+    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 }

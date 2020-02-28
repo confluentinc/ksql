@@ -30,7 +30,7 @@ public final class ArrayAccess {
    * @param index the index, base-1 or negative (n from the end)
    * @return the {@code index}-th item in {@code list}
    */
-  public static <T> T arrayAccess(List<T> list, int index) {
+  public static <T> T arrayAccess(final List<T> list, final int index) {
     // subtract by 1 because SQL standard uses 1-based indexing; since
     // SQL standard does not support negative (end-based) indexing, we
     // will use -1 to represent the last element

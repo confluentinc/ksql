@@ -1,0 +1,62 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572087862,
+  "schemas" : {
+    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B INT> NOT NULL",
+    "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT BOOLEAN> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test",
+    "key" : "0",
+    "value" : {
+      "A" : "10.01",
+      "B" : 1
+    }
+  }, {
+    "topic" : "test",
+    "key" : "0",
+    "value" : {
+      "A" : "10.01",
+      "B" : 12
+    }
+  }, {
+    "topic" : "test",
+    "key" : "0",
+    "value" : {
+      "A" : null,
+      "B" : 12
+    }
+  }, {
+    "topic" : "test",
+    "key" : "0",
+    "value" : {
+      "A" : null,
+      "B" : null
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "TEST2",
+    "key" : "0",
+    "value" : {
+      "RESULT" : false
+    }
+  }, {
+    "topic" : "TEST2",
+    "key" : "0",
+    "value" : {
+      "RESULT" : true
+    }
+  }, {
+    "topic" : "TEST2",
+    "key" : "0",
+    "value" : {
+      "RESULT" : false
+    }
+  }, {
+    "topic" : "TEST2",
+    "key" : "0",
+    "value" : {
+      "RESULT" : false
+    }
+  } ]
+}

@@ -28,7 +28,7 @@ public final class BooleanType extends ObjectType {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return obj instanceof  BooleanType;
   }
 

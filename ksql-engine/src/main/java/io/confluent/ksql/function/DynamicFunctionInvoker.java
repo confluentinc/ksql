@@ -51,7 +51,7 @@ public class DynamicFunctionInvoker implements FunctionInvoker {
     try {
       final Object[] extractedArgs = extractArgs(args);
       return method.invoke(udf, extractedArgs);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlFunctionException("Failed to invoke function " + method, e);
     }
   }

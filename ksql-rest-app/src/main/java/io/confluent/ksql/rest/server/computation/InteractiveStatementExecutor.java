@@ -16,10 +16,10 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -33,17 +33,13 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
-import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -194,6 +190,10 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final long offset
   ) {
     try {
+      if (command.getPlan().isPresent()) {
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset);
+        return;
+      }
       final String statementString = command.getStatement();
       putStatus(
           commandId,
@@ -219,6 +219,46 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     }
   }
 
+  private void executePlan(
+      final Command command,
+      final CommandId commandId,
+      final Optional<CommandStatusFuture> commandStatusFuture,
+      final KsqlPlan plan,
+      final Mode mode,
+      final long offset
+  ) {
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
+    final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
+        plan,
+        command.getOverwriteProperties(),
+        mergedConfig
+    );
+    putStatus(
+        commandId,
+        commandStatusFuture,
+        new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
+    );
+    final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
+    if (result.getQuery().isPresent()) {
+      queryIdGenerator.setNextId(offset + 1);
+      if (mode == Mode.EXECUTE) {
+        result.getQuery().get().start();
+      }
+    }
+    final String successMessage = getSuccessMessage(result);
+    final CommandStatus successStatus =
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+    putFinalStatus(commandId, commandStatusFuture, successStatus);
+  }
+
+  private String getSuccessMessage(final ExecuteResult result) {
+    if (result.getCommandResult().isPresent()) {
+      return result.getCommandResult().get();
+    }
+    return "Created query with ID "
+        + ((PersistentQueryMetadata) result.getQuery().get()).getQueryId();
+  }
+
   @SuppressWarnings("unchecked")
   private void executeStatement(
       final PreparedStatement<?> statement,
@@ -233,7 +273,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
-      final String name = ((CreateAsSelect)statement.getStatement()).getName().name();
+      final String name = ((CreateAsSelect)statement.getStatement()).getName().text();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
@@ -270,52 +310,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         .get();
   }
 
-  /**
-   * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
-   */
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated
-  private void handleLegacyRunScript(final Command command, final Mode mode) {
-
-    final String sql = (String) command.getOverwriteProperties()
-        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
-
-    if (sql == null) {
-      throw new KsqlException("No statements received for LOAD FROM FILE.");
-    }
-
-    final Map<String, Object> overriddenProperties = new HashMap<>(
-        command.getOverwriteProperties());
-
-    final KsqlConfig mergedConfig = buildMergedConfig(command);
-
-    final List<QueryMetadata> queries = new ArrayList<>();
-    for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      final ConfiguredStatement<?> configured =
-          ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
-      ksqlEngine.execute(serviceContext, configured)
-          .getQuery()
-          .ifPresent(queries::add);
-    }
-
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-      queries.forEach(QueryMetadata::close);
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, mergedConfig, command.getStatement());
-    }
-
-    if (mode == Mode.EXECUTE) {
-      for (final QueryMetadata queryMetadata : queries) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          final PersistentQueryMetadata persistentQueryMd =
-              (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.start();
-        }
-      }
-    }
-  }
-
   private PersistentQueryMetadata startQuery(
       final PreparedStatement<?> statement,
       final Command command,
@@ -327,8 +321,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         statement, command.getOverwriteProperties(), mergedConfig);
 
-    queryIdGenerator.setNextId(offset);
-
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     final QueryMetadata queryMetadata =
         ksqlEngine
@@ -337,6 +329,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
                 ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
             .getQuery()
             .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
+
+    queryIdGenerator.setNextId(offset + 1);
 
     if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(
@@ -365,10 +359,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       return;
     }
 
-    ksqlEngine.getPersistentQuery(queryId.get())
-        .orElseThrow(() ->
-            new KsqlException(String.format("No running query with id %s was found", queryId)))
-        .close();
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    query.ifPresent(PersistentQueryMetadata::close);
   }
 
 }

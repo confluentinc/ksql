@@ -17,13 +17,14 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -36,7 +37,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -50,17 +50,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
   private final ResultMaterialization resultMaterialization;
+  private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectExpression> selectExpressions = new ArrayList<>();
-  private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
+  private final Set<ColumnName> selectColumnNames = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<Expression> partitionBy = Optional.empty();
@@ -71,7 +73,16 @@ public class Analysis implements ImmutableAnalysis {
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
   public Analysis(final ResultMaterialization resultMaterialization) {
+    this(resultMaterialization, SourceSchemas::new);
+  }
+
+  @VisibleForTesting
+  Analysis(
+      final ResultMaterialization resultMaterialization,
+      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
+  ) {
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
   }
 
   ResultMaterialization getResultMaterialization() {
@@ -82,10 +93,11 @@ public class Analysis implements ImmutableAnalysis {
     selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
-  void addSelectColumnRefs(final Collection<ColumnRef> columnRefs) {
-    selectColumnRefs.addAll(columnRefs);
+  void addSelectColumnRefs(final Collection<ColumnName> columnNames) {
+    selectColumnNames.addAll(columnNames);
   }
 
+  @Override
   public Optional<Into> getInto() {
     return into;
   }
@@ -94,6 +106,7 @@ public class Analysis implements ImmutableAnalysis {
     this.into = Optional.of(into);
   }
 
+  @Override
   public Optional<Expression> getWhereExpression() {
     return whereExpression;
   }
@@ -102,14 +115,17 @@ public class Analysis implements ImmutableAnalysis {
     this.whereExpression = Optional.of(whereExpression);
   }
 
+  @Override
   public List<SelectExpression> getSelectExpressions() {
     return Collections.unmodifiableList(selectExpressions);
   }
 
-  public Set<ColumnRef> getSelectColumnRefs() {
-    return Collections.unmodifiableSet(selectColumnRefs);
+  @Override
+  public Set<ColumnName> getSelectColumnRefs() {
+    return Collections.unmodifiableSet(selectColumnNames);
   }
 
+  @Override
   public List<Expression> getGroupByExpressions() {
     return ImmutableList.copyOf(groupByExpressions);
   }
@@ -118,6 +134,7 @@ public class Analysis implements ImmutableAnalysis {
     groupByExpressions.addAll(expressions);
   }
 
+  @Override
   public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
@@ -134,6 +151,7 @@ public class Analysis implements ImmutableAnalysis {
     this.havingExpression = Optional.of(havingExpression);
   }
 
+  @Override
   public Optional<Expression> getPartitionBy() {
     return partitionBy;
   }
@@ -142,6 +160,7 @@ public class Analysis implements ImmutableAnalysis {
     this.partitionBy = Optional.of(partitionBy);
   }
 
+  @Override
   public OptionalInt getLimitClause() {
     return limitClause;
   }
@@ -166,21 +185,23 @@ public class Analysis implements ImmutableAnalysis {
     return joinInfo.isPresent();
   }
 
+  @Override
   public List<AliasedDataSource> getFromDataSources() {
     return ImmutableList.copyOf(fromDataSources);
   }
 
-  SourceSchemas getFromSourceSchemas() {
+  @Override
+  public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
-            s -> s.getDataSource().getSchema()
+            ads -> buildStreamsSchema(ads, postAggregate)
         ));
 
-    return new SourceSchemas(schemaBySource);
+    return sourceSchemasFactory.apply(schemaBySource);
   }
 
-  void addDataSource(final SourceName alias, final DataSource<?> dataSource) {
+  void addDataSource(final SourceName alias, final DataSource dataSource) {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
     }
@@ -188,15 +209,16 @@ public class Analysis implements ImmutableAnalysis {
     fromDataSources.add(new AliasedDataSource(alias, dataSource));
   }
 
-  ColumnReferenceExp getDefaultArgument() {
+  QualifiedColumnReferenceExp getDefaultArgument() {
     final SourceName alias = fromDataSources.get(0).getAlias();
-    return new ColumnReferenceExp(ColumnRef.of(alias, SchemaUtil.ROWTIME_NAME));
+    return new QualifiedColumnReferenceExp(alias, SchemaUtil.ROWTIME_NAME);
   }
 
   void setSerdeOptions(final Set<SerdeOption> serdeOptions) {
     this.serdeOptions = ImmutableSet.copyOf(serdeOptions);
   }
 
+  @Override
   public Set<SerdeOption> getSerdeOptions() {
     return serdeOptions;
   }
@@ -205,6 +227,7 @@ public class Analysis implements ImmutableAnalysis {
     withProperties = requireNonNull(properties, "properties");
   }
 
+  @Override
   public CreateSourceAsProperties getProperties() {
     return withProperties;
   }
@@ -213,8 +236,27 @@ public class Analysis implements ImmutableAnalysis {
     this.tableFunctions.add(Objects.requireNonNull(functionCall));
   }
 
+  @Override
   public List<FunctionCall> getTableFunctions() {
     return tableFunctions;
+  }
+
+  private LogicalSchema buildStreamsSchema(
+      final AliasedDataSource ds,
+      final boolean postAggregate
+  ) {
+    // While the special casing exists to copy WINDOWSTART and WINDOWEND into the value schema
+    // for some query types, a matching hack is required here:
+
+    // For windowed sources:
+    final boolean windowedSource = ds.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
+
+    // Post the GROUP BY the window bounds columns are available:
+    final boolean windowedGroupBy = postAggregate && windowExpression.isPresent();
+
+    return ds.getDataSource()
+        .getSchema()
+        .withMetaAndKeyColsInValue(windowedSource || windowedGroupBy);
   }
 
   @Immutable
@@ -259,11 +301,11 @@ public class Analysis implements ImmutableAnalysis {
   public static final class AliasedDataSource {
 
     private final SourceName alias;
-    private final DataSource<?> dataSource;
+    private final DataSource dataSource;
 
     AliasedDataSource(
         final SourceName alias,
-        final DataSource<?> dataSource
+        final DataSource dataSource
     ) {
       this.alias = requireNonNull(alias, "alias");
       this.dataSource = requireNonNull(dataSource, "dataSource");
@@ -273,7 +315,7 @@ public class Analysis implements ImmutableAnalysis {
       return alias;
     }
 
-    public DataSource<?> getDataSource() {
+    public DataSource getDataSource() {
       return dataSource;
     }
   }
@@ -281,30 +323,30 @@ public class Analysis implements ImmutableAnalysis {
   @Immutable
   public static final class JoinInfo {
 
-    private final ColumnRef leftJoinField;
-    private final ColumnRef rightJoinField;
+    private final Expression leftJoinExpression;
+    private final Expression rightJoinExpression;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
 
     JoinInfo(
-        final ColumnRef leftJoinField,
-        final ColumnRef rightJoinField,
+        final Expression leftJoinExpression,
+        final Expression rightJoinExpression,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
     ) {
-      this.leftJoinField =  requireNonNull(leftJoinField, "leftJoinField");
-      this.rightJoinField =  requireNonNull(rightJoinField, "rightJoinField");
+      this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
+      this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
-    public ColumnRef getLeftJoinField() {
-      return leftJoinField;
+    public Expression getLeftJoinExpression() {
+      return leftJoinExpression;
     }
 
-    public ColumnRef getRightJoinField() {
-      return rightJoinField;
+    public Expression getRightJoinExpression() {
+      return rightJoinExpression;
     }
 
     public JoinType getType() {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -25,13 +26,14 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -39,12 +41,17 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
+import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -54,6 +61,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
@@ -61,13 +69,15 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
+import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -91,13 +101,18 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryExecutor.class);
 
   private static final Set<Type> VALID_WINDOW_BOUNDS_TYPES = ImmutableSet.of(
       Type.EQUAL,
@@ -110,30 +125,32 @@ public final class PullQueryExecutor {
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       VALID_WINDOW_BOUNDS_TYPES.toString();
 
-  private PullQueryExecutor() {
+  private final KsqlExecutionContext executionContext;
+  private final Optional<HeartbeatAgent> heartbeatAgent;
+  private final RoutingFilterFactory routingFilterFactory;
+
+  public PullQueryExecutor(
+      final KsqlExecutionContext executionContext,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final RoutingFilterFactory routingFilterFactory
+  ) {
+    this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+    this.heartbeatAgent = Objects.requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.routingFilterFactory =
+        Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
   }
 
   public static void validate(
       final ConfiguredStatement<Query> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public static Optional<KsqlEntity> execute(
+  public TableRowsEntity execute(
       final ConfiguredStatement<Query> statement,
-      final Map<String, ?> sessionProperties,
-      final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
-  ) {
-    return Optional.of(execute(statement, executionContext, serviceContext));
-  }
-
-  public static TableRowsEntity execute(
-      final ConfiguredStatement<Query> statement,
-      final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     if (!statement.getStatement().isPullQuery()) {
@@ -150,13 +167,17 @@ public final class PullQueryExecutor {
     }
 
     try {
-      final Analysis analysis = analyze(statement, executionContext);
+      final ImmutableAnalysis analysis = new RewrittenAnalysis(
+          analyze(statement, executionContext),
+          new ColumnReferenceRewriter()::process
+      );
 
       final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
       final QueryId queryId = uniqueQueryId();
+
       final QueryContext.Stacker contextStacker = new Stacker();
 
       final Materialization mat = query
@@ -165,54 +186,21 @@ public final class PullQueryExecutor {
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
 
-      final KsqlConfig ksqlConfig = statement.getConfig();
-      final KsqlNode owner = getOwner(ksqlConfig, rowKey, mat);
-      if (!owner.isLocal()) {
-        return proxyTo(owner, statement, serviceContext);
-      }
-
-      final Result result;
-      if (whereInfo.windowStartBounds.isPresent()) {
-        final Range<Instant> windowStart = whereInfo.windowStartBounds.get();
-
-        final List<? extends TableRow> rows = mat.windowed()
-            .get(rowKey, windowStart);
-
-        result = new Result(mat.schema(), rows);
-      } else {
-        final List<? extends TableRow> rows = mat.nonWindowed()
-            .get(rowKey)
-            .map(ImmutableList::of)
-            .orElse(ImmutableList.of());
-
-        result = new Result(mat.schema(), rows);
-      }
-
-      final LogicalSchema outputSchema;
-      final List<List<?>> rows;
-      if (isSelectStar(statement.getStatement().getSelect())) {
-        outputSchema = TableRowsEntityFactory.buildSchema(result.schema, mat.windowType());
-        rows = TableRowsEntityFactory.createRows(result.rows);
-      } else {
-        outputSchema = selectOutputSchema(result, executionContext, analysis);
-
-        rows = handleSelects(
-            result,
-            statement,
-            executionContext,
-            analysis,
-            outputSchema,
-            queryId,
-            contextStacker
-        );
-      }
-
-      return new TableRowsEntity(
-          statement.getStatementText(),
+      final PullQueryContext pullQueryContext = new PullQueryContext(
+          rowKey,
+          mat,
+          analysis,
+          whereInfo,
           queryId,
-          outputSchema,
-          rows
+          contextStacker);
+
+      return handlePullQuery(
+          statement,
+          executionContext,
+          serviceContext,
+          pullQueryContext
       );
+
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
@@ -222,11 +210,119 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static QueryId uniqueQueryId() {
+  private TableRowsEntity handlePullQuery(
+      final ConfiguredStatement<Query> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final PullQueryContext pullQueryContext
+  ) {
+    final RoutingOptions routingOptions = new ConfigRoutingOptions(
+        statement.getConfig(), statement.getOverrides());
+
+    // Get active and standby nodes for this key
+    final Locator locator = pullQueryContext.mat.locator();
+    final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
+        pullQueryContext.rowKey,
+        routingOptions,
+        routingFilterFactory
+    );
+
+    if (filteredAndOrderedNodes.isEmpty()) {
+      throw new MaterializationException("All nodes are dead or exceed max allowed lag.");
+    }
+
+    // Nodes are ordered by preference: active is first if alive then standby nodes in
+    // increasing order of lag.
+    for (KsqlNode node : filteredAndOrderedNodes) {
+      try {
+        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
+      } catch (Exception t) {
+        LOG.debug("Error routing query {} to host {} at timestamp {}",
+                 statement.getStatementText(), node, System.currentTimeMillis());
+      }
+    }
+    throw new MaterializationException(String.format(
+        "Unable to execute pull query: %s", statement.getStatementText()));
+  }
+
+  private TableRowsEntity routeQuery(
+      final KsqlNode node,
+      final ConfiguredStatement<Query> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final PullQueryContext pullQueryContext
+  ) {
+
+    if (node.isLocal()) {
+      LOG.debug("Query {} executed locally at host {} at timestamp {}.",
+               statement.getStatementText(), node.location(), System.currentTimeMillis());
+      return queryRowsLocally(
+          statement,
+          executionContext,
+          pullQueryContext);
+    } else {
+      LOG.debug("Query {} routed to host {} at timestamp {}.",
+                statement.getStatementText(), node.location(), System.currentTimeMillis());
+      return forwardTo(node, statement, serviceContext);
+    }
+  }
+
+  @VisibleForTesting
+  TableRowsEntity queryRowsLocally(
+      final ConfiguredStatement<Query> statement,
+      final KsqlExecutionContext executionContext,
+      final PullQueryContext pullQueryContext
+  ) {
+    final Result result;
+    if (pullQueryContext.whereInfo.windowStartBounds.isPresent()) {
+      final Range<Instant> windowStart = pullQueryContext.whereInfo.windowStartBounds.get();
+
+      final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
+          .get(pullQueryContext.rowKey, windowStart);
+
+      result = new Result(pullQueryContext.mat.schema(), rows);
+    } else {
+      final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
+          .get(pullQueryContext.rowKey)
+          .map(ImmutableList::of)
+          .orElse(ImmutableList.of());
+
+      result = new Result(pullQueryContext.mat.schema(), rows);
+    }
+
+    final LogicalSchema outputSchema;
+    final List<List<?>> rows;
+    if (isSelectStar(statement.getStatement().getSelect())) {
+      outputSchema = TableRowsEntityFactory.buildSchema(
+          result.schema, pullQueryContext.mat.windowType().isPresent());
+      rows = TableRowsEntityFactory.createRows(result.rows);
+    } else {
+      outputSchema = selectOutputSchema(
+          result, executionContext, pullQueryContext.analysis, pullQueryContext.mat.windowType());
+      rows = handleSelects(
+          result,
+          statement,
+          executionContext,
+          pullQueryContext.analysis,
+          outputSchema,
+          pullQueryContext.mat.windowType(),
+          pullQueryContext.queryId,
+          pullQueryContext.contextStacker
+      );
+    }
+    return new TableRowsEntity(
+        statement.getStatementText(),
+        pullQueryContext.queryId,
+        outputSchema,
+        rows
+    );
+  }
+
+  private QueryId uniqueQueryId() {
     return new QueryId("query_" + System.currentTimeMillis());
   }
 
-  private static Analysis analyze(
+  private ImmutableAnalysis analyze(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext
   ) {
@@ -237,6 +333,55 @@ public final class PullQueryExecutor {
     );
 
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
+  }
+
+  private static final class PullQueryContext {
+    private final Struct rowKey;
+    private final Materialization mat;
+    private final ImmutableAnalysis analysis;
+    private final WhereInfo whereInfo;
+    private final QueryId queryId;
+    private final QueryContext.Stacker contextStacker;
+
+    private PullQueryContext(
+        final Struct rowKey,
+        final Materialization mat,
+        final ImmutableAnalysis analysis,
+        final WhereInfo whereInfo,
+        final QueryId queryId,
+        final QueryContext.Stacker contextStacker
+    ) {
+      this.rowKey = Objects.requireNonNull(rowKey, "rowkey");
+      this.mat = Objects.requireNonNull(mat, "materialization");
+      this.analysis = Objects.requireNonNull(analysis, "analysis");
+      this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
+      this.queryId = Objects.requireNonNull(queryId, "queryId");
+      this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
+    }
+
+    public Struct getRowKey() {
+      return rowKey;
+    }
+
+    public Materialization getMat() {
+      return mat;
+    }
+
+    public ImmutableAnalysis getAnalysis() {
+      return analysis;
+    }
+
+    public WhereInfo getWhereInfo() {
+      return whereInfo;
+    }
+
+    public QueryId getQueryId() {
+      return queryId;
+    }
+
+    public QueryContext.Stacker getContextStacker() {
+      return contextStacker;
+    }
   }
 
   private static final class WhereInfo {
@@ -267,8 +412,8 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static WhereInfo extractWhereInfo(
-      final Analysis analysis,
+  private WhereInfo extractWhereInfo(
+      final ImmutableAnalysis analysis,
       final PersistentQueryMetadata query
   ) {
     final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
@@ -283,7 +428,11 @@ public final class PullQueryExecutor {
       throw invalidWhereClauseException("WHERE clause missing ROWKEY", windowed);
     }
 
-    final Object rowKey = extractRowKeyWhereClause(rowKeyComparison, windowed);
+    final Object rowKey = extractRowKeyWhereClause(
+        rowKeyComparison,
+        windowed,
+        query.getLogicalSchema()
+    );
 
     if (!windowed) {
       if (comparisons.size() > 1) {
@@ -301,31 +450,43 @@ public final class PullQueryExecutor {
     return new WhereInfo(rowKey, Optional.of(windowStart));
   }
 
-  private static Object extractRowKeyWhereClause(
+  private Object extractRowKeyWhereClause(
       final List<ComparisonExpression> comparisons,
-      final boolean windowed
+      final boolean windowed,
+      final LogicalSchema schema
   ) {
     if (comparisons.size() != 1) {
       throw invalidWhereClauseException("Multiple bounds on ROWKEY", windowed);
     }
 
     final ComparisonExpression comparison = comparisons.get(0);
+    if (comparison.getType() != Type.EQUAL) {
+      throw invalidWhereClauseException("ROWKEY bound must currently be '='", windowed);
+    }
 
     final Expression other = getNonColumnRefSide(comparison);
+    final Object right = ((Literal) other).getValue();
 
-    if (!(other instanceof StringLiteral)) {
-      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal", false);
-    }
-
-    if (comparison.getType() != Type.EQUAL) {
-      throw invalidWhereClauseException("ROWKEY bound must currently be '='", false);
-    }
-
-    final Literal right = (Literal) other;
-    return right.getValue();
+    return coerceRowKey(schema, right, windowed);
   }
 
-  private static Range<Instant> extractWhereClauseWindowBounds(
+  private Object coerceRowKey(
+      final LogicalSchema schema,
+      final Object right,
+      final boolean windowed
+  ) {
+    if (schema.key().size() != 1) {
+      throw invalidWhereClauseException("Only single KEY column supported", windowed);
+    }
+
+    final SqlType sqlType = schema.key().get(0).type();
+
+    return DefaultSqlValueCoercer.INSTANCE.coerce(right, sqlType)
+        .orElseThrow(() -> new KsqlException("'" + right + "' can not be converted "
+            + "to the type of column ROWKEY: " + sqlType));
+  }
+
+  private Range<Instant> extractWhereClauseWindowBounds(
       final Optional<List<ComparisonExpression>> maybeComparisons
   ) {
     if (!maybeComparisons.isPresent()) {
@@ -335,7 +496,7 @@ public final class PullQueryExecutor {
     final List<ComparisonExpression> comparisons = maybeComparisons.get();
 
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
-        .collect(Collectors.groupingBy(PullQueryExecutor::getSimplifiedBoundType));
+        .collect(Collectors.groupingBy(this::getSimplifiedBoundType));
 
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
@@ -382,9 +543,9 @@ public final class PullQueryExecutor {
     return extractWindowBound(lower, upper);
   }
 
-  private static Type getSimplifiedBoundType(final ComparisonExpression comparison) {
+  private Type getSimplifiedBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
-    final boolean inverted = comparison.getRight() instanceof ColumnReferenceExp;
+    final boolean inverted = comparison.getRight() instanceof UnqualifiedColumnReferenceExp;
 
     switch (type) {
       case LESS_THAN:
@@ -398,7 +559,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static Range<Instant> extractWindowBound(
+  private Range<Instant> extractWindowBound(
       final Optional<ComparisonExpression> lowerComparison,
       final Optional<ComparisonExpression> upperComparison
   ) {
@@ -427,7 +588,7 @@ public final class PullQueryExecutor {
     return Range.range(lower, lowerType, upper, upperType);
   }
 
-  private static BoundType getRangeBoundType(final ComparisonExpression lowerComparison) {
+  private BoundType getRangeBoundType(final ComparisonExpression lowerComparison) {
     final boolean openBound = lowerComparison.getType() == Type.LESS_THAN
         || lowerComparison.getType() == Type.GREATER_THAN;
 
@@ -436,13 +597,13 @@ public final class PullQueryExecutor {
         : BoundType.CLOSED;
   }
 
-  private static Expression getNonColumnRefSide(final ComparisonExpression comparison) {
-    return comparison.getRight() instanceof ColumnReferenceExp
+  private Expression getNonColumnRefSide(final ComparisonExpression comparison) {
+    return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
   }
 
-  private static Instant asInstant(final Expression other) {
+  private Instant asInstant(final Expression other) {
     if (other instanceof IntegerLiteral) {
       return Instant.ofEpochMilli(((IntegerLiteral) other).getValue());
     }
@@ -474,7 +635,7 @@ public final class PullQueryExecutor {
     WINDOWSTART
   }
 
-  private static Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
+  private Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
       final Expression exp
   ) {
     if (exp instanceof ComparisonExpression) {
@@ -505,17 +666,17 @@ public final class PullQueryExecutor {
     throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
-  private static ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
-    final ColumnReferenceExp column;
-    if (comparison.getRight() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getRight();
-    } else if (comparison.getLeft() instanceof ColumnReferenceExp) {
-      column = (ColumnReferenceExp) comparison.getLeft();
+  private ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
+    final UnqualifiedColumnReferenceExp column;
+    if (comparison.getRight() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getRight();
+    } else if (comparison.getLeft() instanceof UnqualifiedColumnReferenceExp) {
+      column = (UnqualifiedColumnReferenceExp) comparison.getLeft();
     } else {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getReference().name().toString(FormatOptions.noEscape());
+    final String fieldName = column.getReference().toString(FormatOptions.noEscape());
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());
@@ -524,59 +685,68 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static boolean isSelectStar(final Select select) {
+  private boolean isSelectStar(final Select select) {
     final List<SelectItem> selects = select.getSelectItems();
     return selects.size() == 1 && selects.get(0) instanceof AllColumns;
   }
 
-  private static List<List<?>> handleSelects(
+  private List<List<?>> handleSelects(
       final Result input,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
-      final Analysis analysis,
+      final ImmutableAnalysis analysis,
       final LogicalSchema outputSchema,
+      final Optional<WindowType> windowType,
       final QueryId queryId,
       final Stacker contextStacker
   ) {
-    final boolean referencesRowTime = analysis.getSelectColumnRefs().stream()
-        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWTIME_NAME));
-
-    final boolean referencesRowKey = analysis.getSelectColumnRefs().stream()
-        .anyMatch(ref -> ref.name().equals(SchemaUtil.ROWKEY_NAME));
+    final boolean noSystemColumns = analysis.getSelectColumnRefs().stream()
+        .noneMatch(SchemaUtil::isSystemColumn);
 
     final LogicalSchema intermediateSchema;
-    final PreSelectTransformer preSelectTransform;
-    if (!referencesRowTime && !referencesRowKey) {
+    final Function<TableRow, GenericRow> preSelectTransform;
+    if (noSystemColumns) {
       intermediateSchema = input.schema;
-      preSelectTransform = (rowTime, key, value) -> value;
+      preSelectTransform = TableRow::value;
     } else {
       // SelectValueMapper requires the rowTime & key fields in the value schema :(
-      intermediateSchema = LogicalSchema.builder()
-          .keyColumns(input.schema.key())
-          .valueColumns(input.schema.value())
-          .valueColumns(input.schema.metadata())
-          .valueColumns(input.schema.key())
-          .build();
+      final boolean windowed = windowType.isPresent();
 
-      preSelectTransform = (rowTime, key, value) -> {
-        value.getColumns().add(rowTime);
+      intermediateSchema = input.schema
+          .withMetaAndKeyColsInValue(windowed);
 
-        key.schema().fields().forEach(f -> {
-          final Object keyField = key.get(f);
-          value.getColumns().add(keyField);
+      preSelectTransform = row -> {
+        final Struct key = row.key();
+        final GenericRow value = row.value();
+
+        final List<Object> keyFields = key.schema().fields().stream()
+            .map(key::get)
+            .collect(Collectors.toList());
+
+        value.ensureAdditionalCapacity(
+            1 // ROWTIME
+            + keyFields.size()
+            + row.window().map(w -> 2).orElse(0)
+        );
+
+        value.append(row.rowTime());
+        value.appendAll(keyFields);
+
+        row.window().ifPresent(window -> {
+          value.append(window.start().toEpochMilli());
+          value.append(window.end().toEpochMilli());
         });
+
         return value;
       };
     }
-
-    final SourceName sourceName = getSourceName(analysis);
 
     final KsqlConfig ksqlConfig = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
-        intermediateSchema.withAlias(sourceName),
+        intermediateSchema,
         ksqlConfig,
         executionContext.getMetaStore()
     );
@@ -594,7 +764,7 @@ public final class PullQueryExecutor {
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
-      final GenericRow intermediate = preSelectTransform.transform(r.rowTime(), r.key(), r.value());
+      final GenericRow intermediate = preSelectTransform.apply(r);
 
       final GenericRow mapped = transformer.transform(
           r.key(),
@@ -602,17 +772,17 @@ public final class PullQueryExecutor {
           new PullProcessingContext(r.rowTime())
       );
       validateProjection(mapped, outputSchema);
-      output.add(mapped.getColumns());
+      output.add(mapped.values());
     });
 
     return output.build();
   }
 
-  private static void validateProjection(
+  private void validateProjection(
       final GenericRow fullRow,
       final LogicalSchema schema
   ) {
-    final int actual = fullRow.getColumns().size();
+    final int actual = fullRow.size();
     final int expected = schema.columns().size();
     if (actual != expected) {
       throw new IllegalStateException("Row column count mismatch."
@@ -622,24 +792,30 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static LogicalSchema selectOutputSchema(
+  private LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
-      final Analysis analysis
+      final ImmutableAnalysis analysis,
+      final Optional<WindowType> windowType
   ) {
     final Builder schemaBuilder = LogicalSchema.builder()
         .noImplicitColumns();
 
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        input.schema.withAlias(analysis.getFromDataSources().get(0).getAlias()),
-        executionContext.getMetaStore()
-    );
+    // Copy meta & key columns into the value schema as SelectValueMapper expects it:
+    final LogicalSchema schema = input.schema
+        .withMetaAndKeyColsInValue(windowType.isPresent());
+
+    final ExpressionTypeManager expressionTypeManager =
+        new ExpressionTypeManager(schema, executionContext.getMetaStore());
 
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
       final SelectExpression select = analysis.getSelectExpressions().get(idx);
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
-      if (input.schema.isKeyColumn(select.getAlias())) {
+      if (input.schema.isKeyColumn(select.getAlias())
+          || select.getAlias().equals(SchemaUtil.WINDOWSTART_NAME)
+          || select.getAlias().equals(SchemaUtil.WINDOWEND_NAME)
+      ) {
         schemaBuilder.keyColumn(select.getAlias(), type);
       } else {
         schemaBuilder.valueColumn(select.getAlias(), type);
@@ -648,9 +824,9 @@ public final class PullQueryExecutor {
     return schemaBuilder.build();
   }
 
-  private static PersistentQueryMetadata findMaterializingQuery(
+  private PersistentQueryMetadata findMaterializingQuery(
       final KsqlExecutionContext executionContext,
-      final Analysis analysis
+      final ImmutableAnalysis analysis
   ) {
     final MetaStore metaStore = executionContext.getMetaStore();
 
@@ -672,42 +848,20 @@ public final class PullQueryExecutor {
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
   }
 
-  private static SourceName getSourceName(final Analysis analysis) {
-    final DataSource<?> source = analysis.getFromDataSources().get(0).getDataSource();
+  private SourceName getSourceName(final ImmutableAnalysis analysis) {
+    final DataSource source = analysis.getFromDataSources().get(0).getDataSource();
     return source.getName();
   }
 
-  private static KsqlNode getOwner(
-      final KsqlConfig ksqlConfig,
-      final Struct rowKey,
-      final Materialization mat
-  ) {
-    final Locator locator = mat.locator();
-
-    final long timeoutMs =
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG);
-    final long threshold = System.currentTimeMillis() + timeoutMs;
-    while (System.currentTimeMillis() < threshold) {
-      final Optional<KsqlNode> owner = locator.locate(rowKey);
-      if (owner.isPresent()) {
-        return owner.get();
-      }
-    }
-
-    throw new MaterializationTimeOutException(
-        "The owner of the key could not be determined within the configured timeout: "
-            + timeoutMs + "ms, config: " + KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG
-    );
-  }
-
-  private static TableRowsEntity proxyTo(
+  @VisibleForTesting
+  TableRowsEntity forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
   ) {
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getStatementText(), statement.getOverrides());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
@@ -737,7 +891,7 @@ public final class PullQueryExecutor {
         throw new KsqlServerException("Unexpected proxy response");
       }
 
-      rows.add(row.getRow().get().getColumns());
+      rows.add(row.getRow().get().values());
     }
 
     return new TableRowsEntity(
@@ -748,7 +902,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static KsqlException notMaterializedException(final SourceName sourceTable) {
+  private KsqlException notMaterializedException(final SourceName sourceTable) {
     return new KsqlException("'"
         + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
         + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
@@ -761,7 +915,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static KsqlException invalidWhereClauseException(
+  private KsqlException invalidWhereClauseException(
       final String msg,
       final boolean windowed
   ) {
@@ -790,18 +944,47 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static Struct asKeyStruct(final Object rowKey, final PhysicalSchema physicalSchema) {
+  private Struct asKeyStruct(final Object rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
+    key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
     return key;
   }
 
-  private interface PreSelectTransformer {
+  private static final class ColumnReferenceRewriter
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+    private ColumnReferenceRewriter() {
+      super(Optional.empty());
+    }
 
-    GenericRow transform(
-        long rowTime,
-        Struct readOnlyKey,
-        GenericRow value
-    );
+    @Override
+    public Optional<Expression> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Context<Void> ctx
+    ) {
+      return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+    }
+  }
+
+  private static final class ConfigRoutingOptions implements RoutingOptions {
+
+    private final KsqlConfig ksqlConfig;
+    private final Map<String, ?> overrides;
+
+    ConfigRoutingOptions(final KsqlConfig ksqlConfig, final Map<String, ?> overrides) {
+      this.ksqlConfig = ksqlConfig;
+      this.overrides = overrides;
+    }
+
+    private long getLong(final String key) {
+      if (overrides.containsKey(key)) {
+        return (Long) overrides.get(key);
+      }
+      return ksqlConfig.getLong(key);
+    }
+
+    @Override
+    public long getOffsetLagAllowed() {
+      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+    }
   }
 }

@@ -20,8 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
@@ -36,27 +34,16 @@ import java.util.stream.Collectors;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
-  private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
-  private final TheQueryExecutor pullQueryExecutor;
-
-  PullQueryPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> query
-  ) {
-    this(ksqlEngine, serviceContext, query, PullQueryExecutor::execute);
-  }
+  private final PullQueryExecutor pullQueryExecutor;
 
   @VisibleForTesting
   PullQueryPublisher(
-      final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query,
-      final TheQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor
   ) {
-    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.query = requireNonNull(query, "query");
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
@@ -66,7 +53,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, ksqlEngine, serviceContext)
+        () -> pullQueryExecutor.execute(query, serviceContext)
     );
 
     subscriber.onSubscribe(subscription);
@@ -117,18 +104,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     public void cancel() {
     }
 
-    @SuppressWarnings("unchecked")
     private static GenericRow toGenericRow(final List<?> values) {
-      return new GenericRow((List)values);
+      return new GenericRow().appendAll(values);
     }
-  }
-
-  interface TheQueryExecutor {
-
-    TableRowsEntity execute(
-        ConfiguredStatement<Query> statement,
-        KsqlExecutionContext executionContext,
-        ServiceContext serviceContext
-    );
   }
 }

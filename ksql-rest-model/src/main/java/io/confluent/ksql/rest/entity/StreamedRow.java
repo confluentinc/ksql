@@ -140,7 +140,7 @@ public final class StreamedRow {
   public String toString() {
     try {
       return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       return super.toString();
     }
   }
@@ -205,7 +205,7 @@ public final class StreamedRow {
     public String toString() {
       try {
         return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
-      } catch (JsonProcessingException e) {
+      } catch (final JsonProcessingException e) {
         return super.toString();
       }
     }

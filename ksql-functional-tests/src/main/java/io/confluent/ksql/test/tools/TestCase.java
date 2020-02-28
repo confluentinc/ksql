@@ -42,7 +42,7 @@ public class TestCase implements VersionedTest {
   private final List<String> statements;
   private final Optional<Matcher<Throwable>> expectedException;
   private List<String> generatedTopologies;
-  private List<String> generatedSchemas;
+  private Map<String, String> generatedSchemas;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
 
@@ -106,15 +106,18 @@ public class TestCase implements VersionedTest {
     return versionBounds;
   }
 
-  public TestCase withExpectedTopology(
+  public TestCase withPlan(
       final KsqlVersion version,
-      final TopologyAndConfigs expectedTopology
+      final TopologyAndConfigs expectedTopology,
+      final List<Record> inputRecords,
+      final List<Record> outputRecords
   ) {
     if (!versionBounds.contains(version)) {
       throw new IllegalArgumentException("Test does not support supplied version: " + version);
     }
 
-    final String newName = name + "-" + version.getName();
+    final String newName = name + "-" + version.getName()
+        + (version.getTimestamp().isPresent() ? "-" + version.getTimestamp().getAsLong() : "");
     final TestCase copy = new TestCase(
         testPath,
         newName,
@@ -132,6 +135,13 @@ public class TestCase implements VersionedTest {
     copy.generatedTopologies = generatedTopologies;
     copy.generatedSchemas = generatedSchemas;
     return copy;
+  }
+
+  public TestCase withExpectedTopology(
+      final KsqlVersion version,
+      final TopologyAndConfigs expectedTopology
+  ) {
+    return withPlan(version, expectedTopology, inputRecords, outputRecords);
   }
 
   @Override
@@ -160,17 +170,18 @@ public class TestCase implements VersionedTest {
     return expectedTopology;
   }
 
-  public void setGeneratedSchemas(final List<String> generatedSchemas) {
-    this.generatedSchemas = Objects.requireNonNull(generatedSchemas, "generatedSchemas");
+  public void setGeneratedSchemas(final Map<String, String> generatedSchemas) {
+    this.generatedSchemas = ImmutableMap.copyOf(
+        Objects.requireNonNull(generatedSchemas, "generatedSchemas"));
   }
 
-  public List<String> getGeneratedSchemas() {
+  public Map<String, String> getGeneratedSchemas() {
     return generatedSchemas;
   }
 
   public Map<String, String> persistedProperties() {
     return expectedTopology
-        .flatMap(TopologyAndConfigs::getConfigs)
+        .map(TopologyAndConfigs::getConfigs)
         .orElseGet(HashMap::new);
   }
 

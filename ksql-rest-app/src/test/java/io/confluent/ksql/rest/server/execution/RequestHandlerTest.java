@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -40,12 +39,13 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -65,26 +65,29 @@ public class RequestHandlerTest {
 
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
   
-  @Mock KsqlEngine ksqlEngine;
-  @Mock KsqlConfig ksqlConfig;
-  @Mock ServiceContext serviceContext;
-  @Mock DistributingExecutor distributor;
-  @Mock KsqlEntity entity;
-  @Mock CommandQueueSync sync;
+  @Mock private KsqlEngine ksqlEngine;
+  @Mock private KsqlConfig ksqlConfig;
+  @Mock private ServiceContext serviceContext;
+  @Mock private DistributingExecutor distributor;
+  @Mock private KsqlEntity entity;
+  @Mock private CommandQueueSync sync;
+  @Mock private SessionProperties sessionProperties;
 
   private MetaStore metaStore;
   private RequestHandler handler;
+  private KsqlSecurityContext securityContext;
 
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.parse(any()))
-        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
+
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
   }
 
   @Test
@@ -98,7 +101,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     assertThat(entities, contains(entity));
@@ -107,7 +110,7 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(ImmutableMap.of()),
+            eq(sessionProperties),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -121,7 +124,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     assertThat(entities, contains(entity));
@@ -130,10 +133,8 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
-            eq(statements.get(0)),
-            eq(ImmutableMap.of()),
             eq(ksqlEngine),
-            eq(serviceContext)
+            eq(securityContext)
         );
   }
 
@@ -141,14 +142,14 @@ public class RequestHandlerTest {
   public void shouldDistributeProperties() {
     // Given
     givenRequestHandler(ImmutableMap.of());
-
+    when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of("x", "y"));
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(
-        serviceContext,
+        securityContext,
         statements,
-        ImmutableMap.of("x", "y")
+        sessionProperties
     );
 
     // Then
@@ -159,10 +160,8 @@ public class RequestHandlerTest {
                 preparedStatement(instanceOf(CreateStream.class)),
                     ImmutableMap.of("x", "y"),
                     ksqlConfig))),
-            eq(statements.get(0)),
-            eq(ImmutableMap.of("x", "y")),
             eq(ksqlEngine),
-            eq(serviceContext)
+            eq(securityContext)
         );
   }
 
@@ -187,7 +186,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(serviceContext, statements, ImmutableMap.of());
+    handler.execute(securityContext, statements, sessionProperties);
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -227,7 +226,7 @@ public class RequestHandlerTest {
   private static Matcher<KsqlEntityList> hasItems(final KsqlEntity... items) {
     return new TypeSafeMatcher<KsqlEntityList>() {
       @Override
-      protected boolean matchesSafely(KsqlEntityList actual) {
+      protected boolean matchesSafely(final KsqlEntityList actual) {
         if (items.length != actual.size()) {
           return false;
         }
@@ -241,7 +240,7 @@ public class RequestHandlerTest {
       }
 
       @Override
-      public void describeTo(Description description) {
+      public void describeTo(final Description description) {
         description.appendText(Arrays.toString(items));
       }
     };

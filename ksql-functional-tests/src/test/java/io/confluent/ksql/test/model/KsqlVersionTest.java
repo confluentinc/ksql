@@ -17,6 +17,7 @@ package io.confluent.ksql.test.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 import io.confluent.ksql.model.SemanticVersion;
 import org.junit.Test;
@@ -61,5 +62,35 @@ public class KsqlVersionTest {
     // Then:
     assertThat(result.getName(), is("5.4.1-SNAPSHOT"));
     assertThat(result.getVersion(), is(SemanticVersion.of(5, 4, 1)));
+  }
+
+  @Test
+  public void shouldCompareUsingTimestamps() {
+    // Given:
+    final KsqlVersion v1 = KsqlVersion.parse("5.4.1").withTimestamp(123);
+    final KsqlVersion v2 = KsqlVersion.parse("5.4.1").withTimestamp(456);
+
+    // Then:
+    assertThat(v1, lessThan(v2));
+  }
+
+  @Test
+  public void shouldTreatNoTimestampAsHigher() {
+    // Given:
+    final KsqlVersion v1 = KsqlVersion.parse("5.4.1").withTimestamp(123);
+    final KsqlVersion v2 = KsqlVersion.parse("5.4.1");
+
+    // Then:
+    assertThat(v1, lessThan(v2));
+  }
+
+  @Test
+  public void shouldCompareVersionBeforeTimestamp() {
+    // Given:
+    final KsqlVersion v1 = KsqlVersion.parse("5.4.1").withTimestamp(456);
+    final KsqlVersion v2 = KsqlVersion.parse("5.4.2").withTimestamp(123);
+
+    // Then:
+    assertThat(v1, lessThan(v2));
   }
 }

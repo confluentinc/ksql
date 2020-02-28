@@ -30,10 +30,11 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -42,6 +43,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -72,13 +74,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final String kafkaTopicName,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final Optional<TimestampColumn> timestampColumn
   ) {
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         sourceTableStep,
         Formats.of(keyFormat, valueFormat, options),
-        kafkaTopicName
+        kafkaTopicName,
+        timestampColumn
     );
     return new SchemaKTable<>(
         step,
@@ -134,6 +138,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public SchemaKStream<Struct> selectKey(final Expression keyExpression,
+      final Stacker contextStacker) {
+    if (repartitionNotNeeded(keyExpression)) {
+      return (SchemaKStream<Struct>) this;
+    }
+
+    throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
+        + "If this is a join, make sure that the criteria uses the TABLE key "
+        + this.keyField.ref().map(ColumnName::toString).orElse("ROWKEY") + " instead of "
+        + keyExpression);
+  }
+
   @Override
   public ExecutionStep<?> getSourceStep() {
     return sourceTableStep;
@@ -152,10 +170,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
-    final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-    final Optional<ColumnRef> newKeyField = getSchema()
-        .findValueColumn(aggregateKeyName.withoutSource())
-        .map(Column::ref);
+    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final Optional<ColumnName> newKeyField = getSchema()
+        .findValueColumn(aggregateKeyName)
+        .map(Column::name);
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,

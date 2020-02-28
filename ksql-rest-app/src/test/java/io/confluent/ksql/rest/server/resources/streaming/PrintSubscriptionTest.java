@@ -13,7 +13,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.resources.streaming.PrintPublisher.PrintSubscription;
 import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
-import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;
@@ -27,20 +26,21 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class PrintSubscriptionTest {
 
-  @Mock public KafkaConsumer<String, Bytes> kafkaConsumer;
+  @Mock public KafkaConsumer<Bytes, Bytes> kafkaConsumer;
   @Mock public SchemaRegistryClient schemaRegistry;
 
   @Before
   public void setup() {
-    final Iterator<ConsumerRecords<String, Bytes>> records = StreamingTestUtils.generate(
+    final Iterator<ConsumerRecords<Bytes, Bytes>> records = StreamingTestUtils.generate(
         "topic",
-        i -> "key" + i,
-        i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
+        i -> new Bytes(("key-" + i).getBytes(Charsets.UTF_8)),
+        i -> new Bytes(("value-" + i).getBytes(Charsets.UTF_8)));
 
-    final Iterator<ConsumerRecords<String, Bytes>> partitioned =
+    final Iterator<ConsumerRecords<Bytes, Bytes>> partitioned =
         StreamingTestUtils.partition(records, 3);
 
     when(kafkaConsumer.poll(any(Duration.class)))
@@ -50,8 +50,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisher() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, null),
         subscriber,
@@ -60,21 +60,21 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
+    final Collection<String> results = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"),
-        containsString("key2 , value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-1, value: value-1"),
+        containsString("key: key-2, value: value-2"))
     ));
   }
 
   @Test
   public void testPrintPublisherLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, 2),
         subscriber,
@@ -83,13 +83,13 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"))
+        containsString("key-0, value: value-0"),
+        containsString("key-1, value: value-1"))
     ));
     assertThat(results2, empty());
   }
@@ -97,8 +97,8 @@ public class PrintSubscriptionTest {
   @Test
   public void testPrintPublisherLimitTwoBatches() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, null, 5),
         subscriber,
@@ -107,26 +107,26 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key1 , value1"),
-        containsString("key2 , value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-1, value: value-1"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(Lists.newArrayList(
-        containsString("key3 , value3"),
-        containsString("key4 , value4"))
+        containsString("key: key-3, value: value-3"),
+        containsString("key: key-4, value: value-4"))
     ));
   }
 
   @Test
   public void testPrintPublisherIntervalNoLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, 2, null),
         subscriber,
@@ -135,24 +135,24 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key2 , value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(
-        containsString("key4 , value4")
+        containsString("key: key-4, value: value-4")
     ));
   }
 
   @Test
   public void testPrintPublisherIntervalAndLimit() {
     // Given:
-    TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
-    PrintSubscription subscription = new PrintSubscription(
+    final TestSubscriber<Collection<String>> subscriber = new TestSubscriber<>();
+    final PrintSubscription subscription = new PrintSubscription(
         MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1)),
         StreamingTestUtils.printTopic("topic", true, 2, 4),
         subscriber,
@@ -161,24 +161,23 @@ public class PrintSubscriptionTest {
     );
 
     // When:
-    Collection<String> results = subscription.poll();
-    Collection<String> results2 = subscription.poll();
-    Collection<String> results3 = subscription.poll();
-    Collection<String> results4 = subscription.poll();
+    final Collection<String> results = subscription.poll();
+    final Collection<String> results2 = subscription.poll();
+    final Collection<String> results3 = subscription.poll();
+    final Collection<String> results4 = subscription.poll();
 
     // Then:
     assertThat(results, contains(Lists.newArrayList(
-        containsString("key0 , value0"),
-        containsString("key2 , value2"))
+        containsString("key: key-0, value: value-0"),
+        containsString("key: key-2, value: value-2"))
     ));
     assertThat(results2, contains(
-        containsString("key4 , value4")
+        containsString("key: key-4, value: value-4")
     ));
     assertThat(results3, contains(
-        containsString("key6 , value6")
+        containsString("key: key-6, value: value-6")
     ));
     assertThat(results4, empty());
   }
-
 }
 

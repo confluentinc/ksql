@@ -19,13 +19,13 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,22 +67,20 @@ public class RequestHandler {
   }
 
   public KsqlEntityList execute(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final List<ParsedStatement> statements,
-      final Map<String, Object> propertyOverrides
+      final SessionProperties sessionProperties
   ) {
-    final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-    for (ParsedStatement parsed : statements) {
+    for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, scopedPropertyOverrides, ksqlConfig);
+          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
 
       executeStatement(
-          serviceContext,
+          securityContext,
           configured,
-          parsed,
-          scopedPropertyOverrides,
+          sessionProperties,
           entities
       ).ifPresent(entities::add);
     }
@@ -91,26 +89,25 @@ public class RequestHandler {
 
   @SuppressWarnings("unchecked")
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final ConfiguredStatement<T> configured,
-      final ParsedStatement parsed,
-      final Map<String, Object> mutableScopedProperties,
+      final SessionProperties sessionProperties,
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
-    final StatementExecutor<T> executor = (StatementExecutor<T>)
-        customExecutors.getOrDefault(statementClass, 
-            (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, ctx, svcCtx));
+    final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
+        statementClass,
+        (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, securityContext)
+    );
 
     return executor.execute(
         configured,
-        mutableScopedProperties,
+        sessionProperties,
         ksqlEngine,
-        serviceContext
+        securityContext.getServiceContext()
     );
   }
 

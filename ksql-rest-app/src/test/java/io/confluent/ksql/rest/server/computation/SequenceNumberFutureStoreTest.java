@@ -104,13 +104,13 @@ public class SequenceNumberFutureStoreTest {
     assertThat(futures.stream().allMatch(CompletableFuture::isDone), is(true));
   }
 
-  private static void assertFutureIsCompleted(CompletableFuture<Void> future) {
+  private static void assertFutureIsCompleted(final CompletableFuture<Void> future) {
     assertThat(future.isDone(), is(true));
     assertThat(future.isCancelled(), is(false));
     assertThat(future.isCompletedExceptionally(), is(false));
   }
 
-  private static void assertFutureIsNotCompleted(CompletableFuture<Void> future) {
+  private static void assertFutureIsNotCompleted(final CompletableFuture<Void> future) {
     assertThat(future.isDone(), is(false));
   }
 }

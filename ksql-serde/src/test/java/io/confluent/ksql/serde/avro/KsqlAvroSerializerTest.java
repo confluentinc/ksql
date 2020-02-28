@@ -30,7 +30,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
@@ -61,6 +61,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -155,7 +156,7 @@ public class KsqlAvroSerializerTest {
 
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+  private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private Serializer<Object> serializer;
   private Deserializer<Object> deserializer;
@@ -165,8 +166,8 @@ public class KsqlAvroSerializerTest {
   @Before
   public void setup() {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
-        AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
-        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
+        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
     deserializer = new KafkaAvroDeserializer(schemaRegistryClient, configs);
@@ -492,7 +493,10 @@ public class KsqlAvroSerializerTest {
         org.apache.avro.Schema.create(Type.LONG)
     );
 
-    assertThat(deserialize(bytes), is(ImmutableList.of(expectedElements)));
+    final Matcher<List<? extends GenericArray<?>>> matcher = is(
+        ImmutableList.of(expectedElements));
+    final List<? extends GenericArray<?>> deserialize = deserialize(bytes);
+    assertThat(deserialize, matcher);
   }
 
   @Test

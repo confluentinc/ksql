@@ -32,12 +32,12 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   private final ImmutableList<SelectExpression> selectExpressions;
 
   public TableSelect(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "selectExpressions", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "selectExpressions", required = true) final
       List<SelectExpression> selectExpressions
   ) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
   }
@@ -62,19 +62,19 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(PlanBuilder builder) {
+  public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableSelect(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TableSelect<?> that = (TableSelect<?>) o;
+    final TableSelect<?> that = (TableSelect<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions);

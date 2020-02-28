@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseConverter;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.BooleanType;
@@ -33,6 +35,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -45,8 +48,19 @@ public final class SchemaUtil {
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
+  public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
+  public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
-  public static final int ROWKEY_INDEX = 1;
+  private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
+      WINDOWSTART_NAME,
+      WINDOWEND_NAME
+  );
+
+  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
+      .add(ROWKEY_NAME)
+      .add(ROWTIME_NAME)
+      .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
+      .build();
 
   private static final Set<Schema.Type> ARITHMETIC_TYPES = ImmutableSet.of(
       Type.INT8,
@@ -60,6 +74,22 @@ public final class SchemaUtil {
   private static final char FIELD_NAME_DELIMITER = '.';
 
   private SchemaUtil() {
+  }
+
+  public static boolean isWindowBound(final ColumnName columnName) {
+    return windowBoundsColumnNames().contains(columnName);
+  }
+
+  public static Set<ColumnName> windowBoundsColumnNames() {
+    return WINDOW_BOUNDS_COLUMN_NAMES;
+  }
+
+  public static boolean isSystemColumn(final ColumnName columnName) {
+    return systemColumnNames().contains(columnName);
+  }
+
+  public static Set<ColumnName> systemColumnNames() {
+    return SYSTEM_COLUMN_NAMES;
   }
 
   // Do Not use in new code - use `SchemaConverters` directly.
@@ -141,15 +171,27 @@ public final class SchemaUtil {
         .build();
   }
 
-  public static boolean areCompatible(SqlType actual, ParamType declared) {
+  public static boolean areCompatible(final SqlType actual, final ParamType declared) {
+    return areCompatible(actual, declared, false);
+  }
+
+  public static boolean areCompatible(
+      final SqlType actual,
+      final ParamType declared,
+      final boolean allowCast
+  ) {
     if (actual.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
-      return areCompatible(((SqlArray) actual).getItemType(), ((ArrayType) declared).element());
+      return areCompatible(
+          ((SqlArray) actual).getItemType(),
+          ((ArrayType) declared).element(),
+          allowCast);
     }
 
     if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
       return areCompatible(
           ((SqlMap) actual).getValueType(),
-          ((MapType) declared).value()
+          ((MapType) declared).value(),
+          allowCast
       );
     }
 
@@ -157,10 +199,10 @@ public final class SchemaUtil {
       return isStructCompatible(actual, declared);
     }
 
-    return isPrimitiveMatch(actual, declared);
+    return isPrimitiveMatch(actual, declared, allowCast);
   }
 
-  private static boolean isStructCompatible(SqlType actual, ParamType declared) {
+  private static boolean isStructCompatible(final SqlType actual, final ParamType declared) {
     final SqlStruct actualStruct = (SqlStruct) actual;
 
     // consider a struct that is empty to match any other struct
@@ -168,9 +210,10 @@ public final class SchemaUtil {
       return true;
     }
 
-    for (Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
-      String k = entry.getKey();
+    for (final Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
+      final String k = entry.getKey();
       final Optional<io.confluent.ksql.schema.ksql.types.Field> field = actualStruct.field(k);
+      // intentionally do not allow implicit casting within structs
       if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
         return false;
       }
@@ -179,15 +222,21 @@ public final class SchemaUtil {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private static boolean isPrimitiveMatch(SqlType actual, ParamType declared) {
+  private static boolean isPrimitiveMatch(
+      final SqlType actual,
+      final ParamType declared,
+      final boolean allowCast
+  ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    return actual.baseType() == SqlBaseType.STRING  && declared instanceof StringType
-        || actual.baseType() == SqlBaseType.INTEGER && declared instanceof IntegerType
-        || actual.baseType() == SqlBaseType.BIGINT  && declared instanceof LongType
-        || actual.baseType() == SqlBaseType.BOOLEAN && declared instanceof BooleanType
-        || actual.baseType() == SqlBaseType.DOUBLE  && declared instanceof DoubleType
-        || actual.baseType() == SqlBaseType.DECIMAL && declared instanceof DecimalType;
+    final SqlBaseType base = actual.baseType();
+    return base == SqlBaseType.STRING   && declared instanceof StringType
+        || base == SqlBaseType.INTEGER  && declared instanceof IntegerType
+        || base == SqlBaseType.BIGINT   && declared instanceof LongType
+        || base == SqlBaseType.BOOLEAN  && declared instanceof BooleanType
+        || base == SqlBaseType.DOUBLE   && declared instanceof DoubleType
+        || base == SqlBaseType.DECIMAL  && declared instanceof DecimalType
+        || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }
 }

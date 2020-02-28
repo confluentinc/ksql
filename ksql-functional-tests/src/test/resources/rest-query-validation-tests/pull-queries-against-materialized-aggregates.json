@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "non-windowed single key lookup",
+      "name": "non-windowed single key lookup - STRING",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -28,6 +28,205 @@
       ]
     },
     {
+      "name": "non-windowed single key lookup - INT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed single key lookup - BIGINT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed single key lookup - DOUBLE",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=1.0E1;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=123369;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.0, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10.0, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.0, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.0, 12365, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed lookup on wrong type type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
+        "status": 400
+      }
+    },
+    {
+      "name": "windowed single key lookup - STRING",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='missing';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed single key lookup - INT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 12345, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed single key lookup - BIGINT",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY BIGINT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 12345, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` BIGINT KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed single key lookup - DOUBLE",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=10.1;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY=0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11.1, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.1, 12000, 13000, 12345, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed lookup on wrong type",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "'10' can not be converted to the type of column ROWKEY: INTEGER",
+        "status": 400
+      }
+    },
+    {
       "name": "tumbling windowed single key lookup with exact window start",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -44,11 +243,11 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -70,15 +269,15 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 22000, 13345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 13000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 13000, 23000, 13345, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -132,21 +331,21 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 2]}},
-          {"row":{"columns":["10", 14000, 14253, 1]}},
-          {"row":{"columns":["10", 15000, 15364, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}},
+          {"row":{"columns":["10", 15000, 16000, 15364, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 12000, 12345, 2]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 14000, 14253, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -168,21 +367,21 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 7000, 10345, 1]}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 13251, 2]}},
-          {"row":{"columns":["10", 10000, 13251, 2]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 7000, 12000, 10345, 1]}},
+          {"row":{"columns":["10", 8000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 2]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 2]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 13251, 2]}},
-          {"row":{"columns":["10", 10000, 13251, 2]}},
-          {"row":{"columns":["10", 11000, 13251, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 8000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 2]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 2]}},
+          {"row":{"columns":["10", 11000, 16000, 13251, 1]}}
         ]},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
     },
@@ -235,9 +434,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 11000, 11345, 1]}},
-          {"row":{"columns":["10", 12000, 12345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 11000, 12000, 11345, 1]}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 1]}}
         ]}
       ]
     },
@@ -257,14 +456,14 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 7000, 10345, 1]}},
-          {"row":{"columns":["10", 8000, 10345, 1]}},
-          {"row":{"columns":["10", 9000, 10345, 1]}},
-          {"row":{"columns":["10", 10000, 13345, 2]}},
-          {"row":{"columns":["10", 11000, 13345, 1]}},
-          {"row":{"columns":["10", 12000, 13345, 1]}},
-          {"row":{"columns":["10", 13000, 13345, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 7000, 11000, 10345, 1]}},
+          {"row":{"columns":["10", 8000, 12000, 10345, 1]}},
+          {"row":{"columns":["10", 9000, 13000, 10345, 1]}},
+          {"row":{"columns":["10", 10000, 14000, 13345, 2]}},
+          {"row":{"columns":["10", 11000, 15000, 13345, 1]}},
+          {"row":{"columns":["10", 12000, 16000, 13345, 1]}},
+          {"row":{"columns":["10", 13000, 17000, 13345, 1]}}
         ]}
       ]
     },
@@ -333,41 +532,41 @@
     {
       "name": "non-windowed projection WITH ROWKEY",
       "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT ROWKEY, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+        "SELECT ROWKEY, COUNT FROM AGGREGATE WHERE ROWKEY=10.1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
-        {"topic": "test_topic", "timestamp": 12346, "key": "10", "value": {}}
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 10.1, "value": {}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1]}}
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.1, 1]}}
         ]}
       ]
     },
     {
       "name": "windowed with projection with ROWKEY",
       "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
-        "SELECT COUNT, ROWKEY FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+        "SELECT COUNT, ROWKEY FROM AGGREGATE WHERE ROWKEY=10.1 AND WindowStart=12000;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
-        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": 10.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` STRING KEY"}},
-          {"row":{"columns":[1, "10"]}}
+          {"header":{"schema":"`COUNT` BIGINT, `ROWKEY` DOUBLE KEY"}},
+          {"row":{"columns":[1, 10.1]}}
         ]}
       ]
     },
@@ -488,8 +687,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-           {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}}
+           {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}}
         ]}
       ]
     },
@@ -508,8 +707,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}}
         ]}
       ]
     },
@@ -531,9 +730,9 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501512456, 1]}},
-          {"row":{"columns":["10", 1582501552000, 1582501552456, 1]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 1582501512456, 1]}},
+          {"row":{"columns":["10", 1582501552000, 1582501553000, 1582501552456, 1]}}
         ]}
       ]
     },
@@ -636,8 +835,8 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT, `AVG` DOUBLE"}},
-          {"row":{"columns":["10", 11000, 11346, 2, 5.0]}}
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT, `AVG` DOUBLE"}},
+          {"row":{"columns":["10", 11000, 12000, 11346, 2, 5.0]}}
         ]}
       ]
     },
@@ -689,7 +888,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only AND expressions are supported: ((AGGREGATE.ROWKEY = '10') OR (AGGREGATE.ROWKEY = '11'))",
+        "message": "Only AND expressions are supported: ((ROWKEY = '10') OR (ROWKEY = '11'))",
         "status": 400
       }
     },
@@ -716,19 +915,6 @@
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
         "message": "ROWKEY bound must currently be '='.",
-        "status": 400
-      }
-    },
-    {
-      "name": "fail on unsupported query feature: where rowkey not string",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY = 100;"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY must be compared to STRING literal.",
         "status": 400
       }
     },
@@ -769,6 +955,66 @@
         "message": "Column 'AGGREGATE.WINDOWSTART' cannot be resolved",
         "status": 400
       }
+    },
+    {
+      "name": "window bounds in projection UDF",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWKEY, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580318385000, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` STRING KEY, `WSTART` STRING, `WEND` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", "2020-01-29 17:19:45 +0000", "2020-01-29 17:19:46 +0000", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "access window bounds in selection",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWKEY, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, ROWTIME, COUNT FROM AGGREGATE WHERE ROWKEY=10.1 AND WINDOWSTART=1580223282000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580223282123, "key": 11.1, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 1580223282456, "key": 10.1, "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWKEY` DOUBLE KEY, `WSTART` STRING, `WEND` STRING, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":[10.1, "2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1580223282456, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "system columns in projection",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT ROWTIME, ROWKEY, WINDOWSTART, WINDOWEND FROM AGGREGATE WHERE ROWKEY=10.1 AND WindowStart=12000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": 10.1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `ROWKEY` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY"}},
+          {"row":{"columns":[12345, 10.1, 12000, 13000]}}
+        ]}
+      ]
     }
   ]
 }

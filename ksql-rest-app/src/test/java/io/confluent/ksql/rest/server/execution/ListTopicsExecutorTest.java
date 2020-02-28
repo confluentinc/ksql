@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -34,37 +34,45 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.common.internals.KafkaFutureImpl;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListTopicsExecutorTest {
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Mock
+  private AdminClient adminClient;
+
+  private ServiceContext serviceContext;
+
+  @Before
+  public void setUp() {
+     serviceContext = TestServiceContext.create(
+          engine.getServiceContext().getKafkaClientSupplier(),
+          adminClient,
+          engine.getServiceContext().getTopicClient(),
+          engine.getServiceContext().getSchemaRegistryClientFactory(),
+          engine.getServiceContext().getConnectClient()
+    );
+  }
 
   @Test
-  public void shouldListKafkaTopics() {
+  public void shouldListKafkaTopicsWithoutInternalTopics() {
     // Given:
     engine.givenKafkaTopic("topic1");
     engine.givenKafkaTopic("topic2");
-
-    final AdminClient mockAdminClient = mock(AdminClient.class);
-
-    final ServiceContext serviceContext = TestServiceContext.create(
-        engine.getServiceContext().getKafkaClientSupplier(),
-        mockAdminClient,
-        engine.getServiceContext().getTopicClient(),
-        engine.getServiceContext().getSchemaRegistryClientFactory(),
-        engine.getServiceContext().getConnectClient()
-    );
+    engine.givenKafkaTopic("_confluent_any_topic");
 
     // When:
     final KafkaTopicsList topicsList =
         (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
             engine.configure("LIST TOPICS;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
         ).orElseThrow(IllegalStateException::new);
@@ -77,32 +85,69 @@ public class ListTopicsExecutorTest {
   }
 
   @Test
+  public void shouldListKafkaTopicsIncludingInternalTopics() {
+    // Given:
+    engine.givenKafkaTopic("topic1");
+    engine.givenKafkaTopic("topic2");
+    engine.givenKafkaTopic("_confluent_any_topic");
+
+    // When:
+    final KafkaTopicsList topicsList =
+        (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
+            engine.configure("LIST ALL TOPICS;"),
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            serviceContext
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(topicsList.getTopics(), containsInAnyOrder(
+        new KafkaTopicInfo("topic1", ImmutableList.of(1)),
+        new KafkaTopicInfo("topic2", ImmutableList.of(1)),
+        new KafkaTopicInfo("_confluent_any_topic", ImmutableList.of(1))
+    ));
+  }
+
+  @Test
+  public void shouldListKafkaTopicsThatDifferByCase() {
+    // Given:
+    engine.givenKafkaTopic("topic1");
+    engine.givenKafkaTopic("toPIc1");
+
+    // When:
+    final KafkaTopicsList topicsList =
+        (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
+            engine.configure("LIST TOPICS;"),
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            serviceContext
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(topicsList.getTopics(), containsInAnyOrder(
+        new KafkaTopicInfo("topic1", ImmutableList.of(1)),
+        new KafkaTopicInfo("toPIc1", ImmutableList.of(1))
+    ));
+  }
+
+  @Test
   public void shouldListKafkaTopicsExtended() {
     // Given:
     engine.givenKafkaTopic("topic1");
     engine.givenKafkaTopic("topic2");
 
-    final AdminClient mockAdminClient = mock(AdminClient.class);
     final ListConsumerGroupsResult result = mock(ListConsumerGroupsResult.class);
     final KafkaFutureImpl<Collection<ConsumerGroupListing>> groups = new KafkaFutureImpl<>();
 
     when(result.all()).thenReturn(groups);
-    when(mockAdminClient.listConsumerGroups()).thenReturn(result);
+    when(adminClient.listConsumerGroups()).thenReturn(result);
     groups.complete(ImmutableList.of());
-
-    final ServiceContext serviceContext = TestServiceContext.create(
-        engine.getServiceContext().getKafkaClientSupplier(),
-        mockAdminClient,
-        engine.getServiceContext().getTopicClient(),
-        engine.getServiceContext().getSchemaRegistryClientFactory(),
-        engine.getServiceContext().getConnectClient()
-    );
 
     // When:
     final KafkaTopicsListExtended topicsList =
         (KafkaTopicsListExtended) CustomExecutors.LIST_TOPICS.execute(
             engine.configure("LIST TOPICS EXTENDED;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
         ).orElseThrow(IllegalStateException::new);
@@ -113,5 +158,4 @@ public class ListTopicsExecutorTest {
         new KafkaTopicInfoExtended("topic2", ImmutableList.of(1), 0, 0)
     ));
   }
-
 }

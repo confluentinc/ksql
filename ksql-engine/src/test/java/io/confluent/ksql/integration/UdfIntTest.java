@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.DELIMITED;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -31,10 +32,11 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -63,8 +65,8 @@ public class UdfIntTest {
   private static final String DELIMITED_TOPIC_NAME = "delimitedTopic";
   private static final String DELIMITED_STREAM_NAME = "items_delimited";
 
-  private static Map<String, RecordMetadata> jsonRecordMetadataMap;
-  private static Map<String, RecordMetadata> avroRecordMetadataMap;
+  private static Map<Long, RecordMetadata> jsonRecordMetadataMap;
+  private static Map<Long, RecordMetadata> avroRecordMetadataMap;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -104,12 +106,12 @@ public class UdfIntTest {
   }
 
   public UdfIntTest(final Format format) {
-    switch (format) {
-      case AVRO:
+    switch (format.name()) {
+      case AvroFormat.NAME:
         this.testData =
             new TestData(format, AVRO_TOPIC_NAME, AVRO_STREAM_NAME, avroRecordMetadataMap);
         break;
-      case JSON:
+      case JsonFormat.NAME:
         this.testData =
             new TestData(format, JSON_TOPIC_NAME, JSON_STREAM_NAME, jsonRecordMetadataMap);
         break;
@@ -151,8 +153,8 @@ public class UdfIntTest {
     // Then:
     final Map<String, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of("8",
-        new GenericRow(Arrays.asList("ITEM_8", 800.0, 1110.0, 12.0, true)))));
+    assertThat(results, is(ImmutableMap.of(8L,
+        genericRow("ITEM_8", 800.0, 1110.0, 12.0, true))));
   }
 
   @Test
@@ -177,8 +179,8 @@ public class UdfIntTest {
     // Then:
     final Map<String, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of("8",
-        new GenericRow(Arrays.asList(80, "true", 8.0, "80.0")))));
+    assertThat(results, is(ImmutableMap.of(8L,
+        genericRow(80, "true", 8.0, "80.0"))));
   }
 
   @Test
@@ -200,12 +202,12 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<String, GenericRow> results = consumeOutputMessages();
+    final Map<Long, GenericRow> results = consumeOutputMessages();
 
-    final long ts = testData.recordMetadata.get("8").timestamp();
+    final long ts = testData.recordMetadata.get(8L).timestamp();
 
-    assertThat(results, equalTo(ImmutableMap.of("8",
-        new GenericRow(Arrays.asList("8", ts, "8", ts + 10000, ts + 100, "ORDER_6", "ITEM_8")))));
+    assertThat(results, equalTo(ImmutableMap.of(8L,
+        genericRow(8L, ts, 8L, ts + 10000, ts + 100, "ORDER_6", "ITEM_8"))));
   }
 
   @Test
@@ -225,17 +227,19 @@ public class UdfIntTest {
     final Map<String, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, equalTo(Collections.singletonMap("ITEM_1",
-        new GenericRow(Arrays.asList("ITEM_1", "home cinema")))));
+        genericRow("ITEM_1", "home cinema"))));
   }
 
   private void createSourceStream() {
     if (testData.format == DELIMITED) {
       // Delimited does not support array or map types, so use simplier schema:
-      ksqlContext.sql(String.format("CREATE STREAM %s (ID varchar, DESCRIPTION varchar) WITH "
+      ksqlContext.sql(String.format("CREATE STREAM %s "
+              + "(ROWKEY STRING KEY, ID varchar, DESCRIPTION varchar) WITH "
               + "(kafka_topic='%s', value_format='%s');",
           testData.sourceStreamName, testData.sourceTopicName, testData.format.name()));
     } else {
       ksqlContext.sql(String.format("CREATE STREAM %s ("
+              + "ROWKEY BIGINT KEY, "
               + "ORDERTIME bigint, "
               + "ORDERID varchar, "
               + "ITEMID varchar, "
@@ -248,9 +252,9 @@ public class UdfIntTest {
     }
   }
 
-  private Map<String, GenericRow> consumeOutputMessages() {
+  private <K> Map<K, GenericRow> consumeOutputMessages() {
 
-    final DataSource<?> source = ksqlContext
+    final DataSource source = ksqlContext
         .getMetaStore()
         .getSource(SourceName.of(resultStreamName));
 
@@ -271,13 +275,13 @@ public class UdfIntTest {
     private final Format format;
     private final String sourceStreamName;
     private final String sourceTopicName;
-    private final Map<String, RecordMetadata> recordMetadata;
+    private final Map<Long, RecordMetadata> recordMetadata;
 
     private TestData(
         final Format format,
         final String sourceTopicName,
         final String sourceStreamName,
-        final Map<String, RecordMetadata> recordMetadata) {
+        final Map<Long, RecordMetadata> recordMetadata) {
       this.format = format;
       this.sourceStreamName = sourceStreamName;
       this.sourceTopicName = sourceTopicName;

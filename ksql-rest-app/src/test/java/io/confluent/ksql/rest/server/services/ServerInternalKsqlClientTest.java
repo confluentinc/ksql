@@ -23,7 +23,8 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.security.KsqlSecurityContext;
+
 import java.net.URI;
 import java.util.Collections;
 import javax.ws.rs.core.Response;
@@ -44,7 +45,7 @@ public class ServerInternalKsqlClientTest {
   @Mock
   private KsqlResource ksqlResource;
   @Mock
-  private ServiceContext serviceContext;
+  private KsqlSecurityContext securityContext;
   @Mock
   private URI unused;
   @Mock
@@ -58,13 +59,13 @@ public class ServerInternalKsqlClientTest {
     when(response.getStatus()).thenReturn(Status.OK.getStatusCode());
     when(response.getEntity()).thenReturn(entities);
 
-    ksqlClient = new ServerInternalKsqlClient(ksqlResource, serviceContext);
+    ksqlClient = new ServerInternalKsqlClient(ksqlResource, securityContext);
   }
 
   @Test
   public void shouldMakeKsqlRequest() {
     // Given:
-    when(ksqlResource.handleKsqlStatements(serviceContext, EXPECTED_REQUEST)).thenReturn(response);
+    when(ksqlResource.handleKsqlStatements(securityContext, EXPECTED_REQUEST)).thenReturn(response);
 
     // When:
     final RestResponse<KsqlEntityList> restResponse =

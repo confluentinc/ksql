@@ -33,13 +33,13 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final ImmutableList<Expression> groupByExpressions;
 
   public TableGroupBy(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "groupByExpressions", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "groupByExpressions", required = true) final
       List<Expression> groupByExpressions
   ) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.groupByExpressions = ImmutableList
@@ -70,19 +70,19 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   }
 
   @Override
-  public KGroupedTableHolder build(PlanBuilder builder) {
+  public KGroupedTableHolder build(final PlanBuilder builder) {
     return builder.visitTableGroupBy(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TableGroupBy<?> that = (TableGroupBy<?>) o;
+    final TableGroupBy<?> that = (TableGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

@@ -9,6 +9,7 @@ keywords: ksqldb, table, function, select
 Table Functions
 ===============
 
+- [CUBE](#cube) 
 - [EXPLODE](#explode)
 - More to come
 
@@ -96,6 +97,17 @@ Would give:
   {country: 'USA', name: null, age: 84}
   {country: 'USA', name: null, age: 56}
 ```
+
+CUBE
+----
+
+`cube_explode(array[col1, ..., colN])`
+
+Array
+
+Takes as argument an array of columns and outputs all possible combinations of them.
+It produces `2^d` new rows where `d` is the number of columns given as parameter.
+Duplicate entries for columns with null value are skipped.
 
 EXPLODE
 -------

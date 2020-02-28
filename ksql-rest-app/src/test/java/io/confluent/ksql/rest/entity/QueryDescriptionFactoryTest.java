@@ -26,12 +26,15 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -42,7 +45,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -86,7 +88,7 @@ public class QueryDescriptionFactoryTest {
   @Mock(name = TOPOLOGY_TEXT)
   private TopologyDescription topologyDescription;
   @Mock
-  private Consumer<LimitHandler> limitHandler;
+  private BlockingRowQueue queryQueue;
   @Mock
   private KsqlTopic sinkTopic;
   private QueryMetadata transientQuery;
@@ -98,14 +100,15 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(queryStreams.state()).thenReturn(State.RUNNING);
 
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
         queryStreams,
         TRANSIENT_SCHEMA,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -155,8 +158,8 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldExposeSources() {
-    assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect(Collectors.toSet())));
-    assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect( Collectors.toSet())));
+    assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::text).collect(Collectors.toSet())));
+    assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::text).collect( Collectors.toSet())));
   }
 
   @Test
@@ -218,9 +221,8 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         schema,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -253,9 +255,8 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         schema,
         SOURCE_NAMES,
-        limitHandler,
         "execution plan",
-        new LinkedBlockingQueue<>(),
+        queryQueue,
         "app id",
         topology,
         STREAMS_PROPS,

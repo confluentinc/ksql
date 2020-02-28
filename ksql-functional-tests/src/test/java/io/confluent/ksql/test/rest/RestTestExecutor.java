@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.QueryStream;
@@ -43,11 +44,14 @@ import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.TopicInfoCache;
+import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
@@ -61,7 +65,6 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.slf4j.Logger;
@@ -77,8 +80,10 @@ public class RestTestExecutor implements Closeable {
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
   private final ServiceContext serviceContext;
+  private final TopicInfoCache topicInfoCache;
 
   RestTestExecutor(
+      final KsqlExecutionContext engine,
       final URL url,
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final ServiceContext serviceContext
@@ -91,20 +96,53 @@ public class RestTestExecutor implements Closeable {
     );
     this.kafkaCluster = requireNonNull(kafkaCluster, "kafkaCluster");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.topicInfoCache = new TopicInfoCache(engine, serviceContext.getSchemaRegistryClient());
   }
 
   void buildAndExecuteQuery(final RestTestCase testCase) {
+    topicInfoCache.clear();
+
+    if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
+      throw new AssertionError("Invalid test case: more expected responses than statements. "
+          + System.lineSeparator()
+          + "statementCount: " + testCase.getStatements().size()
+          + System.lineSeparator()
+          + "responsesCount: " + testCase.getExpectedResponses().size());
+    }
+
     initializeTopics(testCase.getTopics());
 
-    produceInputs(testCase.getInputsByTopic());
+    final StatementSplit statements = splitStatements(testCase);
 
-    final Optional<List<RqttResponse>> responses = sendStatements(testCase);
-    if (!responses.isPresent()) {
+    final Optional<List<RqttResponse>> adminResults = sendAdminStatements(testCase,
+        statements.admin);
+    if (!adminResults.isPresent()) {
       return;
     }
 
+    produceInputs(testCase.getInputsByTopic());
+
+    if (!testCase.expectedError().isPresent()
+        && testCase.getExpectedResponses().size() > statements.admin.size()) {
+      waitForWarmStateStores(
+          statements.queries,
+          testCase.getExpectedResponses()
+              .subList(statements.admin.size(), testCase.getExpectedResponses().size())
+      );
+    }
+
+    final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries);
+    if (!queryResults.isEmpty()) {
+      failIfExpectingError(testCase);
+    }
+
+    final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
+        .addAll(adminResults.orElseGet(ImmutableList::of))
+        .addAll(queryResults)
+        .build();
+
     verifyOutput(testCase);
-    verifyResponses(responses.get(), testCase.getExpectedResponses(), testCase.getStatements());
+    verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
   }
 
   public void close() {
@@ -139,80 +177,69 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  @SuppressWarnings("unchecked")
   private void produceInputs(final Map<Topic, List<Record>> inputs) {
     inputs.forEach((topic, records) -> {
 
+      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
+
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
-          topic.getKeySerializer(serviceContext.getSchemaRegistryClient()),
-          topic.getValueSerializer(serviceContext.getSchemaRegistryClient())
+          topicInfo.getKeySerializer(),
+          topicInfo.getValueSerializer()
       )) {
+        for (int idx = 0; idx < records.size(); idx++) {
+          final Record record = records.get(idx);
 
-        records.forEach(record -> producer.send(new ProducerRecord<>(
-                topic.getName(),
-                null,
-                record.timestamp().orElse(0L),
-                record.key(),
-                record.value()
-            ))
-        );
+          final Record coerced = topicInfo.coerceRecordKey(record, idx);
+
+          producer.send(new ProducerRecord<>(
+              topic.getName(),
+              null,
+              coerced.timestamp().orElse(0L),
+              coerced.key(),
+              coerced.value()
+          ));
+        }
       } catch (final Exception e) {
         throw new RuntimeException("Failed to send record to " + topic.getName(), e);
       }
     });
   }
 
-  private Optional<List<RqttResponse>> sendStatements(final RestTestCase testCase) {
+  private static StatementSplit splitStatements(final RestTestCase testCase) {
 
     final List<String> allStatements = testCase.getStatements();
 
-    int firstQuery = 0;
-    for (; firstQuery < allStatements.size(); firstQuery++) {
-      final boolean isQuery = allStatements.get(firstQuery).startsWith("SELECT ");
+    Integer firstQuery = null;
+    for (int idx = 0; idx < allStatements.size(); idx++) {
+      final boolean isQuery = allStatements.get(idx).startsWith("SELECT ");
       if (isQuery) {
-        break;
+        if (firstQuery == null) {
+          firstQuery = idx;
+        }
+      } else {
+        if (firstQuery != null) {
+          throw new AssertionError("Invalid test case: statement " + idx
+              + " follows queries, but is not a query. "
+              + "All queries should be at the end of the statement list"
+          );
+        }
       }
     }
 
-    final List<String> nonQuery = IntStream.range(0, firstQuery)
+    if (firstQuery == null) {
+      firstQuery = allStatements.size();
+    }
+
+    final List<String> admin = IntStream.range(0, firstQuery)
         .mapToObj(allStatements::get)
         .collect(Collectors.toList());
-
-    final Optional<List<RqttResponse>> adminResults = sendAdminStatements(testCase, nonQuery);
-    if (!adminResults.isPresent()) {
-      return Optional.empty();
-    }
 
     final List<String> queries = IntStream.range(firstQuery, allStatements.size())
         .mapToObj(allStatements::get)
         .collect(Collectors.toList());
 
-    if (queries.isEmpty()) {
-      failIfExpectingError(testCase);
-      return adminResults;
-    }
-
-    if (!testCase.expectedError().isPresent()) {
-      for (int idx = firstQuery; testCase.getExpectedResponses().size() > idx; ++idx) {
-        final String queryStatement = allStatements.get(idx);
-        final Response queryResponse = testCase.getExpectedResponses().get(idx);
-
-        waitForWarmStateStores(queryStatement, queryResponse);
-      }
-    }
-
-    final List<RqttResponse> moreResults = sendQueryStatements(testCase, queries);
-    if (moreResults.isEmpty()) {
-      return Optional.empty();
-    }
-
-    failIfExpectingError(testCase);
-
-    return Optional.of(ImmutableList.<RqttResponse>builder()
-        .addAll(adminResults.get())
-        .addAll(moreResults)
-            .build());
+    return StatementSplit.of(admin, queries);
   }
 
   private Optional<List<RqttResponse>> sendAdminStatements(
@@ -261,18 +288,15 @@ public class RestTestExecutor implements Closeable {
 
   private void verifyOutput(final RestTestCase testCase) {
     testCase.getOutputsByTopic().forEach((topic, records) -> {
-      final Deserializer<?> keyDeserializer =
-          topic.getKeyDeserializer(serviceContext.getSchemaRegistryClient());
 
-      final Deserializer<?> valueDeserializer =
-          topic.getValueDeserializer(serviceContext.getSchemaRegistryClient());
+      final TopicInfo topicInfo = topicInfoCache.get(topic.getName());
 
       final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
           .verifyAvailableRecords(
               topic.getName(),
               records.size(),
-              keyDeserializer,
-              valueDeserializer
+              topicInfo.getKeyDeserializer(),
+              topicInfo.getValueDeserializer()
           );
 
       for (int idx = 0; idx < records.size(); idx++) {
@@ -361,7 +385,7 @@ public class RestTestExecutor implements Closeable {
     final Object actualKey = actual.key();
     final Object actualValue = actual.value();
 
-    final Object expectedKey = expected.key();
+    final Object expectedKey = coerceExpectedKey(expected.key(), actualKey);
     final JsonNode expectedValue = expected.getJsonValue()
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expected));
@@ -386,6 +410,32 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
+  /**
+   * The expected key loaded from the JSON file may need a little coercing to the right type, e.g
+   * a double value of {@code 1.23} will be deserialized as a {@code BigDecimal}.
+   * @param expectedKey the key to coerce
+   * @param actualKey the type to coerce to.
+   * @return the coerced key.
+   */
+  private static Object coerceExpectedKey(
+      final Object expectedKey,
+      final Object actualKey
+  ) {
+    if (actualKey == null || expectedKey == null) {
+      return expectedKey;
+    }
+
+    if (actualKey instanceof Double && expectedKey instanceof BigDecimal) {
+      return ((BigDecimal) expectedKey).doubleValue();
+    }
+
+    if (actualKey instanceof Long && expectedKey instanceof Integer) {
+      return ((Integer)expectedKey).longValue();
+    }
+
+    return expectedKey;
+  }
+
   private static <T> T asJson(final Object response, final TypeReference<T> type) {
     try {
       final String text = JsonMapper.INSTANCE.mapper.writeValueAsString(response);
@@ -396,11 +446,28 @@ public class RestTestExecutor implements Closeable {
   }
 
   private void waitForWarmStateStores(
+      final List<String> queries,
+      final List<Response> expectedResponses
+  ) {
+    for (int i = 0; i != expectedResponses.size(); ++i) {
+      final String queryStatement = queries.get(i);
+      final Response queryResponse = expectedResponses.get(i);
+
+      waitForWarmStateStore(queryStatement, queryResponse);
+    }
+  }
+
+  private void waitForWarmStateStore(
       final String querySql,
       final Response queryResponse
   ) {
     // Special handling for pull queries is required, as they depend on materialized state stores
     // being warmed up.  Initial requests may return no rows.
+    
+    if (querySql.contains("EMIT CHANGES")) {
+      // Push, not pull query:
+      return;
+    }
 
     final ImmutableList<Response> expectedResponse = ImmutableList.of(queryResponse);
     final ImmutableList<String> statements = ImmutableList.of(querySql);
@@ -438,7 +505,7 @@ public class RestTestExecutor implements Closeable {
     try {
       // More reliable than Thread.yield
       Thread.sleep(1);
-    } catch (InterruptedException e) {
+    } catch (final InterruptedException e) {
       // ignore
     }
   }
@@ -580,6 +647,21 @@ public class RestTestExecutor implements Closeable {
         matchResponseFields(actual, expected, statements, idx,
             "responses[" + idx + "]->query[" + i + "]");
       }
+    }
+  }
+
+  private static final class StatementSplit {
+
+    final List<String> admin;
+    final List<String> queries;
+
+    static StatementSplit of(final List<String> admin, final List<String> queries) {
+      return new StatementSplit(admin, queries);
+    }
+
+    private StatementSplit(final List<String> admin, final List<String> queries) {
+      this.admin = ImmutableList.copyOf(admin);
+      this.queries = ImmutableList.copyOf(queries);
     }
   }
 }

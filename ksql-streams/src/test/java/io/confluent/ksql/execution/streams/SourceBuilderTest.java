@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -29,26 +30,23 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -56,8 +54,8 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -97,25 +95,38 @@ import org.mockito.junit.MockitoRule;
 public class SourceBuilderTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
       .build();
+
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
-      .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field(SchemaUtil.ROWKEY_NAME.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
-  private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
-  private static final SourceName ALIAS = SourceName.of("alias");
-  private static final LogicalSchema SCHEMA =
-      SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
+
+  private static final double A_KEY = 10.11;
+
+  private static final Struct KEY = new Struct(KEY_SCHEMA)
+      .put(SchemaUtil.ROWKEY_NAME.text(), A_KEY);
+
+  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
+      .withMetaAndKeyColsInValue(false);
+
+  private static final LogicalSchema WINDOWED_SCHEMA = SOURCE_SCHEMA
+      .withMetaAndKeyColsInValue(true);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
   private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
       new TimestampColumn(
-          ColumnRef.withoutSource(ColumnName.of("field2")),
+          ColumnName.of("field2"),
           Optional.empty()
       )
   );
+
+  private static final long A_WINDOW_START = 10L;
+  private static final long A_WINDOW_END = 20L;
+  private static final long A_ROWTIME = 456L;
 
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
@@ -157,10 +168,10 @@ public class SourceBuilderTest {
   @Mock
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier> transformSupplierCaptor;
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
-  private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
+  private final GenericRow row = genericRow("baz", 123);
   private PlanBuilder planBuilder;
 
   private StreamSource streamSource;
@@ -187,7 +198,7 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
-    when(processorCtx.timestamp()).thenReturn(456L);
+    when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
@@ -266,7 +277,7 @@ public class SourceBuilderTest {
     // Given:
     givenUnwindowedSourceStream();
     final ConsumerRecord<Object, Object> record = mock(ConsumerRecord.class);
-    when(record.value()).thenReturn(new GenericRow("123", 456L));
+    when(record.value()).thenReturn(GenericRow.genericRow("123", A_ROWTIME));
 
     // When:
     streamSource.build(planBuilder);
@@ -274,7 +285,7 @@ public class SourceBuilderTest {
     // Then:
     verify(consumed).withTimestampExtractor(timestampExtractorCaptor.capture());
     final TimestampExtractor extractor = timestampExtractorCaptor.getValue();
-    assertThat(extractor.extract(record, 789), is(456L));
+    assertThat(extractor.extract(record, 789), is(A_ROWTIME));
   }
 
   @Test
@@ -398,7 +409,7 @@ public class SourceBuilderTest {
     final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder);
 
     // Then:
-    assertThat(builtKstream.getSchema(), is(SCHEMA));
+    assertThat(builtKstream.getSchema(), is(WINDOWED_SCHEMA));
   }
 
   @Test
@@ -410,7 +421,7 @@ public class SourceBuilderTest {
     final KTableHolder<Windowed<Struct>> builtKTable = windowedTableSource.build(planBuilder);
 
     // Then:
-    assertThat(builtKTable.getSchema(), is(SCHEMA));
+    assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA));
   }
 
   @Test
@@ -426,8 +437,7 @@ public class SourceBuilderTest {
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
             .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
             .valueColumns(SCHEMA.value())
-            .build(),
-        ALIAS
+            .build()
     );
 
     // Then:
@@ -448,7 +458,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, "foo", "baz", 123)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -462,7 +472,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, "foo", "baz", 123)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -478,7 +488,7 @@ public class SourceBuilderTest {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(new GenericRow(456L, null, "baz", 123)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
   }
 
   @Test
@@ -490,7 +500,7 @@ public class SourceBuilderTest {
 
     final Windowed<Struct> key = new Windowed<>(
         KEY,
-        new TimeWindow(10L, 20L)
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
     // When:
@@ -498,7 +508,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, "foo : Window{start=10 end=-}", "baz", 123)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -510,7 +520,7 @@ public class SourceBuilderTest {
 
     final Windowed<Struct> key = new Windowed<>(
         KEY,
-        new TimeWindow(10L, 20L)
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
     // When:
@@ -518,7 +528,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, "foo : Window{start=10 end=-}", "baz", 123)));
+        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -530,7 +540,7 @@ public class SourceBuilderTest {
 
     final Windowed<Struct> key = new Windowed<>(
         KEY,
-        new SessionWindow(10L, 20L)
+        new SessionWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
     // When:
@@ -538,7 +548,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, "foo : Window{start=10 end=20}", "baz", 123)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -550,7 +560,7 @@ public class SourceBuilderTest {
 
     final Windowed<Struct> key = new Windowed<>(
         KEY,
-        new SessionWindow(10L, 20L)
+        new SessionWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
     // When:
@@ -558,7 +568,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(new GenericRow(456L, "foo : Window{start=10 end=20}", "baz", 123)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -636,7 +646,7 @@ public class SourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromStreamSource(
-      final AbstractStreamSource<?> streamSource
+      final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
@@ -647,7 +657,7 @@ public class SourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromTableSource(
-      final AbstractStreamSource<?> streamSource
+      final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder);
     verify(kTable).transformValues(transformSupplierCaptor.capture());
@@ -665,8 +675,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -678,8 +687,7 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -693,8 +701,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 
@@ -706,8 +713,7 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        ALIAS
+        SOURCE_SCHEMA
     );
   }
 

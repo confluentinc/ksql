@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.serde.kafka;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,11 +43,12 @@ import org.apache.kafka.connect.data.Struct;
 @Immutable
 public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
+  // Note: If supporting new types here, add new type of PRINT TOPIC support too
   private static final ImmutableMap<Type, Serde<?>> SERDE = ImmutableMap.of(
-      Type.STRING, Serdes.String(),
       Type.INT32, Serdes.Integer(),
       Type.INT64, Serdes.Long(),
-      Type.FLOAT64, Serdes.Double()
+      Type.FLOAT64, Serdes.Double(),
+      Type.STRING, Serdes.String()
   );
 
   @Override
@@ -75,8 +77,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  @SuppressWarnings("unchecked")
-  private static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
+  @VisibleForTesting
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
     if (schema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("KAFKA format does not support unwrapping");
     }
@@ -84,7 +87,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     final List<Field> fields = schema.fields();
     if (fields.size() != 1) {
       final String got = new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST).format(schema);
-      throw new KsqlException("The '" + Format.KAFKA
+      throw new KsqlException("The '" + FormatFactory.KAFKA.name()
           + "' format only supports a single field. Got: " + got);
     }
 
@@ -95,7 +98,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
           ? "DECIMAL"
           : type.toString();
 
-      throw new KsqlException("The '" + Format.KAFKA
+      throw new KsqlException("The '" + FormatFactory.KAFKA.name()
           + "' format does not support type '" + typeString + "'");
     }
 
@@ -114,7 +117,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
     @Override
     public byte[] serialize(final String topic, final Object struct) {
-      final Object value = ((Struct) struct).get(field);
+      final Object value = struct == null ? null : ((Struct) struct).get(field);
       return delegate.serialize(topic, value);
     }
   }
@@ -138,6 +141,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     public Struct deserialize(final String topic, final byte[] bytes) {
       try {
         final Object primitive = delegate.deserialize(topic, bytes);
+        if (primitive == null) {
+          return null;
+        }
         final Struct struct = new Struct(schema);
         struct.put(field, primitive);
         return struct;

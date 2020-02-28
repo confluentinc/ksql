@@ -23,13 +23,16 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.serde.json.JsonSerdeUtils;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -37,6 +40,11 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+  private final boolean useSchemas;
+
+  public ValueSpecJsonSerdeSupplier(final boolean useSchemas) {
+    this.useSchemas = useSchemas;
+  }
 
   @Override
   public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
@@ -48,7 +56,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
     return new ValueSpecJsonDeserializer();
   }
 
-  private static final class ValueSpecJsonSerializer implements Serializer<Object> {
+  private final class ValueSpecJsonSerializer implements Serializer<Object> {
     @Override
     public void close() {
     }
@@ -64,14 +72,21 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         final Object toSerialize = Converter.toJsonNode(spec);
-        return MAPPER.writeValueAsBytes(toSerialize);
+        final byte[] bytes = MAPPER.writeValueAsBytes(toSerialize);
+        if (!useSchemas) {
+          return bytes;
+        }
+
+        return ArrayUtils.addAll(
+            new byte[]{/*magic*/ 0x00, /*schemaID*/ 0x00, 0x00, 0x00, 0x01},
+            bytes);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
   }
 
-  private static final class ValueSpecJsonDeserializer implements Deserializer<Object> {
+  private final class ValueSpecJsonDeserializer implements Deserializer<Object> {
     @Override
     public void close() {
     }
@@ -86,7 +101,9 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         return null;
       }
       try {
-        return MAPPER.readValue(data, Object.class);
+        return useSchemas
+            ? JsonSerdeUtils.readJsonSR(data, MAPPER, Object.class)
+            : MAPPER.readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
@@ -101,6 +118,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         Converter.converter(Long.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(Float.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(Double.class, JsonNodeFactory.instance::numberNode),
+        Converter.converter(BigDecimal.class, JsonNodeFactory.instance::numberNode),
         Converter.converter(String.class, JsonNodeFactory.instance::textNode),
         Converter.converter(Collection.class, Converter::handleCollection),
         Converter.converter(Map.class, Converter::handleMap)
@@ -155,7 +173,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
     private static JsonNode handleCollection(final Collection<?> collection) {
       final ArrayNode list = JsonNodeFactory.instance.arrayNode();
-      for (Object element : collection) {
+      for (final Object element : collection) {
         list.add(toJsonNode(element));
       }
       return list;

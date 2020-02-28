@@ -8,11 +8,11 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 
 - [Quickstart](ksqldb-quickstart.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](basics-docker.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](basics-local.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB and {{ site.c3 }}](basics-control-center.md)
 - [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](clickstream-docker.md)
+- [ksqlDB with Embedded Connect](embedded-connect.md)
 - [Integrating with PostgreSQL](connect-integration.md)
 - [ksqlDB Examples](examples.md)
+- Blog post: [Building a Materialized Cache with ksqlDB](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)
 
 ksqlDB Basics
 -------------
@@ -100,6 +100,11 @@ of the Clickstream tutorial designed for local {{ site.cp }}
 installs. Running the Clickstream demo locally without Docker requires
 that you have {{ site.cp }} installed locally, along with
 Elasticsearch and Grafana.
+
+ksqlDB with Embedded Connect
+-------------------------------
+
+ksqlDB has native integration with {{ site.kconnect }}. While ksqlDB can integrate with a separate [Kafka Connect](https://docs.confluent.io/current/connect/index.html) cluster, it can also run {{ site.kconnect }} embedded within the ksqlDB server, making it unnecessary to run a separate {{ site.kconnect }} cluster. The [embedded Connect tutorial](embedded-connect.md) shows how you can configure ksqlDB to run {{ site.kconnect }} in embedded mode.
 
 ksqlDB Examples
 ---------------

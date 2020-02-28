@@ -18,8 +18,10 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.toUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -30,6 +32,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.avro.AvroSchemas;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -44,36 +47,26 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("WeakerAccess")
 public final class IntegrationTestHarness extends ExternalResource {
 
-  private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHarness.class);
   private static final int DEFAULT_PARTITION_COUNT = 1;
   private static final short DEFAULT_REPLICATION_FACTOR = (short) 1;
-  private static final long PRODUCE_TIMEOUT_MS = 30_000;
+  private static final Supplier<Long> DEFAULT_TS_SUPPLIER = () -> null;
 
   private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -153,6 +146,14 @@ public final class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
+   * Deletes internal topics for the given application.
+   */
+  public void deleteInternalTopics(String applicationId) {
+    final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+    topicClient.deleteInternalTopics(applicationId);
+  }
+
+  /**
    * Produce a single record to a Kafka topic.
    *
    * @param topicName the topic to produce the record to.
@@ -160,17 +161,13 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param data the String value of the record.
    */
   public void produceRecord(final String topicName, final String key, final String data) {
-    try {
-      try (KafkaProducer<String, String> producer = new KafkaProducer<>(
-          kafkaCluster.producerConfig(),
-          new StringSerializer(),
-          new StringSerializer())
-      ) {
-        producer.send(new ProducerRecord<>(topicName, key, data)).get();
-      }
-    } catch (final Exception e) {
-      throw new RuntimeException("Failed to send record to " + topicName, e);
-    }
+    kafkaCluster.produceRows(
+        topicName,
+        Collections.singletonMap(key, data),
+        new StringSerializer(),
+        new StringSerializer(),
+        DEFAULT_TS_SUPPLIER
+    );
   }
 
   /**
@@ -181,16 +178,17 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param valueFormat the format values should be produced as.
    * @return the map of produced rows
    */
-  public Map<String, RecordMetadata> produceRows(
+  public <K> Map<K, RecordMetadata> produceRows(
       final String topic,
-      final TestDataProvider dataProvider,
+      final TestDataProvider<K> dataProvider,
       final Format valueFormat
   ) {
     return produceRows(
         topic,
         dataProvider,
         valueFormat,
-        () -> null);
+        DEFAULT_TS_SUPPLIER
+    );
   }
 
   /**
@@ -202,17 +200,42 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows
    */
-  public Map<String, RecordMetadata> produceRows(
+  public <K> Map<K, RecordMetadata> produceRows(
       final String topic,
-      final TestDataProvider dataProvider,
+      final TestDataProvider<K> dataProvider,
       final Format valueFormat,
       final Supplier<Long> timestampSupplier
   ) {
     return produceRows(
         topic,
         dataProvider.data(),
-        getSerializer(valueFormat, dataProvider.schema()),
+        getKeySerializer(dataProvider.schema()),
+        getValueSerializer(valueFormat, dataProvider.schema()),
         timestampSupplier
+    );
+  }
+
+  /**
+   * Produce data to a topic
+   *
+   * @param topic the name of the topic to produce to.
+   * @param rowsToPublish the rows to publish
+   * @param schema the schema of the rows
+   * @param valueFormat the format values should be produced as.
+   * @return the map of produced rows
+   */
+  public <K> Map<K, RecordMetadata> produceRows(
+      final String topic,
+      final Map<K, GenericRow> rowsToPublish,
+      final PhysicalSchema schema,
+      final Format valueFormat
+  ) {
+    return produceRows(
+        topic,
+        rowsToPublish,
+        getKeySerializer(schema),
+        getValueSerializer(valueFormat, schema),
+        DEFAULT_TS_SUPPLIER
     );
   }
 
@@ -221,44 +244,25 @@ public final class IntegrationTestHarness extends ExternalResource {
    *
    * @param topic the name of the topic to produce to.
    * @param recordsToPublish the records to produce.
+   * @param keySerializer the serializer to use to serialize keys.
    * @param valueSerializer the serializer to use to serialize values.
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
-  public Map<String, RecordMetadata> produceRows(
+  public <K> Map<K, RecordMetadata> produceRows(
       final String topic,
-      final Map<String, GenericRow> recordsToPublish,
+      final Map<K, GenericRow> recordsToPublish,
+      final Serializer<K> keySerializer,
       final Serializer<GenericRow> valueSerializer,
       final Supplier<Long> timestampSupplier
   ) {
-    ensureTopics(topic);
-
-    try (KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
-        kafkaCluster.producerConfig(),
-        new StringSerializer(),
-        valueSerializer
-    )) {
-      final Map<String, Future<RecordMetadata>> futures = recordsToPublish.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getKey, entry -> {
-            final String key = entry.getKey();
-            final GenericRow value = entry.getValue();
-            final Long timestamp = timestampSupplier.get();
-
-            LOG.debug("Producing message. topic:{}, key:{}, value:{}, timestamp:{}",
-                topic, key, value, timestamp);
-
-            return producer.send(new ProducerRecord<>(topic, null, timestamp, key, value));
-          }));
-
-      return futures.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getKey, entry -> {
-            try {
-              return entry.getValue().get(PRODUCE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-              throw new RuntimeException(e);
-            }
-          }));
-    }
+    return kafkaCluster.produceRows(
+        topic,
+        recordsToPublish,
+        keySerializer,
+        valueSerializer,
+        timestampSupplier
+    );
   }
 
   /**
@@ -268,15 +272,29 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param expectedCount the expected number of records.
    * @return the list of consumed records.
    */
-  public List<ConsumerRecord<String, String>> verifyAvailableRecords(
+  public List<ConsumerRecord<byte[], byte[]>> verifyAvailableRecords(
       final String topic,
       final int expectedCount
   ) {
+    return verifyAvailableRecords(topic, is(expectedCount));
+  }
+
+  /**
+   * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expectedCount the expected number of records.
+   * @return the list of consumed records.
+   */
+  public List<ConsumerRecord<byte[], byte[]>> verifyAvailableRecords(
+      final String topic,
+      final Matcher<Integer> expectedCount
+  ) {
     return kafkaCluster.verifyAvailableRecords(
         topic,
-        expectedCount,
-        new StringDeserializer(),
-        new StringDeserializer()
+        hasSize(expectedCount),
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer()
     );
   }
 
@@ -289,21 +307,13 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
+  public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
       final String topic,
       final int expectedCount,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    final Deserializer<GenericRow> valueDeserializer =
-        getDeserializer(valueFormat, schema);
-
-    return kafkaCluster.verifyAvailableRecords(
-        topic,
-        expectedCount,
-        new StringDeserializer(),
-        valueDeserializer
-    );
+    return verifyAvailableRows(topic, hasSize(expectedCount), valueFormat, schema);
   }
 
   /**
@@ -315,13 +325,14 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
+  public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
       final String topic,
-      final Matcher<? super List<ConsumerRecord<String, GenericRow>>> expected,
+      final Matcher<? super List<ConsumerRecord<K, GenericRow>>> expected,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    return verifyAvailableRows(topic, expected, valueFormat, schema, new StringDeserializer());
+    final Deserializer<K> keyDeserializer = getKeyDeserializer(schema);
+    return verifyAvailableRows(topic, expected, valueFormat, schema, keyDeserializer);
   }
 
   /**
@@ -367,18 +378,15 @@ public final class IntegrationTestHarness extends ExternalResource {
       final Deserializer<K> keyDeserializer,
       final Duration timeout
   ) {
-    final Deserializer<GenericRow> valueDeserializer =
-        getDeserializer(valueFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
 
-    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
-        kafkaCluster.consumerConfig(),
+    return kafkaCluster.verifyAvailableRecords(
+        topic,
+        expected,
         keyDeserializer,
-        valueDeserializer
-    )) {
-      consumer.subscribe(Collections.singleton(topic));
-
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expected, timeout);
-    }
+        valueDeserializer,
+        timeout
+    );
   }
 
   /**
@@ -390,14 +398,68 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public Map<String, GenericRow> verifyAvailableUniqueRows(
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
+    return verifyAvailableUniqueRows(topic, is(expectedCount), valueFormat, schema);
+  }
+
+  /**
+   * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expectedCount the expected number of records.
+   * @param valueFormat the format of the value.
+   * @param schema the schema of the value.
+   * @return the list of consumed records.
+   */
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+      final String topic,
+      final Matcher<Integer> expectedCount,
+      final Format valueFormat,
+      final PhysicalSchema schema
+  ) {
+    final Deserializer<K> keyDeserializer = getKeyDeserializer(schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
+
     return verifyAvailableUniqueRows(
-        topic, expectedCount, valueFormat, schema, new StringDeserializer());
+        topic,
+        expectedCount,
+        keyDeserializer,
+        valueDeserializer
+    );
+  }
+
+  /**
+   * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expectedCount the expected number of records.
+   * @param keyDeserializer the keyDeserilizer to use.
+   * @param valueDeserializer the valueDeserializer of use.
+   * @return the list of consumed records.
+   */
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+      final String topic,
+      final Matcher<Integer> expectedCount,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<GenericRow> valueDeserializer
+  ) {
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
+      consumer.subscribe(Collections.singleton(topic));
+
+      final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
+          .verifyAvailableRecords(consumer, hasUniqueRecords(mapHasSize(expectedCount)));
+
+      return toUniqueRecords(consumerRecords);
+    }
   }
 
   /**
@@ -440,8 +502,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema,
       final Deserializer<K> keyDeserializer
   ) {
-    final Deserializer<GenericRow> valueDeserializer =
-        getDeserializer(valueFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
 
     try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
         kafkaCluster.consumerConfig(),
@@ -469,7 +530,7 @@ public final class IntegrationTestHarness extends ExternalResource {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
             return Arrays.stream(topicNames)
                 .allMatch(topicClient::isTopicExists);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
@@ -487,7 +548,7 @@ public final class IntegrationTestHarness extends ExternalResource {
         () -> {
           try {
             return getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
@@ -505,7 +566,7 @@ public final class IntegrationTestHarness extends ExternalResource {
         () -> {
           try {
             return !getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
+          } catch (final Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
@@ -523,12 +584,19 @@ public final class IntegrationTestHarness extends ExternalResource {
     kafkaCluster.stop();
   }
 
-  private Serializer<GenericRow> getSerializer(
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static <K> Serializer<K> getKeySerializer(final PhysicalSchema schema) {
+    return (Serializer) KafkaSerdeFactory
+        .getPrimitiveSerde(schema.keySchema().ksqlSchema())
+        .serializer();
+  }
+
+  private Serializer<GenericRow> getValueSerializer(
       final Format format,
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format, Optional.empty(), Optional.empty()),
+        FormatInfo.of(format.name()),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -537,12 +605,21 @@ public final class IntegrationTestHarness extends ExternalResource {
     ).serializer();
   }
 
-  private Deserializer<GenericRow> getDeserializer(
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static <K> Deserializer<K> getKeyDeserializer(
+      final PhysicalSchema schema
+  ) {
+    return (Deserializer) KafkaSerdeFactory
+        .getPrimitiveSerde(schema.keySchema().ksqlSchema())
+        .deserializer();
+  }
+
+  private Deserializer<GenericRow> getValueDeserializer(
       final Format format,
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        FormatInfo.of(format, Optional.empty(), Optional.empty()),
+        FormatInfo.of(format.name()),
         schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -560,7 +637,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final org.apache.avro.Schema avroSchema = AvroSchemas
           .getAvroSchema(schema.valueSchema(), "test_" + topicName, ksqlConfig);
 
-      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
+      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

@@ -16,9 +16,9 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -51,7 +51,7 @@ public final class TimestampExtractionPolicyFactory {
       return new MetadataTimestampExtractionPolicy(getDefaultTimestampExtractor(ksqlConfig));
     }
 
-    final ColumnRef col = timestampColumn.get().getColumn();
+    final ColumnName col = timestampColumn.get().getColumn();
     final Optional<String> timestampFormat = timestampColumn.get().getFormat();
 
     final Column column = schema.findValueColumn(col)

@@ -34,12 +34,12 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   private final ImmutableList<Expression> groupByExpressions;
 
   public StreamGroupBy(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "groupByExpressions", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "groupByExpressions", required = true) final
       List<Expression> groupByExpressions) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.source = requireNonNull(source, "source");
     this.groupByExpressions = ImmutableList
@@ -70,19 +70,19 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(PlanBuilder planVisitor) {
+  public KGroupedStreamHolder build(final PlanBuilder planVisitor) {
     return planVisitor.visitStreamGroupBy(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamGroupBy<?> that = (StreamGroupBy<?>) o;
+    final StreamGroupBy<?> that = (StreamGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

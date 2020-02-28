@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -34,13 +35,13 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -72,10 +73,10 @@ public class KsqlStructuredDataOutputNodeTest {
       .build();
 
   private static final KeyField KEY_FIELD = KeyField
-      .of(ColumnRef.withoutSource(ColumnName.of("key")));
+      .of(ColumnName.of("key"));
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
-  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -116,12 +117,8 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.into(any(), any(), any(), any()))
+    when(sourceStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
-    when(sourceStream.selectKey(any(), any()))
-        .thenReturn((SchemaKStream) resultWithKeySelected);
-    when(resultWithKeySelected.into(any(), any(), any(), any()))
-        .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
@@ -183,8 +180,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name"),
-        Optional.empty()));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+        .of(AvroFormat.FULL_SCHEMA_NAME, "name")));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 
@@ -192,7 +189,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sourceStream).into(any(), eq(valueFormat), any(), any());
+    verify(sourceStream).into(any(), eq(valueFormat), any(), any(), any());
   }
 
   @Test
@@ -205,7 +202,8 @@ public class KsqlStructuredDataOutputNodeTest {
         eq(SINK_KAFKA_TOPIC_NAME),
         eq(JSON_FORMAT),
         eq(SerdeOption.none()),
-        stackerCaptor.capture()
+        stackerCaptor.capture(),
+        eq(outputNode.getTimestampColumn())
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),

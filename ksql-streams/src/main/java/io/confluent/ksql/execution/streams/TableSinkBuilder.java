@@ -15,16 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSink;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.kstream.Produced;
 
 public final class TableSinkBuilder {
   private TableSinkBuilder() {
@@ -34,24 +27,15 @@ public final class TableSinkBuilder {
       final KTableHolder<K> table,
       final TableSink<K> tableSink,
       final KsqlQueryBuilder queryBuilder) {
-    final QueryContext queryContext = tableSink.getProperties().getQueryContext();
-    final LogicalSchema schema = table.getSchema();
-    final Formats formats = tableSink.getFormats();
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
-    final Serde<K> keySerde = table.getKeySerdeFactory().buildKeySerde(
-        formats.getKeyFormat(),
-        physicalSchema,
-        queryContext
+    SinkBuilder.build(
+        table.getSchema(),
+        tableSink.getFormats(),
+        tableSink.getTimestampColumn(),
+        tableSink.getTopicName(),
+        table.getTable().toStream(),
+        table.getKeySerdeFactory(),
+        tableSink.getProperties().getQueryContext(),
+        queryBuilder
     );
-
-    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
-        formats.getValueFormat(),
-        physicalSchema,
-        queryContext
-    );
-
-    table.getTable()
-        .toStream()
-        .to(tableSink.getTopicName(), Produced.with(keySerde, valueSerde));
   }
 }

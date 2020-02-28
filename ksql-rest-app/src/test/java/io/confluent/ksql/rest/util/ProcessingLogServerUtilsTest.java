@@ -42,7 +42,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -148,14 +148,14 @@ public class ProcessingLogServerUtilsTest {
   }
 
   private void assertLogStream(final String topicName) {
-    final DataSource<?> dataSource = metaStore.getSource(SourceName.of(STREAM));
+    final DataSource dataSource = metaStore.getSource(SourceName.of(STREAM));
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
-    assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(Format.JSON));
+    assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(FormatFactory.JSON));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
-        stream.getSchema().value().stream().map(Column::name).map(ColumnName::name).collect(toList()),
+        stream.getSchema().value().stream().map(Column::name).map(ColumnName::text).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
                 .addAll(
@@ -191,7 +191,7 @@ public class ProcessingLogServerUtilsTest {
             + "time BIGINT, "
             + "message STRUCT<"
             + "type INT, "
-            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>>, "
+            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
             + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
             + "productionError STRUCT<errorMessage VARCHAR>"
             + ">"

@@ -1,0 +1,22 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101296,
+  "schemas" : {
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<NAME VARCHAR, ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : "0,,1"
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : "0,zero,50"
+  } ],
+  "outputs" : [ {
+    "topic" : "REPARTITIONED",
+    "key" : "zero",
+    "value" : "zero,0"
+  } ]
+}

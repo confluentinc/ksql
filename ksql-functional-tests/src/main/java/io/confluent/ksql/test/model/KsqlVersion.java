@@ -21,6 +21,7 @@ import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.Version;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,17 +33,19 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
 
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =
-      Comparator.comparing(KsqlVersion::getVersion);
+      Comparator.comparing(KsqlVersion::getVersion)
+      .thenComparingLong(v -> v.timestamp);
 
   private final transient String name;
   private final SemanticVersion version;
+  private final long timestamp;
 
   public static KsqlVersion current() {
     return parse(Version.getVersion());
   }
 
   public static KsqlVersion of(final String name, final SemanticVersion version) {
-    return new KsqlVersion(name, version);
+    return new KsqlVersion(name, version, Long.MAX_VALUE);
   }
 
   public static KsqlVersion parse(final String version) {
@@ -61,7 +64,11 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
         : Integer.parseInt(matcher.group(3).substring(1));
 
     final SemanticVersion v = SemanticVersion.of(major, minor, patch);
-    return KsqlVersion.of(version, v);
+    return new KsqlVersion(version, v, Long.MAX_VALUE);
+  }
+
+  public KsqlVersion withTimestamp(final long timestamp) {
+    return new KsqlVersion(name, version, timestamp);
   }
 
   public String getName() {
@@ -70,6 +77,10 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
 
   public SemanticVersion getVersion() {
     return version;
+  }
+
+  public OptionalLong getTimestamp() {
+    return timestamp == Long.MAX_VALUE ? OptionalLong.empty() : OptionalLong.of(timestamp);
   }
 
   @Override
@@ -99,8 +110,9 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
     return name + " (" + version + ")";
   }
 
-  private KsqlVersion(final String name, final SemanticVersion version) {
+  private KsqlVersion(final String name, final SemanticVersion version, final long timestamp) {
     this.name = Objects.requireNonNull(name, "name");
     this.version = Objects.requireNonNull(version, "version");
+    this.timestamp = timestamp;
   }
 }

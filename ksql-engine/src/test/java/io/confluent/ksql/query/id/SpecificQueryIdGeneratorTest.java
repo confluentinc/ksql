@@ -40,7 +40,10 @@ public class SpecificQueryIdGeneratorTest {
     assertThat(generator.getNext(), is("5"));
   }
 
-
+  @Test
+  public void shouldReturnZeroIdForFirstQuery() {
+    assertThat(generator.getNext(), is("0"));
+  }
 
   @Test(expected = KsqlServerException.class)
   public void shouldThrowWhenGetNextBeforeSet() {
@@ -54,6 +57,6 @@ public class SpecificQueryIdGeneratorTest {
     generator.setNextId(3L);
     final QueryIdGenerator copy = generator.createSandbox();
     assertThat(copy, instanceOf(SequentialQueryIdGenerator.class));
-    assertThat(copy.getNext(), is("4"));
+    assertThat(copy.getNext(), is("3"));
   }
 }

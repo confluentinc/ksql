@@ -36,7 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KudtfFlatMapperTest {
 
   private static final String KEY = "";
-  private static final GenericRow VALUE = new GenericRow(1, 2, 3);
+  private static final GenericRow VALUE = GenericRow.genericRow(1, 2, 3);
 
   @Mock
   private KsqlProcessingContext ctx;
@@ -44,40 +44,40 @@ public class KudtfFlatMapperTest {
   @Test
   public void shouldFlatMapOneFunction() {
     // Given:
-    TableFunctionApplier applier = createApplier(Arrays.asList(10, 10, 10));
-    KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier));
+    final TableFunctionApplier applier = createApplier(Arrays.asList(10, 10, 10));
+    final KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier));
 
     // When:
-    Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
+    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
 
     // Then:
-    Iterator<GenericRow> iter = iterable.iterator();
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10)));
+    final Iterator<GenericRow> iter = iterable.iterator();
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10)));
     assertThat(iter.hasNext(), is(false));
   }
 
   @Test
   public void shouldZipTwoFunctions() {
     // Given:
-    TableFunctionApplier applier1 = createApplier(Arrays.asList(10, 10, 10));
-    TableFunctionApplier applier2 = createApplier(Arrays.asList(20, 20));
-    KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2));
+    final TableFunctionApplier applier1 = createApplier(Arrays.asList(10, 10, 10));
+    final TableFunctionApplier applier2 = createApplier(Arrays.asList(20, 20));
+    final KudtfFlatMapper<String> flatMapper = new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2));
 
     // When:
-    Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
+    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
 
     // Then:
-    Iterator<GenericRow> iter = iterable.iterator();
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, 20)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, 20)));
-    assertThat(iter.next().getColumns(), is(Arrays.asList(1, 2, 3, 10, null)));
+    final Iterator<GenericRow> iter = iterable.iterator();
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, 20)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, 20)));
+    assertThat(iter.next().values(), is(Arrays.asList(1, 2, 3, 10, null)));
     assertThat(iter.hasNext(), is(false));
   }
 
-  private static <T> TableFunctionApplier createApplier(List<?> list) {
-    TableFunctionApplier applier = mock(TableFunctionApplier.class);
+  private static <T> TableFunctionApplier createApplier(final List<?> list) {
+    final TableFunctionApplier applier = mock(TableFunctionApplier.class);
     doReturn(list).when(applier).apply(any());
     return applier;
   }

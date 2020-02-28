@@ -38,7 +38,7 @@ public final class InjectorChain implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement) {
     ConfiguredStatement<T> injected = statement;
-    for (Injector injector : injectors) {
+    for (final Injector injector : injectors) {
       injected = injector.inject(injected);
     }
     return injected;

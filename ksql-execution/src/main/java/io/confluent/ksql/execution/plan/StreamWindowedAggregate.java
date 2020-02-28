@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -36,22 +36,22 @@ public class StreamWindowedAggregate
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
-  private final ImmutableList<ColumnRef> nonAggregateColumns;
+  private final ImmutableList<ColumnName> nonAggregateColumns;
   private final ImmutableList<FunctionCall> aggregationFunctions;
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "source", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "source", required = true) final
       ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "internalFormats", required = true) Formats internalFormats,
-      @JsonProperty(value = "nonAggregateColumns", required = true)
-      List<ColumnRef> nonAggregateColumns,
-      @JsonProperty(value = "aggregationFunctions", required = true)
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "nonAggregateColumns", required = true) final
+      List<ColumnName> nonAggregateColumns,
+      @JsonProperty(value = "aggregationFunctions", required = true) final
       List<FunctionCall> aggregationFunctions,
-      @JsonProperty(value = "windowExpression", required = true)
+      @JsonProperty(value = "windowExpression", required = true) final
       KsqlWindowExpression windowExpression) {
-    this.properties = requireNonNull(properties, "properties");
+    this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.nonAggregateColumns
@@ -80,7 +80,7 @@ public class StreamWindowedAggregate
     return internalFormats;
   }
 
-  public List<ColumnRef> getNonAggregateColumns() {
+  public List<ColumnName> getNonAggregateColumns() {
     return nonAggregateColumns;
   }
 
@@ -93,19 +93,19 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(PlanBuilder builder) {
+  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
     return builder.visitStreamWindowedAggregate(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamWindowedAggregate that = (StreamWindowedAggregate) o;
+    final StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

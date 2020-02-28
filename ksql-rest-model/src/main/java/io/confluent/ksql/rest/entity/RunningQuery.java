@@ -16,39 +16,61 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RunningQuery {
+
   private final String queryString;
   private final Set<String> sinks;
+  private final Set<String> sinkKafkaTopics;
   private final QueryId id;
+  private final Optional<String> state;
 
   @JsonCreator
   public RunningQuery(
-      @JsonProperty("statementText") final String queryString,
+      @JsonProperty("queryString") final String queryString,
       @JsonProperty("sinks") final Set<String> sinks,
-      @JsonProperty("id") final QueryId id
+      @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
+      @JsonProperty("id") final QueryId id,
+      @JsonProperty("state") final Optional<String> state
   ) {
-    this.queryString = queryString;
-    this.sinks = sinks;
-    this.id = id;
+    this.queryString = Objects.requireNonNull(queryString, "queryString");
+    this.sinkKafkaTopics = Objects.requireNonNull(sinkKafkaTopics, "sinkKafkaTopics");
+    this.sinks = Objects.requireNonNull(sinks, "sinks");
+    this.id = Objects.requireNonNull(id, "id");
+    this.state = Objects.requireNonNull(state, "state");
   }
 
   public String getQueryString() {
     return queryString;
   }
 
+  @JsonIgnore
+  public String getQuerySingleLine() {
+    return queryString.replaceAll(System.lineSeparator(), "");
+  }
+
   public Set<String> getSinks() {
     return sinks;
   }
 
+  public Set<String> getSinkKafkaTopics() {
+    return sinkKafkaTopics;
+  }
+
   public QueryId getId() {
     return id;
+  }
+
+  public Optional<String> getState() {
+    return state;
   }
 
   @Override
@@ -62,11 +84,13 @@ public class RunningQuery {
     final RunningQuery that = (RunningQuery) o;
     return Objects.equals(id, that.id)
         && Objects.equals(queryString, that.queryString)
-        && Objects.equals(sinks, that.sinks);
+        && Objects.equals(sinks, that.sinks)
+        && Objects.equals(sinkKafkaTopics, that.sinkKafkaTopics)
+        && Objects.equals(state, that.state);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, queryString, id);
+    return Objects.hash(id, queryString, sinks, sinkKafkaTopics, state);
   }
 }

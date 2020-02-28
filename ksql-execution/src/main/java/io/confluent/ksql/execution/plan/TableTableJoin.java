@@ -25,18 +25,20 @@ import java.util.Objects;
 public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
-  private final ExecutionStep<KTableHolder<K>> left;
-  private final ExecutionStep<KTableHolder<K>> right;
+  private final ExecutionStep<KTableHolder<K>> leftSource;
+  private final ExecutionStep<KTableHolder<K>> rightSource;
 
   public TableTableJoin(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "joinType", required = true) JoinType joinType,
-      @JsonProperty(value = "left", required = true) ExecutionStep<KTableHolder<K>> left,
-      @JsonProperty(value = "right", required = true) ExecutionStep<KTableHolder<K>> right) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "leftSource", required = true) final
+      ExecutionStep<KTableHolder<K>> leftSource,
+      @JsonProperty(value = "rightSource", required = true) final
+      ExecutionStep<KTableHolder<K>> rightSource) {
+    this.properties = Objects.requireNonNull(props, "props");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
-    this.left = Objects.requireNonNull(left, "left");
-    this.right = Objects.requireNonNull(right, "right");
+    this.leftSource = Objects.requireNonNull(leftSource, "leftSource");
+    this.rightSource = Objects.requireNonNull(rightSource, "rightSource");
   }
 
   @Override
@@ -47,15 +49,15 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   @Override
   @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
-    return ImmutableList.of(left, right);
+    return ImmutableList.of(leftSource, rightSource);
   }
 
-  public ExecutionStep<KTableHolder<K>> getLeft() {
-    return left;
+  public ExecutionStep<KTableHolder<K>> getLeftSource() {
+    return leftSource;
   }
 
-  public ExecutionStep<KTableHolder<K>> getRight() {
-    return right;
+  public ExecutionStep<KTableHolder<K>> getRightSource() {
+    return rightSource;
   }
 
   public JoinType getJoinType() {
@@ -63,28 +65,28 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(PlanBuilder builder) {
+  public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableTableJoin(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TableTableJoin<?> that = (TableTableJoin<?>) o;
+    final TableTableJoin<?> that = (TableTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
-        && Objects.equals(left, that.left)
-        && Objects.equals(right, that.right);
+        && Objects.equals(leftSource, that.leftSource)
+        && Objects.equals(rightSource, that.rightSource);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, joinType, left, right);
+    return Objects.hash(properties, joinType, leftSource, rightSource);
   }
 }

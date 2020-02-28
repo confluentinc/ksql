@@ -1,0 +1,25 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572087358,
+  "schemas" : {
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT<FOO VARCHAR, foo VARCHAR>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test",
+    "key" : "",
+    "value" : {
+      "col1" : "foo"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "BIG_STRUCT",
+    "key" : "",
+    "value" : {
+      "S" : {
+        "FOO" : "foo",
+        "foo" : "foo"
+      }
+    }
+  } ]
+}

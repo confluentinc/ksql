@@ -31,8 +31,8 @@ public class TestUdtf {
 
   @Udtf
   public List<String> standardParams(
-      int i, long l, double d, boolean b, String s,
-      BigDecimal bd, @UdfParameter(schema = "STRUCT<A VARCHAR>") Struct struct
+      final int i, final long l, final double d, final boolean b, final String s,
+      final BigDecimal bd, @UdfParameter(schema = "STRUCT<A VARCHAR>") final Struct struct
   ) {
     return ImmutableList.of(String.valueOf(i), String.valueOf(l), String.valueOf(d),
         String.valueOf(b), s, bd.toString(), struct.toString()
@@ -41,8 +41,8 @@ public class TestUdtf {
 
   @Udtf
   public List<String> parameterizedListParams(
-      List<Integer> i, List<Long> l, List<Double> d, List<Boolean> b, List<String> s,
-      List<BigDecimal> bd, @UdfParameter(schema = "ARRAY<STRUCT<A VARCHAR>>") List<Struct> struct
+      final List<Integer> i, final List<Long> l, final List<Double> d, final List<Boolean> b, final List<String> s,
+      final List<BigDecimal> bd, @UdfParameter(schema = "ARRAY<STRUCT<A VARCHAR>>") final List<Struct> struct
   ) {
     return ImmutableList
         .of(String.valueOf(i.get(0)), String.valueOf(l.get(0)), String.valueOf(d.get(0)),
@@ -52,10 +52,10 @@ public class TestUdtf {
 
   @Udtf
   public List<String> parameterizedMapParams(
-      Map<String, Integer> i, Map<String, Long> l, Map<String, Double> d, Map<String, Boolean> b,
-      Map<String, String> s,
-      Map<String, BigDecimal> bd,
-      @UdfParameter(schema = "MAP<STRING, STRUCT<A VARCHAR>>") Map<String, Struct> struct
+      final Map<String, Integer> i, final Map<String, Long> l, final Map<String, Double> d, final Map<String, Boolean> b,
+      final Map<String, String> s,
+      final Map<String, BigDecimal> bd,
+      @UdfParameter(schema = "MAP<STRING, STRUCT<A VARCHAR>>") final Map<String, Struct> struct
   ) {
     return ImmutableList
         .of(
@@ -70,37 +70,37 @@ public class TestUdtf {
   }
 
   @Udtf
-  public List<Integer> listIntegerReturn(int i) {
+  public List<Integer> listIntegerReturn(final int i) {
     return ImmutableList.of(i);
   }
 
   @Udtf
-  public List<Long> listLongReturn(long l) {
+  public List<Long> listLongReturn(final long l) {
     return ImmutableList.of(l);
   }
 
   @Udtf
-  public List<Double> listDoubleReturn(double d) {
+  public List<Double> listDoubleReturn(final double d) {
     return ImmutableList.of(d);
   }
 
   @Udtf
-  public List<Boolean> listBooleanReturn(boolean b) {
+  public List<Boolean> listBooleanReturn(final boolean b) {
     return ImmutableList.of(b);
   }
 
   @Udtf
-  public List<String> listStringReturn(String s) {
+  public List<String> listStringReturn(final String s) {
     return ImmutableList.of(s);
   }
 
   @Udtf(schemaProvider = "provideSchema")
-  public List<BigDecimal> listBigDecimalReturnWithSchemaProvider(BigDecimal bd) {
+  public List<BigDecimal> listBigDecimalReturnWithSchemaProvider(final BigDecimal bd) {
     return ImmutableList.of(bd);
   }
 
   @Udtf(schema = "STRUCT<A VARCHAR>")
-  public List<Struct> listStructReturn(@UdfParameter(schema = "STRUCT<A VARCHAR>") Struct struct) {
+  public List<Struct> listStructReturn(@UdfParameter(schema = "STRUCT<A VARCHAR>") final Struct struct) {
     return ImmutableList.of(struct);
   }
 

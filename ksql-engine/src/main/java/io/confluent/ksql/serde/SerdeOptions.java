@@ -101,10 +101,10 @@ public final class SerdeOptions {
           : SerdeOption.none();
     }
 
-    if (!valueFormat.supportsUnwrapping()) {
+    if (!valueFormat.supportsWrapping()) {
       throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
           + "' can not be used with format '"
-          + valueFormat + "' as it does not support wrapping");
+          + valueFormat.name() + "' as it does not support wrapping");
     }
 
     if (!singleField) {

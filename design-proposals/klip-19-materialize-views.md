@@ -40,9 +40,11 @@ writing to that topic, (and that includes another KSQL topology), KSQL can offer
 
 The defining factor here is that it is only possible to have correct `INSERT` semantics _if no other system updates the table_.
 
+More correctly the `INSERT` is actually an `UPSERT`: it will insert a new row if none exists, or replace any existing row.
+
 **Side note**: It would be easy to support correct `DELETE` semantics too. However, correct `UPDATE` row semantics will
-require more work. Likely, it will involve proxying calls to the KSQL node that owns the key, ensuring a single writer
-pattern.
+require more work as an `UPDATE` may only provide new values for _som_ of the columns. Hence the implementation needs to
+provide an atomic read-update-write. This can be achieved using the single-writer mutable tables discussed in [KLIP-18][18].
 
 ### How can we express this difference in SQL?   
 
@@ -88,10 +90,11 @@ Well, streams are certainly not as clear cut as tables. But maybe there's a case
 a read-only stream view. 
 
 Consider a stream coming from some upstream system, e.g a click stream from a web-tier. Should a KSQL user be able to 
-add rows to such a stream? Probably not, but the true answer is most likely 'it depends'. It depends on how the organisation
-if using KSQL and modeling data in Kafka. Its possible the clickstream should be seen as read-only to KSQL users as its 
-owned by the web tier that produces it, and its maybe used by other systems too. On the flip side, its also possible that
-appending new rows to the stream is something they want to allow in KSQL.
+add rows to such a stream? If this stream is managed by another team/app then probably not, but the true answer is most
+likely 'it depends'. It depends on how the organisation is using KSQL and modeling data in Kafka. Its possible the
+clickstream should be seen as read-only to KSQL users as its owned by the web tier that produces it, and its maybe
+used by other systems too. On the flip side, its also possible that appending new rows to the stream is something
+they want to allow in KSQL.
 
 It can be argued that using ACLs are a good fit for controlling if a KSQL user can insert into a stream. There's nothing
 semantically wrong with allow the insert: a stream is just an append-only list of immutable 'facts'. Appending one more 
@@ -168,8 +171,6 @@ We propose a stream equivalent of `MATERIALIZED STREAM VIEW`.
 * Either `CREATE STREAM AS SELECT` will be removed, or maintained as creating a mutable derived stream. 
     * `INSERT`s into the stream will be supported.
     * `PARTITIONS` and `REPLICAS` supported in `WITH` clause to control customisation of the sink topic.
-    
-For those worried about the excessive typing required for `MATERIALIZED STREAM VIEW`, we could add a shorthand `CREATE MSV` etc.
 
 ## Design
 
@@ -221,3 +222,5 @@ None.
 ## Security Implications
 
 None.
+
+[18]: https://github.com/confluentinc/ksql/pull/4659

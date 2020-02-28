@@ -26,8 +26,10 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -46,9 +48,9 @@ public class JsonArrayContains {
   static final String DESCRIPTION = "Parses a JSON array and determines whether or not the "
       + "supplied value is contained within the array.";
 
-  private static final JsonFactory PARSER_FACTORY = new JsonFactory()
-      .setCodec(JsonMapper.INSTANCE.mapper)
-      .disable(CANONICALIZE_FIELD_NAMES);
+  private static final JsonFactory PARSER_FACTORY =
+      new JsonFactory(new JsonFactoryBuilder().disable(CANONICALIZE_FIELD_NAMES))
+          .setCodec(JsonMapper.INSTANCE.mapper);
 
   private static final EnumMap<JsonToken, Predicate<Object>> TOKEN_COMPAT;
 

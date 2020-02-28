@@ -24,7 +24,11 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
 import java.io.IOException;
+import java.security.Principal;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -33,6 +37,7 @@ import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
+import org.apache.commons.collections4.CollectionUtils;
 import org.eclipse.jetty.jaas.callback.ObjectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +74,9 @@ public class JaasAuthProvider implements AuthProvider {
     }
 
     final String contextName = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
+    final List<String> allowedRoles = config.getList(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG);
 
-    getUser(contextName, username, password, userResult -> {
+    getUser(contextName, username, password, allowedRoles, userResult -> {
       if (userResult.succeeded()) {
         resultHandler.handle(Future.succeededFuture(userResult.result()));
       } else {
@@ -83,6 +89,7 @@ public class JaasAuthProvider implements AuthProvider {
       final String contextName,
       final String username,
       final String password,
+      final List<String> allowedRoles,
       final Handler<AsyncResult<JaasUser>> handler
   ) {
     final LoginContext lc;
@@ -102,6 +109,12 @@ public class JaasAuthProvider implements AuthProvider {
       return;
     }
 
+    if (!validateRoles(lc, allowedRoles)) {
+      log.error("Failed to log in: Invalid roles.");
+      handler.handle(Future.failedFuture("Failed to log in: Invalid roles."));
+      return;
+    }
+
     final JaasUser result = new JaasUser(username, this);
     handler.handle(Future.succeededFuture(result));
   }
@@ -110,8 +123,21 @@ public class JaasAuthProvider implements AuthProvider {
       final String username,
       final Handler<AsyncResult<Boolean>> resultHandler
   ) {
-    // no authorization yet; authenticated users have all permissions
+    // no authorization yet (besides JAAS role check during login)
+    // consequently, authenticated users have all permissions
     resultHandler.handle(Future.succeededFuture(true));
+  }
+
+  private static boolean validateRoles(final LoginContext lc, final List<String> allowedRoles) {
+    if (allowedRoles.contains("*")) {
+      // all users allowed
+      return true;
+    }
+
+    final Set<String> userRoles = lc.getSubject().getPrincipals().stream()
+        .map(Principal::getName)
+        .collect(Collectors.toSet());
+    return !CollectionUtils.intersection(userRoles, allowedRoles).isEmpty();
   }
 
   @SuppressWarnings("deprecation")

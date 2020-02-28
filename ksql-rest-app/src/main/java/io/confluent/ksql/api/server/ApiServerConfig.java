@@ -21,7 +21,6 @@ import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.http.ClientAuth;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -97,9 +96,11 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String AUTHENTICATION_REALM_DOC =
       "Security realm to be used in authentication.";
   public static final String AUTHENTICATION_ROLES_CONFIG = propertyName("authentication.roles");
-  public static final String AUTHENTICATION_ROLES_DOC = "Valid roles to authenticate against.";
+  public static final String AUTHENTICATION_ROLES_DOC =
+      "Comma-delimited list of JAAS roles authorized to access this cluster. "
+          + "Defaults to '*' meaning all roles will be allowed.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
-      Collections.unmodifiableList(Arrays.asList("*"));
+      Collections.unmodifiableList(Collections.singletonList("*"));
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =

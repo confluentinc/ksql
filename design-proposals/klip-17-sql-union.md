@@ -157,6 +157,23 @@ being merged. It does preserve relative ordering of records within each input st
 will likewise offer no cross-stream ordering guarantees. It may be possible to add ordering later,
 via additional syntax, but this is out of scope for this KLIP.
 
+### Sink partition count
+
+The sink topic will have a partition count equal to the source with the highest partition count,
+unless explicitly set within by the user in the `WITH` clause.
+
+This partition count will be baked into the query plan.
+
+KSQL will need to ensure all sources have the same number of partitions as the sink. Otherwise, the
+sink topic will not be co-partitioned. See [KAFKA-7293](https://issues.apache.org/jira/browse/KAFKA-7293)
+for more info.
+
+To achieve this, any source with a different partition count will have an implicit repartition step
+added.
+
+In the future, when ksqlDB supports updating unions to include new sources, those new sources will
+also require a repartition step if there partition count differs to the source.
+
 ## Test plan
 
 Suitable `QueryTranslationTest` cases will be added to cover the use of `UNION ALL`. 

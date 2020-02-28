@@ -24,12 +24,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -43,8 +43,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageTy
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -72,16 +70,13 @@ public class SqlPredicateTest {
       .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
-      .build()
-      .withAlias(SourceName.of("TEST1"));
+      .build();
 
-  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final UnqualifiedColumnReferenceExp COL0 =
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"));
 
-  private static final ColumnReferenceExp COL0 =
-      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL0")));
-
-  private static final ColumnReferenceExp COL2 =
-      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL2")));
+  private static final UnqualifiedColumnReferenceExp COL2 =
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
   private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
       SqlTypes.INTEGER,
@@ -90,7 +85,7 @@ public class SqlPredicateTest {
       LenDummy.class
   );
 
-  private static final GenericRow VALUE = new GenericRow(22L, 33.3, "a string");
+  private static final GenericRow VALUE = GenericRow.genericRow(22L, 33.3, "a string");
 
   @Mock
   private ProcessingLogger processingLogger;
@@ -108,7 +103,7 @@ public class SqlPredicateTest {
 
   @Before
   public void init() {
-    when(functionRegistry.getUdfFactory("LEN")).thenReturn(lenFactory);
+    when(functionRegistry.getUdfFactory(FunctionName.of("LEN"))).thenReturn(lenFactory);
     when(lenFactory.getFunction(any())).thenReturn(LEN_FUNCTION);
   }
 
@@ -135,7 +130,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldIgnoreNullRows() {
     // Given:
-    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
@@ -145,33 +140,33 @@ public class SqlPredicateTest {
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
+    final KsqlTransformer<Object, Optional<GenericRow>> predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When:
     predicate.transform(
         "key",
-        new GenericRow("wrong", "types", "in", "here", "to", "force", "error"),
+        GenericRow.genericRow("wrong", "types", "in", "here", "to", "force", "error"),
         ctx
     );
 
     // Then:
-    ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
+    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
         = ArgumentCaptor.forClass(Function.class);
     verify(processingLogger).error(captor.capture());
-    SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
+    final SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
     assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    Struct struct = (Struct) schemaAndValue.value();
+    final Struct struct = (Struct) schemaAndValue.value();
     assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal())
     );
-    Struct errorStruct
+    final Struct errorStruct
         = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
         equalTo(
-            "Error evaluating predicate (TEST1.COL0 > 100): "
+            "Error evaluating predicate (COL0 > 100): "
                 + "argument type mismatch")
     );
   }
@@ -190,7 +185,7 @@ public class SqlPredicateTest {
   public static class LenDummy implements Kudf {
 
     @Override
-    public Object evaluate(Object... args) {
+    public Object evaluate(final Object... args) {
       throw new IllegalStateException();
     }
   }

@@ -18,4 +18,8 @@ package io.confluent.ksql.rest;
 public interface ErrorMessages {
   
   String kafkaAuthorizationErrorMessage(Exception e);
+
+  String transactionInitTimeoutErrorMessage(Exception e);
+  
+  String schemaRegistryUnconfiguredErrorMessage(Exception e);
 }

@@ -20,7 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Delimiter;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.DecimalUtil;
@@ -88,7 +88,7 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
     }
 
     public Void visitSchema(final Schema schema) {
-      throw new KsqlException("The '" + Format.DELIMITED
+      throw new KsqlException("The '" + FormatFactory.DELIMITED.name()
           + "' format does not support type '" + schema.type().toString() + "'");
     }
   }

@@ -72,7 +72,7 @@ public class UdfClassLoaderTest {
     }
 
     @Override
-    public Class<?> findClass(String name) throws ClassNotFoundException {
+    public Class<?> findClass(final String name) throws ClassNotFoundException {
       switch (name) {
         case ONLY_IN_PARENT: return OnlyInParent.class;
         case IN_PARENT_AND_JAR: return InParentAndJar.class;

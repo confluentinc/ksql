@@ -5,11 +5,12 @@ tagline: Create a Stream from a Kafka topic
 description: Learn how to use the CREATE STREAM statement on a Kafka topic
 ---
 
-In ksqlDB, you create streams from {{ site.aktm }} topics, and you create
-streams of query results from other streams.
+In ksqlDB, you create streams from existing {{ site.aktm }} topics, create
+streams that will create new {{ site.ak }} topics, or create streams of
+query results from other streams.
 
--   Use the CREATE STREAM statement to create a stream from a Kafka
-    topic.
+-   Use the CREATE STREAM statement to create a stream from an existing Kafka
+    topic, or a new Kafka topic.
 -   Use the CREATE STREAM AS SELECT statement to create a query stream
     from an existing stream.
 
@@ -17,10 +18,10 @@ streams of query results from other streams.
       Creating tables is similar to creating streams. For more information,
       see [Create a ksqlDB Table](create-a-table.md).
 
-Create a Stream from a Kafka topic
-----------------------------------
+Create a Stream from an existing Kafka topic
+--------------------------------------------
 
-Use the CREATE STREAM statement to create a stream from an underlying
+Use the CREATE STREAM statement to create a stream from an existing underlying
 Kafka topic. The Kafka topic must exist already in your Kafka cluster.
 
 The following examples show how to create streams from a Kafka topic,
@@ -33,11 +34,14 @@ named `pageviews`. To see these examples in action, create the
 The following example creates a stream that has three columns from the
 `pageviews` topic: `viewtime`, `userid`, and `pageid`.
 
-ksqlDB can't infer the topic's data format, so you must provide the
+ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more
 details.
+
+ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
+serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
 
 In the ksqlDB CLI, paste the following CREATE STREAM statement:
 
@@ -102,6 +106,9 @@ The previous SQL statement makes no assumptions about the Kafka message
 key in the underlying Kafka topic. If the value of the message key in
 the topic is the same as one of the columns defined in the stream, you
 can specify the key in the WITH clause of the CREATE STREAM statement.
+If you use this column name later to perform a join or a repartition, ksqlDB
+knows that no repartition is needed. In effect, the named column becomes an
+alias for ROWKEY.
 
 For example, if the Kafka message key has the same value as the `pageid`
 column, you can write the CREATE STREAM statement like this:
@@ -180,6 +187,31 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 [...]
 ```
 
+Create a Stream backed by a new Kafka Topic
+-------------------------------------------
+
+Use the CREATE STREAM statement to create a stream without a preexisting
+topic by providing the PARTITIONS count, and optionally the REPLICA count,
+in the WITH clause.
+
+Taking the example of the pageviews table from above, but where the underlying
+Kafka topic does not already exist, you can create the stream by pasting
+the following CREATE STREAM statement into the CLI:
+
+```sql
+CREATE STREAM pageviews
+  (viewtime BIGINT,
+   userid VARCHAR,
+   pageid VARCHAR)
+  WITH (KAFKA_TOPIC='pageviews',
+        PARTITIONS=4,
+        REPLICAS=3
+        VALUE_FORMAT='DELIMITED')
+  EMIT CHANGES;
+```
+
+This will create the pageviews topics for you with the supplied partition and replica count.
+
 Create a Persistent Streaming Query from a Stream
 -------------------------------------------------
 
@@ -250,13 +282,14 @@ PRINT pageviews_intro;
 Your output should resemble:
 
 ```
-Format:STRING
-10/30/18 10:15:51 PM UTC , 294851 , 1540937751186,User_8,Page_12
-10/30/18 10:15:55 PM UTC , 295051 , 1540937755255,User_1,Page_15
-10/30/18 10:15:57 PM UTC , 295111 , 1540937757265,User_8,Page_10
-10/30/18 10:15:59 PM UTC , 295221 , 1540937759330,User_4,Page_15
-10/30/18 10:15:59 PM UTC , 295231 , 1540937759699,User_1,Page_12
-10/30/18 10:15:59 PM UTC , 295241 , 1540937759990,User_6,Page_15
+Key format: KAFKA_BIGINT or KAFKA_DOUBLE
+Value format: KAFKA_STRING
+rowtime: 10/30/18 10:15:51 PM GMT, key: 294851, value: 1540937751186,User_8,Page_12
+rowtime: 10/30/18 10:15:55 PM GMT, key: 295051, value: 1540937755255,User_1,Page_15
+rowtime: 10/30/18 10:15:57 PM GMT, key: 295111, value: 1540937757265,User_8,Page_10
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295221, value: 1540937759330,User_4,Page_15
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295231, value: 1540937759699,User_1,Page_12
+rowtime: 10/30/18 10:15:59 PM GMT, key: 295241, value: 1540937759990,User_6,Page_15
 ^CTopic printing ceased
 ```
 
@@ -264,6 +297,13 @@ Press Ctrl+C to stop printing the stream.
 
 !!! note
 		The query continues to run after you stop printing the stream.
+
+!!! note
+    KsqlDB has determined that the key format is either `KAFKA_BIGINT` or `KAFKA_DOUBLE`.
+    KsqlDB has not narrowed it further because it is not possible to rule out
+    either format just by inspecting the key's serialized bytes. In this case we know the key is
+    a `BIGINT`. For other cases you may know the key type or you may need to speak to the author
+    of the data.
 
 Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `pageviews_intro` stream:
@@ -276,9 +316,9 @@ Your output should resemble:
 
 ```
      Query ID               | Kafka Topic     | Query String
-    --------------------------------------------------------------------------------------------------------------------------------------------------------
+
      CSAS_PAGEVIEWS_INTRO_0 | PAGEVIEWS_INTRO | CREATE STREAM pageviews_intro AS       SELECT * FROM pageviews       WHERE pageid < 'Page_20' EMIT CHANGES;
-    --------------------------------------------------------------------------------------------------------------------------------------------------------
+
     For detailed information on a Query run: EXPLAIN <Query ID>;
 ```
 

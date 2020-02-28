@@ -48,7 +48,7 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the two implicit columns `ROWTIME` and `ROWKEY`.
+including the `ROWTIME` and `ROWKEY` system columns.
 
 Example
 -------
@@ -109,8 +109,12 @@ SET 'auto.offset.reset' = 'earliest';
 
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
-or joins. Windows are tracked per record key. ksqlDB supports the following
-WINDOW types.
+or joins. Windows are tracked per record key.
+
+Windowing adds two additional system columns to the data, which provide
+the window bounds: `WINDOWSTART` and `WINDOWEND`.
+
+ksqlDB supports the following WINDOW types:
 
 **TUMBLING**: Tumbling windows group input records into fixed-sized,
 non-overlapping windows based on the records' timestamps. You must
@@ -122,7 +126,7 @@ The following statement shows how to create a push query that has a tumbling
 window.
 
 ```sql
-SELECT item_id, SUM(quantity)
+SELECT windowstart, windowend, item_id, SUM(quantity)
   FROM orders
   WINDOW TUMBLING (SIZE 20 SECONDS)
   GROUP BY item_id
@@ -138,7 +142,7 @@ The following statement shows how to create a push query that has a hopping
 window.
 
 ```sql
-SELECT item_id, SUM(quantity)
+SELECT windowstart, windowend, item_id, SUM(quantity)
   FROM orders
   WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS)
   GROUP BY item_id
@@ -157,7 +161,7 @@ The following statement shows how to create a push query that has a session
 window.
 
 ```sql
-SELECT item_id, SUM(quantity)
+SELECT windowstart, windowend, item_id, SUM(quantity)
   FROM orders
   WINDOW SESSION (20 SECONDS)
   GROUP BY item_id

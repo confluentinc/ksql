@@ -29,15 +29,15 @@ public final class KGroupedStreamHolder {
   private final LogicalSchema schema;
 
   private KGroupedStreamHolder(
-      KGroupedStream<Struct, GenericRow> groupedStream,
-      LogicalSchema schema) {
+      final KGroupedStream<Struct, GenericRow> groupedStream,
+      final LogicalSchema schema) {
     this.groupedStream = Objects.requireNonNull(groupedStream, "groupedStream");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   public static KGroupedStreamHolder of(
-      KGroupedStream<Struct, GenericRow> groupedStream,
-      LogicalSchema schema) {
+      final KGroupedStream<Struct, GenericRow> groupedStream,
+      final LogicalSchema schema) {
     return new KGroupedStreamHolder(groupedStream, schema);
   }
 

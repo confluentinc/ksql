@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.benchmark;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -22,16 +23,16 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -57,7 +58,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
@@ -68,8 +69,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 3, time = 10)
-@Measurement(iterations = 3, time = 10)
+@Warmup(iterations = 6, time = 30)
+@Measurement(iterations = 3, time = 60)
 @Threads(4)
 @Fork(3)
 public class SerdeBenchmark {
@@ -97,7 +98,7 @@ public class SerdeBenchmark {
 
       final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
       row = genericRowPair.getRight();
-      schema = rowGenerator.schema().valueConnectSchema();
+      schema = rowGenerator.valueSchema();
     }
 
     private InputStream getSchemaStream() {
@@ -158,7 +159,7 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema
     ) {
       return getGenericRowSerde(
-          FormatInfo.of(Format.JSON),
+          FormatInfo.of(FormatFactory.JSON.name()),
           schema,
           () -> null
       );
@@ -170,7 +171,9 @@ public class SerdeBenchmark {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
       return getGenericRowSerde(
-          FormatInfo.of(Format.AVRO, Optional.of("benchmarkSchema"), Optional.empty()),
+          FormatInfo.of(
+              FormatFactory.AVRO.name(),
+              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "benchmarkSchema")),
           schema,
           () -> schemaRegistryClient
       );
@@ -192,20 +195,26 @@ public class SerdeBenchmark {
     }
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
   public byte[] serialize(final SerdeState serdeState) {
     return serdeState.serializer.serialize(TOPIC_NAME, serdeState.row);
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
   public GenericRow deserialize(final SerdeState serdeState) {
     return serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes);
   }
 
-  public static void main(final String[] args) throws RunnerException {
-    final Options opt = new OptionsBuilder()
-        .include(SerdeBenchmark.class.getSimpleName())
-        .build();
+  public static void main(final String[] args) throws Exception {
+
+    final Options opt = args.length != 0
+        ? new CommandLineOptions(args)
+        : new OptionsBuilder()
+            .include(SerdeBenchmark.class.getSimpleName())
+            .shouldFailOnError(true)
+            .build();
 
     new Runner(opt).run();
   }

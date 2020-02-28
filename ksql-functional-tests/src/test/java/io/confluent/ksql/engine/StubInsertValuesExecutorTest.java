@@ -22,17 +22,18 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
-import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.TopicInfoCache;
+import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,22 +50,29 @@ public final class StubInsertValuesExecutorTest {
 
   @Mock
   private StubKafkaService stubKafkaService;
+  @Mock
+  private TopicInfoCache topicInfoCache;
+  @Mock
+  private TopicInfo topicInfo;
   @Captor
   private ArgumentCaptor<StubKafkaRecord> recordCaptor;
   private StubProducer stubProducer;
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
     when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new StringSerdeSupplier(),
         1,
-        1
+        1,
+        Optional.empty()
     ));
 
-    stubProducer = new StubProducer(stubKafkaService);
+    when(topicInfoCache.get(SOME_TOPIC)).thenReturn(topicInfo);
+    when(topicInfo.getKeyDeserializer()).thenReturn((Deserializer) new StringDeserializer());
+    when(topicInfo.getValueDeserializer()).thenReturn((Deserializer) new StringDeserializer());
+
+    stubProducer = new StubProducer(stubKafkaService, topicInfoCache);
   }
 
   @Test
@@ -75,7 +83,7 @@ public final class StubInsertValuesExecutorTest {
         SOME_TOPIC,
         null,
         timestamp,
-        "the-key".getBytes(StandardCharsets.UTF_8),
+        KEY_BYTES,
         new byte[]{0}
     );
 
@@ -113,38 +121,5 @@ public final class StubInsertValuesExecutorTest {
 
     final Record actual = recordCaptor.getValue().getTestRecord();
     assertThat(actual.value(), is("the-value"));
-  }
-
-  @Test
-  public void shouldWriteRecordJsonValue() {
-    // Given:
-    final byte[] value = "{\"this\": 1}".getBytes(StandardCharsets.UTF_8);
-
-    when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
-        SOME_TOPIC,
-        Optional.empty(),
-        new StringSerdeSupplier(),
-        new AvroSerdeSupplier(),
-        1,
-        1
-    ));
-
-    final long timestamp = 22L;
-    final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
-        SOME_TOPIC,
-        null,
-        timestamp,
-        KEY_BYTES,
-        value
-    );
-
-    // When:
-    stubProducer.sendRecord(record);
-
-    // Then:
-    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
-
-    final Record actual = recordCaptor.getValue().getTestRecord();
-    assertThat(actual.value(), is(ImmutableMap.of("this", 1)));
   }
 }

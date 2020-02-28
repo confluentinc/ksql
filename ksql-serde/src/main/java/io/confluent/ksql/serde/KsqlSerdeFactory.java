@@ -48,10 +48,10 @@ public interface KsqlSerdeFactory {
 
   @SuppressWarnings("unchecked")
   default <T> Serde<T> createSerde(
-      PersistenceSchema schema,
-      KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      Class<T> type
+      final PersistenceSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Class<T> type
   ) {
     final Class<?> actualType = SchemaUtil.getJavaType(schema.serializedSchema());
 

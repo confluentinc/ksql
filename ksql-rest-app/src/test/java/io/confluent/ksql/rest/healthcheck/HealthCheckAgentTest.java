@@ -49,7 +49,7 @@ public class HealthCheckAgentTest {
   static {
     try {
       SERVER_URI = new URL(SERVER_ADDRESS).toURI();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       fail("failed to create server URI");
     }
   }

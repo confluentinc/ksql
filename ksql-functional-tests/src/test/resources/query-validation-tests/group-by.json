@@ -51,7 +51,7 @@
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY DATA;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}, "timestamp": 1},
         {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}, "timestamp": 2},
@@ -140,12 +140,34 @@
       }
     },
     {
+      "name": "fields used in expression",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 / f2, COUNT(*) FROM TEST GROUP BY f1, f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "4,2"},
+        {"topic": "test_topic", "value": "9,3"},
+        {"topic": "test_topic", "value": "9,3"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "4|+|2", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "9|+|3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "9|+|3", "value": "3,2"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ROWKEY STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "fields (stream->table) - format",
       "statements": [
         "CREATE STREAM TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
         {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
@@ -238,7 +260,7 @@
         "CREATE TABLE TEST (ROWKEY INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}},
         {"topic": "test_topic", "key": 2, "value": {"F1": 2, "F2": "b"}},
@@ -346,7 +368,7 @@
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY DATA;"
       ],
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "inputs": [
         {"topic": "test_topic", "value": {"DATA": "d1"}},
         {"topic": "test_topic", "value": {"DATA": "d2"}},
@@ -1373,6 +1395,39 @@
       ],
       "outputs": [
       ]
+    },
+    {
+      "name": "by non-STRING key",
+      "statements": [
+        "CREATE STREAM INPUT (f0 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(1) FROM INPUT GROUP BY f0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "2"},
+        {"topic": "test_topic", "value": "3"},
+        {"topic": "test_topic", "value": "2"}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": "2,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": "3,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": "2,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": "2,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": "3,1"},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": "2,2"},
+        {"topic": "OUTPUT", "key": 2, "value": "1"},
+        {"topic": "OUTPUT", "key": 3, "value": "1"},
+        {"topic": "OUTPUT", "key": 2, "value": "2"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT"
+          }
+        ]
+      }
     }
   ]
 }

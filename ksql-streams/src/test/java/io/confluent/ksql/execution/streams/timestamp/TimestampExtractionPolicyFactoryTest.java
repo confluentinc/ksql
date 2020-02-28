@@ -22,7 +22,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -31,7 +30,7 @@ import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
-import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.UsePartitionTimeOnInvalidTimestamp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,7 +63,8 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(FailOnInvalidTimestamp.class));
   }
 
   @Test
@@ -101,15 +101,16 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(FailOnInvalidTimestamp.class));
   }
 
   @Test
-  public void shouldCreateMetadataPolicyWithConfiguredUsePreviousTimeOnInvalidTimestamp() {
+  public void shouldCreateMetadataPolicyWithConfiguredUsePartitionTimeOnInvalidTimestamp() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
-        UsePreviousTimeOnInvalidTimestamp.class
+        UsePartitionTimeOnInvalidTimestamp.class
     ));
 
     // When:
@@ -122,7 +123,8 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(result.create(0), instanceOf(UsePreviousTimeOnInvalidTimestamp.class));
+    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
+        instanceOf(UsePartitionTimeOnInvalidTimestamp.class));
   }
 
   @Test
@@ -140,7 +142,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase())),
+                    ColumnName.of(timestamp.toUpperCase()),
                     Optional.empty()
                 )
             )
@@ -149,7 +151,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
     assertThat(result.getTimestampField(),
-        equalTo(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))));
+        equalTo(ColumnName.of(timestamp.toUpperCase())));
   }
 
   @Test
@@ -164,7 +166,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schemaBuilder2.build(),
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of("whateva")),
+                    ColumnName.of("whateva"),
                     Optional.empty()
                 )
             )
@@ -186,7 +188,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of(field.toUpperCase())),
+                    ColumnName.of(field.toUpperCase()),
                     Optional.of("yyyy-MM-DD")
                 )
             )
@@ -195,7 +197,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
     assertThat(result.getTimestampField(),
-        equalTo(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))));
+        equalTo(ColumnName.of(field.toUpperCase())));
   }
 
   @Test
@@ -216,7 +218,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of(field.toUpperCase())),
+                    ColumnName.of(field.toUpperCase()),
                     Optional.empty()
                 )
             )
@@ -240,7 +242,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase())),
+                    ColumnName.of(timestamp.toUpperCase()),
                     Optional.of("b")
                 )
             )
@@ -264,7 +266,7 @@ public class TimestampExtractionPolicyFactoryTest {
             schema,
             Optional.of(
                 new TimestampColumn(
-                    ColumnRef.withoutSource(ColumnName.of(field)),
+                    ColumnName.of(field),
                     Optional.empty()
                 )
             )

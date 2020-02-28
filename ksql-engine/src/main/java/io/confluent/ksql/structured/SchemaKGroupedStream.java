@@ -18,17 +18,16 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -73,7 +72,7 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
@@ -87,7 +86,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+          io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
@@ -97,7 +96,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+          io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonAggregateColumns,
           aggregations
       );
@@ -113,9 +112,9 @@ public class SchemaKGroupedStream {
     );
   }
 
-  private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
+  private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
-        FormatInfo.of(Format.KAFKA),
+        FormatInfo.of(FormatFactory.KAFKA.name()),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

@@ -102,7 +102,7 @@ class DataSourceExtractor {
   public SourceName getAliasFor(final ColumnName columnName) {
     if (isJoin) {
       if (commonFieldNames.contains(columnName)) {
-        throw new KsqlException("Column '" + columnName.name() + "' is ambiguous.");
+        throw new KsqlException("Column '" + columnName.text() + "' is ambiguous.");
       }
 
       if (leftFieldNames.contains(columnName)) {
@@ -114,7 +114,7 @@ class DataSourceExtractor {
       }
 
       throw new KsqlException(
-          "Column '" + columnName.name() + "' cannot be resolved."
+          "Column '" + columnName.text() + "' cannot be resolved."
       );
     }
     return fromAlias;
@@ -131,7 +131,7 @@ class DataSourceExtractor {
       fromAlias = relation.getAlias();
       fromName = ((Table) relation.getRelation()).getName();
       if (metaStore.getSource(fromName) == null) {
-        throw new KsqlException(fromName.name() + " does not exist.");
+        throw new KsqlException(fromName.text() + " does not exist.");
       }
       return null;
     }
@@ -146,7 +146,7 @@ class DataSourceExtractor {
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName());
       if (leftDataSource == null) {
-        throw new KsqlException(((Table) left.getRelation()).getName().name() + " does not "
+        throw new KsqlException(((Table) left.getRelation()).getName().text() + " does not "
             + "exist.");
       }
       addFieldNames(leftDataSource.getSchema(), leftFieldNames);
@@ -157,7 +157,7 @@ class DataSourceExtractor {
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName());
       if (rightDataSource == null) {
-        throw new KsqlException(((Table) right.getRelation()).getName().name() + " does not "
+        throw new KsqlException(((Table) right.getRelation()).getName().text() + " does not "
             + "exist.");
       }
       addFieldNames(rightDataSource.getSchema(), rightFieldNames);

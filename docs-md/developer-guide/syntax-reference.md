@@ -71,7 +71,7 @@ encapsulate a street address and a postal code:
 
 ```sql
 CREATE STREAM orders (
-  orderId BIGINT,
+  ROWKEY BIGINT KEY,
   address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 ```
 
@@ -84,9 +84,19 @@ SELECT address->city, address->zip FROM orders;
 
 For more info, see [Operators](#operators).
 
-!!! note
-      You can't create new nested `STRUCT` data as the result of a query, but
-      you can copy existing `STRUCT` fields as-is.
+You can create a `STRUCT` in a query by specifying the names of the columns
+and expressions that construct the values, separated by commas. The following
+example SELECT statement creates a schema that has a `STRUCT`.
+
+```sql
+SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
+```
+
+If `col0` is a string and `col1` is an integer, the resulting schema is:
+
+```sql
+col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
+```
 
 ### ksqlDB Time Units
 
@@ -125,21 +135,21 @@ character in SQL statements.
 
 ```sql
 -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
-CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
   WITH (kafka_topic='test_topic',
         value_format='JSON',
         timestamp='event_timestamp',
         timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');
 
 -- Example timestamp format: yyyy.MM.dd G 'at' HH:mm:ss z
-CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
   WITH (kafka_topic='test_topic',
         value_format='JSON',
         timestamp='event_timestamp',
         timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z');
 
 -- Example timestamp format: hh 'o'clock' a, zzzz
-CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
   WITH (kafka_topic='test_topic',
         value_format='JSON',
         timestamp='event_timestamp',
@@ -302,6 +312,20 @@ Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
 converted to a double value automatically. Converting from the decimal data type
 to any floating point type (`DOUBLE`) may cause loss of precision.
 
+### Constants
+
+- **String constants** are enclosed in single quotation marks and may include any unicode
+character (e.g. `'hello'`, `'1.2'`).
+- **Integer constants** are represented by numbers that are not enclosed in quotation marks
+and do not contain decimal points (e.g. `1`, `2`).
+- **Decimal constants** are represented by a string of numbers that are no enclosed in quotation
+marks and contain a decimal point (e.g. `1.2`, `87.`, `.94`). The type of the decimal constant
+will be `DECIMAL(p, s)` where `p` is the total number of numeric characters in the string and
+`s` is the total number of numeric characters that appear to the right of the decimal point.
+- **Double constants** are numeric strings represented in scientific notation (e.g. `1E0`, `.42E-3`).
+- **Boolean constants** are the unquoted strings that are exactly (case-insensitive) `TRUE`
+or `FALSE`.
+
 SQL statements
 --------------
 
@@ -332,7 +356,7 @@ Use backtick characters to reference the columns:
 
 ```sql
 -- Enclose unparseable column names with backticks:
-CREATE STREAM s1 (`@id` integer, `col.val` string) …
+CREATE STREAM s1 (ROWKEY STRING KEY, `@id` integer, `col.val` string) …
 ```
 
 Also, you can use backtick characters for the names of sources, like streams
@@ -374,13 +398,15 @@ message key by setting the `KEY` property of the `WITH` clause.
 Example:
 
 ```sql
-CREATE TABLE users (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR)
+CREATE TABLE users (rowkey INT KEY, registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid INT)
   WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 ```
 
 The `KEY` property is optional. ksqlDB uses it as an optimization hint to
 determine if repartitioning can be avoided when performing aggregations
 and joins.
+
+The type of the column named in the `KEY` property must match the type of the `ROWKEY` column.
 
 !!! important
       Don't set the KEY property, unless you have validated that your
@@ -434,63 +460,47 @@ Example:
 
 -   Goal: You want to create a table from a topic, which is keyed by
     userid of type INT.
--   Problem: The message key is present as a field/column (aptly named
-    userid) in the message value but in the wrong format (INT instead of
-    VARCHAR).
+-   Problem: The required key is present as a field/column (aptly named
+    `userid`) in the message value, but the actual message key in {{ site.ak }} is
+    not set or has some other value or format.
 
 ```sql
 -- Create a stream on the original topic
-CREATE STREAM users_with_wrong_key_format (userid INT, username VARCHAR, email VARCHAR)
+CREATE STREAM users_with_wrong_key (userid INT, username VARCHAR, email VARCHAR)
   WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
-
+  
 -- Derive a new stream with the required key changes.
 -- 1) The CAST statement converts the key to the required format.
 -- 2) The PARTITION BY clause re-partitions the stream based on the new, converted key.
+-- The resulting schema will be: ROWKEY INT, USERNAME STRING, EMAIL STRING
+-- the userId will be stored in ROWKEY.
 CREATE STREAM users_with_proper_key
   WITH(KAFKA_TOPIC='users-with-proper-key') AS
-  SELECT CAST(userid as VARCHAR) as userid_string, username, email
-  FROM users_with_wrong_key_format
-  PARTITION BY userid_string
+  SELECT username, email
+  FROM users_with_wrong_key
+  PARTITION BY userid
   EMIT CHANGES;
 
 -- Now you can create the table on the properly keyed stream.
-CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR)
+CREATE TABLE users_table (ROWKEY INT KEY, username VARCHAR, email VARCHAR)
   WITH (KAFKA_TOPIC='users-with-proper-key',
-        VALUE_FORMAT='JSON',
-        KEY='userid_string');
-```
+        VALUE_FORMAT='JSON');
 
-Example:
-
--   Goal: You want to create a table from a topic, which is keyed by
-    userid of type INT.
--   Problem: The message key is not present as a field/column in the
-    topic's message values.
-
-```sql
--- Create a stream on the original topic.
--- The topic is keyed by userid, which is available as the implicit column ROWKEY
--- in the users_with_missing_key stream. Note how the explicit column definitions
--- only define username and email but not userid.
-CREATE STREAM users_with_missing_key (username VARCHAR, email VARCHAR)
-  WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
-
--- Derive a new stream with the required key changes.
--- 1) The contents of ROWKEY (message key) are copied into the message value as the userid_string column,
---    and the CAST statement converts the key to the required format.
--- 2) The PARTITION BY clause re-partitions the stream based on the new, converted key.
-CREATE STREAM users_with_proper_key
-  WITH(KAFKA_TOPIC='users-with-proper-key') AS
-  SELECT CAST(ROWKEY as VARCHAR) as userid_string, username, email
-  FROM users_with_missing_key
-  PARTITION BY userid_string
+-- Or, if you prefer, you can keep userId in the value of the repartitioned data
+-- This enables using the more descriptive `userId` rather than ROWTIME.
+CREATE STREAM users_with_proper_key_and_user_id
+  WITH(KAFKA_TOPIC='users_with_proper_key_and_user_id') AS
+  SELECT *
+  FROM users_with_wrong_key
+  PARTITION BY userid
   EMIT CHANGES;
 
 -- Now you can create the table on the properly keyed stream.
-CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR)
-  WITH (KAFKA_TOPIC='users-with-proper-key',
+-- queries against the table can use ROWKEY and userid interchangeably
+CREATE TABLE users_table_2 (ROWKEY INT KEY, userid KEY, username VARCHAR, email VARCHAR)
+  WITH (KAFKA_TOPIC='users_with_proper_key_and_user_id',
         VALUE_FORMAT='JSON',
-        KEY='userid_string');
+        KEY='userid');
 ```
 
 For more information, see

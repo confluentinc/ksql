@@ -38,5 +38,4 @@ public class AsMap {
     }
     return map;
   }
-
 }

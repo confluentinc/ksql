@@ -46,7 +46,7 @@ public final class StreamStreamJoinBuilder {
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
     final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
-        leftSchema.withoutAlias(),
+        leftSchema,
         leftFormats.getOptions()
     );
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
@@ -57,7 +57,7 @@ public final class StreamStreamJoinBuilder {
     final Formats rightFormats = join.getRightInternalFormats();
     final LogicalSchema rightSchema = right.getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
-        rightSchema.withoutAlias(),
+        rightSchema,
         rightFormats.getOptions()
     );
     final Serde<GenericRow> rightSerde = queryBuilder.buildValueSerde(

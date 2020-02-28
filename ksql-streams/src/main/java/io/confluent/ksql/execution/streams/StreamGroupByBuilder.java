@@ -20,11 +20,13 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
@@ -74,7 +76,14 @@ public final class StreamGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
 
-    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy);
+    final ProcessingLogger logger = queryBuilder
+        .getProcessingLogContext()
+        .getLoggerFactory()
+        .getLogger(
+            QueryLoggerUtil.queryLoggerName(queryBuilder.getQueryId(), queryContext)
+        );
+
+    final GroupByParams params = GroupByParamsFactory.build(sourceSchema, groupBy, logger);
 
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
         formats,

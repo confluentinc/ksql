@@ -1,0 +1,90 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572104999,
+  "schemas" : {
+    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
+    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, KEY VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : "1,0",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : "2,100",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : "3,10",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "a",
+    "value" : "4,50",
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 30000,
+      "end" : 60000,
+      "type" : "TIME"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : "a",
+    "value" : "1,0,a",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : "a",
+    "value" : "2,100,a",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : "a",
+    "value" : "3,10,a",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : "a",
+    "value" : "4,50,a",
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 30000,
+      "end" : 60000,
+      "type" : "TIME"
+    }
+  } ]
+}

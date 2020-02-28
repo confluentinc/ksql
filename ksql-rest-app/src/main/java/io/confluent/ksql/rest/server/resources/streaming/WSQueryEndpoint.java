@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -30,12 +31,14 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -52,6 +55,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -87,7 +91,7 @@ public class WSQueryEndpoint {
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher pushQueryPublisher;
-  private final QueryPublisher pullQueryPublisher;
+  private final IPullQueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
@@ -96,9 +100,11 @@ public class WSQueryEndpoint {
   private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final ServerState serverState;
   private final Errors errorHandler;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final PullQueryExecutor pullQueryExecutor;
 
   private WebSocketSubscriber<?> subscriber;
-  private ServiceContext serviceContext;
+  private KsqlSecurityContext securityContext;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -114,7 +120,9 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final KsqlSecurityExtension securityExtension,
-      final ServerState serverState
+      final ServerState serverState,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this(ksqlConfig,
         mapper,
@@ -132,7 +140,10 @@ public class WSQueryEndpoint {
         securityExtension,
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
-        serverState);
+        serverState,
+        schemaRegistryClientFactory,
+        pullQueryExecutor
+    );
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -145,7 +156,7 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher pushQueryPublisher,
-      final QueryPublisher pullQueryPublisher,
+      final IPullQueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
@@ -154,7 +165,9 @@ public class WSQueryEndpoint {
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
-      final ServerState serverState
+      final ServerState serverState,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -178,7 +191,10 @@ public class WSQueryEndpoint {
     this.defaultServiceContextFactory =
         Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.schemaRegistryClientFactory =
+        Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
+    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
   }
 
   @SuppressWarnings("unused")
@@ -218,7 +234,7 @@ public class WSQueryEndpoint {
 
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
-      serviceContext = createServiceContext(session.getUserPrincipal());
+      securityContext = createSecurityContext(session.getUserPrincipal());
 
       final Statement statement = preparedStatement.getStatement();
       final Class<? extends Statement> type = statement.getClass();
@@ -227,7 +243,7 @@ public class WSQueryEndpoint {
 
       HANDLER_MAP
           .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
-          .handle(this, new RequestContext(session, request, serviceContext), statement);
+          .handle(this, new RequestContext(session, request, securityContext), statement);
     } catch (final TopicAuthorizationException e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(
@@ -246,8 +262,8 @@ public class WSQueryEndpoint {
       subscriber.close();
     }
 
-    if (serviceContext != null) {
-      serviceContext.close();
+    if (securityContext != null) {
+      securityContext.getServiceContext().close();
     }
 
     log.debug(
@@ -283,22 +299,27 @@ public class WSQueryEndpoint {
     );
   }
 
-  private ServiceContext createServiceContext(final Principal principal) {
-    // Creates a ServiceContext using the user's credentials, so the WS query topics are
-    // accessed with the user permission context (defaults to KSQL service context)
+  private KsqlSecurityContext createSecurityContext(final Principal principal) {
+    final ServiceContext serviceContext;
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
+      serviceContext = defaultServiceContextFactory.create(ksqlConfig, Optional.empty(),
+          schemaRegistryClientFactory);
+    } else {
+      // Creates a ServiceContext using the user's credentials, so the WS query topics are
+      // accessed with the user permission context (defaults to KSQL service context)
+
+      serviceContext = securityExtension.getUserContextProvider()
+          .map(provider ->
+              serviceContextFactory.create(
+                  ksqlConfig,
+                  Optional.empty(),
+                  provider.getKafkaClientSupplier(principal),
+                  provider.getSchemaRegistryClientFactory(principal)))
+          .get();
     }
 
-    return securityExtension.getUserContextProvider()
-        .map(provider ->
-            serviceContextFactory.create(
-                ksqlConfig,
-                Optional.empty(),
-                provider.getKafkaClientSupplier(principal),
-                provider.getSchemaRegistryClientFactory(principal)))
-        .get();
+    return new KsqlSecurityContext(Optional.ofNullable(principal), serviceContext);
   }
 
   private void validateVersion(final Session session) {
@@ -356,23 +377,11 @@ public class WSQueryEndpoint {
   }
 
   private void validateKafkaAuthorization(final Statement statement) {
-    if (statement instanceof Query && ((Query) statement).isPullQuery()) {
-      final boolean skipAccessValidation = ksqlConfig.getBoolean(
-          KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
-      if (authorizationValidator.isPresent() && !skipAccessValidation) {
-        throw new KsqlException("Pull queries are not currently supported when "
-            + "access validation against Kafka is configured. If you really want to "
-            + "bypass this limitation please set "
-            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "
-            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC);
-      }
-    } else {
-      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
-          serviceContext,
-          ksqlEngine.getMetaStore(),
-          statement)
-      );
-    }
+    authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+        securityContext,
+        ksqlEngine.getMetaStore(),
+        statement)
+    );
   }
 
 
@@ -390,23 +399,30 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    final QueryPublisher queryPublisher = query.isPullQuery()
-        ? pullQueryPublisher
-        : pushQueryPublisher;
-
-    queryPublisher.start(
-        ksqlEngine,
-        info.serviceContext,
-        exec,
-        configured,
-        streamSubscriber
-    );
+    if (query.isPullQuery()) {
+      pullQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber,
+          pullQueryExecutor
+      );
+    } else {
+      pushQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          streamSubscriber
+      );
+    }
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic();
 
-    if (!info.serviceContext.getTopicClient().isTopicExists(topicName)) {
+    if (!info.securityContext.getServiceContext().getTopicClient().isTopicExists(topicName)) {
       throw new IllegalArgumentException(
           "Topic does not exist, or KSQL does not have permission to list the topic: " + topicName);
     }
@@ -417,7 +433,7 @@ public class WSQueryEndpoint {
 
     topicPublisher.start(
         exec,
-        info.serviceContext,
+        info.securityContext.getServiceContext(),
         ksqlConfig.getKsqlStreamConfigProps(),
         printTopic,
         topicSubscriber
@@ -451,10 +467,15 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final PullQueryExecutor pullQueryExecutor
+
   ) {
-    new PullQueryPublisher(ksqlEngine, serviceContext, query)
-        .subscribe(streamSubscriber);
+    new PullQueryPublisher(
+        serviceContext,
+        query,
+        pullQueryExecutor
+    ).subscribe(streamSubscriber);
   }
 
   private static void startPrintPublisher(
@@ -479,6 +500,19 @@ public class WSQueryEndpoint {
 
   }
 
+  interface IPullQueryPublisher {
+
+    void start(
+        KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
+        ListeningScheduledExecutorService exec,
+        ConfiguredStatement<Query> query,
+        WebSocketSubscriber<StreamedRow> subscriber,
+        PullQueryExecutor pullQueryExecutor);
+
+  }
+
+
   interface PrintTopicPublisher {
 
     void start(
@@ -493,13 +527,16 @@ public class WSQueryEndpoint {
 
     private final Session session;
     private final KsqlRequest request;
-    private final ServiceContext serviceContext;
+    private final KsqlSecurityContext securityContext;
 
     private RequestContext(
-        final Session session, final KsqlRequest request, final ServiceContext serviceContext) {
+        final Session session,
+        final KsqlRequest request,
+        final KsqlSecurityContext securityContext
+    ) {
       this.session = session;
       this.request = request;
-      this.serviceContext = serviceContext;
+      this.securityContext = securityContext;
     }
   }
 }

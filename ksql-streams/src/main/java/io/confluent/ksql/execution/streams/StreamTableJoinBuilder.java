@@ -45,7 +45,7 @@ public final class StreamTableJoinBuilder {
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
     final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
-        leftSchema.withoutAlias(),
+        leftSchema,
         leftFormats.getOptions()
     );
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(

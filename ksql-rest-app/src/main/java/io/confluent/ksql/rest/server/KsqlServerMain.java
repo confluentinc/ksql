@@ -81,6 +81,7 @@ public class KsqlServerMain {
     }
   }
 
+
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
       final Map<String, String> properties,

@@ -134,7 +134,6 @@ public class DefaultSqlValueCoercerTest {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
     assertThat(coercer.coerce(1, decimalType), is(Optional.of(new BigDecimal("1.0"))));
     assertThat(coercer.coerce(1L, decimalType), is(Optional.of(new BigDecimal("1.0"))));
-    assertThat(coercer.coerce("1.0", decimalType), is(Optional.of(new BigDecimal("1.0"))));
     assertThat(coercer.coerce(new BigDecimal("1.0"), decimalType),
         is(Optional.of(new BigDecimal("1.0"))));
   }
@@ -143,7 +142,9 @@ public class DefaultSqlValueCoercerTest {
   public void shouldNotCoerceToDecimal() {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
     assertThat(coercer.coerce(true, decimalType), is(Optional.empty()));
+    assertThat(coercer.coerce("1.0", decimalType), is(Optional.empty()));
     assertThat(coercer.coerce(1.0d, decimalType), is(Optional.empty()));
+    assertThat(coercer.coerce(1234L, decimalType), is(Optional.empty()));
   }
 
   @Test
@@ -194,13 +195,12 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Optional.empty()));
   }
 
-
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCoerceToStruct() {
     // Given:
-    final Schema schema = SchemaBuilder.struct().field("foo", Schema.STRING_SCHEMA);
-    final Struct struct = new Struct(schema).put("foo", "2.1");
+    final Schema schema = SchemaBuilder.struct().field("foo", Schema.INT64_SCHEMA);
+    final Struct struct = new Struct(schema).put("foo", 2L);
     final SqlType structType = SqlTypes.struct().field("foo", SqlTypes.decimal(2, 1)).build();
 
     // When:
@@ -208,7 +208,7 @@ public class DefaultSqlValueCoercerTest {
 
     // Then:
     assertThat("", coerced.isPresent());
-    assertThat(coerced.get().get("foo"), is(new BigDecimal("2.1")));
+    assertThat(coerced.get().get("foo"), is(new BigDecimal("2.0")));
   }
 
   @SuppressWarnings("unchecked")
@@ -245,19 +245,6 @@ public class DefaultSqlValueCoercerTest {
   }
 
   @Test
-  public void shouldThrowIfInvalidCoercionString() {
-    // Given:
-    final String val = "hello";
-
-    // Expect;
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot coerce value to DECIMAL: hello");
-
-    // When:
-    coercer.coerce(val, SqlTypes.decimal(2, 1));
-  }
-
-  @Test
   public void shouldCoerceUsingSameRulesAsBaseTypeUpCastRules() {
     for (final SqlBaseType fromBaseType : supportedTypes()) {
       // Given:
@@ -287,10 +274,6 @@ public class DefaultSqlValueCoercerTest {
       final SqlBaseType fromBaseType,
       final SqlBaseType toBaseType
   ) {
-    if (fromBaseType == SqlBaseType.STRING && toBaseType == SqlBaseType.DECIMAL) {
-      // Handled by parsing the string to a decimal:
-      return true;
-    }
     return fromBaseType.canImplicitlyCast(toBaseType);
   }
 

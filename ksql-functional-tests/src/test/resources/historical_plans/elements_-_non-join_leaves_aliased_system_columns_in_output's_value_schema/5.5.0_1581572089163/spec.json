@@ -1,0 +1,38 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572089163,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, TIME BIGINT, WSTART BIGINT, WEND BIGINT, KEY VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "k",
+    "value" : {
+      "F0" : 4
+    },
+    "timestamp" : 1,
+    "window" : {
+      "start" : 12,
+      "end" : 465,
+      "type" : "SESSION"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "k",
+    "value" : {
+      "F0" : 4,
+      "TIME" : 1,
+      "WSTART" : 12,
+      "WEND" : 465,
+      "KEY" : "k"
+    },
+    "timestamp" : 1,
+    "window" : {
+      "start" : 12,
+      "end" : 465,
+      "type" : "SESSION"
+    }
+  } ]
+}

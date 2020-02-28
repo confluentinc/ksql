@@ -89,7 +89,7 @@ public class WindowExpression extends AstNode {
         return TimeUnit.valueOf(windowUnitString + "S");
       }
       return TimeUnit.valueOf(windowUnitString);
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       return null;
     }
   }

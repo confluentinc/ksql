@@ -15,10 +15,31 @@
 
 package io.confluent.ksql.rest;
 
+import io.confluent.ksql.util.ErrorMessageUtil;
+
 public class DefaultErrorMessages implements ErrorMessages {
 
   @Override
   public String kafkaAuthorizationErrorMessage(final Exception e) {
-    return e.getMessage();
+    return ErrorMessageUtil.buildErrorMessage(e);
+  }
+
+  @Override
+  public String transactionInitTimeoutErrorMessage(final Exception e) {
+    return "Timeout while initializing transaction to the KSQL command topic."
+        + System.lineSeparator()
+        + "If you're running a single Kafka broker, " 
+        + "ensure that the following configs are set to 1 on the broker:"
+        + System.lineSeparator()
+        + "- transaction.state.log.replication.factor"
+        + System.lineSeparator()
+        + "- transaction.state.log.min.isr"
+        + System.lineSeparator()
+        + "- offsets.topic.replication.factor";
+  }
+
+  @Override
+  public String schemaRegistryUnconfiguredErrorMessage(final Exception e) {
+    return ErrorMessageUtil.buildErrorMessage(e);
   }
 }

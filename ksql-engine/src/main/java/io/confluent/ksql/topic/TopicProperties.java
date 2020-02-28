@@ -93,8 +93,8 @@ public final class TopicProperties {
 
     private String name;
     private TopicProperties fromWithClause = new TopicProperties(null, null, null);
-    private TopicProperties fromOverrides = new TopicProperties(null, null, null);
-    private TopicProperties fromKsqlConfig = new TopicProperties(null, null, null);
+    private final TopicProperties fromOverrides = new TopicProperties(null, null, null);
+    private final TopicProperties fromKsqlConfig = new TopicProperties(null, null, null);
     private Supplier<TopicProperties> fromSource = () -> new TopicProperties(null, null, null);
 
     Builder withName(final String name) {

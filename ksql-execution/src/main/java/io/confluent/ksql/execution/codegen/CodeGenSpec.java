@@ -25,28 +25,29 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 public final class CodeGenSpec {
 
   private final ImmutableList<ArgumentSpec> arguments;
-  private final ImmutableMap<ColumnRef, String> columnToCodeName;
+  private final ImmutableMap<ColumnName, String> columnToCodeName;
   private final ImmutableListMultimap<FunctionName, String> functionToCodeName;
   private final ImmutableMap<CreateStructExpression, String> structToCodeName;
 
   private CodeGenSpec(
-      ImmutableList<ArgumentSpec> arguments,
-      ImmutableMap<ColumnRef, String> columnToCodeName,
-      ImmutableListMultimap<FunctionName, String> functionToCodeName,
-      ImmutableMap<CreateStructExpression, String> structToCodeName
+      final ImmutableList<ArgumentSpec> arguments,
+      final ImmutableMap<ColumnName, String> columnToCodeName,
+      final ImmutableListMultimap<FunctionName, String> functionToCodeName,
+      final ImmutableMap<CreateStructExpression, String> structToCodeName
   ) {
     this.arguments = arguments;
     this.columnToCodeName = columnToCodeName;
@@ -66,25 +67,25 @@ public final class CodeGenSpec {
     return arguments;
   }
 
-  public String getCodeName(ColumnRef columnRef) {
-    return columnToCodeName.get(columnRef);
+  public String getCodeName(final ColumnName columnName) {
+    return columnToCodeName.get(columnName);
   }
 
-  public String getUniqueNameForFunction(FunctionName functionName, int index) {
-    List<String> names = functionToCodeName.get(functionName);
+  public String getUniqueNameForFunction(final FunctionName functionName, final int index) {
+    final List<String> names = functionToCodeName.get(functionName);
     if (names.size() <= index) {
       throw new KsqlException("Cannot get name for " + functionName + " " + index + " times");
     }
     return names.get(index);
   }
 
-  public void resolve(GenericRow row, Object[] parameters) {
+  public void resolve(final GenericRow row, final Object[] parameters) {
     for (int paramIdx = 0; paramIdx < arguments.size(); paramIdx++) {
       parameters[paramIdx] = arguments.get(paramIdx).resolve(row);
     }
   }
 
-  public String getStructSchemaName(CreateStructExpression createStructExpression) {
+  public String getStructSchemaName(final CreateStructExpression createStructExpression) {
     final String schemaName = structToCodeName.get(createStructExpression);
     if (schemaName == null) {
       throw new KsqlException(
@@ -97,7 +98,7 @@ public final class CodeGenSpec {
   static class Builder {
 
     private final ImmutableList.Builder<ArgumentSpec> argumentBuilder = ImmutableList.builder();
-    private final Map<ColumnRef, String> columnRefToName = new HashMap<>();
+    private final Map<ColumnName, String> columnRefToName = new HashMap<>();
     private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
         ImmutableListMultimap.builder();
     private final ImmutableMap.Builder<CreateStructExpression, String> structToSchemaName =
@@ -107,22 +108,22 @@ public final class CodeGenSpec {
     private int structSchemaCount = 0;
 
     void addParameter(
-        final ColumnRef columnRef,
+        final ColumnName columnName,
         final Class<?> type,
         final int colIndex
     ) {
       final String codeName = CodeGenUtil.paramName(argumentCount++);
-      columnRefToName.put(columnRef, codeName);
+      columnRefToName.put(columnName, codeName);
       argumentBuilder.add(new ValueArgumentSpec(codeName, type, colIndex));
     }
 
-    void addFunction(FunctionName functionName, Kudf function) {
+    void addFunction(final FunctionName functionName, final Kudf function) {
       final String codeName = CodeGenUtil.functionName(functionName, argumentCount++);
       functionNameBuilder.put(functionName, codeName);
       argumentBuilder.add(new FunctionArgumentSpec(codeName, function.getClass(), function));
     }
 
-    void addStructSchema(CreateStructExpression struct, Schema schema) {
+    void addStructSchema(final CreateStructExpression struct, final Schema schema) {
       final String structSchemaName = CodeGenUtil.schemaName(structSchemaCount++);
       structToSchemaName.put(struct, structSchemaName);
       argumentBuilder.add(new SchemaArgumentSpec(structSchemaName, schema));
@@ -223,7 +224,7 @@ public final class CodeGenSpec {
 
     @Override
     public Object resolve(final GenericRow value) {
-      return value.getColumns().get(columnIndex);
+      return value.get(columnIndex);
     }
 
     @Override
@@ -239,18 +240,18 @@ public final class CodeGenSpec {
   @Immutable
   public static final class SchemaArgumentSpec extends BaseArgumentSpec {
 
-    private final Schema schema;
+    private final ConnectSchema schema;
 
     SchemaArgumentSpec(
-        String name,
-        Schema schema
+        final String name,
+        final Schema schema
     ) {
       super(name, Schema.class);
-      this.schema = requireNonNull(schema, "schema");
+      this.schema = (ConnectSchema) requireNonNull(schema, "schema").schema();
     }
 
     @Override
-    public Object resolve(GenericRow value) {
+    public Object resolve(final GenericRow value) {
       return schema;
     }
 

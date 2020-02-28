@@ -16,7 +16,6 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.KsqlTerminal;
-import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -94,5 +93,10 @@ public class TestTerminal implements KsqlTerminal {
   @Override
   public StatusClosable setStatusMessage(final String message) {
     return () -> {};
+  }
+
+  @Override
+  public void printError(final String message) {
+    writer().println(message);
   }
 }

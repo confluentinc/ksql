@@ -54,7 +54,7 @@ class UdafLoader {
     final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
 
     final List<UdafFactoryInvoker> invokers = new ArrayList<>();
-    for (Method method : theClass.getMethods()) {
+    for (final Method method : theClass.getMethods()) {
       if (method.getAnnotation(UdafFactory.class) != null) {
         if (!Modifier.isStatic(method.getModifiers())) {
           LOGGER.warn(

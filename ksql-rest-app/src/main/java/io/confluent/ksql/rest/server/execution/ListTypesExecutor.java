@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.TypeRegistry.CustomType;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.TypeList;
@@ -26,7 +27,6 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
 
 public final class ListTypesExecutor {
@@ -35,7 +35,7 @@ public final class ListTypesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTypes> configuredStatement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

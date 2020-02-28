@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -71,6 +73,16 @@ public class ListConnectorsExecutorTest {
       ConnectorType.SOURCE
   );
 
+  private static final ConnectorStateInfo STATUS_WARNING = new ConnectorStateInfo(
+      "connector",
+      new ConnectorState("RUNNING", "foo", "bar"),
+      ImmutableList.of(
+          new TaskState(0, "FAILED", "", ""),
+          new TaskState(1, "FAILED", "", "")
+      ),
+      ConnectorType.SOURCE
+  );
+
   @Mock
   private KsqlExecutionContext engine;
   @Mock
@@ -102,7 +114,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -113,6 +125,36 @@ public class ListConnectorsExecutorTest {
         ImmutableList.of(),
         ImmutableList.of(
             new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS, "RUNNING (1/2 tasks RUNNING)")
+        )
+    )));
+  }
+
+  @Test
+  public void shouldLabelConnectorsWithNoRunningTasksAsWarning() {
+    // Given:
+    when(connectClient.status("connector"))
+        .thenReturn(ConnectResponse.success(STATUS_WARNING, HttpStatus.SC_OK));
+    when(connectClient.connectors())
+        .thenReturn(ConnectResponse.success(ImmutableList.of("connector"), HttpStatus.SC_OK));
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
+
+    // When:
+    final Optional<KsqlEntity> entity = ListConnectorsExecutor
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    assertThat("expected response!", entity.isPresent());
+    final ConnectorList connectorList = (ConnectorList) entity.get();
+
+    assertThat(connectorList, is(new ConnectorList(
+        "",
+        ImmutableList.of(),
+        ImmutableList.of(
+            new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS, "WARNING (0/2 tasks RUNNING)")
         )
     )));
   }
@@ -131,7 +173,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -157,7 +199,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, ImmutableMap.of(), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());

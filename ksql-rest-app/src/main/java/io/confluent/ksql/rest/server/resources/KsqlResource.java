@@ -30,10 +30,12 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
@@ -45,14 +47,17 @@ import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -68,6 +73,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +107,9 @@ public class KsqlResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
-  private Errors errorHandler;
+  private final Errors errorHandler;
+  private KsqlHostInfo localHost;
+  private URL localUrl;
 
 
   public KsqlResource(
@@ -150,6 +158,19 @@ public class KsqlResource implements KsqlConfigurable {
       throw new IllegalArgumentException("Need KS application server set");
     }
 
+
+    final String applicationServer = 
+        (String) config.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    final HostInfo hostInfo = ServerUtil.parseHostInfo(applicationServer);
+    this.localHost = new KsqlHostInfo(hostInfo.host(), hostInfo.port());
+    try {
+      this.localUrl = new URL(applicationServer);
+    } catch (final Exception e) {
+      throw new IllegalStateException("Failed to convert remote host info to URL."
+          + " remoteInfo: " + localHost.host() + ":"
+          + localHost.host());
+    }
+
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
@@ -161,11 +182,13 @@ public class KsqlResource implements KsqlConfigurable {
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
+            config,
             commandQueue,
             distributedCmdResponseTimeout,
             injectorFactory,
             authorizationValidator,
-            new ValidatedCommandFactory(config)
+            new ValidatedCommandFactory(config),
+            errorHandler
         ),
         ksqlEngine,
         config,
@@ -180,7 +203,7 @@ public class KsqlResource implements KsqlConfigurable {
   @POST
   @Path("/terminate")
   public Response terminateCluster(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final ClusterTerminateRequest request
   ) {
     LOG.info("Received: " + request);
@@ -190,9 +213,13 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final KsqlEntityList entities = handler.execute(
-          serviceContext,
+          securityContext,
           TERMINATE_CLUSTER,
-          request.getStreamsProperties()
+          new SessionProperties(
+              request.getStreamsProperties(),
+              localHost,
+              localUrl
+          )
       );
       return Response.ok(entities).build();
     } catch (final Exception e) {
@@ -203,7 +230,7 @@ public class KsqlResource implements KsqlConfigurable {
 
   @POST
   public Response handleKsqlStatements(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     LOG.info("Received: " + request);
@@ -220,16 +247,24 @@ public class KsqlResource implements KsqlConfigurable {
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
       validator.validate(
-          SandboxedServiceContext.create(serviceContext),
+          SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
-          request.getStreamsProperties(),
+          new SessionProperties(
+              request.getStreamsProperties(),
+              localHost, 
+              localUrl
+          ),
           request.getKsql()
       );
 
       final KsqlEntityList entities = handler.execute(
-          serviceContext,
+          securityContext,
           statements,
-          request.getStreamsProperties()
+          new SessionProperties(
+              request.getStreamsProperties(),
+              localHost,
+              localUrl
+          )
       );
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {

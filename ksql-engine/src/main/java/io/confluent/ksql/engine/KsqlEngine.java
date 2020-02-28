@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -37,6 +38,8 @@ import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -49,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,9 +209,29 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement
   ) {
-    final TransientQueryMetadata query = EngineExecutor
+    try {
+      final TransientQueryMetadata query = EngineExecutor
+          .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
+          .executeQuery(statement);
+      registerQuery(query);
+      return query;
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      // add the statement text to the KsqlException
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+    }
+  }
+
+  @Override
+  public QueryMetadata executeQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final Consumer<GenericRow> rowConsumer
+  ) {
+    final QueryMetadata query = EngineExecutor
         .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
-        .executeQuery(statement);
+        .executeQuery(statement, rowConsumer);
     registerQuery(query);
     return query;
   }
@@ -240,8 +264,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     final String applicationId = query.getQueryApplicationId();
 
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
-      throw new IllegalStateException("query not stopped."
-          + " id " + applicationId + ", state: " + query.getState());
+      log.warn(
+          "Unregistering query that has not terminated. "
+              + "This may happen when streams threads are hung. State: " + query.getState()
+      );
     }
 
     if (!allLiveQueries.remove(query)) {

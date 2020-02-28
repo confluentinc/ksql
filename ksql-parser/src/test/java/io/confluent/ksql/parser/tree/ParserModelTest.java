@@ -37,7 +37,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.util.ClassFinder;
@@ -69,7 +68,7 @@ public class ParserModelTest {
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
-      .put(ColumnRef.class, ColumnRef.withoutSource(ColumnName.of("bob")))
+      .put(ColumnName.class, ColumnName.of("bob"))
       .put(Expression.class, DEFAULT_TYPE)
       .put(KsqlWindowExpression.class, new TumblingWindowExpression(1, TimeUnit.SECONDS))
       .put(Relation.class, DEFAULT_RELATION)

@@ -24,11 +24,11 @@ public class DropTypeCommand implements DdlCommand {
   private final String typeName;
 
   @Override
-  public DdlCommandResult execute(Executor executor) {
+  public DdlCommandResult execute(final Executor executor) {
     return executor.executeDropType(this);
   }
 
-  public DropTypeCommand(@JsonProperty(value = "typeName", required = true) String typeName) {
+  public DropTypeCommand(@JsonProperty(value = "typeName", required = true) final String typeName) {
     this.typeName = Objects.requireNonNull(typeName, "typeName");
   }
 

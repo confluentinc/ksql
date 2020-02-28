@@ -157,7 +157,7 @@ public final class ListSumUdaf {
       final BinaryOperator<T> summer) {
 
     T sum = initial;
-    for (T v: list) {
+    for (final T v: list) {
       if (v == null) {
         continue;
       }

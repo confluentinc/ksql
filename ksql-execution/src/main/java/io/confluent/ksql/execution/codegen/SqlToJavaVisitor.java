@@ -15,22 +15,26 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
+import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -49,6 +53,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -56,15 +61,21 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -82,13 +93,14 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
@@ -104,13 +116,15 @@ public class SqlToJavaVisitor {
       "java.util.List",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
+      "com.google.common.collect.ImmutableMap",
       "java.util.function.Supplier",
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
       RoundingMode.class.getCanonicalName(),
       SchemaBuilder.class.getCanonicalName(),
-      Struct.class.getCanonicalName()
+      Struct.class.getCanonicalName(),
+      ArrayBuilder.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -138,19 +152,19 @@ public class SqlToJavaVisitor {
 
   private final ExpressionTypeManager expressionTypeManager;
   private final Function<FunctionName, String> funNameToCodeName;
-  private final Function<ColumnRef, String> colRefToCodeName;
+  private final Function<ColumnName, String> colRefToCodeName;
   private final Function<CreateStructExpression, String> structToCodeName;
 
   public static SqlToJavaVisitor of(
-      LogicalSchema schema, FunctionRegistry functionRegistry, CodeGenSpec spec
+      final LogicalSchema schema, final FunctionRegistry functionRegistry, final CodeGenSpec spec
   ) {
-    Multiset<FunctionName> nameCounts = HashMultiset.create();
+    final Multiset<FunctionName> nameCounts = HashMultiset.create();
     return new SqlToJavaVisitor(
         schema,
         functionRegistry,
         spec::getCodeName,
         name -> {
-          int index = nameCounts.add(name, 1);
+          final int index = nameCounts.add(name, 1);
           return spec.getUniqueNameForFunction(name, index);
         },
         spec::getStructSchemaName);
@@ -158,13 +172,12 @@ public class SqlToJavaVisitor {
 
   @VisibleForTesting
   SqlToJavaVisitor(
-      LogicalSchema schema, FunctionRegistry functionRegistry,
-      Function<ColumnRef, String> colRefToCodeName,
-      Function<FunctionName, String> funNameToCodeName,
-      Function<CreateStructExpression, String> structToCodeName
+      final LogicalSchema schema, final FunctionRegistry functionRegistry,
+      final Function<ColumnName, String> colRefToCodeName,
+      final Function<FunctionName, String> funNameToCodeName,
+      final Function<CreateStructExpression, String> structToCodeName
   ) {
-    this.expressionTypeManager =
-        new ExpressionTypeManager(schema, functionRegistry);
+    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
@@ -172,12 +185,12 @@ public class SqlToJavaVisitor {
     this.structToCodeName = Objects.requireNonNull(structToCodeName, "structToCodeName");
   }
 
-  public String process(Expression expression) {
+  public String process(final Expression expression) {
     return formatExpression(expression);
   }
 
-  private String formatExpression(Expression expression) {
-    Pair<String, SqlType> expressionFormatterResult =
+  private String formatExpression(final Expression expression) {
+    final Pair<String, SqlType> expressionFormatterResult =
         new Formatter(functionRegistry).process(expression, null);
     return expressionFormatterResult.getLeft();
   }
@@ -187,16 +200,16 @@ public class SqlToJavaVisitor {
 
     private final FunctionRegistry functionRegistry;
 
-    Formatter(FunctionRegistry functionRegistry) {
+    Formatter(final FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
     }
 
-    private Pair<String, SqlType> visitIllegalState(Expression expression) {
+    private Pair<String, SqlType> visitIllegalState(final Expression expression) {
       throw new IllegalStateException(
           format("expression type %s should never be visited", expression.getClass()));
     }
 
-    private Pair<String, SqlType> visitUnsupported(Expression expression) {
+    private Pair<String, SqlType> visitUnsupported(final Expression expression) {
       throw new UnsupportedOperationException(
           format(
               "not yet implemented: %s.visit%s",
@@ -207,58 +220,62 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitType(Type node, Void context) {
+    public Pair<String, SqlType> visitType(final Type node, final Void context) {
       return visitIllegalState(node);
     }
 
     @Override
-    public Pair<String, SqlType> visitWhenClause(WhenClause whenClause, Void context) {
+    public Pair<String, SqlType> visitWhenClause(final WhenClause whenClause, final Void context) {
       return visitIllegalState(whenClause);
     }
 
     @Override
-    public Pair<String, SqlType> visitInPredicate(InPredicate inPredicate, Void context) {
+    public Pair<String, SqlType> visitInPredicate(
+        final InPredicate inPredicate,
+        final Void context
+    ) {
       return visitUnsupported(inPredicate);
     }
 
     @Override
     public Pair<String, SqlType> visitInListExpression(
-        InListExpression inListExpression, Void context
+        final InListExpression inListExpression, final Void context
     ) {
       return visitUnsupported(inListExpression);
     }
 
     @Override
     public Pair<String, SqlType> visitTimestampLiteral(
-        TimestampLiteral timestampLiteral, Void context
+        final TimestampLiteral timestampLiteral, final Void context
     ) {
       return visitUnsupported(timestampLiteral);
     }
 
     @Override
-    public Pair<String, SqlType> visitTimeLiteral(TimeLiteral timeLiteral, Void context) {
+    public Pair<String, SqlType> visitTimeLiteral(
+        final TimeLiteral timeLiteral,
+        final Void context
+    ) {
       return visitUnsupported(timeLiteral);
     }
 
     @Override
-    public Pair<String, SqlType> visitDecimalLiteral(DecimalLiteral decimalLiteral, Void context) {
-      return visitUnsupported(decimalLiteral);
-    }
-
-    @Override
     public Pair<String, SqlType> visitSimpleCaseExpression(
-        SimpleCaseExpression simpleCaseExpression, Void context
+        final SimpleCaseExpression simpleCaseExpression, final Void context
     ) {
       return visitUnsupported(simpleCaseExpression);
     }
 
     @Override
-    public Pair<String, SqlType> visitBooleanLiteral(BooleanLiteral node, Void context) {
+    public Pair<String, SqlType> visitBooleanLiteral(
+        final BooleanLiteral node,
+        final Void context
+    ) {
       return new Pair<>(String.valueOf(node.getValue()), SqlTypes.BOOLEAN);
     }
 
     @Override
-    public Pair<String, SqlType> visitStringLiteral(StringLiteral node, Void context) {
+    public Pair<String, SqlType> visitStringLiteral(final StringLiteral node, final Void context) {
       return new Pair<>(
           "\"" + StringEscapeUtils.escapeJava(node.getValue()) + "\"",
           SqlTypes.STRING
@@ -266,19 +283,33 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitDoubleLiteral(DoubleLiteral node, Void context) {
-      return new Pair<>(Double.toString(node.getValue()), SqlTypes.DOUBLE);
+    public Pair<String, SqlType> visitDoubleLiteral(final DoubleLiteral node, final Void context) {
+      return new Pair<>(node.toString(), SqlTypes.DOUBLE);
     }
 
     @Override
-    public Pair<String, SqlType> visitNullLiteral(NullLiteral node, Void context) {
+    public Pair<String, SqlType> visitDecimalLiteral(
+        final DecimalLiteral decimalLiteral,
+        final Void context
+    ) {
+      return new Pair<>(
+          "new BigDecimal(\"" + decimalLiteral.getValue() + "\")",
+          DecimalUtil.fromValue(decimalLiteral.getValue())
+      );
+    }
+
+    @Override
+    public Pair<String, SqlType> visitNullLiteral(final NullLiteral node, final Void context) {
       return new Pair<>("null", null);
     }
 
     @Override
-    public Pair<String, SqlType> visitColumnReference(ColumnReferenceExp node, Void context) {
-      ColumnRef fieldName = node.getReference();
-      Column schemaColumn = schema.findValueColumn(node.getReference())
+    public Pair<String, SqlType> visitColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      final ColumnName fieldName = node.getReference();
+      final Column schemaColumn = schema.findValueColumn(node.getReference())
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getReference()));
 
@@ -286,59 +317,104 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitDereferenceExpression(
-        DereferenceExpression node, Void context
+    public Pair<String, SqlType> visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
     ) {
-      SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(node);
-      String javaReturnType =
+      throw new UnsupportedOperationException(
+          "Qualified column reference must be resolved to unqualified reference before codegen"
+      );
+    }
+
+    @Override
+    public Pair<String, SqlType> visitDereferenceExpression(
+        final DereferenceExpression node, final Void context
+    ) {
+      final SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(node);
+      final String javaReturnType =
           SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
 
-      String struct = process(node.getBase(), context).getLeft();
-      String field = process(new StringLiteral(node.getFieldName()), context).getLeft();
-      String codeString = "((" + javaReturnType + ") "
+      final String struct = process(node.getBase(), context).getLeft();
+      final String field = process(new StringLiteral(node.getFieldName()), context).getLeft();
+      final String codeString = "((" + javaReturnType + ") "
           + struct + ".get(" + field + "))";
 
       return new Pair<>(codeString, functionReturnSchema);
     }
 
-    public Pair<String, SqlType> visitLongLiteral(LongLiteral node, Void context) {
+    public Pair<String, SqlType> visitLongLiteral(final LongLiteral node, final Void context) {
       return new Pair<>(node.getValue() + "L", SqlTypes.BIGINT);
     }
 
     @Override
-    public Pair<String, SqlType> visitIntegerLiteral(IntegerLiteral node, Void context) {
+    public Pair<String, SqlType> visitIntegerLiteral(
+        final IntegerLiteral node,
+        final Void context
+    ) {
       return new Pair<>(Integer.toString(node.getValue()), SqlTypes.INTEGER);
     }
 
     @Override
-    public Pair<String, SqlType> visitFunctionCall(FunctionCall node, Void context) {
-      FunctionName functionName = node.getName();
+    public Pair<String, SqlType> visitFunctionCall(final FunctionCall node, final Void context) {
+      final FunctionName functionName = node.getName();
 
-      String instanceName = funNameToCodeName.apply(functionName);
+      final String instanceName = funNameToCodeName.apply(functionName);
 
-      SqlType functionReturnSchema = getFunctionReturnSchema(node);
-      String javaReturnType =
-          SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
-      String arguments = node.getArguments().stream()
-          .map(arg -> process(arg, context).getLeft())
-          .collect(Collectors.joining(", "));
-      String codeString = "((" + javaReturnType + ") " + instanceName
-          + ".evaluate(" + arguments + "))";
-      return new Pair<>(codeString, functionReturnSchema);
-    }
-
-    private SqlType getFunctionReturnSchema(FunctionCall node) {
-      UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
-      List<SqlType> argumentSchemas = node.getArguments().stream()
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
+      final List<SqlType> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSqlType)
           .collect(Collectors.toList());
 
-      return udfFactory.getFunction(argumentSchemas).getReturnType(argumentSchemas);
+      final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
+
+      final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
+      final String javaReturnType =
+          SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
+
+      final List<Expression> arguments = node.getArguments();
+
+      final StringJoiner joiner = new StringJoiner(", ");
+      for (int i = 0; i < arguments.size(); i++) {
+        final Expression arg = arguments.get(i);
+        final SqlType sqlType = argumentSchemas.get(i);
+
+        final ParamType paramType;
+        if (i >= function.parameters().size() - 1 && function.isVariadic()) {
+          paramType = ((ArrayType) Iterables.getLast(function.parameters())).element();
+        } else {
+          paramType = function.parameters().get(i);
+        }
+
+        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+      }
+
+
+      final String argumentsString = joiner.toString();
+      final String codeString = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + argumentsString + "))";
+      return new Pair<>(codeString, functionReturnSchema);
+    }
+
+    private Expression convertArgument(
+        final Expression argument,
+        final SqlType argType,
+        final ParamType funType
+    ) {
+      if (argType == null
+          || GenericsUtil.hasGenerics(funType)
+          || sqlToFunctionConverter().toFunctionType(argType).equals(funType)) {
+        return argument;
+      }
+
+      final SqlType target = funType == ParamTypes.DECIMAL
+          ? DecimalUtil.toSqlDecimal(argType)
+          : SchemaConverters.functionToSqlConverter().toSqlType(funType);
+      return new Cast(argument, new Type(target));
     }
 
     @Override
     public Pair<String, SqlType> visitLogicalBinaryExpression(
-        LogicalBinaryExpression node, Void context
+        final LogicalBinaryExpression node, final Void context
     ) {
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
@@ -359,12 +435,12 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitNotExpression(NotExpression node, Void context) {
-      String exprString = process(node.getValue(), context).getLeft();
+    public Pair<String, SqlType> visitNotExpression(final NotExpression node, final Void context) {
+      final String exprString = process(node.getValue(), context).getLeft();
       return new Pair<>("(!" + exprString + ")", SqlTypes.BOOLEAN);
     }
 
-    private String nullCheckPrefix(ComparisonExpression.Type type) {
+    private String nullCheckPrefix(final ComparisonExpression.Type type) {
       if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
         return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
             + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
@@ -372,7 +448,7 @@ public class SqlToJavaVisitor {
       return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
     }
 
-    private String visitStringComparisonExpression(ComparisonExpression.Type type) {
+    private String visitStringComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
           return "(%1$s.equals(%2$s))";
@@ -389,7 +465,7 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitScalarComparisonExpression(ComparisonExpression.Type type) {
+    private String visitScalarComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
           return "((%1$s <= %2$s) && (%1$s >= %2$s))";
@@ -407,9 +483,9 @@ public class SqlToJavaVisitor {
     }
 
     private String visitBytesComparisonExpression(
-        ComparisonExpression.Type type, SqlType left, SqlType right
+        final ComparisonExpression.Type type, final SqlType left, final SqlType right
     ) {
-      String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
       if (comparator == null) {
         throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
       }
@@ -422,15 +498,18 @@ public class SqlToJavaVisitor {
       );
     }
 
-    private String toDecimal(SqlType schema, int index) {
-      if (schema.baseType() == SqlBaseType.DECIMAL) {
-        return "%" + index + "$s";
+    private String toDecimal(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case DECIMAL:
+          return "%" + index + "$s";
+        case DOUBLE:
+          return "BigDecimal.valueOf(%" + index + "$s)";
+        default:
+          return "new BigDecimal(%" + index + "$s)";
       }
-
-      return "new BigDecimal(%" + index + "$s)";
     }
 
-    private String visitBooleanComparisonExpression(ComparisonExpression.Type type) {
+    private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
           return "(Boolean.compare(%1$s, %2$s) == 0)";
@@ -444,10 +523,10 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitComparisonExpression(
-        ComparisonExpression node, Void context
+        final ComparisonExpression node, final Void context
     ) {
-      Pair<String, SqlType> left = process(node.getLeft(), context);
-      Pair<String, SqlType> right = process(node.getRight(), context);
+      final Pair<String, SqlType> left = process(node.getLeft(), context);
+      final Pair<String, SqlType> right = process(node.getRight(), context);
 
       String exprFormat = nullCheckPrefix(node.getType());
 
@@ -472,33 +551,39 @@ public class SqlToJavaVisitor {
             break;
         }
       }
-      String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
+      final String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
       return new Pair<>(expr, SqlTypes.BOOLEAN);
     }
 
     @Override
-    public Pair<String, SqlType> visitCast(Cast node, Void context) {
-      Pair<String, SqlType> expr = process(node.getExpression(), context);
+    public Pair<String, SqlType> visitCast(final Cast node, final Void context) {
+      final Pair<String, SqlType> expr = process(node.getExpression(), context);
       return CastVisitor.getCast(expr, node.getType().getSqlType());
     }
 
     @Override
-    public Pair<String, SqlType> visitIsNullPredicate(IsNullPredicate node, Void context) {
-      Pair<String, SqlType> value = process(node.getValue(), context);
+    public Pair<String, SqlType> visitIsNullPredicate(
+        final IsNullPredicate node,
+        final Void context
+    ) {
+      final Pair<String, SqlType> value = process(node.getValue(), context);
       return new Pair<>("((" + value.getLeft() + ") == null )", SqlTypes.BOOLEAN);
     }
 
     @Override
-    public Pair<String, SqlType> visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
-      Pair<String, SqlType> value = process(node.getValue(), context);
+    public Pair<String, SqlType> visitIsNotNullPredicate(
+        final IsNotNullPredicate node,
+        final Void context
+    ) {
+      final Pair<String, SqlType> value = process(node.getValue(), context);
       return new Pair<>("((" + value.getLeft() + ") != null )", SqlTypes.BOOLEAN);
     }
 
     @Override
     public Pair<String, SqlType> visitArithmeticUnary(
-        ArithmeticUnaryExpression node, Void context
+        final ArithmeticUnaryExpression node, final Void context
     ) {
-      Pair<String, SqlType> value = process(node.getValue(), context);
+      final Pair<String, SqlType> value = process(node.getValue(), context);
       switch (node.getSign()) {
         case MINUS:
           return visitArithmeticMinus(value);
@@ -509,7 +594,7 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private Pair<String, SqlType> visitArithmeticMinus(Pair<String, SqlType> value) {
+    private Pair<String, SqlType> visitArithmeticMinus(final Pair<String, SqlType> value) {
       if (value.getRight().baseType() == SqlBaseType.DECIMAL) {
         return new Pair<>(
             String.format(
@@ -521,12 +606,12 @@ public class SqlToJavaVisitor {
         );
       } else {
         // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-        String separator = value.getLeft().startsWith("-") ? " " : "";
+        final String separator = value.getLeft().startsWith("-") ? " " : "";
         return new Pair<>("-" + separator + value.getLeft(), value.getRight());
       }
     }
 
-    private Pair<String, SqlType> visitArithmeticPlus(Pair<String, SqlType> value) {
+    private Pair<String, SqlType> visitArithmeticPlus(final Pair<String, SqlType> value) {
       if (value.getRight().baseType() == SqlBaseType.DECIMAL) {
         return new Pair<>(
             String.format(
@@ -543,18 +628,18 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitArithmeticBinary(
-        ArithmeticBinaryExpression node, Void context
+        final ArithmeticBinaryExpression node, final Void context
     ) {
-      Pair<String, SqlType> left = process(node.getLeft(), context);
-      Pair<String, SqlType> right = process(node.getRight(), context);
+      final Pair<String, SqlType> left = process(node.getLeft(), context);
+      final Pair<String, SqlType> right = process(node.getRight(), context);
 
-      SqlType schema = expressionTypeManager.getExpressionSqlType(node);
+      final SqlType schema = expressionTypeManager.getExpressionSqlType(node);
 
       if (schema.baseType() == SqlBaseType.DECIMAL) {
-        SqlDecimal decimal = (SqlDecimal) schema;
-        String leftExpr =
+        final SqlDecimal decimal = (SqlDecimal) schema;
+        final String leftExpr =
             CastVisitor.getCast(left, DecimalUtil.toSqlDecimal(left.right)).getLeft();
-        String rightExpr =
+        final String rightExpr =
             CastVisitor.getCast(right, DecimalUtil.toSqlDecimal(right.right)).getLeft();
 
         return new Pair<>(
@@ -569,11 +654,11 @@ public class SqlToJavaVisitor {
             schema
         );
       } else {
-        String leftExpr =
+        final String leftExpr =
             left.getRight().baseType() == SqlBaseType.DECIMAL
                 ? CastVisitor.getCast(left, SqlTypes.DOUBLE).getLeft()
                 : left.getLeft();
-        String rightExpr =
+        final String rightExpr =
             right.getRight().baseType() == SqlBaseType.DECIMAL
                 ? CastVisitor.getCast(right, SqlTypes.DOUBLE).getLeft()
                 : right.getLeft();
@@ -592,10 +677,10 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitSearchedCaseExpression(
-        SearchedCaseExpression node, Void context
+        final SearchedCaseExpression node, final Void context
     ) {
-      String functionClassName = SearchedCaseFunction.class.getSimpleName();
-      List<CaseWhenProcessed> whenClauses = node
+      final String functionClassName = SearchedCaseFunction.class.getSimpleName();
+      final List<CaseWhenProcessed> whenClauses = node
           .getWhenClauses()
           .stream()
           .map(whenClause -> new CaseWhenProcessed(
@@ -604,11 +689,11 @@ public class SqlToJavaVisitor {
           ))
           .collect(Collectors.toList());
 
-      SqlType resultSchema = expressionTypeManager.getExpressionSqlType(node);
-      String resultSchemaString =
+      final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(node);
+      final String resultSchemaString =
           SchemaConverters.sqlToJavaConverter().toJavaType(resultSchema).getCanonicalName();
 
-      List<String> lazyWhenClause = whenClauses
+      final List<String> lazyWhenClause = whenClauses
           .stream()
           .map(processedWhenClause -> functionClassName + ".whenClause("
               + buildSupplierCode(
@@ -619,11 +704,11 @@ public class SqlToJavaVisitor {
               + ")")
           .collect(Collectors.toList());
 
-      String defaultValue = node.getDefaultValue().isPresent()
+      final String defaultValue = node.getDefaultValue().isPresent()
           ? process(node.getDefaultValue().get(), context).getLeft()
           : "null";
 
-      String codeString = "((" + resultSchemaString + ")"
+      final String codeString = "((" + resultSchemaString + ")"
           + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
           + StringUtils.join(lazyWhenClause, ", ") + "),"
           + buildSupplierCode(resultSchemaString, defaultValue)
@@ -631,17 +716,17 @@ public class SqlToJavaVisitor {
       return new Pair<>(codeString, resultSchema);
     }
 
-    private String buildSupplierCode(String typeString, String code) {
+    private String buildSupplierCode(final String typeString, final String code) {
       return " new " + Supplier.class.getSimpleName() + "<" + typeString + ">() {"
           + " @Override public " + typeString + " get() { return " + code + "; }}";
     }
 
     @Override
-    public Pair<String, SqlType> visitLikePredicate(LikePredicate node, Void context) {
+    public Pair<String, SqlType> visitLikePredicate(final LikePredicate node, final Void context) {
 
       // For now we just support simple prefix/suffix cases only.
-      String patternString = trimQuotes(process(node.getPattern(), context).getLeft());
-      String valueString = process(node.getValue(), context).getLeft();
+      final String patternString = trimQuotes(process(node.getPattern(), context).getLeft());
+      final String valueString = process(node.getValue(), context).getLeft();
       if (patternString.startsWith("%")) {
         if (patternString.endsWith("%")) {
           return new Pair<>(
@@ -682,18 +767,21 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitSubscriptExpression(SubscriptExpression node, Void context) {
-      SqlType internalSchema = expressionTypeManager.getExpressionSqlType(node.getBase());
+    public Pair<String, SqlType> visitSubscriptExpression(
+        final SubscriptExpression node,
+        final Void context
+    ) {
+      final SqlType internalSchema = expressionTypeManager.getExpressionSqlType(node.getBase());
 
-      String internalSchemaJavaType =
+      final String internalSchemaJavaType =
           SchemaConverters.sqlToJavaConverter().toJavaType(internalSchema).getCanonicalName();
       switch (internalSchema.baseType()) {
         case ARRAY:
-          SqlArray array = (SqlArray) internalSchema;
-          String listName = process(node.getBase(), context).getLeft();
-          String suppliedIdx = process(node.getIndex(), context).getLeft();
+          final SqlArray array = (SqlArray) internalSchema;
+          final String listName = process(node.getBase(), context).getLeft();
+          final String suppliedIdx = process(node.getIndex(), context).getLeft();
 
-          String code = format(
+          final String code = format(
               "((%s) (%s.arrayAccess((%s) %s, ((int) %s))))",
               SchemaConverters.sqlToJavaConverter().toJavaType(array.getItemType()).getSimpleName(),
               ArrayAccess.class.getSimpleName(),
@@ -705,7 +793,7 @@ public class SqlToJavaVisitor {
           return new Pair<>(code, array.getItemType());
 
         case MAP:
-          SqlMap map = (SqlMap) internalSchema;
+          final SqlMap map = (SqlMap) internalSchema;
           return new Pair<>(
               String.format(
                   "((%s) ((%s)%s).get(%s))",
@@ -723,10 +811,52 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitStructExpression(CreateStructExpression node, Void context) {
+    public Pair<String, SqlType> visitCreateArrayExpression(
+        final CreateArrayExpression exp,
+        final Void context
+    ) {
+      final StringBuilder array = new StringBuilder("new ArrayBuilder(");
+      array.append(exp.getValues().size());
+      array.append((')'));
+
+      for (Expression value : exp.getValues()) {
+        array.append(".add(");
+        array.append(process(value, context).getLeft());
+        array.append(")");
+      }
+      return new Pair<>(
+          "((List)" + array.toString() + ".build())",
+          expressionTypeManager.getExpressionSqlType(exp));
+    }
+
+    @Override
+    public Pair<String, SqlType> visitCreateMapExpression(
+        final CreateMapExpression exp,
+        final Void context
+    ) {
+      final StringBuilder map = new StringBuilder("ImmutableMap.builder()");
+
+      for (Entry<Expression, Expression> entry: exp.getMap().entrySet()) {
+        map.append(".put(");
+        map.append(process(entry.getKey(), context).getLeft());
+        map.append(", ");
+        map.append(process(entry.getValue(), context).getLeft());
+        map.append(")");
+      }
+
+      return new Pair<>(
+          "((Map)" + map.toString() + ".build())",
+          expressionTypeManager.getExpressionSqlType(exp));
+    }
+
+    @Override
+    public Pair<String, SqlType> visitStructExpression(
+        final CreateStructExpression node,
+        final Void context
+    ) {
       final String schemaName = structToCodeName.apply(node);
       final StringBuilder struct = new StringBuilder("new Struct(").append(schemaName).append(")");
-      for (Field field : node.getFields()) {
+      for (final Field field : node.getFields()) {
         struct.append(".put(")
             .append('"')
             .append(field.getName())
@@ -742,54 +872,39 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitBetweenPredicate(BetweenPredicate node, Void context) {
-      Pair<String, SqlType> value = process(node.getValue(), context);
-      Pair<String, SqlType> min = process(node.getMin(), context);
-      Pair<String, SqlType> max = process(node.getMax(), context);
-
-      String expression = "(((Object) {value}) == null "
-          + "|| ((Object) {min}) == null "
-          + "|| ((Object) {max}) == null) "
-          + "? false "
-          + ": ";
-
-      SqlBaseType type = value.getRight().baseType();
-      switch (type) {
-        case DOUBLE:
-        case BIGINT:
-        case INTEGER:
-          expression += "{min} <= {value} && {value} <= {max}";
-          break;
-        case STRING:
-          expression += "({value}.compareTo({min}) >= 0 && {value}.compareTo({max}) <= 0)";
-          break;
-        default:
-          throw new KsqlException("Cannot execute BETWEEN with " + type + " values");
-      }
+    public Pair<String, SqlType> visitBetweenPredicate(
+        final BetweenPredicate node,
+        final Void context
+    ) {
+      final Pair<String, SqlType> compareMin = process(
+          new ComparisonExpression(
+              ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
+              node.getValue(),
+              node.getMin()),
+          context);
+      final Pair<String, SqlType> compareMax = process(
+          new ComparisonExpression(
+              ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
+              node.getValue(),
+              node.getMax()),
+          context);
 
       // note that the entire expression must be surrounded by parentheses
       // otherwise negations and other higher level operations will not work
-      String evaluation = StrSubstitutor.replace(
-          "(" + expression + ")",
-          ImmutableMap.of(
-              "value", value.getLeft(),
-              "min", min.getLeft(),
-              "max", max.getLeft()
-          ),
-          "{", "}"
+      return new Pair<>(
+          "(" + compareMin.getLeft() + " && " + compareMax.getLeft() + ")",
+          SqlTypes.BOOLEAN
       );
-
-      return new Pair<>(evaluation, SqlTypes.BOOLEAN);
     }
 
     private String formatBinaryExpression(
-        String operator, Expression left, Expression right, Void context
+        final String operator, final Expression left, final Expression right, final Void context
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";
     }
 
-    private String trimQuotes(String s) {
+    private String trimQuotes(final String s) {
       return s.substring(1, s.length() - 1);
     }
   }
@@ -809,13 +924,13 @@ public class SqlToJavaVisitor {
     private CastVisitor() {
     }
 
-    static Pair<String, SqlType> getCast(Pair<String, SqlType> expr, SqlType sqlType) {
+    static Pair<String, SqlType> getCast(final Pair<String, SqlType> expr, final SqlType sqlType) {
       if (!sqlType.supportsCast()) {
         throw new KsqlFunctionException(
             "Only casts to primitive types and decimal are supported: " + sqlType);
       }
 
-      SqlType rightSchema = expr.getRight();
+      final SqlType rightSchema = expr.getRight();
       if (sqlType.equals(rightSchema) || rightSchema == null) {
         return new Pair<>(expr.getLeft(), sqlType);
       }
@@ -830,14 +945,14 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castString(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
-      SqlType schema = expr.getRight();
-      String exprStr;
+      final SqlType schema = expr.getRight();
+      final String exprStr;
       if (schema.baseType() == SqlBaseType.DECIMAL) {
-        SqlDecimal decimal = (SqlDecimal) schema;
-        int precision = decimal.getPrecision();
-        int scale = decimal.getScale();
+        final SqlDecimal decimal = (SqlDecimal) schema;
+        final int precision = decimal.getPrecision();
+        final int scale = decimal.getScale();
         exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
       } else {
         exprStr = "String.valueOf(" + expr.getLeft() + ")";
@@ -846,15 +961,15 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castBoolean(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
       return new Pair<>(getCastToBooleanString(expr.getRight(), expr.getLeft()), returnType);
     }
 
     private static Pair<String, SqlType> castInteger(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
-      String exprStr = getCastString(
+      final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
           "intValue()",
@@ -864,9 +979,9 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castLong(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
-      String exprStr = getCastString(
+      final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
           "longValue()",
@@ -876,9 +991,9 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDouble(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
-      String exprStr = getCastString(
+      final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
           "doubleValue()",
@@ -888,13 +1003,13 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDecimal(
-        Pair<String, SqlType> expr, SqlType sqltype, SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType sqltype, final SqlType returnType
     ) {
       if (!(sqltype instanceof SqlDecimal)) {
         throw new KsqlException("Expected decimal type: " + sqltype);
       }
 
-      SqlDecimal sqlDecimal = (SqlDecimal) sqltype;
+      final SqlDecimal sqlDecimal = (SqlDecimal) sqltype;
 
       if (expr.getRight().baseType() == SqlBaseType.DECIMAL && expr.right.equals(sqlDecimal)) {
         return expr;
@@ -906,7 +1021,7 @@ public class SqlToJavaVisitor {
       );
     }
 
-    private static String getCastToBooleanString(SqlType schema, String exprStr) {
+    private static String getCastToBooleanString(final SqlType schema, final String exprStr) {
       if (schema.baseType() == SqlBaseType.STRING) {
         return "Boolean.parseBoolean(" + exprStr + ")";
       } else {
@@ -916,7 +1031,10 @@ public class SqlToJavaVisitor {
     }
 
     private static String getCastString(
-        SqlType schema, String exprStr, String javaTypeMethod, String javaStringParserMethod
+        final SqlType schema,
+        final String exprStr,
+        final String javaTypeMethod,
+        final String javaStringParserMethod
     ) {
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         return "((" + exprStr + ")." + javaTypeMethod + ")";
@@ -940,8 +1058,11 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private static String getDecimalCastString(SqlType schema, String exprStr, SqlDecimal target) {
-
+    private static String getDecimalCastString(
+        final SqlType schema,
+        final String exprStr,
+        final SqlDecimal target
+    ) {
       switch (schema.baseType()) {
         case INTEGER:
         case BIGINT:
@@ -977,7 +1098,7 @@ public class SqlToJavaVisitor {
     private final Pair<String, SqlType> thenProcessResult;
 
     private CaseWhenProcessed(
-        Pair<String, SqlType> whenProcessResult, Pair<String, SqlType> thenProcessResult
+        final Pair<String, SqlType> whenProcessResult, final Pair<String, SqlType> thenProcessResult
     ) {
       this.whenProcessResult = whenProcessResult;
       this.thenProcessResult = thenProcessResult;

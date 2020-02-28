@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +27,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.TypeRegistry.CustomType;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -69,7 +71,7 @@ public class ListTypesExecutorTest {
             ImmutableMap.of(),
             KSQL_CONFIG
         ),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         context,
         null);
 

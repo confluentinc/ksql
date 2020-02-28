@@ -38,9 +38,10 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -75,7 +76,7 @@ public class TopicDeleteInjectorTest {
   @Mock
   private MutableMetaStore metaStore;
   @Mock
-  private DataSource<?> source;
+  private DataSource source;
   @Mock
   private KsqlTopic topic;
   @Mock
@@ -93,7 +94,7 @@ public class TopicDeleteInjectorTest {
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(source.getKsqlTopic()).thenReturn(topic);
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
   }
 
   @Test
@@ -141,7 +142,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO)));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
@@ -182,8 +183,8 @@ public class TopicDeleteInjectorTest {
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource(SourceName.of("OTHER"), "other");
-    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
+    final DataSource other1 = givenSource(SourceName.of("OTHER"), "other");
+    final Map<SourceName, DataSource> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
     sources.put(SourceName.of("OTHER"), other1);
     when(metaStore.getAllDataSources()).thenReturn(sources);
@@ -201,9 +202,9 @@ public class TopicDeleteInjectorTest {
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
-    final DataSource<?> other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
-    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
+    final DataSource other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
+    final DataSource other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
+    final Map<SourceName, DataSource> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
     sources.put(SourceName.of("OTHER1"), other1);
     sources.put(SourceName.of("OTHER2"), other2);
@@ -223,7 +224,7 @@ public class TopicDeleteInjectorTest {
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
     final SourceName STREAM_1 = SourceName.of("stream1");
-    final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
+    final DataSource other1 = givenSource(STREAM_1, "topicName");
     when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
     when(other1.getKafkaTopicName()).thenReturn("topicName");
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
@@ -245,7 +246,8 @@ public class TopicDeleteInjectorTest {
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"), Optional.empty())));
+        .thenReturn(ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"))));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
@@ -254,7 +256,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
-  private static DataSource<?> givenSource(final SourceName name, final String topicName) {
+  private static DataSource givenSource(final SourceName name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);

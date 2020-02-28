@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -32,12 +31,13 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -51,24 +51,33 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class CreateSourceFactory {
+
   private final ServiceContext serviceContext;
   private final SerdeOptionsSupplier serdeOptionsSupplier;
-  private final ValueSerdeFactory serdeFactory;
+  private final KeySerdeFactory keySerdeFactory;
+  private final ValueSerdeFactory valueSerdeFactory;
 
   public CreateSourceFactory(final ServiceContext serviceContext) {
-    this(serviceContext, SerdeOptions::buildForCreateStatement, new GenericRowSerDe());
+    this(
+        serviceContext,
+        SerdeOptions::buildForCreateStatement,
+        new GenericKeySerDe(),
+        new GenericRowSerDe()
+    );
   }
 
   @VisibleForTesting
   CreateSourceFactory(
       final ServiceContext serviceContext,
       final SerdeOptionsSupplier serdeOptionsSupplier,
-      final ValueSerdeFactory serdeFactory
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serdeOptionsSupplier =
         Objects.requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
-    this.serdeFactory = Objects.requireNonNull(serdeFactory, "serdeFactory");
+    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public CreateStreamCommand createStreamCommand(
@@ -84,26 +93,24 @@ public final class CreateSourceFactory {
         statement.getProperties(),
         schema
     );
+
     final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
         statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
-    validateSerdeCanHandleSchemas(
-        ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
+
+    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+
     return new CreateStreamCommand(
         sourceName,
         schema,
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }
@@ -127,20 +134,17 @@ public final class CreateSourceFactory {
         statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
-    validateSerdeCanHandleSchemas(
-        ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
+
+    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+
     return new CreateTableCommand(
         sourceName,
         schema,
         keyFieldName,
         timestampColumn,
         topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        io.confluent.ksql.execution.plan.Formats
+            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo()
     );
   }
@@ -149,13 +153,13 @@ public final class CreateSourceFactory {
       final CreateSource statement,
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
-      final ColumnRef column = statement.getProperties().getKeyField().get();
+      final ColumnName column = statement.getProperties().getKeyField().get();
       schema.findValueColumn(column)
           .orElseThrow(() -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
                   + column.toString(FormatOptions.noEscape()) + "'"
           ));
-      return Optional.of(column.name());
+      return Optional.of(column);
     } else {
       return Optional.empty();
     }
@@ -167,19 +171,19 @@ public final class CreateSourceFactory {
     }
 
     tableElements.forEach(e -> {
-      if (e.getName().equals(SchemaUtil.ROWTIME_NAME)) {
-        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
-      }
-
       final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
+
+      if (!isRowKey && SchemaUtil.isSystemColumn(e.getName())) {
+        throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
+      }
 
       if (e.getNamespace() == Namespace.KEY) {
         if (!isRowKey) {
-          throw new KsqlException("'" + e.getName().name() + "' is an invalid KEY column name. "
+          throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
               + "KSQL currently only supports KEY columns named ROWKEY.");
         }
       } else if (isRowKey) {
-        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name. "
+        throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
             + "It can only be used for KEY columns.");
       }
     });
@@ -204,7 +208,7 @@ public final class CreateSourceFactory {
       final CreateSourceProperties properties,
       final LogicalSchema schema
   ) {
-    final Optional<ColumnRef> timestampName = properties.getTimestampColumnName();
+    final Optional<ColumnName> timestampName = properties.getTimestampColumnName();
     final Optional<TimestampColumn> timestampColumn = timestampName.map(
         n -> new TimestampColumn(n, properties.getTimestampFormat())
     );
@@ -213,13 +217,20 @@ public final class CreateSourceFactory {
     return timestampColumn;
   }
 
-  private static void validateSerdeCanHandleSchemas(
+  private void validateSerdesCanHandleSchemas(
       final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ValueSerdeFactory valueSerdeFactory,
       final PhysicalSchema physicalSchema,
       final KsqlTopic topic
   ) {
+    keySerdeFactory.create(
+        topic.getKeyFormat().getFormatInfo(),
+        physicalSchema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).close();
+
     valueSerdeFactory.create(
         topic.getValueFormat().getFormatInfo(),
         physicalSchema.valueSchema(),

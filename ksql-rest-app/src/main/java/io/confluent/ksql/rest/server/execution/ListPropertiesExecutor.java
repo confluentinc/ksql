@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
@@ -41,7 +42,7 @@ public final class ListPropertiesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListProperties> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -71,7 +72,7 @@ public final class ListPropertiesExecutor {
   }
 
   private static List<Property> mergedProperties(
-      ConfiguredStatement<ListProperties> statement) {
+      final ConfiguredStatement<ListProperties> statement) {
     final List<Property> mergedProperties = new ArrayList<>();
 
     statement.getConfig()
@@ -87,18 +88,18 @@ public final class ListPropertiesExecutor {
   }
 
   private static Map<String, String> embeddedConnectWorkerProperties(
-      ConfiguredStatement<ListProperties> statement) {
-    String configFile = statement.getConfig()
+      final ConfiguredStatement<ListProperties> statement) {
+    final String configFile = statement.getConfig()
         .getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
     return !configFile.isEmpty()
         ? Utils.propsToStringMap(getWorkerProps(configFile))
         : Collections.emptyMap();
   }
 
-  private static Properties getWorkerProps(String configFile) {
+  private static Properties getWorkerProps(final String configFile) {
     try {
       return Utils.loadProps(configFile);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return new Properties();
     }
   }

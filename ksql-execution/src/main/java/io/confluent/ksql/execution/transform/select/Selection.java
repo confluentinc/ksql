@@ -53,7 +53,7 @@ public final class Selection<K> {
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-    final List<Column> keyCols = sourceSchema.withoutAlias().key();
+    final List<Column> keyCols = sourceSchema.key();
 
     schemaBuilder.keyColumns(keyCols);
 

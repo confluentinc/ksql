@@ -21,11 +21,11 @@ public final class GenericType extends ObjectType {
 
   private final String name;
 
-  private GenericType(String name) {
+  private GenericType(final String name) {
     this.name = name;
   }
 
-  public static GenericType of(String name) {
+  public static GenericType of(final String name) {
     return new GenericType(name);
   }
 
@@ -34,14 +34,14 @@ public final class GenericType extends ObjectType {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GenericType that = (GenericType) o;
+    final GenericType that = (GenericType) o;
     return Objects.equals(name, that.name);
   }
 

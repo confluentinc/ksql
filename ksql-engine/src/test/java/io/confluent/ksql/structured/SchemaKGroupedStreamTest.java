@@ -22,10 +22,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -36,10 +35,9 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -68,13 +66,13 @@ public class SchemaKGroupedStreamTest {
       .build();
   private static final FunctionCall AGG = new FunctionCall(
       FunctionName.of("SUM"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("IN1"))))
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("IN1")))
   );
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS
   );
-  private static final List<ColumnRef> NON_AGGREGATE_COLUMNS = ImmutableList.of(
-      ColumnRef.withoutSource(ColumnName.of("IN0"))
+  private static final List<ColumnName> NON_AGGREGATE_COLUMNS = ImmutableList.of(
+      ColumnName.of("IN0")
   );
 
   @Mock
@@ -148,7 +146,7 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG)
             )
@@ -169,7 +167,7 @@ public class SchemaKGroupedStreamTest {
 
     // Then:
     final KeyFormat expected = KeyFormat.windowed(
-        FormatInfo.of(Format.KAFKA),
+        FormatInfo.of(FormatFactory.KAFKA.name()),
         WindowInfo.of(WindowType.SESSION, Optional.empty())
     );
     assertThat(
@@ -178,7 +176,7 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamWindowedAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                Formats.of(expected, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats.of(expected, valueFormat, SerdeOption.none()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG),
                 KSQL_WINDOW_EXP

@@ -217,16 +217,16 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeRowCorrectlyWithTabDelimeter() {
-    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('\t');
+  public void shouldSerializeRowCorrectlyWithTabDelimiter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimiter('\t');
   }
 
   @Test
-  public void shouldSerializeRowCorrectlyWithBarDelimeter() {
-    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('|');
+  public void shouldSerializeRowCorrectlyWithBarDelimiter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimiter('|');
   }
 
-  private void shouldSerializeRowCorrectlyWithNonDefaultDelimeter(final char delimiter) {
+  private void shouldSerializeRowCorrectlyWithNonDefaultDelimiter(final char delimiter) {
     // Given:
     final Struct data = new Struct(SCHEMA)
         .put("ORDERTIME", 1511897796092L)

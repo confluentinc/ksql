@@ -16,16 +16,23 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +41,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.TimeoutException;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -48,13 +56,17 @@ public class DistributingExecutor {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final ValidatedCommandFactory validatedCommandFactory;
   private final CommandIdAssigner commandIdAssigner;
+  private final ReservedInternalTopics internalTopics;
+  private final Errors errorHandler;
 
   public DistributingExecutor(
+      final KsqlConfig ksqlConfig,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final ValidatedCommandFactory validatedCommandFactory
+      final ValidatedCommandFactory validatedCommandFactory,
+      final Errors errorHandler
   ) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
@@ -67,6 +79,9 @@ public class DistributingExecutor {
         "validatedCommandFactory"
     );
     this.commandIdAssigner = new CommandIdAssigner();
+    this.internalTopics =
+        new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
   }
 
   /**
@@ -82,18 +97,35 @@ public class DistributingExecutor {
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final KsqlSecurityContext securityContext
   ) {
     final ConfiguredStatement<?> injected = injectorFactory
-        .apply(executionContext, serviceContext)
+        .apply(executionContext, securityContext.getServiceContext())
         .inject(statement);
 
-    checkAuthorization(injected, serviceContext, executionContext);
+    if (injected.getStatement() instanceof InsertInto) {
+      throwIfInsertOnReadOnlyTopic(
+          executionContext.getMetaStore(),
+          (InsertInto)injected.getStatement()
+      );
+    }
+
+    checkAuthorization(injected, securityContext, executionContext);
 
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
+
     try {
       transactionalProducer.initTransactions();
+    } catch (final TimeoutException e) {
+      throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
+    } catch (final Exception e) {
+      throw new KsqlServerException(String.format(
+          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+          statement.getStatementText()), e);
+    }
+    
+    try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
@@ -136,7 +168,7 @@ public class DistributingExecutor {
 
   private void checkAuthorization(
       final ConfiguredStatement<?> configured,
-      final ServiceContext userServiceContext,
+      final KsqlSecurityContext userSecurityContext,
       final KsqlExecutionContext serverExecutionContext
   ) {
     final Statement statement = configured.getStatement();
@@ -145,17 +177,33 @@ public class DistributingExecutor {
     // Check the User will be permitted to execute this statement
     authorizationValidator.ifPresent(
         validator ->
-            validator.checkAuthorization(userServiceContext, metaStore, statement));
+            validator.checkAuthorization(userSecurityContext, metaStore, statement));
 
     try {
       // Check the KSQL service principal will be permitted too
       authorizationValidator.ifPresent(
           validator -> validator.checkAuthorization(
-              serverExecutionContext.getServiceContext(),
+              new KsqlSecurityContext(Optional.empty(), serverExecutionContext.getServiceContext()),
               metaStore,
               statement));
     } catch (final Exception e) {
       throw new KsqlServerException("The KSQL server is not permitted to execute the command", e);
+    }
+  }
+
+  private void throwIfInsertOnReadOnlyTopic(
+      final MetaStore metaStore,
+      final InsertInto insertInto
+  ) {
+    final DataSource dataSource = metaStore.getSource(insertInto.getTarget());
+    if (dataSource == null) {
+      throw new KsqlException("Cannot insert into an unknown stream/table: "
+          + insertInto.getTarget());
+    }
+
+    if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
+      throw new KsqlException("Cannot insert into read-only topic: "
+          + dataSource.getKafkaTopicName());
     }
   }
 }

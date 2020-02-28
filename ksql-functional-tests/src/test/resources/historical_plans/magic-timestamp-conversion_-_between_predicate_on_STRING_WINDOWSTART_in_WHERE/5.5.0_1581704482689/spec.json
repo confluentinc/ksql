@@ -1,0 +1,76 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581704482689,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "source" : 1
+    },
+    "window" : {
+      "start" : 1581323504000,
+      "end" : 1581323505000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "source" : 2
+    },
+    "window" : {
+      "start" : 1581323504001,
+      "end" : 1581323505001,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "source" : 3
+    },
+    "window" : {
+      "start" : 1581323504011,
+      "end" : 1581323505011,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "source" : 4
+    },
+    "window" : {
+      "start" : 1581323504012,
+      "end" : 1581323505012,
+      "type" : "TIME"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "SOURCE" : 2
+    },
+    "window" : {
+      "start" : 1581323504001,
+      "end" : 1581323505001,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "SOURCE" : 3
+    },
+    "window" : {
+      "start" : 1581323504011,
+      "end" : 1581323505011,
+      "type" : "TIME"
+    }
+  } ]
+}

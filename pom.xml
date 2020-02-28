@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>5.5.0-SNAPSHOT</version>
+        <version>6.0.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>5.5.0-SNAPSHOT</version>
+    <version>6.0.0-SNAPSHOT</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -62,6 +62,8 @@
         <module>ksql-benchmark</module>
         <module>ksql-functional-tests</module>
         <module>ksql-rocksdb-config-setter</module>
+        <module>ksql-docker</module>
+        <module>ksql-api-reactive-streams-tck</module>
     </modules>
 
     <repositories>
@@ -102,6 +104,7 @@
         <csv.version>1.4</csv.version>
         <lang3.version>3.3.1</lang3.version>
         <guava.version>24.1.1-jre</guava.version>
+        <protobuf.version>3.11.1</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -116,8 +119,12 @@
         <apache.curator.version>2.9.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
+        <icu.version>65.1</icu.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
+        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
+        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
+        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
     </properties>
 
     <dependencyManagement>
@@ -216,6 +223,12 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-functional-tests</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-version-metrics-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -223,6 +236,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>package-ksql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-api-reactive-streams-tck</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->
@@ -259,12 +278,6 @@
             </dependency>
 
             <dependency>
-                <groupId>io.confluent.support</groupId>
-                <artifactId>support-metrics-common</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-log4j-appender</artifactId>
                 <version>${kafka.version}</version>
@@ -275,6 +288,31 @@
                 <artifactId>common-utils</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-json-schema-provider</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-protobuf-provider</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-json-schema-converter</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-protobuf-converter</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+
             <!-- End Confluent dependencies -->
 
             <dependency>
@@ -293,6 +331,18 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
             </dependency>
 
             <dependency>
@@ -377,6 +427,18 @@
                 <groupId>com.clearspring.analytics</groupId>
                 <artifactId>stream</artifactId>
                 <version>${clearspring-analytics.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.ibm.icu</groupId>
+                <artifactId>icu4j</artifactId>
+                <version>${icu.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
 
             <!-- Required for running tests -->

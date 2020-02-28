@@ -13,11 +13,10 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -27,13 +26,16 @@ import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
@@ -65,8 +67,7 @@ public class StreamGroupByBuilderTest {
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
-      .withAlias(SourceName.of(ALIAS.name()))
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
@@ -92,9 +93,10 @@ public class StreamGroupByBuilderTest {
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
       STEP_CTX
   );
-  private static final Formats FORMATS = Formats.of(
-      FormatInfo.of(Format.KAFKA),
-      FormatInfo.of(Format.JSON),
+  private static final io.confluent.ksql.execution.plan.Formats FORMATS = io.confluent.ksql.execution.plan.Formats
+      .of(
+      FormatInfo.of(FormatFactory.KAFKA.name()),
+      FormatInfo.of(FormatFactory.JSON.name()),
       SerdeOption.none()
   );
 
@@ -122,6 +124,10 @@ public class StreamGroupByBuilderTest {
   private KGroupedStream<Struct, GenericRow> groupedStream;
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  @Mock
+  private ProcessingLogContext processingLogContext;
+  @Mock
+  private ProcessingLoggerFactory processingLoggerFactory;
 
   private PlanBuilder planBuilder;
   private StreamGroupBy<Struct> streamGroupBy;
@@ -137,6 +143,8 @@ public class StreamGroupByBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
     when(sourceStream.filter(any())).thenReturn(filteredStream);
@@ -145,6 +153,8 @@ public class StreamGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.build(any())).thenReturn(
         new KStreamHolder<>(sourceStream, SCHEMA, mock(KeySerdeFactory.class)));
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
     streamGroupBy = new StreamGroupBy<>(
         PROPERTIES,
         sourceStep,
@@ -292,6 +302,6 @@ public class StreamGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new ColumnReferenceExp(ColumnRef.of(ALIAS, ColumnName.of(column)));
+    return new UnqualifiedColumnReferenceExp(ColumnName.of(column));
   }
 }

@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -88,16 +89,20 @@ public class RecoveryTest {
   private final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
 
+  private KsqlSecurityContext securityContext;
+
   @Mock
   @SuppressWarnings("unchecked")
-  private Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
+  private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
 
 
   @Before
-  public void setup() { }
+  public void setup() {
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+  }
 
   @After
   public void tearDown() {
@@ -118,7 +123,7 @@ public class RecoveryTest {
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
     private int offset;
-    private Producer<CommandId, Command> transactionalProducer;
+    private final Producer<CommandId, Command> transactionalProducer;
 
     FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
       this.commandLog = commandLog;
@@ -238,7 +243,7 @@ public class RecoveryTest {
 
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
-        final Response response = ksqlResource.handleKsqlStatements(serviceContext,
+        final Response response = ksqlResource.handleKsqlStatements(securityContext,
             new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
@@ -302,8 +307,8 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<DataSource<?>> {
-    final DataSource<?> source;
+      extends TypeSafeDiagnosingMatcher<DataSource> {
+    final DataSource source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
@@ -311,7 +316,7 @@ public class RecoveryTest {
     final Matcher<Optional<TimestampColumn>> extractionColumnMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final DataSource<?> source) {
+    StructuredDataSourceMatcher(final DataSource source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -337,7 +342,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final DataSource<?> other,
+        final DataSource other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -382,12 +387,12 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<DataSource<?>> sameSource(final DataSource<?> source) {
+  private static Matcher<DataSource> sameSource(final DataSource source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<SourceName, Matcher<DataSource<?>>> sourceMatchers;
+    final Map<SourceName, Matcher<DataSource>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
@@ -417,7 +422,7 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<SourceName, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
+      for (final Entry<SourceName, Matcher<DataSource>> e : sourceMatchers.entrySet()) {
         final SourceName name = e.getKey();
         if (!test(
             e.getValue(),

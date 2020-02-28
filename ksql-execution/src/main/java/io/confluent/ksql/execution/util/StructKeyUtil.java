@@ -31,14 +31,6 @@ import org.apache.kafka.connect.data.Struct;
  */
 public final class StructKeyUtil {
 
-  private static final Schema ROWKEY_STRUCT_SCHEMA = SchemaBuilder
-      .struct()
-      .field(SchemaUtil.ROWKEY_NAME.name(), Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
-
-  private static final org.apache.kafka.connect.data.Field ROWKEY_FIELD =
-      ROWKEY_STRUCT_SCHEMA.fields().get(0);
-
   private StructKeyUtil() {
   }
 
@@ -57,7 +49,7 @@ public final class StructKeyUtil {
 
     return new KeyBuilder(SchemaBuilder
         .struct()
-        .field(SchemaUtil.ROWKEY_NAME.name(), connectSchema)
+        .field(SchemaUtil.ROWKEY_NAME.text(), connectSchema)
         .build()
     );
   }
@@ -69,7 +61,7 @@ public final class StructKeyUtil {
 
     private KeyBuilder(final Schema keySchema) {
       this.keySchema = Objects.requireNonNull(keySchema, "keySchema");
-      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.name());
+      this.keyField = keySchema.field(SchemaUtil.ROWKEY_NAME.text());
     }
 
     public Struct build(final Object rowKey) {

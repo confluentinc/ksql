@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -37,8 +38,10 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -47,24 +50,26 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.HashMap;
 import java.util.List;
@@ -106,7 +111,7 @@ public class AnalyzerFunctionalTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private SerdeOptionsSupplier serdeOptiponsSupplier;
+  private SerdeOptionsSupplier serdeOptionsSupplier;
   @Mock
   private Sink sink;
 
@@ -120,14 +125,14 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
-        ValueFormat.of(FormatInfo.of(Format.AVRO))
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     );
 
     analyzer = new Analyzer(
         jsonMetaStore,
         "",
         DEFAULT_SERDE_OPTIONS,
-        serdeOptiponsSupplier
+        serdeOptionsSupplier
     );
 
     when(sink.getName()).thenReturn(SourceName.of("TEST0"));
@@ -171,8 +176,14 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1"))));
-    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))));
+    assertThat(
+        analysis.getJoin().get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("COL1")))
+    );
+    assertThat(
+        analysis.getJoin().get().getRightJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("COL1")))
+    );
 
     final List<String> selects = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getExpression)
@@ -185,7 +196,48 @@ public class AnalyzerFunctionalTest {
         .map(SelectExpression::getAlias)
         .collect(Collectors.toList());
 
-    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
+    assertThat(aliases.stream().map(ColumnName::text).collect(Collectors.toList()),
+        contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
+  }
+
+  @Test
+  public void testExpressionLeftJoinAnalysis() {
+    // When:
+    final Analysis analysis = analyzeQuery(
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
+            + "FROM test1 t1 LEFT JOIN test2 t2 "
+            + "ON t1.col1 = SUBSTRING(t2.col1, 2) EMIT CHANGES;", jsonMetaStore);
+
+    // Then:
+    assertThat(analysis.getFromDataSources(), hasSize(2));
+    assertThat(analysis.getFromDataSources().get(0).getAlias(), is(SourceName.of("T1")));
+    assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
+
+    assertThat(analysis.getJoin(), is(not(Optional.empty())));
+    assertThat(
+        analysis.getJoin().get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("COL1"))));
+    assertThat(
+        analysis.getJoin().get().getRightJoinExpression(),
+        is(new FunctionCall(
+            FunctionName.of("SUBSTRING"),
+            ImmutableList.of(
+                new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("COL1")),
+                new IntegerLiteral(2)
+            ))));
+
+    final List<String> selects = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getExpression)
+        .map(Objects::toString)
+        .collect(Collectors.toList());
+
+    assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
+
+    final List<ColumnName> aliases = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getAlias)
+        .collect(Collectors.toList());
+
+    assertThat(aliases.stream().map(ColumnName::text).collect(Collectors.toList()),
         contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
@@ -200,8 +252,12 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY"))));
-    assertThat(join.get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
+    assertThat(
+        join.get().getLeftJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T1"), ColumnName.of("ROWKEY"))));
+    assertThat(
+        join.get().getRightJoinExpression(),
+        is(new QualifiedColumnReferenceExp(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
   }
 
   @Test
@@ -260,8 +316,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema"),
-            Optional.empty()))));
+        is(ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema")))));
   }
 
   @Test
@@ -276,7 +332,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
     @Test
@@ -292,7 +348,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))));
+          is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+              .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
   }
 
   @Test
@@ -303,8 +360,9 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -316,7 +374,7 @@ public class AnalyzerFunctionalTest {
         SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("FIELD1"))),
+        KeyField.none(),
         Optional.empty(),
         false,
         ksqlTopic
@@ -333,7 +391,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
   @Test
@@ -349,7 +407,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
+        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
   }
 
   @Test
@@ -362,7 +420,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Full schema name only supported with AVRO format");
+    expectedException.expectMessage("JSON does not support the following configs: [fullSchemaName]");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -379,7 +437,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name cannot be empty");
+    expectedException.expectMessage("fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -388,18 +446,18 @@ public class AnalyzerFunctionalTest {
   public void shouldGetSerdeOptions() {
     // Given:
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
-    when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
+    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
-    givenSinkValueFormat(Format.AVRO);
+    givenSinkValueFormat(FormatFactory.AVRO);
     givenWrapSingleValues(true);
 
     // When:
     final Analysis result = analyzer.analyze(query, Optional.of(sink));
 
     // Then:
-    verify(serdeOptiponsSupplier).build(
+    verify(serdeOptionsSupplier).build(
         ImmutableList.of("COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList()),
-        Format.AVRO,
+        FormatFactory.AVRO,
         Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
 
@@ -411,7 +469,7 @@ public class AnalyzerFunctionalTest {
     // Given:
     query = parseSingle("Select COL0 from KAFKA_SOURCE GROUP BY COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
+    givenSinkValueFormat(FormatFactory.KAFKA);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -429,7 +487,7 @@ public class AnalyzerFunctionalTest {
         + "WITHIN 1 SECOND ON "
         + "TEST1.COL0 = KAFKA_SOURCE.COL0;");
 
-    givenSinkValueFormat(Format.KAFKA);
+    givenSinkValueFormat(FormatFactory.KAFKA);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -450,9 +508,9 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectColumnRefs(), containsInAnyOrder(
-        ColumnRef.of(TEST1, COL0),
-        ColumnRef.of(TEST1, COL1),
-        ColumnRef.of(TEST1, COL2)
+        COL0,
+        COL1,
+        COL2
     ));
   }
 
@@ -466,7 +524,10 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectExpressions(), hasItem(
-        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+        SelectExpression.of(
+            ROWTIME_NAME,
+            new QualifiedColumnReferenceExp(TEST1, ROWTIME_NAME)
+        )
     ));
   }
 
@@ -480,8 +541,94 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getSelectExpressions(), not(hasItem(
-        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+        SelectExpression.of(
+            ROWTIME_NAME, new QualifiedColumnReferenceExp(TEST1, ROWTIME_NAME))
     )));
+  }
+
+  @Test
+  public void shouldThrowOnSelfJoin() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.rowkey = t2.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Can not join 'TEST1' to 'TEST1': self joins are not yet supported.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnJoinWithoutSource() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = 'foo';"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid comparison expression ''foo'' in join "
+        + "'(T1.ROWKEY = 'foo')'. Each side of the join comparision must contain references "
+        + "from exactly one source.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnJoinOnOverlappingSources() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey + t2.rowkey = t1.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid comparison expression '(T1.ROWKEY + T2.ROWKEY)' in "
+        + "join '((T1.ROWKEY + T2.ROWKEY) = T1.ROWKEY)'. Each side of the join comparision must "
+        + "contain references from exactly one source.");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldFailOnSelfJoinInCondition() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.rowkey = t1.rowkey;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Each side of the join must reference exactly one source "
+        + "and not the same source. Left side references `T1` and right references `T1`");
+
+    // When:
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
 
   @SuppressWarnings("unchecked")
@@ -501,7 +648,7 @@ public class AnalyzerFunctionalTest {
 
   private void buildProps() {
     final Map<String, Literal> props = new HashMap<>();
-    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.toString())));
+    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.name())));
     sinkWrapSingleValues.ifPresent(b -> props.put("WRAP_SINGLE_VALUE", new BooleanLiteral(Boolean.toString(b))));
 
     final CreateSourceAsProperties properties = CreateSourceAsProperties.from(props);
@@ -517,8 +664,8 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.KAFKA))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()))
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(

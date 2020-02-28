@@ -89,6 +89,8 @@ public final class SchemaConverters {
 
   private static final FunctionToSqlConverter FUNCTION_TO_SQL_CONVERTER = new FunctionToSql();
 
+  private static final FunctionToSqlBase FUNCTION_TO_BASE_CONVERTER = new FunctionToSqlBase();
+
   private SchemaConverters() {
   }
 
@@ -143,7 +145,7 @@ public final class SchemaConverters {
      */
     Class<?> toJavaType(SqlBaseType sqlBaseType);
 
-    default Class<?> toJavaType(SqlType sqlType) {
+    default Class<?> toJavaType(final SqlType sqlType) {
       return toJavaType(sqlType.baseType());
     }
   }
@@ -157,6 +159,10 @@ public final class SchemaConverters {
 
   public interface FunctionToSqlConverter {
     SqlType toSqlType(ParamType paramType);
+  }
+
+  public interface FunctionToSqlBaseConverter {
+    SqlBaseType toBaseType(ParamType paramType);
   }
 
   public static ConnectToSqlTypeConverter connectToSqlConverter() {
@@ -181,6 +187,10 @@ public final class SchemaConverters {
 
   public static FunctionToSqlConverter functionToSqlConverter() {
     return FUNCTION_TO_SQL_CONVERTER;
+  }
+
+  public static FunctionToSqlBaseConverter functionToSqlBaseConverter() {
+    return FUNCTION_TO_BASE_CONVERTER;
   }
 
   private static final class ConnectToSqlConverter implements ConnectToSqlTypeConverter {
@@ -352,7 +362,7 @@ public final class SchemaConverters {
             .build();
 
     @Override
-    public SqlType toSqlType(ParamType paramType) {
+    public SqlType toSqlType(final ParamType paramType) {
       final SqlType sqlType = FUNCTION_TO_SQL.get(paramType);
       if (sqlType != null) {
         return sqlType;
@@ -377,10 +387,45 @@ public final class SchemaConverters {
     }
   }
 
+  private static class FunctionToSqlBase implements FunctionToSqlBaseConverter {
+
+    private static final BiMap<ParamType, SqlBaseType> FUNCTION_TO_BASE =
+        ImmutableBiMap.<ParamType, SqlBaseType>builder()
+            .put(ParamTypes.STRING, SqlBaseType.STRING)
+            .put(ParamTypes.BOOLEAN, SqlBaseType.BOOLEAN)
+            .put(ParamTypes.INTEGER, SqlBaseType.INTEGER)
+            .put(ParamTypes.LONG, SqlBaseType.BIGINT)
+            .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
+            .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
+            .build();
+
+    @Override
+    public SqlBaseType toBaseType(final ParamType paramType) {
+      final SqlBaseType sqlType = FUNCTION_TO_BASE.get(paramType);
+      if (sqlType != null) {
+        return sqlType;
+      }
+
+      if (paramType instanceof MapType) {
+        return SqlBaseType.MAP;
+      }
+
+      if (paramType instanceof ArrayType) {
+        return SqlBaseType.ARRAY;
+      }
+
+      if (paramType instanceof StructType) {
+        return SqlBaseType.STRUCT;
+      }
+
+      throw new KsqlException("Cannot convert param type to sql type: " + paramType);
+    }
+  }
+
   private static class SqlToFunction implements SqlToFunctionConverter {
 
     @Override
-    public ParamType toFunctionType(SqlType sqlType) {
+    public ParamType toFunctionType(final SqlType sqlType) {
       final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse().get(sqlType);
       if (paramType != null) {
         return paramType;
@@ -400,7 +445,7 @@ public final class SchemaConverters {
 
       if (sqlType.baseType() == SqlBaseType.STRUCT) {
         final StructType.Builder builder = StructType.builder();
-        for (Field field : ((SqlStruct) sqlType).fields()) {
+        for (final Field field : ((SqlStruct) sqlType).fields()) {
           builder.field(field.name(), toFunctionType(field.type()));
         }
         return builder.build();

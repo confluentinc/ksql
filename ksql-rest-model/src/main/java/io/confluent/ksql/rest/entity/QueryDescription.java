@@ -18,8 +18,11 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +34,7 @@ public class QueryDescription {
 
   private final QueryId id;
   private final String statementText;
+  private final Optional<WindowType> windowType;
   private final List<FieldInfo> fields;
   private final Set<String> sources;
   private final Set<String> sinks;
@@ -44,6 +48,7 @@ public class QueryDescription {
   public QueryDescription(
       @JsonProperty("id") final QueryId id,
       @JsonProperty("statementText") final String statementText,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
       @JsonProperty("fields") final List<FieldInfo> fields,
       @JsonProperty("sources") final Set<String> sources,
       @JsonProperty("sinks") final Set<String> sinks,
@@ -52,14 +57,16 @@ public class QueryDescription {
       @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
       @JsonProperty("state") final Optional<String> state
   ) {
-    this.id = id;
-    this.statementText = statementText;
-    this.fields = Collections.unmodifiableList(fields);
-    this.sources = Collections.unmodifiableSet(sources);
-    this.sinks = Collections.unmodifiableSet(sinks);
-    this.topology = topology;
-    this.executionPlan = executionPlan;
-    this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
+    this.id = Objects.requireNonNull(id, "id");
+    this.statementText = Objects.requireNonNull(statementText, "statementText");
+    this.windowType = Objects.requireNonNull(windowType, "windowType");
+    this.fields = ImmutableList.copyOf(Objects.requireNonNull(fields, "fields"));
+    this.sources = ImmutableSet.copyOf(Objects.requireNonNull(sources, "sources"));
+    this.sinks = ImmutableSet.copyOf(Objects.requireNonNull(sinks, "sinks"));
+    this.topology = Objects.requireNonNull(topology, "topology");
+    this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
+    this.overriddenProperties = ImmutableMap.copyOf(Objects
+        .requireNonNull(overriddenProperties, "overriddenProperties"));
     this.state = Objects.requireNonNull(state, "state");
   }
 
@@ -69,6 +76,10 @@ public class QueryDescription {
 
   public String getStatementText() {
     return statementText;
+  }
+
+  public Optional<WindowType> getWindowType() {
+    return windowType;
   }
 
   public List<FieldInfo> getFields() {
@@ -112,6 +123,7 @@ public class QueryDescription {
     final QueryDescription that = (QueryDescription) o;
     return Objects.equals(id, that.id)
         && Objects.equals(statementText, that.statementText)
+        && Objects.equals(windowType, that.windowType)
         && Objects.equals(fields, that.fields)
         && Objects.equals(topology, that.topology)
         && Objects.equals(executionPlan, that.executionPlan)
@@ -126,6 +138,7 @@ public class QueryDescription {
     return Objects.hash(
         id,
         statementText,
+        windowType,
         fields,
         topology,
         executionPlan,

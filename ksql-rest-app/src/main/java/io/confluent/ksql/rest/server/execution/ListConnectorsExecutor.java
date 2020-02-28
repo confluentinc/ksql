@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -29,7 +30,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.AbstractStatus.State;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
@@ -45,7 +45,7 @@ public final class ListConnectorsExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext
   ) {
@@ -129,7 +129,11 @@ public final class ListConnectorsExecutor {
         .filter(State.RUNNING.name()::equals)
         .count();
 
-    return String.format("RUNNING (%s/%s tasks RUNNING)",
+    final String status = connectorState.tasks().size() > 0 && numRunningTasks == 0
+        ? "WARNING"
+        : "RUNNING";
+    return String.format("%s (%s/%s tasks RUNNING)",
+        status,
         numRunningTasks,
         connectorState.tasks().size());
   }

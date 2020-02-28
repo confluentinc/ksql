@@ -29,6 +29,7 @@ import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
 import java.net.URI;
 import java.security.Principal;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;
@@ -62,7 +63,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueIfAuthorizationIsAllowed() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
 
     // When:
     authorizationFilter.filter(request);
@@ -74,7 +75,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldAbortIfAuthorizationIsDenied() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "query");
     doThrow(new KsqlException("access denied"))
         .when(authorizationProvider).checkEndpointAccess(userPrincipal, "GET", "/query");
 
@@ -90,7 +91,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata");
 
     // When:
     authorizationFilter.filter(request);
@@ -103,7 +104,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataIdPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata/id");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata/id");
 
     // When:
     authorizationFilter.filter(request);
@@ -116,7 +117,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedHealthCheckPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
+    final ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
 
     // When:
     authorizationFilter.filter(request);
@@ -133,14 +134,13 @@ public class KsqlAuthorizationFilterTest {
   ) {
     when(securityContext.getUserPrincipal()).thenReturn(principal);
 
-    ContainerRequest requestContext = new ContainerRequest(
+    return new ContainerRequest(
         URI.create(""),
         URI.create(path),
         method,
         securityContext,
-        mock(PropertiesDelegate.class)
+        mock(PropertiesDelegate.class),
+        null
     );
-
-    return requestContext;
   }
 }

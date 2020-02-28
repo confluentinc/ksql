@@ -119,7 +119,7 @@ class KafkaEmbedded {
     log.debug("Deleting logs.dir at {} ...", logDir());
     try {
       Files.delete(Paths.get(logDir()));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("Failed to delete log dir {}", logDir());
     }
     log.debug("Shutdown of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",

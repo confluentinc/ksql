@@ -46,7 +46,8 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
       return delegate.deserialize(topic, bytes);
     } catch (final RuntimeException e) {
       processingLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(e, Optional.ofNullable(bytes))
+          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+              e, Optional.ofNullable(bytes), topic)
       );
       throw e;
     }

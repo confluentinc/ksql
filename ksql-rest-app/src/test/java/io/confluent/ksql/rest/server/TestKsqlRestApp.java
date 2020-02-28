@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -35,14 +36,18 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
-import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
+import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.ApplicationServer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -100,6 +105,9 @@ public class TestKsqlRestApp extends ExternalResource {
   private final List<URL> listeners = new ArrayList<>();
   private final Optional<BasicCredentials> credentials;
   private ExecutableServer<KsqlRestConfig> restServer;
+  private KsqlExecutionContext ksqlEngine;
+  private KsqlRestApplication ksqlRestApplication;
+
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
@@ -114,6 +122,10 @@ public class TestKsqlRestApp extends ExternalResource {
     this.serviceContextBinderFactory =
         requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.credentials = requireNonNull(credentials, "credentials");
+  }
+
+  public KsqlExecutionContext getEngine() {
+    return ksqlEngine;
   }
 
   public List<URL> getListeners() {
@@ -149,7 +161,7 @@ public class TestKsqlRestApp extends ExternalResource {
   public URI getWsListener() {
     try {
       return WSURI.toWebsocket(getHttpListener());
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }
   }
@@ -158,7 +170,7 @@ public class TestKsqlRestApp extends ExternalResource {
   public URI getWssListener() {
     try {
       return WSURI.toWebsocket(getHttpsListener());
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       throw new RuntimeException("Invalid WS listener", e);
     }
   }
@@ -182,10 +194,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static String getCommandTopicName() {
-    return KsqlInternalTopicUtils.getTopicName(
-        new KsqlConfig(ImmutableMap.of()),
-        KsqlRestConfig.COMMAND_TOPIC_SUFFIX
-    );
+    return ReservedInternalTopics.commandTopic(new KsqlConfig(ImmutableMap.of()));
   }
 
   public Set<String> getPersistentQueries() {
@@ -230,13 +239,16 @@ public class TestKsqlRestApp extends ExternalResource {
     return serviceContext.get();
   }
 
+  public int getActualVertxPort() {
+    return ksqlRestApplication.getActualVertxPort();
+  }
+
   @Override
   protected void before() {
     if (restServer != null) {
       after();
     }
 
-    final KsqlRestApplication ksqlRestApplication;
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
     try {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
@@ -258,9 +270,11 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       restServer.startAsync();
       listeners.addAll(ksqlRestApplication.getListeners());
-    } catch (Exception var2) {
+    } catch (final Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
+
+    ksqlEngine = ksqlRestApplication.getEngine();
   }
 
   @Override
@@ -272,7 +286,7 @@ public class TestKsqlRestApp extends ExternalResource {
     listeners.clear();
     try {
       restServer.triggerShutdown();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
     restServer = null;
@@ -401,19 +415,20 @@ public class TestKsqlRestApp extends ExternalResource {
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
-
+    configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
     configMap.putAll(additionalProps);
     return configMap;
   }
 
   private static ServiceContext defaultServiceContext(
       final Supplier<String> bootstrapServers,
-      final Map<String, ?> baseConfig
+      final Map<String, ?> baseConfig,
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
   ) {
     final KsqlConfig config =
         new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties());
 
-    return ServiceContextFactory.create(config, DisabledKsqlClient::instance);
+    return ServiceContextFactory.create(config, ksqlClientSupplier);
   }
 
   public static final class Builder {
@@ -423,15 +438,18 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
-    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinder
-        = KsqlRestServiceContextBinder::new;
+    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> securityContextBinder;
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
-          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              DisabledKsqlClient::instance);
+      this.securityContextBinder = (config, securityExtension) ->
+        new KsqlSecurityContextBinder(config, securityExtension,
+            new KsqlSchemaRegistryClientFactory(config, Collections.emptyMap())::get);
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -446,25 +464,34 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
+    // Rather than having ksql client calls disabled, creates a real instance suitable for
+    // functional tests.
+    public Builder withEnabledKsqlClient() {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              TestDefaultKsqlClientFactory::instance);
+      return this;
+    }
+
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
-      this.serviceContextBinder = (config, extension) -> new AbstractBinder() {
+      this.securityContextBinder = (config, extension) -> new AbstractBinder() {
         @Override
         protected void configure() {
-          final Factory<ServiceContext> factory = new Factory<ServiceContext>() {
+          final Factory<KsqlSecurityContext> factory = new Factory<KsqlSecurityContext>() {
             @Override
-            public ServiceContext provide() {
-              return serviceContext.get();
+            public KsqlSecurityContext provide() {
+              return new KsqlSecurityContext(Optional.empty(), serviceContext.get());
             }
 
             @Override
-            public void dispose(final ServiceContext serviceContext) {
+            public void dispose(final KsqlSecurityContext securityContext) {
               // do nothing because context is shared
             }
           };
 
           bindFactory(factory)
-              .to(ServiceContext.class)
+              .to(KsqlSecurityContext.class)
               .in(RequestScoped.class);
         }
       };
@@ -493,7 +520,7 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          serviceContextBinder,
+          securityContextBinder,
           credentials
       );
     }

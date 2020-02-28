@@ -15,9 +15,14 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -32,7 +37,7 @@ final class SchemaRegistryClientFactory {
       final Format valueFormat,
       final KsqlConfig ksqlConfig
   ) {
-    if (keyFormat != Format.AVRO && valueFormat != Format.AVRO) {
+    if (keyFormat != FormatFactory.AVRO && valueFormat != FormatFactory.AVRO) {
       return Optional.empty();
     }
 
@@ -41,8 +46,10 @@ final class SchemaRegistryClientFactory {
     }
 
     return Optional.of(new CachedSchemaRegistryClient(
-        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
+        ImmutableList.of(ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
         100,
+        ImmutableList.of(
+            new AvroSchemaProvider(), new ProtobufSchemaProvider(), new JsonSchemaProvider()),
         ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX)
     ));
   }

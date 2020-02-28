@@ -79,7 +79,7 @@ public class UdtfLoader {
 
     final TableFunctionFactory factory = new TableFunctionFactory(metadata);
 
-    for (Method method : theClass.getMethods()) {
+    for (final Method method : theClass.getMethods()) {
       if (method.getAnnotation(Udtf.class) != null) {
         final Udtf annotation = method.getAnnotation(Udtf.class);
         try {
@@ -143,7 +143,7 @@ public class UdtfLoader {
             method.getDeclaringClass(),
             outputType,
             udtfAnnotation.schemaProvider(),
-            functionName.name(),
+            functionName.text(),
             method.isVarArgs());
     return new KsqlTableFunction(
         schemaProviderFunction,

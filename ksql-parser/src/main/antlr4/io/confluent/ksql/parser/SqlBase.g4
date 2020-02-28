@@ -34,7 +34,7 @@ singleExpression
 statement
     : query                                                                 #queryStatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
-    | (LIST | SHOW) TOPICS EXTENDED?                                        #listTopics
+    | (LIST | SHOW) ALL? TOPICS EXTENDED?                                   #listTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
@@ -254,12 +254,13 @@ primaryExpression
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
     | CAST '(' expression AS type ')'                                                     #cast
     | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
+    | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
     | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
-    | identifier '.' identifier                                                           #columnReference
+    | identifier '.' identifier                                                           #qualifiedColumnReference
     | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
     ;
@@ -310,8 +311,9 @@ sourceName
     ;
 
 number
-    : DECIMAL_VALUE  #decimalLiteral
-    | INTEGER_VALUE  #integerLiteral
+    : DECIMAL_VALUE         #decimalLiteral
+    | FLOATING_POINT_VALUE  #floatLiteral
+    | INTEGER_VALUE         #integerLiteral
     ;
 
 literal
@@ -487,7 +489,10 @@ INTEGER_VALUE
 DECIMAL_VALUE
     : DIGIT+ '.' DIGIT*
     | '.' DIGIT+
-    | DIGIT+ ('.' DIGIT*)? EXPONENT
+    ;
+
+FLOATING_POINT_VALUE
+    : DIGIT+ ('.' DIGIT*)? EXPONENT
     | '.' DIGIT+ EXPONENT
     ;
 

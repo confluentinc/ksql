@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class GeoDistanceTest {
-  private GeoDistance distanceUdf = new GeoDistance();
+  private final GeoDistance distanceUdf = new GeoDistance();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

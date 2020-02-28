@@ -1,0 +1,54 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102687,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<BIGINT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : [ 12, 34, 999 ]
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : [ 12, 34, null ]
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : null
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "FOO" : [ 12, 34, 999 ]
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "FOO" : [ 12, 34, null ]
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "FOO" : null
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : null
+  } ]
+}

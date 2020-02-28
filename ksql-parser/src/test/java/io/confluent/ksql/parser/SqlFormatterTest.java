@@ -57,17 +57,17 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -109,16 +109,18 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("NAME"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("CATEGORY"), categorySchema)
       .build();
 
-  private static final LogicalSchema tableSchema = LogicalSchema.builder()
+  private static final LogicalSchema TABLE_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("TABLE"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
@@ -162,8 +164,8 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
@@ -171,7 +173,7 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
+        KeyField.of(ColumnName.of("ORDERTIME")),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -181,15 +183,15 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
+        KeyField.of(ColumnName.of("ITEMID")),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -200,9 +202,9 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("TABLE"),
-        tableSchema,
+        TABLE_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("TABLE"))),
+        KeyField.of(ColumnName.of("TABLE")),
         Optional.empty(),
         false,
         ksqlTopicItems

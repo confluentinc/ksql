@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.io.IOException;
@@ -74,7 +73,6 @@ public final class KsqlPlanSchemaGenerator {
             .put(SelectExpression.class, String.class)
             .put(Expression.class, String.class)
             .put(FunctionCall.class, String.class)
-            .put(ColumnRef.class, String.class)
             .put(KsqlWindowExpression.class, String.class)
             .put(Duration.class, Long.class)
             .build(),

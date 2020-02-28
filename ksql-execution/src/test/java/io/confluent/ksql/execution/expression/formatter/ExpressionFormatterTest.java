@@ -20,18 +20,21 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
@@ -43,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -50,17 +54,19 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
@@ -83,8 +89,31 @@ public class ExpressionFormatterTest {
   public void shouldFormatSubscriptExpression() {
     assertThat(ExpressionFormatter.formatExpression(new SubscriptExpression(
             new StringLiteral("abc"),
-            new DoubleLiteral(3.0))),
-        equalTo("'abc'[3.0]"));
+            new IntegerLiteral(3))),
+        equalTo("'abc'[3]"));
+  }
+
+  @Test
+  public void shouldFormatCreateArrayExpression() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new CreateArrayExpression(ImmutableList.of(
+            new StringLiteral("foo"),
+            new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1)))
+        )),
+        equalTo("ARRAY['foo', abc[1]]")
+    );
+  }
+
+  @Test
+  public void shouldFormatCreateMapExpression() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new CreateMapExpression(ImmutableMap.<Expression, Expression>builder()
+            .put(new StringLiteral("foo"), new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1)))
+            .put(new StringLiteral("bar"), new StringLiteral("val"))
+            .build()
+        )),
+        equalTo("MAP('foo':=abc[1], 'bar':='val')")
+    );
   }
 
   @Test
@@ -92,7 +121,7 @@ public class ExpressionFormatterTest {
     assertThat(ExpressionFormatter.formatExpression(new CreateStructExpression(
         ImmutableList.of(
             new Field("foo", new StringLiteral("abc")),
-            new Field("bar", new SubscriptExpression(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("abc"))), new IntegerLiteral(1))))
+            new Field("bar", new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1))))
         ), FormatOptions.of(exp -> exp.equals("foo"))),
         equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
   }
@@ -103,13 +132,34 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatDoubleLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2.0"));
+  public void shouldFormatDoubleLiteralWithSmallScale() {
+    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2E0"));
+  }
+
+  @Test
+  public void shouldFormatDoubleLiteralWithLargeScale() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(1234.56789876d)),
+        equalTo("1.23456789876E3"));
+  }
+
+  @Test
+  public void shouldFormatMaxDoubleLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(Double.MAX_VALUE)),
+        equalTo("1.7976931348623157E308"));
+  }
+
+  @Test
+  public void shouldFormatMinDoubleLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(
+        new DoubleLiteral(Double.MIN_VALUE)),
+        equalTo("4.9E-324"));
   }
 
   @Test
   public void shouldFormatDecimalLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral("3.5")), equalTo("DECIMAL '3.5'"));
+    assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral(new BigDecimal("3.5"))), equalTo("3.5"));
   }
 
   @Test
@@ -128,22 +178,22 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatQualifiedNameReference() {
-    assertThat(ExpressionFormatter.formatExpression(new ColumnReferenceExp(ColumnRef.withoutSource(
-        ColumnName.of("name")))), equalTo("name"));
+  public void shouldFormatColumnReference() {
+    assertThat(ExpressionFormatter.formatExpression(new UnqualifiedColumnReferenceExp(
+        ColumnName.of("name"))), equalTo("name"));
   }
 
   @Test
   public void shouldFormatDereferenceExpression() {
     // Given:
-    DereferenceExpression expression = new DereferenceExpression(
+    final DereferenceExpression expression = new DereferenceExpression(
         Optional.of(LOCATION),
         new StringLiteral("foo"),
         "name"
     );
 
     // When:
-    String text = ExpressionFormatter.formatExpression(expression);
+    final String text = ExpressionFormatter.formatExpression(expression);
 
     // Then:
     assertThat(text, equalTo("'foo'->name"));
@@ -151,7 +201,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCallWithCount() {
-    FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
+    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
 
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
@@ -159,13 +209,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCountStar() {
-    FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
+    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT(*)"));
   }
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
-    FunctionCall functionCall = new FunctionCall(
+    final FunctionCall functionCall = new FunctionCall(
         FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
@@ -173,7 +223,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLogicalBinaryExpression() {
-    LogicalBinaryExpression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
+    final LogicalBinaryExpression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         new StringLiteral("a"),
         new StringLiteral("b"));
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("('a' AND 'b')"));
@@ -221,19 +271,19 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLikePredicate() {
-    LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
+    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*')"));
   }
 
   @Test
   public void shouldFormatCast() {
     // Given:
-    Cast cast = new Cast(
+    final Cast cast = new Cast(
         new LongLiteral(1),
         new Type(SqlTypes.DOUBLE));
 
     // When:
-    String result = ExpressionFormatter.formatExpression(cast);
+    final String result = ExpressionFormatter.formatExpression(cast);
 
     // Then:
     assertThat(result, equalTo("CAST(1 AS DOUBLE)"));
@@ -241,7 +291,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSearchedCaseExpression() {
-    SearchedCaseExpression expression = new SearchedCaseExpression(
+    final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
                 new LongLiteral(1))),
@@ -251,7 +301,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSearchedCaseExpressionWithDefaultValue() {
-    SearchedCaseExpression expression = new SearchedCaseExpression(
+    final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
                 new LongLiteral(1))),
@@ -261,7 +311,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSimpleCaseExpressionWithDefaultValue() {
-    SimpleCaseExpression expression = new SimpleCaseExpression(
+    final SimpleCaseExpression expression = new SimpleCaseExpression(
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
@@ -272,7 +322,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSimpleCaseExpression() {
-    SimpleCaseExpression expression = new SimpleCaseExpression(
+    final SimpleCaseExpression expression = new SimpleCaseExpression(
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
@@ -288,13 +338,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatBetweenPredicate() {
-    BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral(5), new LongLiteral(10));
+    final BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral(5), new LongLiteral(10));
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('blah' BETWEEN 5 AND 10)"));
   }
 
   @Test
   public void shouldFormatInPredicate() {
-    InPredicate predicate = new InPredicate(
+    final InPredicate predicate = new InPredicate(
         new StringLiteral("foo"),
         new InListExpression(ImmutableList.of(new StringLiteral("a"))));
 
@@ -308,7 +358,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStruct() {
-    SqlStruct struct = SqlStruct.builder()
+    final SqlStruct struct = SqlStruct.builder()
         .field("field1", SqlTypes.INTEGER)
         .field("field2", SqlTypes.STRING)
         .build();
@@ -320,7 +370,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStructWithColumnWithReservedWordName() {
-    SqlStruct struct = SqlStruct.builder()
+    final SqlStruct struct = SqlStruct.builder()
         .field("RESERVED", SqlTypes.INTEGER)
         .build();
 
@@ -331,14 +381,23 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
+    final SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
     assertThat(ExpressionFormatter.formatExpression(new Type(map)),
         equalTo("MAP<STRING, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    SqlArray array = SqlTypes.array(SqlTypes.BOOLEAN);
+    final SqlArray array = SqlTypes.array(SqlTypes.BOOLEAN);
     assertThat(ExpressionFormatter.formatExpression(new Type(array)), equalTo("ARRAY<BOOLEAN>"));
+  }
+
+  @Test
+  public void shouldFormatQualifiedColumnReference() {
+    final QualifiedColumnReferenceExp ref = new QualifiedColumnReferenceExp(
+        SourceName.of("foo"),
+        ColumnName.of("bar")
+    );
+    assertThat(ExpressionFormatter.formatExpression(ref), equalTo("foo.bar"));
   }
 }

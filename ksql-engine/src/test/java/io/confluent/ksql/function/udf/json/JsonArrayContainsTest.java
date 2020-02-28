@@ -21,7 +21,7 @@ import org.junit.Test;
 
 public class JsonArrayContainsTest
 {
-    private JsonArrayContains jsonUdf = new JsonArrayContains();
+    private final JsonArrayContains jsonUdf = new JsonArrayContains();
 
     @Test
     public void shouldReturnFalseOnEmptyArray() {

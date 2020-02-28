@@ -520,7 +520,7 @@ public class KsqlRestConfigTest {
   private static String getLocalHostName() {
     try {
       return InetAddress.getLocalHost().getCanonicalHostName();
-    } catch (UnknownHostException e) {
+    } catch (final UnknownHostException e) {
       throw new AssertionError("Failed to obtain local host info", e);
     }
   }

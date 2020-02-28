@@ -89,6 +89,18 @@ returned will be the number of rows where `col1` is non-null.
 When `*` is specified, the count returned will be the total
 number of rows.
 
+COUNT_DISTINCT
+--------------
+
+`COUNT_DISTINCT(col1)`
+
+Stream, Table
+
+Returns the _approximate_ number of unique values of `col1` in a group.
+The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
+to estimate cardinalties of 10^9 with a typical standard error of 2%.
+
+
 HISTOGRAM
 ---------
 
@@ -157,24 +169,6 @@ Stream
 
 Return the distinct Top *K* values for the given column and window
 Note: rows where `col1` is null will be ignored.
-
-WindowStart
------------
-
-`WindowStart()`
-
-Stream, Table
-
-Extract the start time of the current window, in milliseconds.
-If the query is not windowed the function will return null.
-
-WindowEnd
----------
-
-`WindowEnd()`
-
-Extract the end time of the current window, in milliseconds.
-If the query is not windowed the function will return null.
 
 
 Page last revised on: {{ git_revision_date }}

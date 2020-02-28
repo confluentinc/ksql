@@ -20,12 +20,15 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
@@ -64,9 +67,7 @@ public final class CreateSourceAsProperties {
   }
 
   public Optional<Format> getValueFormat() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
-        .map(String::toUpperCase)
-        .map(Format::valueOf);
+    return getFormatInfo().map(FormatFactory::of);
   }
 
   public Optional<String> getKafkaTopic() {
@@ -81,8 +82,7 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
-
-  public Optional<ColumnRef> getTimestampColumnName() {
+  public Optional<ColumnName> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
   }
@@ -91,17 +91,29 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  public Optional<String> getValueAvroSchemaName() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
-  }
-
   public Optional<Boolean> getWrapSingleValues() {
     return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
   }
 
-  public Optional<Delimiter> getValueDelimiter() {
-    final String val = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    return val == null ? Optional.empty() : Optional.of(Delimiter.parse(val));
+  public Optional<FormatInfo> getFormatInfo() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+        .map(format -> FormatInfo.of(format, getFormatProperties()));
+  }
+
+  public Map<String, String> getFormatProperties() {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+
+    final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    if (schemaName != null) {
+      builder.put(AvroFormat.FULL_SCHEMA_NAME, schemaName);
+    }
+
+    final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
+    if (delimiter != null) {
+      builder.put(DelimitedFormat.DELIMITER, delimiter);
+    }
+
+    return builder.build();
   }
 
   public CreateSourceAsProperties withTopic(

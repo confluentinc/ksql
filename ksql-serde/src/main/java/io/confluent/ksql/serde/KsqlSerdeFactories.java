@@ -18,13 +18,7 @@ package io.confluent.ksql.serde;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
-import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -44,6 +38,11 @@ final class KsqlSerdeFactories implements SerdeFactories {
   }
 
   @Override
+  public void validate(final FormatInfo format, final PersistenceSchema schema) {
+    factoryMethod.apply(format).validate(schema);
+  }
+
+  @Override
   public <K> Serde<K> create(
       final FormatInfo format,
       final PersistenceSchema schema,
@@ -60,25 +59,6 @@ final class KsqlSerdeFactories implements SerdeFactories {
 
   @VisibleForTesting
   static KsqlSerdeFactory create(final FormatInfo format) {
-    switch (format.getFormat()) {
-      case AVRO:
-        final String schemaFullName = format.getFullSchemaName()
-            .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
-        return new KsqlAvroSerdeFactory(schemaFullName);
-
-      case JSON:
-        return new KsqlJsonSerdeFactory();
-
-      case DELIMITED:
-        return new KsqlDelimitedSerdeFactory(format.getDelimiter());
-
-      case KAFKA:
-        return new KafkaSerdeFactory();
-
-      default:
-        throw new KsqlException(
-            String.format("Unsupported format: %s", format.getFormat()));
-    }
+    return FormatFactory.of(format).getSerdeFactory(format);
   }
 }

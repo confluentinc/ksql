@@ -16,12 +16,12 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -48,7 +49,6 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -85,7 +85,7 @@ public class ConnectExecutorTest {
     givenSuccess();
 
     // When:
-    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
+    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
     verify(connectClient).create(eq("foo"), (Map<String, String>) argThat(hasEntry("foo", "bar")));
@@ -98,7 +98,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -112,7 +112,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());

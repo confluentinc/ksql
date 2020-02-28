@@ -176,7 +176,8 @@ public class KsqlRequestTest {
         ImmutableMap.of(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
-        null);
+        null
+    );
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
@@ -194,7 +195,8 @@ public class KsqlRequestTest {
         Collections.singletonMap(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
         ),
-        null);
+        null
+    );
 
     // When:
     final Map<String, Object> props = request.getStreamsProperties();
@@ -228,7 +230,7 @@ public class KsqlRequestTest {
   private static String serialize(final KsqlRequest request) {
     try {
       return OBJECT_MAPPER.writeValueAsString(request);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException("test invalid", e);
     }
   }
@@ -236,7 +238,7 @@ public class KsqlRequestTest {
   private static KsqlRequest deserialize(final String json) {
     try {
       return OBJECT_MAPPER.readValue(json, KsqlRequest.class);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       if (e.getCause() instanceof RuntimeException) {
         throw (RuntimeException) e.getCause();
       }

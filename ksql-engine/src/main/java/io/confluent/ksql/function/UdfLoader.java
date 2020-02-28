@@ -98,7 +98,7 @@ public class UdfLoader {
 
     functionRegistry.ensureFunctionFactory(factory);
 
-    for (Method method : theClass.getMethods()) {
+    for (final Method method : theClass.getMethods()) {
       final Udf udfAnnotation = method.getAnnotation(Udf.class);
       if (udfAnnotation != null) {
         final KsqlScalarFunction function;

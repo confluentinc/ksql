@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,14 +33,18 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -46,6 +52,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -60,11 +67,13 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -121,9 +130,12 @@ public class DistributingExecutorTest {
   private Producer<CommandId, Command> transactionalProducer;
   @Mock
   private Command command;
+  @Mock
+  private Errors errorHandler;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
+  private KsqlSecurityContext securityContext;
 
   @Before
   public void setUp() throws InterruptedException {
@@ -141,22 +153,26 @@ public class DistributingExecutorTest {
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
     when(queue.createTransactionalProducer()).thenReturn(transactionalProducer);
 
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+
     distributor = new DistributingExecutor(
+        KSQL_CONFIG,
         queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
-        validatedCommandFactory
+        validatedCommandFactory,
+        errorHandler
     );
   }
 
   @Test
   public void shouldEnqueueSuccessfulCommandTransactionally() {
     // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, serviceContext);
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
 
     // Then:
-    InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
+    final InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
     inOrder.verify(transactionalProducer).initTransactions();
     inOrder.verify(transactionalProducer).beginTransaction();
     inOrder.verify(queue).waitForCommandConsumer();
@@ -174,9 +190,22 @@ public class DistributingExecutorTest {
   }
 
   @Test
+  public void shouldNotAbortTransactionIfInitTransactionFails() {
+    // Given:
+    doThrow(TimeoutException.class).when(transactionalProducer).initTransactions();
+
+    // Expect:
+    expectedException.expect(KsqlServerException.class);
+    
+    // Then:
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    verify(transactionalProducer, times(0)).abortTransaction();
+  }
+
+  @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, serviceContext);
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(CONFIGURED_STATEMENT));
@@ -189,7 +218,7 @@ public class DistributingExecutorTest {
         (CommandStatusEntity) distributor.execute(
             CONFIGURED_STATEMENT,
             executionContext,
-            serviceContext
+            securityContext
         )
             .orElseThrow(null);
 
@@ -211,7 +240,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, serviceContext);
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
     verify(transactionalProducer, times(1)).abortTransaction();
   }
 
@@ -229,43 +258,108 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(configured, executionContext, serviceContext);
+    distributor.execute(configured, executionContext, securityContext);
   }
 
   @Test
   public void shouldThrowExceptionIfUserServiceContextIsDeniedAuthorization() {
     // Given:
-    final ServiceContext userServiceContext = mock(ServiceContext.class);
+    final KsqlSecurityContext userSecurityContext = new KsqlSecurityContext(
+        Optional.empty(),
+        mock(ServiceContext.class));
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
-        .checkAuthorization(eq(userServiceContext), any(), eq(configured.getStatement()));
+        .checkAuthorization(eq(userSecurityContext), any(), eq(configured.getStatement()));
 
     // Expect:
     expectedException.expect(KsqlTopicAuthorizationException.class);
 
     // When:
-    distributor.execute(configured, executionContext, userServiceContext);
+    distributor.execute(configured, executionContext, userSecurityContext);
   }
 
   @Test
   public void shouldThrowServerExceptionIfServerServiceContextIsDeniedAuthorization() {
     // Given:
-    final ServiceContext userServiceContext = SandboxedServiceContext.create(TestServiceContext.create());
+    final KsqlSecurityContext userSecurityContext = new KsqlSecurityContext(Optional.empty(),
+        SandboxedServiceContext.create(TestServiceContext.create()));
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
         ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    doNothing().when(authorizationValidator)
+        .checkAuthorization(eq(userSecurityContext), any(), any());
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
-        .checkAuthorization(eq(serviceContext), any(), eq(configured.getStatement()));
+        .checkAuthorization(
+            ArgumentMatchers.argThat(securityContext ->
+                securityContext.getServiceContext() == serviceContext),
+            any(), any());
 
     // Expect:
     expectedException.expect(KsqlServerException.class);
     expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
 
     // When:
-    distributor.execute(configured, executionContext, userServiceContext);
+    distributor.execute(configured, executionContext, userSecurityContext);
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoUnknownStream() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into an unknown stream/table: `s1`");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoReadOnlyTopic() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into read-only topic: "
+        + "_confluent-ksql-default__command-topic");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoProcessingLogTopic() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot insert into read-only topic: "
+        + "default_ksql_processing_log");
+
+    // When:
+    distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class));
   }
 }

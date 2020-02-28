@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -50,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -81,6 +81,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
+  private final PullQueryExecutor pullQueryExecutor;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -89,7 +90,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this(
         ksqlEngine,
@@ -99,12 +101,15 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueueCatchupTimeout,
         activenessRegistrar,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        pullQueryExecutor
     );
   }
 
   @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   StreamedQueryResource(
+      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
@@ -112,7 +117,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final PullQueryExecutor pullQueryExecutor
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -125,7 +131,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
-    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");;
+    this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
   }
 
   @Override
@@ -139,7 +146,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   @POST
   public Response streamQuery(
-      @Context final ServiceContext serviceContext,
+      @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     throwIfNotConfigured();
@@ -151,7 +158,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(serviceContext, request, statement);
+    return handleStatement(securityContext, request, statement);
   }
 
   private void throwIfNotConfigured() {
@@ -175,51 +182,39 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
   @SuppressWarnings("unchecked")
   private Response handleStatement(
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement
   )  {
     try {
-      final Consumer<KsqlAuthorizationValidator> authValidationConsumer =
-          ksqlAuthorizationValidator -> ksqlAuthorizationValidator.checkAuthorization(
-              serviceContext,
+      authorizationValidator.ifPresent(validator ->
+          validator.checkAuthorization(
+              securityContext,
               ksqlEngine.getMetaStore(),
-              statement.getStatement()
-          );
+              statement.getStatement())
+      );
 
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
 
         if (queryStmt.getStatement().isPullQuery()) {
-          final boolean skipAccessValidation = ksqlConfig.getBoolean(
-              KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
-          if (authorizationValidator.isPresent() && !skipAccessValidation) {
-            return Errors.badRequest("Pull queries are not currently supported when "
-                + "access validation against Kafka is configured. If you really want to "
-                + "bypass this limitation please set "
-                + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "
-                + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC);
-          }
-
           return handlePullQuery(
-              serviceContext,
+              securityContext.getServiceContext(),
               queryStmt,
               request.getStreamsProperties()
           );
         }
 
-        authorizationValidator.ifPresent(authValidationConsumer);
         return handlePushQuery(
-            serviceContext,
+            securityContext.getServiceContext(),
             queryStmt,
             request.getStreamsProperties()
         );
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
-        authorizationValidator.ifPresent(authValidationConsumer);
         return handlePrintTopic(
-            serviceContext,
+            securityContext.getServiceContext(),
             request.getStreamsProperties(),
             (PreparedStatement<PrintTopic>) statement);
       }
@@ -242,10 +237,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> streamsProperties
   ) {
     final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
+        ConfiguredStatement.of(statement,streamsProperties, ksqlConfig);
 
-    final TableRowsEntity entity = PullQueryExecutor
-        .execute(configured, ksqlEngine, serviceContext);
+    final TableRowsEntity entity = pullQueryExecutor
+        .execute(configured, serviceContext);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 
@@ -285,7 +280,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private String writeValueAsString(final Object object) {
     try {
       return objectMapper.writeValueAsString(object);
-    } catch (JsonProcessingException e) {
+    } catch (final JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -345,9 +340,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .collect(Collectors.toSet());
   }
 
-  @SuppressWarnings("unchecked")
   private static GenericRow toGenericRow(final List<?> values) {
-    return new GenericRow((List)values);
+    return new GenericRow().appendAll(values);
   }
 }
 

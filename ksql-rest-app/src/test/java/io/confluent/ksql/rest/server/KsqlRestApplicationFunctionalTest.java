@@ -100,7 +100,7 @@ public class KsqlRestApplicationFunctionalTest {
 
     try {
       app.start();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new AssertionError("Failed to start", e);
     }
   }

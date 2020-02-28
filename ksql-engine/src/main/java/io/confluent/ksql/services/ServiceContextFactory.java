@@ -35,7 +35,9 @@ public final class ServiceContextFactory {
     return create(
         ksqlConfig,
         new DefaultKafkaClientSupplier(),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get,
+        new KsqlSchemaRegistryClientFactory(
+            ksqlConfig,
+            Collections.emptyMap())::get,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
                                        Optional.empty()),
         ksqlClientSupplier

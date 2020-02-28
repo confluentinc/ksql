@@ -26,14 +26,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
@@ -51,6 +53,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -58,18 +61,20 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -90,7 +95,7 @@ public class ExpressionTreeRewriterTest {
       new BooleanLiteral("true"),
       new StringLiteral("abcd"),
       new NullLiteral(),
-      new DecimalLiteral("1.0"),
+      new DecimalLiteral(BigDecimal.ONE),
       new TimeLiteral("00:00:00"),
       new TimestampLiteral("00:00:00")
   );
@@ -533,6 +538,42 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
+  public void shouldRewriteCreateArrayExpression() {
+    // Given:
+    final CreateArrayExpression parsed = parseExpression("ARRAY['foo', col4[1]]");
+    final Expression firstVal = parsed.getValues().get(0);
+    final Expression secondVal = parsed.getValues().get(1);
+    when(processor.apply(firstVal, context)).thenReturn(expr1);
+    when(processor.apply(secondVal, context)).thenReturn(expr2);
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(parsed, context);
+
+    // Then:
+    assertThat(rewritten, equalTo(new CreateArrayExpression(ImmutableList.of(expr1, expr2))));
+  }
+
+  @Test
+  public void shouldRewriteCreateMapExpression() {
+    // Given:
+    final CreateMapExpression parsed = parseExpression("MAP('foo' := SUBSTRING('foo',0), 'bar' := col4[1])");
+    final Expression firstVal = parsed.getMap().get(new StringLiteral("foo"));
+    final Expression secondVal = parsed.getMap().get(new StringLiteral("bar"));
+    when(processor.apply(firstVal, context)).thenReturn(expr1);
+    when(processor.apply(secondVal, context)).thenReturn(expr2);
+    when(processor.apply(new StringLiteral("foo"), context)).thenReturn(new StringLiteral("foo"));
+    when(processor.apply(new StringLiteral("bar"), context)).thenReturn(new StringLiteral("bar"));
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(parsed, context);
+
+    // Then:
+    assertThat(rewritten,
+        equalTo(new CreateMapExpression(
+            ImmutableMap.of(new StringLiteral("foo"), expr1, new StringLiteral("bar"), expr2))));
+  }
+
+  @Test
   public void shouldRewriteStructExpression() {
     // Given:
     final CreateStructExpression parsed = parseExpression("STRUCT(FOO := 'foo', BAR := col4[1])");
@@ -608,10 +649,12 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
-  public void shouldRewriteQualifiedNameReference() {
+  public void shouldRewriteQualifiedColumnReference() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.withoutSource(
-        ColumnName.of("foo")));
+    final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
+        SourceName.of("bar"),
+        ColumnName.of("foo")
+    );
 
     // When:
     final Expression rewritten = expressionRewriter.rewrite(expression, context);
@@ -621,10 +664,35 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
-  public void shouldRewriteQualifiedNameReferenceUsingPlugin() {
+  public void shouldRewriteQualifiedColumnReferenceUsingPlugin() {
     // Given:
-    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.withoutSource(
-        ColumnName.of("foo")));
+    final QualifiedColumnReferenceExp expression = new QualifiedColumnReferenceExp(
+        SourceName.of("bar"),
+        ColumnName.of("foo")
+    );
+
+    // When/Then:
+    shouldRewriteUsingPlugin(expression);
+  }
+
+  @Test
+  public void shouldRewriteColumnReference() {
+    // Given:
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(
+        ColumnName.of("foo"));
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(expression, context);
+
+    // Then:
+    assertThat(rewritten, is(expression));
+  }
+
+  @Test
+  public void shouldRewriteColumnReferenceUsingPlugin() {
+    // Given:
+    final UnqualifiedColumnReferenceExp expression = new UnqualifiedColumnReferenceExp(
+        ColumnName.of("foo"));
 
     // When/Then:
     shouldRewriteUsingPlugin(expression);

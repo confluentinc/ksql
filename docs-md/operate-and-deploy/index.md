@@ -36,6 +36,9 @@ Health Checks
 - Run `ksql-print-metrics` on a ksqlDB server. For example, see this
   [blog post](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/).
 
+For more information, see
+[Check the health of a ksqlDB Server](installation/check-ksqldb-server-health.md).
+
 Capacity Planning
 -----------------
 

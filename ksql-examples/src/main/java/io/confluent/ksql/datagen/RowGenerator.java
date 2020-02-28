@@ -19,7 +19,7 @@ import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -27,12 +27,10 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -41,39 +39,39 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 public class RowGenerator {
-
-  static final ConnectSchema KEY_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field(
-          SchemaUtil.ROWKEY_NAME.name(),
-          org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
 
   private final Set<String> allTokens = new HashSet<>();
   private final Map<String, Integer> sessionMap = new HashMap<>();
   private final Set<Integer> allocatedIds = new HashSet<>();
   private final Generator generator;
   private final AvroData avroData;
-  private final LogicalSchema ksqlSchema;
   private final SessionManager sessionManager = new SessionManager();
-  private final String key;
+  private final String keyFieldName;
+  private final ConnectSchema keySchema;
+  private final ConnectSchema valueSchema;
+  private final int keyFieldIndex;
 
-  public RowGenerator(final Generator generator, final String key) {
+  public RowGenerator(final Generator generator, final String keyFieldName) {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
-    this.key = Objects.requireNonNull(key, "key");
-    this.ksqlSchema = buildLogicalSchema(generator, avroData);
-
-    if (!ksqlSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(key))).isPresent()) {
-      throw new IllegalArgumentException("key field does not exist in schema: " + key);
-    }
+    this.keyFieldName = Objects.requireNonNull(keyFieldName, "keyFieldName");
+    final LogicalSchema ksqlSchema = buildLogicalSchema(generator, avroData, keyFieldName);
+    this.keySchema = ksqlSchema.keyConnectSchema();
+    this.valueSchema = ksqlSchema.valueConnectSchema();
+    this.keyFieldIndex = ksqlSchema.findValueColumn(ColumnName.of(keyFieldName))
+        .map(Column::index)
+        .orElseThrow(IllegalStateException::new);
   }
 
-  public LogicalSchema schema() {
-    return ksqlSchema;
+  public ConnectSchema keySchema() {
+    return keySchema;
+  }
+
+  public ConnectSchema valueSchema() {
+    return valueSchema;
   }
 
   public Pair<Struct, GenericRow> generateRow() {
@@ -88,7 +86,7 @@ public class RowGenerator {
     }
     final GenericRecord randomAvroMessage = (GenericRecord) generatedObject;
 
-    final List<Object> genericRowValues = new ArrayList<>();
+    final GenericRow row = new GenericRow(generator.schema().getFields().size());
 
     SimpleDateFormat timeformatter = null;
 
@@ -108,14 +106,14 @@ public class RowGenerator {
         final String newCurrentValue = handleSessionisationOfValue(sessionManager, currentValue);
         sessionisationValue = newCurrentValue;
 
-        genericRowValues.add(newCurrentValue);
+        row.append(newCurrentValue);
       } else if (isSessionSiblingIntHash && sessionisationValue != null) {
 
         // super cheeky hack to link int-ids to session-values - if anything fails then we use
         // the 'avro-gen' randomised version
         handleSessionSiblingField(
             randomAvroMessage,
-            genericRowValues,
+            row,
             sessionisationValue,
             field
         );
@@ -123,34 +121,30 @@ public class RowGenerator {
       } else if (timeFormatFromLong != null) {
         final Date date = new Date(System.currentTimeMillis());
         if (timeFormatFromLong.equals("unix_long")) {
-          genericRowValues.add(date.getTime());
+          row.append(date.getTime());
         } else {
           if (timeformatter == null) {
             timeformatter = new SimpleDateFormat(timeFormatFromLong);
           }
-          genericRowValues.add(timeformatter.format(date));
+          row.append(timeformatter.format(date));
         }
       } else {
         final Object value = randomAvroMessage.get(field.name());
         if (value instanceof Record) {
-          final Field ksqlField = ksqlSchema.valueConnectSchema().field(field.name());
+          final Field ksqlField = valueSchema.field(field.name());
           final Record record = (Record) value;
           final Object ksqlValue = avroData.toConnectData(record.getSchema(), record).value();
-          genericRowValues.add(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
+          row.append(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
         } else {
-          genericRowValues.add(value);
+          row.append(value);
         }
       }
     }
 
-    final String keyString = avroData.toConnectData(
-        randomAvroMessage.getSchema().getField(key).schema(),
-        randomAvroMessage.get(key)).value().toString();
+    final Struct keyStruct = new Struct(keySchema);
+    keyStruct.put(SchemaUtil.ROWKEY_NAME.text(), row.get(keyFieldIndex));
 
-    final Struct key = new Struct(KEY_SCHEMA);
-    key.put(SchemaUtil.ROWKEY_NAME.name(), keyString);
-
-    return Pair.of(key, new GenericRow(genericRowValues));
+    return Pair.of(keyStruct, row);
   }
 
   /**
@@ -219,19 +213,19 @@ public class RowGenerator {
 
   private void handleSessionSiblingField(
       final GenericRecord randomAvroMessage,
-      final List<Object> genericRowValues,
+      final GenericRow row,
       final String sessionisationValue,
       final Schema.Field field
   ) {
     try {
       final Schema.Type type = field.schema().getType();
       if (type == Schema.Type.INT) {
-        genericRowValues.add(mapSessionValueToSibling(sessionisationValue, field));
+        row.append(mapSessionValueToSibling(sessionisationValue, field));
       } else {
-        genericRowValues.add(randomAvroMessage.get(field.name()));
+        row.append(randomAvroMessage.get(field.name()));
       }
     } catch (final Exception err) {
-      genericRowValues.add(randomAvroMessage.get(field.name()));
+      row.append(randomAvroMessage.get(field.name()));
     }
   }
 
@@ -272,17 +266,22 @@ public class RowGenerator {
 
   private static LogicalSchema buildLogicalSchema(
       final Generator generator,
-      final AvroData avroData
+      final AvroData avroData,
+      final String keyFieldName
   ) {
     final org.apache.kafka.connect.data.Schema connectSchema = avroData
         .toConnectSchema(generator.schema());
 
+    final Field keyField = connectSchema.field(keyFieldName);
+    if (keyField == null) {
+      throw new IllegalArgumentException("key field does not exist in schema: " + keyFieldName);
+    }
+
     final Builder schemaBuilder = LogicalSchema.builder();
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
-    KEY_SCHEMA.fields()
-        .forEach(f -> schemaBuilder.keyColumn(
-            ColumnName.of(f.name()), converter.toSqlType(f.schema())));
+    schemaBuilder
+        .keyColumn(SchemaUtil.ROWKEY_NAME, converter.toSqlType(keyField.schema()));
 
     connectSchema.fields()
         .forEach(f -> schemaBuilder.valueColumn(

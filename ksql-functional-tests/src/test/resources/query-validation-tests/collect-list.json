@@ -10,7 +10,7 @@
   "tests": [
     {
       "name": "collect_list int",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -30,7 +30,7 @@
     },
     {
       "name": "collect_list long",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -50,7 +50,7 @@
     },
     {
       "name": "collect_list double",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -70,7 +70,7 @@
     },
     {
       "name": "collect_list string",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, VALUE varchar) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -92,7 +92,7 @@
     },
     {
       "name": "collect_list bool map",
-      "format": ["JSON"],
+      "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value['key1']) AS collected FROM test group by id;"
@@ -110,7 +110,7 @@
     },
     {
       "name": "collect_list int table",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -132,7 +132,7 @@
     },
     {
       "name": "collect_list long table",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -154,7 +154,7 @@
     },
     {
       "name": "collect_list double table",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -176,7 +176,7 @@
     },
     {
       "name": "collect_list string table",
-      "format": ["AVRO", "JSON"],
+      "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, VALUE varchar) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value) as collected FROM test group by id;"
@@ -201,7 +201,7 @@
     },
     {
       "name": "collect_list bool map table",
-      "format": ["JSON"],
+      "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE S2 as SELECT id, collect_list(value['key1']) AS collected FROM test group by id;"

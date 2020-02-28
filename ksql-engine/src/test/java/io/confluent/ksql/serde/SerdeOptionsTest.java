@@ -111,7 +111,7 @@ public class SerdeOptionsTest {
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.of(false),
         ksqlConfig
     );
@@ -130,7 +130,7 @@ public class SerdeOptionsTest {
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.empty(),
         ksqlConfig
     );
@@ -144,7 +144,7 @@ public class SerdeOptionsTest {
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.empty(),
         ksqlConfig
     );
@@ -163,7 +163,7 @@ public class SerdeOptionsTest {
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
         MULTI_FIELD_SCHEMA,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.empty(),
         ksqlConfig
     );
@@ -182,7 +182,7 @@ public class SerdeOptionsTest {
     // When:
     SerdeOptions.buildForCreateStatement(
         MULTI_FIELD_SCHEMA,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.of(true),
         ksqlConfig
     );
@@ -198,7 +198,7 @@ public class SerdeOptionsTest {
     // When:
     SerdeOptions.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
-        Format.DELIMITED,
+        FormatFactory.DELIMITED,
         Optional.of(false),
         ksqlConfig
     );
@@ -211,7 +211,7 @@ public class SerdeOptionsTest {
 
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        SINGLE_COLUMN_NAME, Format.AVRO, Optional.of(true), singleFieldDefaults);
+        SINGLE_COLUMN_NAME, FormatFactory.AVRO, Optional.of(true), singleFieldDefaults);
 
     // Then:
     assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
@@ -224,7 +224,7 @@ public class SerdeOptionsTest {
 
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        SINGLE_COLUMN_NAME, Format.JSON, Optional.empty(), singleFieldDefaults);
+        SINGLE_COLUMN_NAME, FormatFactory.JSON, Optional.empty(), singleFieldDefaults);
 
     // Then:
     assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
@@ -237,7 +237,7 @@ public class SerdeOptionsTest {
 
     // When:
     final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        MULTI_FIELD_NAMES, Format.AVRO, Optional.empty(), singleFieldDefaults);
+        MULTI_FIELD_NAMES, FormatFactory.AVRO, Optional.empty(), singleFieldDefaults);
 
     // Then:
     assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
@@ -253,7 +253,7 @@ public class SerdeOptionsTest {
     // When:
     SerdeOptions.buildForCreateAsStatement(
         MULTI_FIELD_NAMES,
-        Format.JSON,
+        FormatFactory.JSON,
         Optional.of(true),
         singleFieldDefaults
     );
@@ -269,7 +269,7 @@ public class SerdeOptionsTest {
     // When:
     SerdeOptions.buildForCreateAsStatement(
         SINGLE_COLUMN_NAME,
-        Format.DELIMITED,
+        FormatFactory.DELIMITED,
         Optional.of(true),
         singleFieldDefaults
     );

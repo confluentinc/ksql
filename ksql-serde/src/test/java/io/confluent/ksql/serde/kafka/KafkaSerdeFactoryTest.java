@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.kafka;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -146,8 +147,31 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldHandleNulls() {
-    shouldHandle(SqlTypes.INTEGER, null);
+  public void shouldSerializeNullAsNull() {
+    // Given:
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // When:
+    final byte[] result = serde.serializer().serialize("topic", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeserializeNullAsNull() {
+    // Given:
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // When:
+    final Object result = serde.deserializer().deserialize("topic", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
   @Test

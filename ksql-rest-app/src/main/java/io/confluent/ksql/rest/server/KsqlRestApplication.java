@@ -27,8 +27,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.api.plugin.KsqlServerEndpoints;
+import io.confluent.ksql.api.server.ApiServerConfig;
+import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -45,15 +53,21 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlSecurityContextBinder;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorDelegate;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
+import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
+import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
@@ -69,9 +83,11 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -79,6 +95,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -86,6 +103,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
+import io.vertx.core.Vertx;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -95,6 +113,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -151,13 +170,21 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final List<KsqlServerPrecondition> preconditions;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  private final Optional<HeartbeatAgent> heartbeatAgent;
+  private final Optional<LagReportingAgent> lagReportingAgent;
+  private final RoutingFilterFactory routingFilterFactory;
+  private final PullQueryExecutor pullQueryExecutor;
+
+  // We embed this in here for now
+  private Vertx vertx = null;
+  private Server apiServer = null;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
-  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final ServiceContext serviceContext,
@@ -177,7 +204,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
-      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent
   ) {
     super(restConfig);
 
@@ -201,6 +230,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+    this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
+    this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
+
+    this.routingFilterFactory = initializeRoutingFilterFactory(
+        ksqlConfigNoPort, heartbeatAgent, lagReportingAgent);
+    this.pullQueryExecutor = new PullQueryExecutor(
+        ksqlEngine, heartbeatAgent, routingFilterFactory);
   }
 
   @Override
@@ -212,6 +248,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     config.register(ksqlResource);
     config.register(streamedQueryResource);
     config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
+    if (heartbeatAgent.isPresent()) {
+      config.register(new HeartbeatResource(heartbeatAgent.get()));
+      config.register(new ClusterStatusResource(
+          ksqlEngine, heartbeatAgent.get(), lagReportingAgent));
+    }
+    if (lagReportingAgent.isPresent()) {
+      config.register(new LagReportingResource(lagReportingAgent.get()));
+    }
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }
@@ -221,19 +265,50 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
-    startKsql();
+    startKsql(ksqlConfigWithPort);
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
+    if (ksqlConfigWithPort.getBoolean(KsqlConfig.KSQL_NEW_API_ENABLED)) {
+      startApiServer(ksqlConfigWithPort);
+    }
     displayWelcomeMessage();
   }
 
+  public int getActualVertxPort() {
+    if (apiServer == null) {
+      throw new IllegalStateException("No Vert.x api Server");
+    }
+    return apiServer.getActualPort();
+  }
+
   @VisibleForTesting
-  void startKsql() {
+  void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
-    initialize();
+    initialize(ksqlConfigWithPort);
+  }
+
+  void startApiServer(final KsqlConfig ksqlConfigWithPort) {
+    vertx = Vertx.vertx();
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    final Endpoints endpoints = new KsqlServerEndpoints(
+        ksqlEngine,
+        ksqlConfigWithPort,
+        securityExtension,
+        RestServiceContextFactory::create,
+        new PullQueryExecutorDelegate(pullQueryExecutor)
+    );
+    final ApiServerConfig config = new ApiServerConfig(ksqlConfigWithPort.originals());
+    apiServer = new Server(vertx, config, endpoints);
+    apiServer.start();
+    log.info("KSQL New API Server started");
+  }
+
+  @VisibleForTesting
+  KsqlEngine getEngine() {
+    return ksqlEngine;
   }
 
   private static final class KsqlFailedPrecondition extends RuntimeException {
@@ -269,7 +344,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     );
   }
 
-  private void initialize() {
+  private void initialize(final KsqlConfig configWithApplicationServer) {
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
     registerCommandTopic();
@@ -290,6 +365,17 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlResource,
         serviceContext
     );
+
+    if (heartbeatAgent.isPresent()) {
+      heartbeatAgent.get().setLocalAddress((String)configWithApplicationServer
+          .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+      heartbeatAgent.get().startAgent();
+    }
+    if (lagReportingAgent.isPresent()) {
+      lagReportingAgent.get().setLocalAddress((String)configWithApplicationServer
+          .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+      lagReportingAgent.get().startAgent();
+    }
 
     serverState.setReady();
   }
@@ -318,6 +404,34 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    if (apiServer != null) {
+      apiServer.stop();
+      apiServer = null;
+    }
+    if (vertx != null) {
+      vertx.close();
+      vertx = null;
+    }
+
+    shutdownAdditionalAgents();
+  }
+
+  private void shutdownAdditionalAgents() {
+    if (heartbeatAgent.isPresent()) {
+      try {
+        heartbeatAgent.get().stopAgent();
+      } catch (final Exception e) {
+        log.error("Exception while shutting down HeartbeatAgent", e);
+      }
+    }
+    if (lagReportingAgent.isPresent()) {
+      try {
+        lagReportingAgent.get().stopAgent();
+      } catch (final Exception e) {
+        log.error("Exception while shutting down LagReportingAgent", e);
+      }
     }
   }
 
@@ -353,12 +467,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             .map(port -> {
               try {
                 return new URL(url.getProtocol(), url.getHost(), port, url.getFile());
-              } catch (MalformedURLException e) {
+              } catch (final MalformedURLException e) {
                 throw new KsqlServerException("Malformed URL specified in '"
                     + LISTENERS_CONFIG + "' config: " + listener, e);
               }
             });
-      } catch (MalformedURLException e) {
+      } catch (final MalformedURLException e) {
         throw new KsqlServerException("Malformed URL specified in '"
             + LISTENERS_CONFIG + "' config: " + listener, e);
       }
@@ -438,7 +552,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
                       authorizationValidator,
                       errorHandler,
                       securityExtension,
-                      serverState
+                      serverState,
+                      serviceContext.getSchemaRegistryClientFactory(),
+                      pullQueryExecutor
                   );
                 }
               })
@@ -454,8 +570,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
-        RestServiceContextFactory.create(ksqlConfig, Optional.empty()));
+        RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
+            schemaRegistryClientFactory));
 
     return buildApplication(
         "",
@@ -463,7 +582,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         versionCheckerFactory,
         Integer.MAX_VALUE,
         serviceContext,
-        KsqlRestServiceContextBinder::new);
+        (config, securityExtension) ->
+            new KsqlSecurityContextBinder(config, securityExtension, schemaRegistryClientFactory));
   }
 
   static KsqlRestApplication buildApplication(
@@ -472,8 +592,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory
-  ) {
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -505,8 +624,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
-        ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
+    final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
@@ -537,6 +655,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ErrorMessages.class
     ));
 
+    final Optional<LagReportingAgent> lagReportingAgent =
+        initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
+    final Optional<HeartbeatAgent> heartbeatAgent =
+        initializeHeartbeatAgent(restConfig, ksqlEngine, serviceContext, lagReportingAgent);
+    final RoutingFilterFactory routingFilterFactory = initializeRoutingFilterFactory(ksqlConfig,
+        heartbeatAgent, lagReportingAgent);
+
+    final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
+        ksqlEngine, heartbeatAgent, routingFilterFactory);
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -545,7 +672,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        pullQueryExecutor
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -607,8 +735,75 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext,
         preconditions,
         configurables,
-        rocksDBConfigSetterHandler
+        rocksDBConfigSetterHandler,
+        heartbeatAgent,
+        lagReportingAgent
     );
+  }
+
+  private static Optional<HeartbeatAgent> initializeHeartbeatAgent(
+      final KsqlRestConfig restConfig,
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final Optional<LagReportingAgent> lagReportingAgent
+  ) {
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
+      final Builder builder = HeartbeatAgent.builder();
+      builder
+          .heartbeatSendInterval(restConfig.getLong(
+              KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG))
+          .heartbeatCheckInterval(restConfig.getLong(
+              KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG))
+          .heartbeatMissedThreshold(restConfig.getLong(
+              KsqlRestConfig.KSQL_HEARTBEAT_MISSED_THRESHOLD_CONFIG))
+          .heartbeatWindow(restConfig.getLong(
+              KsqlRestConfig.KSQL_HEARTBEAT_WINDOW_MS_CONFIG))
+          .discoverClusterInterval(restConfig.getLong(
+              KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG))
+          .threadPoolSize(restConfig.getInt(
+              KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG));
+
+      if (lagReportingAgent.isPresent()) {
+        builder.addHostStatusListener(lagReportingAgent.get());
+      }
+
+      return Optional.of(builder.build(ksqlEngine, serviceContext));
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<LagReportingAgent> initializeLagReportingAgent(
+      final KsqlRestConfig restConfig,
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext
+  ) {
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG)
+        && restConfig.getBoolean(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG)) {
+      final LagReportingAgent.Builder builder = LagReportingAgent.builder();
+      return Optional.of(
+          builder
+              .lagSendIntervalMs(restConfig.getLong(
+                  KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG))
+              .build(ksqlEngine, serviceContext));
+    }
+    return Optional.empty();
+  }
+
+  private static RoutingFilterFactory initializeRoutingFilterFactory(
+      final KsqlConfig ksqlConfig,
+      final Optional<HeartbeatAgent> heartbeatAgent,
+      final Optional<LagReportingAgent> lagReportingAgent) {
+    return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
+      final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
+        filterBuilder.add(new ActiveHostFilter(active));
+      }
+      filterBuilder.add(new LivenessFilter(heartbeatAgent));
+      MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+          storeName, partition)
+          .map(filterBuilder::add);
+      return new RoutingFilters(filterBuilder.build());
+    };
   }
 
   private void registerCommandTopic() {
@@ -680,10 +875,11 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (!processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-    
+
     try {
       final SimpleKsqlClient internalClient =
-          new ServerInternalKsqlClient(ksqlResource, serviceContext);
+          new ServerInternalKsqlClient(ksqlResource, new KsqlSecurityContext(
+              Optional.empty(), serviceContext));
       final URI serverEndpoint = ServerUtil.getServerAddress(restConfig);
 
       final RestResponse<KsqlEntityList> response = internalClient.makeKsqlRequest(

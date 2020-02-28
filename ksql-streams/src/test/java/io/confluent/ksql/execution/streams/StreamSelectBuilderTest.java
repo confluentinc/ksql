@@ -41,7 +41,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -68,8 +67,7 @@ public class StreamSelectBuilderTest {
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyColsInValue()
-      .withAlias(SourceName.of("alias"));
+      .withMetaAndKeyColsInValue(false);
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);

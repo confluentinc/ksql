@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
@@ -95,6 +96,7 @@ public final class ImmutableTester {
       .add(URL.class::isAssignableFrom)
       .add(Pattern.class::isAssignableFrom)
       .add(Range.class::isAssignableFrom)
+      .add(BigDecimal.class::isAssignableFrom)
       .build();
 
   private final List<Predicate<Class<?>>> knownImmutables = new ArrayList<>(STD_IMMUTABLE_TYPES);

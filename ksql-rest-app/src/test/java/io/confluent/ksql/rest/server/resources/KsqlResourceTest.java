@@ -54,6 +54,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +63,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -70,6 +72,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -126,7 +129,8 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.security.KsqlSecurityContext;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -196,7 +200,8 @@ public class KsqlResourceTest {
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-      0L);
+      0L
+  );
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .build();
@@ -281,6 +286,7 @@ public class KsqlResourceTest {
   private QueuedCommandStatus commandStatus1;
   private MetaStoreImpl metaStore;
   private ServiceContext serviceContext;
+  private KsqlSecurityContext securityContext;
 
   private String streamName;
 
@@ -308,6 +314,8 @@ public class KsqlResourceTest {
         serviceContext,
         metaStore
     );
+
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
@@ -340,8 +348,8 @@ public class KsqlResourceTest {
 
     when(errorsHandler.generateResponse(any(), any())).thenAnswer(new Answer<Response>() {
       @Override
-      public Response answer(InvocationOnMock invocation) throws Throwable {
-        Object[] args = invocation.getArguments();
+      public Response answer(final InvocationOnMock invocation) throws Throwable {
+        final Object[] args = invocation.getArguments();
         return (Response) args[1];
       }
     });
@@ -388,7 +396,7 @@ public class KsqlResourceTest {
 
     // When:
     ksqlResource.handleKsqlStatements(
-        serviceContext,
+        securityContext,
         new KsqlRequest("query", Collections.emptyMap(), null)
     );
   }
@@ -417,7 +425,7 @@ public class KsqlResourceTest {
 
     // When:
     ksqlResource.terminateCluster(
-        serviceContext,
+        securityContext,
         new ClusterTerminateRequest(ImmutableList.of(""))
     );
   }
@@ -469,11 +477,11 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2"))),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
   }
@@ -498,11 +506,11 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1"))),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
-            true, "JSON", Collections.emptyList(), Collections.emptyList(),
+            true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
   }
@@ -543,7 +551,6 @@ public class KsqlResourceTest {
     final SourceDescription expectedDescription = SourceDescriptionFactory.create(
         ksqlEngine.getMetaStore().getSource(SourceName.of("DESCRIBED_STREAM")),
         false,
-        "JSON",
         Collections.singletonList(queries.get(1)),
         Collections.singletonList(queries.get(0)),
         Optional.empty()
@@ -1321,6 +1328,10 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
+    reset(sandbox);
+    when(sandbox.getMetaStore()).thenReturn(metaStore);
+    when(sandbox.prepare(any()))
+            .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
     when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -1706,7 +1717,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
-    ksqlResource.handleKsqlStatements(serviceContext, VALID_EXECUTABLE_REQUEST);
+    ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
@@ -1716,7 +1727,7 @@ public class KsqlResourceTest {
   public void shouldHandleTerminateRequestCorrectly() {
     // When:
     final Response response = ksqlResource.terminateCluster(
-        serviceContext,
+        securityContext,
         VALID_TERMINATE_REQUEST
     );
 
@@ -1746,7 +1757,7 @@ public class KsqlResourceTest {
 
     // When:
     final Response response = ksqlResource.terminateCluster(
-        serviceContext,
+        securityContext,
         VALID_TERMINATE_REQUEST
     );
 
@@ -1770,7 +1781,7 @@ public class KsqlResourceTest {
         "Invalid pattern: [Invalid Regex"))));
 
     // When:
-    ksqlResource.terminateCluster(serviceContext, request);
+    ksqlResource.terminateCluster(securityContext, request);
   }
 
   @Test
@@ -1917,7 +1928,12 @@ public class KsqlResourceTest {
         .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
-    when(sandbox.plan(any(), any())).thenReturn(mock(KsqlPlan.class));
+    when(sandbox.plan(any(), any())).thenAnswer(
+            i -> KsqlPlan.ddlPlanCurrent(
+                    ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
+                    mock(DdlCommand.class)
+            )
+    );
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -1955,7 +1971,10 @@ public class KsqlResourceTest {
         .map(md -> new RunningQuery(
             md.getStatementString(),
             ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
-            md.getQueryId()))
+            ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
+            md.getQueryId(),
+            Optional.of(md.getState())
+        ))
         .collect(Collectors.toList());
   }
 
@@ -1972,7 +1991,7 @@ public class KsqlResourceTest {
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
     try {
-      final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
+      final Response response = ksqlResource.handleKsqlStatements(securityContext, ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
@@ -2028,7 +2047,7 @@ public class KsqlResourceTest {
       final KsqlRequest ksqlRequest,
       final Class<T> expectedEntityType) {
 
-    final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
+    final Response response = ksqlResource.handleKsqlStatements(securityContext, ksqlRequest);
     if (response.getStatus() != Response.Status.OK.getStatusCode()) {
       throw new KsqlRestException(response);
     }
@@ -2138,8 +2157,8 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
     );
 
     givenKafkaTopicExists(topicName);
@@ -2202,7 +2221,7 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-        avroSchema);
+        new AvroSchema(avroSchema));
   }
 
   private static Matcher<Command> commandWithStatement(final String statement) {
@@ -2240,7 +2259,8 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema schema = org.apache.avro.Schema.create(Type.INT);
 
     try {
-      schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+      schemaRegistryClient.register(
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
     } catch (final Exception e) {
       fail(e.getMessage());
     }

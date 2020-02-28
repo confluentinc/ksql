@@ -90,7 +90,7 @@ public final class JdbcSource implements SupportedConnector {
     }
 
     final List<String> transforms = Splitter.on(',').splitToList(transformsString);
-    for (String transform : transforms) {
+    for (final String transform : transforms) {
       final String transformType = properties.get("transforms." + transform + ".type");
       if (transformType != null && transformType.contains("ExtractField$Key")) {
         return Optional.ofNullable(properties.get("transforms." + transform + ".field"));

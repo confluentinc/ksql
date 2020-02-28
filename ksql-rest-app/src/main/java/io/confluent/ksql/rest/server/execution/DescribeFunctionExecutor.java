@@ -24,7 +24,9 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
@@ -36,7 +38,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class DescribeFunctionExecutor {
@@ -48,30 +49,33 @@ public final class DescribeFunctionExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeFunction> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     final DescribeFunction describeFunction = statement.getStatement();
-    final String functionName = describeFunction.getFunctionName();
+    final FunctionName functionName = FunctionName.of(describeFunction.getFunctionName());
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {
       return Optional.of(
-          describeAggregateFunction(executionContext, functionName, statement.getStatementText()));
+          describeAggregateFunction(executionContext, functionName,
+              statement.getStatementText()));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
       return Optional.of(
-          describeTableFunction(executionContext, functionName, statement.getStatementText()));
+          describeTableFunction(executionContext, functionName,
+              statement.getStatementText()));
     }
 
     return Optional.of(
-        describeNonAggregateFunction(executionContext, functionName, statement.getStatementText()));
+        describeNonAggregateFunction(executionContext, functionName,
+            statement.getStatementText()));
   }
 
   private static FunctionDescriptionList describeAggregateFunction(
       final KsqlExecutionContext ksqlEngine,
-      final String functionName,
+      final FunctionName functionName,
       final String statementText
   ) {
     final AggregateFunctionFactory aggregateFactory
@@ -89,7 +93,7 @@ public final class DescribeFunctionExecutor {
 
   private static FunctionDescriptionList describeTableFunction(
       final KsqlExecutionContext executionContext,
-      final String functionName,
+      final FunctionName functionName,
       final String statementText
   ) {
     final TableFunctionFactory tableFunctionFactory = executionContext.getMetaStore()
@@ -115,7 +119,7 @@ public final class DescribeFunctionExecutor {
 
   private static FunctionDescriptionList describeNonAggregateFunction(
       final KsqlExecutionContext executionContext,
-      final String functionName,
+      final FunctionName functionName,
       final String statementText
   ) {
     final UdfFactory udfFactory = executionContext.getMetaStore().getUdfFactory(functionName);

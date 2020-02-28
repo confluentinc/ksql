@@ -18,7 +18,8 @@ $ ./bin/ksql
 ```
 
 This will start the KSQL server in the background and the KSQL CLI in the
-foreground.
+foreground. Check the `logs` folder for the log files that the server writes 
+including any errors.
 
 If you would rather have the KSQL server logs spool to the console, then
 drop the `-daemon` switch, and start the CLI in a second console.
@@ -29,9 +30,13 @@ drop the `-daemon` switch, and start the CLI in a second console.
 To build and test changes locally, run the following commands:
 
 ```shell
-$ mvn clean install checkstyle:check integration-test
+$ mvn clean checkstyle:check integration-test
 ```
 
+### Testing docker image
+
+See comments at the top of the [docker compose file in the root of the project](docker-compose.yml) for instructions
+on how to build and run docker images.
 
 ## How to Contribute
 

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -51,6 +52,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.IPullQueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
@@ -138,7 +141,7 @@ public class WSQueryEndpointTest {
   @Mock
   private QueryPublisher pushQueryPublisher;
   @Mock
-  private QueryPublisher pullQueryPublisher;
+  private IPullQueryPublisher pullQueryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
   @Mock
@@ -163,6 +166,8 @@ public class WSQueryEndpointTest {
   private Errors errorsHandler;
   @Mock
   private DefaultServiceContextFactory defaultServiceContextProvider;
+  @Mock
+  private PullQueryExecutor pullQueryExecutor;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -183,7 +188,6 @@ public class WSQueryEndpointTest {
     when(securityExtension.getAuthorizationProvider())
         .thenReturn(Optional.of(authorizationProvider));
     when(serviceContextFactory.create(any(), any(), any(), any())).thenReturn(serviceContext);
-    when(defaultServiceContextProvider.create(any(), any())).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
@@ -206,7 +210,9 @@ public class WSQueryEndpointTest {
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,
-        serverState
+        serverState,
+        schemaRegistryClientSupplier,
+        pullQueryExecutor
     );
   }
 
@@ -402,7 +408,11 @@ public class WSQueryEndpointTest {
     when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
         .thenReturn(errorMessage);
     doThrow(new KsqlTopicAuthorizationException(AclOperation.CREATE, Collections.singleton("topic")))
-        .when(authorizationValidator).checkAuthorization(serviceContext, metaStore, query);
+        .when(authorizationValidator).checkAuthorization(
+            argThat(securityContext ->
+                securityContext.getServiceContext() == serviceContext),
+            eq(metaStore),
+            eq(query));
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
@@ -417,8 +427,6 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-        .thenReturn(true);
     givenQueryIs(QueryType.PULL);
     givenRequestIs(query);
 
@@ -436,21 +444,31 @@ public class WSQueryEndpointTest {
         eq(serviceContext),
         eq(exec),
         eq(configuredStatement),
-        any());
+        any(),
+        eq(pullQueryExecutor));
   }
 
   @Test
-  public void shouldFailPullQueryIfValidating() throws Exception {
+  public void shouldFailPullQueryIfTopicAuthorizationIsDenied() throws Exception {
     // Given:
+    final String errorMessage = "authorization error";
     givenQueryIs(QueryType.PULL);
     givenRequestIs(query);
+    when(errorsHandler.kafkaAuthorizationErrorMessage(any(TopicAuthorizationException.class)))
+        .thenReturn(errorMessage);
+    doThrow(new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton("topic")))
+        .when(authorizationValidator).checkAuthorization(
+        argThat(securityContext ->
+            securityContext.getServiceContext() == serviceContext),
+        eq(metaStore),
+        eq(query));
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
     verifyClosedContainingReason(
-        "Pull queries are not currently supported",
+        errorMessage,
         CloseCodes.CANNOT_ACCEPT
     );
   }
@@ -484,7 +502,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty());
+    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty(),
+        schemaRegistryClientSupplier);
     verifyZeroInteractions(userContextProvider);
   }
 

@@ -87,7 +87,7 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
       );
 
       paths.add(mainPath);
-      for (Method m : clazz.getMethods()) {
+      for (final Method m : clazz.getMethods()) {
         if (m.isAnnotationPresent(Path.class)) {
           paths.add(mainPath + "/"
               + StringUtils.strip(m.getAnnotation(Path.class).value(), "/"));

@@ -1,0 +1,87 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092404,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, KSQL_COL_1 BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : "0,zero,0",
+    "timestamp" : 0
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : "0,100,5",
+    "timestamp" : 10000
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : "100,100,100",
+    "timestamp" : 30000
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : "0,0",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : "0,0",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 0,
+      "end" : 30000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : "0,5",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 10000,
+      "end" : 40000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : "100,100",
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 10000,
+      "end" : 40000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : "100,100",
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 20000,
+      "end" : 50000,
+      "type" : "TIME"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : "100,100",
+    "timestamp" : 30000,
+    "window" : {
+      "start" : 30000,
+      "end" : 60000,
+      "type" : "TIME"
+    }
+  } ]
+}

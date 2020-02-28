@@ -1,0 +1,18 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092830,
+  "schemas" : {
+    "InsertQuery_1.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "InsertQuery_1.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "insert-source",
+    "key" : "k1",
+    "value" : "v1"
+  } ],
+  "outputs" : [ {
+    "topic" : "custom",
+    "key" : "k1",
+    "value" : "v1"
+  } ]
+}

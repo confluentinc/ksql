@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -40,21 +42,16 @@ import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -72,29 +69,27 @@ public class JsonFormatTest {
   private static final String messageLogStream = "message_log";
   private static final AtomicInteger COUNTER = new AtomicInteger();
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(CLUSTER);
+      .around(TEST_HARNESS);
 
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
-  private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
-  private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
   private QueryId queryId;
   private KafkaTopicClient topicClient;
   private String streamName;
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
+    ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.kafkaBootstrapServers());
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
 
     ksqlEngine = new KsqlEngine(
@@ -118,19 +113,19 @@ public class JsonFormatTest {
     topicClient.createTopic(messageLogTopic, 1, (short) 1);
   }
 
-  private void produceInitData() throws Exception {
+  private static void produceInitData() {
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
-    topicProducer
-            .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
+    TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
-    final GenericRow messageRow = new GenericRow(Collections.singletonList(
+    final GenericRow messageRow = genericRow(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"
+    );
 
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -140,7 +135,7 @@ public class JsonFormatTest {
         SerdeOption.none()
     );
 
-    topicProducer.produceInputData(messageLogTopic, records, schema);
+    TEST_HARNESS.produceRows(messageLogTopic, records, schema, JSON);
   }
 
   private void execInitCreateStreamQueries() {
@@ -197,9 +192,9 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
+    expectedResults.put("8", genericRow(1500962514814L,
         "2017-07-24 23:01:54.814",
-        1500962514814L)));
+        1500962514814L));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -216,7 +211,7 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
+    expectedResults.put("1", genericRow("aws"));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -233,7 +228,7 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
+    expectedResults.put("1", genericRow("first"));
 
     final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -253,14 +248,15 @@ public class JsonFormatTest {
       final String resultTopic,
       final int expectedNumMessages
   ) {
-    final DataSource<?> source = metaStore.getSource(SourceName.of(streamName));
+    final DataSource source = metaStore.getSource(SourceName.of(streamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
         source.getSerdeOptions()
     );
 
-    return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
+    return TEST_HARNESS
+        .verifyAvailableUniqueRows(resultTopic, expectedNumMessages, JSON, resultSchema);
   }
 
   private void terminateQuery() {

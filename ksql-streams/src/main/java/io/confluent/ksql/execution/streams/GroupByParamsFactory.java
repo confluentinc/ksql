@@ -20,13 +20,16 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
@@ -41,17 +44,25 @@ final class GroupByParamsFactory {
   private GroupByParamsFactory() {
   }
 
-  public static GroupByParams build(
+  public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> expressions
   ) {
-    final Function<GenericRow, Struct> mapper = expressions.size() == 1
-        ? new SingleExpressionGrouper(expressions.get(0))::apply
-        : new MultiExpressionGrouper(expressions)::apply;
-
-    final LogicalSchema schema = expressions.size() == 1
+    return expressions.size() == 1
         ? singleExpressionSchema(sourceSchema, expressions.get(0).getExpressionType())
         : multiExpressionSchema(sourceSchema);
+  }
+
+  public static GroupByParams build(
+      final LogicalSchema sourceSchema,
+      final List<ExpressionMetadata> expressions,
+      final ProcessingLogger logger
+  ) {
+    final Function<GenericRow, Struct> mapper = expressions.size() == 1
+        ? new SingleExpressionGrouper(expressions.get(0), logger)::apply
+        : new MultiExpressionGrouper(expressions, logger)::apply;
+
+    final LogicalSchema schema = buildSchema(sourceSchema, expressions);
 
     return new GroupByParams(schema, mapper);
   }
@@ -59,17 +70,17 @@ final class GroupByParamsFactory {
   private static LogicalSchema multiExpressionSchema(
       final LogicalSchema sourceSchema
   ) {
-    return buildSchema(sourceSchema, SqlTypes.STRING);
+    return buildSchemaWithKeyType(sourceSchema, SqlTypes.STRING);
   }
 
   private static LogicalSchema singleExpressionSchema(
       final LogicalSchema sourceSchema,
       final SqlType rowKeyType
   ) {
-    return buildSchema(sourceSchema, rowKeyType);
+    return buildSchemaWithKeyType(sourceSchema, rowKeyType);
   }
 
-  private static LogicalSchema buildSchema(
+  private static LogicalSchema buildSchemaWithKeyType(
       final LogicalSchema sourceSchema,
       final SqlType rowKeyType
   ) {
@@ -82,18 +93,34 @@ final class GroupByParamsFactory {
   private static Object processColumn(
       final int index,
       final ExpressionMetadata exp,
-      final GenericRow row
+      final GenericRow row,
+      final ProcessingLogger logger
   ) {
     try {
       final Object result = exp.evaluate(row);
       if (result == null) {
-        LOG.error("Group-by column with index {} resolved to null. "
-            + "The source row will be excluded from the table.", index);
+        logger.error(
+            EngineProcessingLogMessageFactory.recordProcessingError(
+               String.format(
+                   "Group-by column with index %d resolved to null."
+                       + " The source row will be excluded from the table.",
+                   index),
+                row
+            )
+        );
       }
       return result;
     } catch (final Exception e) {
-      LOG.error("Error calculating group-by column with index {}. "
-          + "The source row will be excluded from the table.", index, e);
+      logger.error(
+          EngineProcessingLogMessageFactory.recordProcessingError(
+              String.format(
+                  "Error calculating group-by column with index %d. "
+                      + "The source row will be excluded from the table: %s",
+                  index, e.getMessage()),
+              e,
+              row
+          )
+      );
       return null;
     }
   }
@@ -102,14 +129,18 @@ final class GroupByParamsFactory {
 
     private final KeyBuilder keyBuilder;
     private final ExpressionMetadata expression;
+    private final ProcessingLogger logger;
 
-    SingleExpressionGrouper(final ExpressionMetadata expression) {
+    SingleExpressionGrouper(
+        final ExpressionMetadata expression,
+        final ProcessingLogger logger) {
       this.expression = requireNonNull(expression, "expression");
       this.keyBuilder = StructKeyUtil.keyBuilder(expression.getExpressionType());
+      this.logger = Objects.requireNonNull(logger, "logger");
     }
 
     public Struct apply(final GenericRow row) {
-      final Object rowKey = processColumn(0, expression, row);
+      final Object rowKey = processColumn(0, expression, row, logger);
       if (rowKey == null) {
         return null;
       }
@@ -121,10 +152,15 @@ final class GroupByParamsFactory {
 
     private final KeyBuilder keyBuilder;
     private final ImmutableList<ExpressionMetadata> expressions;
+    private final ProcessingLogger logger;
 
-    MultiExpressionGrouper(final List<ExpressionMetadata> expressions) {
+    MultiExpressionGrouper(
+        final List<ExpressionMetadata> expressions,
+        final ProcessingLogger logger
+    ) {
       this.expressions = ImmutableList.copyOf(requireNonNull(expressions, "expressions"));
       this.keyBuilder = StructKeyUtil.keyBuilder(SqlTypes.STRING);
+      this.logger = Objects.requireNonNull(logger, "logger");
 
       if (expressions.isEmpty()) {
         throw new IllegalArgumentException("Empty group by");
@@ -134,7 +170,7 @@ final class GroupByParamsFactory {
     public Struct apply(final GenericRow row) {
       final StringBuilder rowKey = new StringBuilder();
       for (int i = 0; i < expressions.size(); i++) {
-        final Object result = processColumn(i, expressions.get(i), row);
+        final Object result = processColumn(i, expressions.get(i), row, logger);
         if (result == null) {
           return null;
         }

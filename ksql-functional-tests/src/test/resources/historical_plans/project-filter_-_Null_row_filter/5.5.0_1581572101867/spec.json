@@ -1,0 +1,30 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101867,
+  "schemas" : {
+    "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, THING MAP<VARCHAR, VARCHAR>> NOT NULL",
+    "CSAS_S3_0.S3" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "id" : 1,
+      "thing" : {
+        "other" : 11,
+        "status" : false
+      }
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "S3",
+    "key" : "0",
+    "value" : {
+      "ID" : 1
+    }
+  } ]
+}

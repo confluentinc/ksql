@@ -16,9 +16,10 @@
 package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -33,7 +34,6 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -98,7 +98,7 @@ public final class AstSanitizer {
         final InsertInto node,
         final StatementRewriter.Context<Void> ctx
     ) {
-      final DataSource<?> target = getSource(
+      final DataSource target = getSource(
           node.getTarget(),
           node.getLocation().map(
               l -> new NodeLocation(
@@ -132,18 +132,22 @@ public final class AstSanitizer {
       }
       final ColumnName alias;
       final Expression expression = ctx.process(singleColumn.getExpression());
-      if (expression instanceof ColumnReferenceExp) {
-        final ColumnRef name = ((ColumnReferenceExp) expression).getReference();
+      if (expression instanceof QualifiedColumnReferenceExp) {
+        final SourceName source = ((QualifiedColumnReferenceExp) expression).getQualifier();
+        final ColumnName name = ((QualifiedColumnReferenceExp) expression).getReference();
         if (dataSourceExtractor.isJoin()
-            && dataSourceExtractor.getCommonFieldNames().contains(name.name())) {
-          alias = ColumnName.generatedJoinColumnAlias(name);
+            && dataSourceExtractor.getCommonFieldNames().contains(name)) {
+          alias = ColumnName.generatedJoinColumnAlias(source, name);
         } else {
-          alias = name.name();
+          alias = name;
         }
+      } else if (expression instanceof UnqualifiedColumnReferenceExp) {
+        final ColumnName name = ((UnqualifiedColumnReferenceExp) expression).getReference();
+        alias = name;
       } else if (expression instanceof DereferenceExpression) {
         final DereferenceExpression dereferenceExp = (DereferenceExpression) expression;
         final String dereferenceExpressionString = dereferenceExp.toString();
-        alias = ColumnName.of(replaceDotFieldRef(
+        alias = ColumnName.of(replaceColumnAndFieldRefs(
             dereferenceExpressionString.substring(
                 dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
       } else {
@@ -155,19 +159,19 @@ public final class AstSanitizer {
       );
     }
 
-    private static String replaceDotFieldRef(final String input) {
+    private static String replaceColumnAndFieldRefs(final String input) {
       return input
           .replace(KsqlConstants.DOT, "_")
           .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
     }
 
-    private DataSource<?> getSource(
+    private DataSource getSource(
         final SourceName name,
         final Optional<NodeLocation> location
     ) {
-      final DataSource<?> source = metaStore.getSource(name);
+      final DataSource source = metaStore.getSource(name);
       if (source == null) {
-        throw new InvalidColumnReferenceException(location, name.name() + " does not exist.");
+        throw new InvalidColumnReferenceException(location, name.text() + " does not exist.");
       }
 
       return source;
@@ -190,17 +194,17 @@ public final class AstSanitizer {
 
     @Override
     public Optional<Expression> visitColumnReference(
-        final ColumnReferenceExp expression,
+        final UnqualifiedColumnReferenceExp expression,
         final Context<Void> ctx) {
-      final ColumnRef columnRef = expression.getReference();
-      if (columnRef.source().isPresent()) {
-        return Optional.empty();
-      }
+      final ColumnName columnName = expression.getReference();
       try {
-        final ColumnName columnName = columnRef.name();
         final SourceName sourceName = dataSourceExtractor.getAliasFor(columnName);
         return Optional.of(
-            new ColumnReferenceExp(expression.getLocation(), ColumnRef.of(sourceName, columnName))
+            new QualifiedColumnReferenceExp(
+                expression.getLocation(),
+                sourceName,
+                columnName
+            )
         );
       } catch (final KsqlException e) {
         throw new InvalidColumnReferenceException(expression.getLocation(), e.getMessage());

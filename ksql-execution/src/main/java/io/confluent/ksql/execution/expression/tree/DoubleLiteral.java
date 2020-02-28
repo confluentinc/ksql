@@ -24,11 +24,11 @@ public class DoubleLiteral extends Literal {
 
   private final double value;
 
-  public DoubleLiteral(double value) {
+  public DoubleLiteral(final double value) {
     this(Optional.empty(), value);
   }
 
-  public DoubleLiteral(Optional<NodeLocation> location, double value) {
+  public DoubleLiteral(final Optional<NodeLocation> location, final double value) {
     super(location);
     this.value = value;
   }
@@ -39,12 +39,12 @@ public class DoubleLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitDoubleLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -52,7 +52,7 @@ public class DoubleLiteral extends Literal {
       return false;
     }
 
-    DoubleLiteral that = (DoubleLiteral) o;
+    final DoubleLiteral that = (DoubleLiteral) o;
 
     return Double.compare(that.value, value) == 0;
   }
@@ -60,7 +60,7 @@ public class DoubleLiteral extends Literal {
   @SuppressWarnings("UnaryPlus")
   @Override
   public int hashCode() {
-    long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
+    final long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
     return (int) (temp ^ (temp >>> 32));
   }
 }

@@ -1,0 +1,26 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101596,
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE DOUBLE> NOT NULL",
+    "CSAS_S1_0.S1" : "STRUCT<NAME VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : "0,zero,0.0"
+  }, {
+    "topic" : "test_topic",
+    "key" : "100",
+    "value" : "100,100,0.0"
+  }, {
+    "topic" : "test_topic",
+    "key" : "101",
+    "value" : "101,101,0.0"
+  } ],
+  "outputs" : [ {
+    "topic" : "S1",
+    "key" : "101",
+    "value" : "101"
+  } ]
+}

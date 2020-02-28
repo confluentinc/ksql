@@ -1,0 +1,94 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092249,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : "foo"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : "baz"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "VALUE" : "bar"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : "baz"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "VALUE" : "foo"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "COUNTS" : {
+        "foo" : 1
+      }
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COUNTS" : {
+        "baz" : 1
+      }
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "COUNTS" : {
+        "foo" : 1,
+        "bar" : 1
+      }
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COUNTS" : {
+        "baz" : 2
+      }
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "COUNTS" : {
+        "baz" : 2,
+        "foo" : 1
+      }
+    }
+  } ]
+}

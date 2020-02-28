@@ -219,7 +219,7 @@ public class StandaloneExecutor implements Executable {
       return new String(java.nio.file.Files.readAllBytes(
           Paths.get(queryFilePath)), StandardCharsets.UTF_8);
 
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException(
           String.format("Could not read the query file: %s. Details: %s",
               queryFilePath, e.getMessage()),

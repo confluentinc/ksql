@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,7 +104,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
       final String configString = objectWriter.writeValueAsString(configs);
       final String topologyString = query.getTopology().describe().toString();
-      final String schemasString = query.getSchemasDescription();
+      final String schemasString = query.getSchemasString();
 
       return configString + "\n"
           + CONFIG_END_MARKER + "\n"
@@ -180,9 +182,6 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
       final List<TopologiesAndVersion> expectedTopologies
   ) {
     Stream.Builder<T> builder = Stream.builder();
-    if (test.getVersionBounds().contains(CURRENT_VERSION)) {
-      builder.add(test);
-    }
 
     for (final TopologiesAndVersion topologies : expectedTopologies) {
       if (!test.getVersionBounds().contains(topologies.getVersion())) {
@@ -224,6 +223,22 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
     }
   }
 
+  private static Map<String, String> parseSchemas(final String asString) {
+    if (asString == null) {
+      return Collections.emptyMap();
+    }
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    final List<String> lines = Arrays.asList(asString.split("\n"));
+    for (final String line : lines) {
+      final String[] split = line.split(" *= *");
+      if (split.length != 2) {
+        throw new RuntimeException("Unexpected format for schema string");
+      }
+      builder.put(split[0], split[1]);
+    }
+    return builder.build();
+  }
+
   private static TopologyAndConfigs readTopologyFile(
       final String file,
       final ObjectReader objectReader
@@ -240,12 +255,11 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
       String schemas = null;
       String topologyAndConfigLine;
-      Optional<Map<String, String>> persistedConfigs = Optional.empty();
+      Map<String, String> persistedConfigs = Collections.emptyMap();
 
       while ((topologyAndConfigLine = reader.readLine()) != null) {
         if (topologyAndConfigLine.contains(CONFIG_END_MARKER)) {
-          persistedConfigs = Optional
-              .of(objectReader.readValue(topologyFileBuilder.toString()));
+          persistedConfigs = objectReader.readValue(topologyFileBuilder.toString());
           topologyFileBuilder.setLength(0);
         } else if (topologyAndConfigLine.contains(SCHEMAS_END_MARKER)) {
           schemas = StringUtils.stripEnd(topologyFileBuilder.toString(), "\n");
@@ -256,8 +270,9 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
       }
 
       return new TopologyAndConfigs(
+          Optional.empty(),
           topologyFileBuilder.toString(),
-          Optional.ofNullable(schemas),
+          parseSchemas(schemas),
           persistedConfigs
       );
 

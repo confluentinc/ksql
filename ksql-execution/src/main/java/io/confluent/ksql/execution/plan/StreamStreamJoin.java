@@ -35,21 +35,19 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final Duration afterMillis;
 
   public StreamStreamJoin(
-      @JsonProperty(value = "properties", required = true) ExecutionStepPropertiesV1 properties,
-      @JsonProperty(value = "joinType", required = true) JoinType joinType,
-      @JsonProperty(value = "leftInternalFormats", required = true) Formats leftInternalFormats,
-      @JsonProperty(value = "rightInternalFormats", required = true) Formats rightInternalFormats,
-      @JsonProperty(value = "leftSource", required = true)
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "leftInternalFormats", required = true) final Formats leftIntFormats,
+      @JsonProperty(value = "rightInternalFormats", required = true) final Formats rightIntFormats,
+      @JsonProperty(value = "leftSource", required = true) final
       ExecutionStep<KStreamHolder<K>> leftSource,
-      @JsonProperty(value = "rightSource", required = true)
+      @JsonProperty(value = "rightSource", required = true) final
       ExecutionStep<KStreamHolder<K>> rightSource,
-      @JsonProperty(value = "beforeMillis", required = true) Duration beforeMillis,
-      @JsonProperty(value = "afterMillis", required = true) Duration afterMillis) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.leftInternalFormats =
-        Objects.requireNonNull(leftInternalFormats, "leftInternalFormats");
-    this.rightInternalFormats =
-        Objects.requireNonNull(rightInternalFormats, "rightInternalFormats");
+      @JsonProperty(value = "beforeMillis", required = true) final Duration beforeMillis,
+      @JsonProperty(value = "afterMillis", required = true) final Duration afterMillis) {
+    this.properties = Objects.requireNonNull(props, "props");
+    this.leftInternalFormats = Objects.requireNonNull(leftIntFormats, "leftIntFormats");
+    this.rightInternalFormats = Objects.requireNonNull(rightIntFormats, "rightIntFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.leftSource = Objects.requireNonNull(leftSource, "leftSource");
     this.rightSource = Objects.requireNonNull(rightSource, "rightSource");
@@ -97,20 +95,20 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(PlanBuilder builder) {
+  public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitStreamStreamJoin(this);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
+    final StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(leftInternalFormats, that.leftInternalFormats)

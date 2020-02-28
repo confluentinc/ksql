@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,6 +45,7 @@ import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
@@ -61,15 +63,14 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TopicConsumer;
-import io.confluent.ksql.util.TopicProducer;
 import java.io.File;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -87,7 +88,6 @@ import java.util.stream.Collectors;
 import javax.ws.rs.ProcessingException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
@@ -116,20 +116,25 @@ import org.mockito.junit.MockitoJUnitRunner;
 @Category(IntegrationTest.class)
 public class CliTest {
 
-  private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
+  private static final OrderDataProvider ORDER_DATA_PROVIDER = new OrderDataProvider();
+
   private static final String SERVER_OVERRIDE = "SERVER";
   private static final String SESSION_OVERRIDE = "SESSION";
 
-  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
+  private static final String JSON_TOPIC = ORDER_DATA_PROVIDER.topicName();
+  private static final String DELIMITED_TOPIC = "Delimited_Topic";
+
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
 
   private static final Pattern WRITE_QUERIES = Pattern
       .compile(".*The following queries write into this source: \\[(.+)].*", Pattern.DOTALL);
 
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
-      .builder(CLUSTER::bootstrapServers)
+      .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
-      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .build();
 
   @ClassRule
@@ -138,7 +143,7 @@ public class CliTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(CLUSTER)
+      .around(TEST_HARNESS)
       .around(REST_APP);
 
   private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
@@ -156,10 +161,8 @@ public class CliTest {
 
   private static final List<List<String>> EMPTY_RESULT = ImmutableList.of();
 
-  private static TopicProducer topicProducer;
-  private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
-  private static OrderDataProvider orderDataProvider;
+
 
   private Console console;
   private TestTerminal terminal;
@@ -179,23 +182,24 @@ public class CliTest {
         Optional.empty()
     );
 
-    orderDataProvider = new OrderDataProvider();
-    CLUSTER.createTopic(orderDataProvider.topicName());
+    TEST_HARNESS.getKafkaCluster().createTopics(
+        JSON_TOPIC,
+        DELIMITED_TOPIC
+    );
 
-    topicProducer = new TopicProducer(CLUSTER);
-    topicConsumer = new TopicConsumer(CLUSTER);
-
-    produceInputStream(orderDataProvider);
+    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRecord(DELIMITED_TOPIC, null, null);
+    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.DELIMITED);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
-      createKStream(orderDataProvider, cli);
+      createKStream(ORDER_DATA_PROVIDER, cli);
     }
   }
 
   @Before
   public void setUp() {
     REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(orderDataProvider.kstreamName());
+    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.kstreamName());
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -236,14 +240,10 @@ public class CliTest {
     }
   }
 
-  private static void produceInputStream(final TestDataProvider dataProvider) {
-    topicProducer.produceInputData(dataProvider);
-  }
-
-  private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
-    run(String.format(
-        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s');",
-        dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName()),
+  private static void createKStream(final TestDataProvider<?> dataProvider, final Cli cli) {
+    run("CREATE STREAM " + dataProvider.kstreamName()
+            + " (" + dataProvider.ksqlSchemaString() + ")"
+            + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
         cli);
   }
 
@@ -262,9 +262,9 @@ public class CliTest {
   }
 
   private void testCreateStreamAsSelect(
-      String selectQuery,
+      final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<String, GenericRow> expectedResults
+      final Map<Long, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -272,13 +272,17 @@ public class CliTest {
     assertRunCommand(
         queryString,
         anyOf(
-            isRow(containsString("Stream " + streamName.toUpperCase() + " created and running")),
+            isRow(containsString("Created query with ID CSAS_" + streamName)),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
     /* Assert Results */
-    final Map<String, GenericRow> results = topicConsumer
-        .readResults(streamName, resultSchema, expectedResults.size(), new StringDeserializer());
+    final Map<Long, GenericRow> results = TEST_HARNESS.verifyAvailableUniqueRows(
+        streamName,
+        expectedResults.size(),
+        FormatFactory.JSON,
+        resultSchema
+    );
 
     dropStream(streamName);
 
@@ -331,8 +335,7 @@ public class CliTest {
 
     final String streamOrTable = stream ? "stream" : "table";
 
-    final String dropStatement =
-        String.format("drop " + streamOrTable + " %s;", name);
+    final String dropStatement = String.format("drop " + streamOrTable + " %s;", name);
 
     final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
@@ -366,7 +369,7 @@ public class CliTest {
     assertRunListCommand(
         "topics",
         hasRow(
-            equalTo(orderDataProvider.topicName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
             equalTo("1"),
             equalTo("1")
         )
@@ -375,7 +378,7 @@ public class CliTest {
     assertRunListCommand(
         "topics extended",
         hasRow(
-            equalTo(orderDataProvider.topicName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
             equalTo("1"),
             equalTo("1"),
             any(String.class),
@@ -385,7 +388,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
+        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "JSON")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));
@@ -393,22 +396,36 @@ public class CliTest {
   }
 
   @Test
-  public void testPrint() {
-    final Thread thread =
-        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", localCli));
-    thread.start();
+  public void shouldPrintTopicWithJsonValue() {
+    // When:
+    run("print " + JSON_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 1;", localCli);
 
-    try {
-      assertThatEventually(() -> terminal.getOutputString(), containsString("Format:JSON"));
-    } finally {
-      thread.interrupt();
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: JSON"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_BIGINT or KAFKA_DOUBLE"));
+    assertThat(terminal.getOutputString(), containsString(","
+        + " key: 1, "
+        + "value: {"
+        + "\"ORDERTIME\":1,"
+        + "\"ORDERID\":\"ORDER_1\","
+        + "\"ITEMID\":\"ITEM_1\","
+        + "\"ORDERUNITS\":10.0,"
+        + "\"TIMESTAMP\":\"2018-01-01\","
+        + "\"PRICEARRAY\":[100.0,110.99,90.0],"
+        + "\"KEYVALUEMAP\":{\"key1\":1.0,\"key2\":2.0,\"key3\":3.0}"
+        + "}"));
+  }
 
-      try {
-        thread.join(0);
-      } catch (InterruptedException e) {
-        //
-      }
-    }
+  @Test
+  public void shouldPrintTopicWithDelimitedValue() {
+    // When:
+    run("print " + DELIMITED_TOPIC + " FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(), containsString("Value format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
+    assertThat(terminal.getOutputString(), containsString(", key: ITEM_1, value: ITEM_1,home cinema"));
   }
 
   @Test
@@ -467,10 +484,10 @@ public class CliTest {
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
-        "describe " + orderDataProvider.kstreamName() + ";",
+        "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         containsRows(
             row("ROWTIME", "BIGINT           (system)"),
-            row("ROWKEY", "VARCHAR(STRING)  (system)"),
+            row("ROWKEY", "BIGINT           (system)"),
             row("ORDERTIME", "BIGINT"),
             row("ORDERID", "VARCHAR(STRING)"),
             row("ITEMID", "VARCHAR(STRING)"),
@@ -484,64 +501,58 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + ";",
-        orderDataProvider.schema(),
-        orderDataProvider.data()
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        ORDER_DATA_PROVIDER.schema(),
+        ORDER_DATA_PROVIDER.data()
     );
   }
 
   @Test
   public void testSelectProject() {
-    final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("1", new GenericRow(
-        ImmutableList.of(
-            "ITEM_1",
-            10.0,
-            new Double[]{100.0, 110.99, 90.0})));
-    expectedResults.put("2", new GenericRow(
-        ImmutableList.of(
-            "ITEM_2",
-            20.0,
-            new Double[]{10.0, 10.99, 9.0})));
+    final Map<Long, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(1L, genericRow(
+        "ITEM_1",
+        10.0,
+        ImmutableList.of(100.0, 110.99, 90.0)));
 
-    expectedResults.put("3", new GenericRow(
-        ImmutableList.of(
-            "ITEM_3",
-            30.0,
-            new Double[]{10.0, 10.99, 91.0})));
+    expectedResults.put(2L, genericRow(
+        "ITEM_2",
+        20.0,
+        ImmutableList.of(10.0, 10.99, 9.0)));
 
-    expectedResults.put("4", new GenericRow(
-        ImmutableList.of(
-            "ITEM_4",
-            40.0,
-            new Double[]{10.0, 140.99, 94.0})));
+    expectedResults.put(3L, genericRow(
+        "ITEM_3",
+        30.0,
+        ImmutableList.of(10.0, 10.99, 91.0)));
 
-    expectedResults.put("5", new GenericRow(
-        ImmutableList.of(
-            "ITEM_5",
-            50.0,
-            new Double[]{160.0, 160.99, 98.0})));
+    expectedResults.put(4L, genericRow(
+        "ITEM_4",
+        40.0,
+        ImmutableList.of(10.0, 140.99, 94.0)));
 
-    expectedResults.put("6", new GenericRow(
-        ImmutableList.of(
-            "ITEM_6",
-            60.0,
-            new Double[]{1000.0, 1100.99, 900.0})));
+    expectedResults.put(5L, genericRow(
+        "ITEM_5",
+        50.0,
+        ImmutableList.of(160.0, 160.99, 98.0)));
 
-    expectedResults.put("7", new GenericRow(
-        ImmutableList.of(
-            "ITEM_7",
-            70.0,
-            new Double[]{1100.0, 1110.99, 190.0})));
+    expectedResults.put(6L, genericRow(
+        "ITEM_6",
+        60.0,
+        ImmutableList.of(1000.0, 1100.99, 900.0)));
 
-    expectedResults.put("8", new GenericRow(
-        ImmutableList.of(
-            "ITEM_8",
-            80.0,
-            new Double[]{1100.0, 1110.99, 970.0})));
+    expectedResults.put(7L, genericRow(
+        "ITEM_7",
+        70.0,
+        ImmutableList.of(1100.0, 1110.99, 190.0)));
+
+    expectedResults.put(8L, genericRow(
+        "ITEM_8",
+        80.0,
+        ImmutableList.of(1100.0, 1110.99, 970.0)));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
+            .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
@@ -550,7 +561,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName() + ";",
+        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -558,37 +569,36 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<String, GenericRow> expectedResults = new HashMap<>();
+    final Map<Long, GenericRow> expectedResults = new HashMap<>();
     final Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);
     mapField.put("key2", 2.0);
     mapField.put("key3", 3.0);
-    expectedResults.put("8", new GenericRow(
-        ImmutableList.of(
-            8,
-            "ORDER_6",
-            "ITEM_8",
-            80.0,
-            "2018-01-08",
-            new Double[]{1100.0, 1110.99, 970.0},
-            mapField)));
+    expectedResults.put(8L, genericRow(
+        8L,
+        "ORDER_6",
+        "ITEM_8",
+        80.0,
+        "2018-01-08",
+        ImmutableList.of(1100.0, 1110.99, 970.0),
+        mapField));
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
-        orderDataProvider.schema(),
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
+        ORDER_DATA_PROVIDER.schema(),
         expectedResults
     );
   }
 
   @Test
   public void testTransientSelect() {
-    final Map<String, GenericRow> streamData = orderDataProvider.data();
-    final List<Object> row1 = streamData.get("1").getColumns();
-    final List<Object> row2 = streamData.get("2").getColumns();
-    final List<Object> row3 = streamData.get("3").getColumns();
+    final Map<Long, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = streamData.get(1L).values();
+    final List<Object> row2 = streamData.get(2L).values();
+    final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
+        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(row1.get(1).toString(), row1.get(2).toString()),
@@ -601,7 +611,7 @@ public class CliTest {
   public void shouldHandlePullQuery() {
     // Given:
     run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
-            + "FROM " + orderDataProvider.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -627,7 +637,7 @@ public class CliTest {
   public void shouldOutputPullQueryHeader() {
     // Given:
     run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
-            + "FROM " + orderDataProvider.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -645,13 +655,13 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Map<String, GenericRow> streamData = orderDataProvider.data();
-    final List<Object> row1 = streamData.get("1").getColumns();
-    final List<Object> row2 = streamData.get("2").getColumns();
-    final List<Object> row3 = streamData.get("3").getColumns();
+    final Map<Long, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = streamData.get(1L).values();
+    final List<Object> row2 = streamData.get(2L).values();
+    final List<Object> row3 = streamData.get(3L).values();
 
     selectWithLimit(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(prependWithRowTimeAndKey(row1)),
@@ -663,7 +673,7 @@ public class CliTest {
   @Test
   public void shouldOutputPushQueryHeader() {
     // When:
-    run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
+    run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ROWTIME"));
@@ -686,11 +696,12 @@ public class CliTest {
             + "PRICEARRAY[2]>1000 AS Col4 "
             + "FROM %s "
             + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
-        orderDataProvider.kstreamName()
+        ORDER_DATA_PROVIDER.kstreamName()
     );
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
+            .keyColumns(ORDER_DATA_PROVIDER.schema().logicalSchema().key())
             .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
@@ -700,8 +711,8 @@ public class CliTest {
         SerdeOption.none()
     );
 
-    final Map<String, GenericRow> expectedResults = new HashMap<>();
-    expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
+    final Map<Long, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(8L, genericRow("ITEM_8", 800.0, 1110.0, 12.0, true));
 
     testCreateStreamAsSelect(queryString, resultSchema, expectedResults);
   }
@@ -709,13 +720,13 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT ITEMID, COUNT(*) FROM " + orderDataProvider.kstreamName() +
+        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(
         queryString,
         anyOf(
-            isRow(containsString("Table " + tableName.toUpperCase() + " created and running")),
+            isRow(containsString("Created query with ID CTAS_" + tableName.toUpperCase())),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
@@ -911,7 +922,7 @@ public class CliTest {
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "
-        + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";");
+        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";");
 
     final String queryId = extractQueryId(terminal.getOutputString());
 
@@ -953,7 +964,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -965,7 +976,7 @@ public class CliTest {
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Stream SHOULDRUNSCRIPT created and running"));
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
   }
 
   @Test
@@ -1213,7 +1224,7 @@ public class CliTest {
   }
 
   @SafeVarargs
-  @SuppressWarnings({"varargs", "unchecked"})
+  @SuppressWarnings({"varargs", "unchecked", "rawtypes"})
   private static Matcher<Iterable<? extends Iterable<? extends String>>> hasRows(
       final Matcher<Iterable<? extends String>>... rows
   ) {
@@ -1245,7 +1256,7 @@ public class CliTest {
 
     @Override
     public void addRow(final GenericRow row) {
-      addRow(row.getColumns());
+      addRow(row.values());
     }
 
     private void addRow(final List<?> row) {

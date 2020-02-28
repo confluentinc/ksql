@@ -1,0 +1,18 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572088642,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 DOUBLE> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 DOUBLE> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "",
+    "value" : 10.1
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : 10.1
+  } ]
+}

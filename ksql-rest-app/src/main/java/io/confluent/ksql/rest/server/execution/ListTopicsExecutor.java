@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -28,8 +29,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,17 +53,12 @@ public final class ListTopicsExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTopics> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     final KafkaTopicClient client = serviceContext.getTopicClient();
-
-    final Map<String, TopicDescription> kafkaTopicDescriptions
-        = client.describeTopics(client.listNonInternalTopicNames());
-
-    final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
-        filterKsqlInternalTopics(kafkaTopicDescriptions, statement.getConfig()));
+    final Map<String, TopicDescription> topicDescriptions = listTopics(client, statement);
 
     if (statement.getStatement().getShowExtended()) {
       final KafkaConsumerGroupClient consumerGroupClient
@@ -71,7 +66,7 @@ public final class ListTopicsExecutor {
       final Map<String, List<Integer>> topicConsumersAndGroupCount
           = getTopicConsumerAndGroupCounts(consumerGroupClient);
 
-      final List<KafkaTopicInfoExtended> topicInfoExtendedList = filteredDescriptions.values()
+      final List<KafkaTopicInfoExtended> topicInfoExtendedList = topicDescriptions.values()
           .stream().map(desc ->
               topicDescriptionToTopicInfoExtended(desc, topicConsumersAndGroupCount))
           .collect(Collectors.toList());
@@ -79,12 +74,26 @@ public final class ListTopicsExecutor {
       return Optional.of(
           new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList));
     } else {
-      final List<KafkaTopicInfo> topicInfoList = filteredDescriptions.values()
+      final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
           .stream().map(desc -> topicDescriptionToTopicInfo(desc))
           .collect(Collectors.toList());
 
       return Optional.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
     }
+  }
+
+  private static Map<String, TopicDescription> listTopics(
+      final KafkaTopicClient topicClient,
+      final ConfiguredStatement<ListTopics> statement
+  ) {
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(statement.getConfig());
+
+    final Set<String> topics = statement.getStatement().getShowAll()
+        ? topicClient.listTopicNames()
+        : internalTopics.removeHiddenTopics(topicClient.listTopicNames());
+
+    // TreeMap is used to keep elements sorted
+    return new TreeMap<>(topicClient.describeTopics(topics));
   }
 
   private static KafkaTopicInfo topicDescriptionToTopicInfo(final TopicDescription description) {
@@ -108,27 +117,6 @@ public final class ListTopicsExecutor {
             .stream().map(partition -> partition.replicas().size()).collect(Collectors.toList()),
         consumerAndGroupCount.get(0),
         consumerAndGroupCount.get(1));
-  }
-
-  private static Map<String, TopicDescription> filterKsqlInternalTopics(
-      final Map<String, TopicDescription> kafkaTopicDescriptions,
-      final KsqlConfig ksqlConfig
-  ) {
-    final Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    final String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String persistentQueryPrefix = ksqlConfig.getString(
-        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String transientQueryPrefix = ksqlConfig.getString(
-        KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
-
-    for (final Map.Entry<String, TopicDescription> entry : kafkaTopicDescriptions.entrySet()) {
-      if (!entry.getKey().startsWith(serviceId + persistentQueryPrefix)
-          && !entry.getKey().startsWith(serviceId + transientQueryPrefix)) {
-        filteredKafkaTopics.put(entry.getKey(), entry.getValue());
-      }
-    }
-    return filteredKafkaTopics;
   }
 
   /**

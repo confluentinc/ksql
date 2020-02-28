@@ -28,10 +28,11 @@ import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -42,16 +43,15 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
 import java.util.Arrays;
@@ -74,17 +74,23 @@ public class QueryAnalyzerFunctionalTest {
   private static final SourceName ORDERS = SourceName.of("ORDERS");
   private static final SourceName TEST1 = SourceName.of("TEST1");
 
-  private static final ColumnReferenceExp ITEM_ID =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ITEMID")));
+  private static final QualifiedColumnReferenceExp ITEM_ID =
+      new QualifiedColumnReferenceExp(ORDERS, ColumnName.of("ITEMID"));
 
-  private static final ColumnReferenceExp ORDER_ID =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ORDERID")));
+  private static final QualifiedColumnReferenceExp ORDER_ID =
+      new QualifiedColumnReferenceExp(
+          ORDERS,
+          ColumnName.of("ORDERID")
+      );
 
-  private static final ColumnReferenceExp ORDER_UNITS =
-      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ORDERUNITS")));
+  private static final QualifiedColumnReferenceExp ORDER_UNITS =
+      new QualifiedColumnReferenceExp(
+          ORDERS,
+          ColumnName.of("ORDERUNITS")
+      );
 
-  private static final ColumnReferenceExp TEST_COL1 =
-      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL1")));
+  private static final QualifiedColumnReferenceExp TEST_COL1 =
+      new QualifiedColumnReferenceExp(TEST1, ColumnName.of("COL1"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -154,7 +160,10 @@ public class QueryAnalyzerFunctionalTest {
         analysis.getSelectExpressions(),
         contains(SelectExpression.of(
             ColumnName.of("COL1"),
-            new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")))
+            new QualifiedColumnReferenceExp(
+                SourceName.of("TEST2"),
+                ColumnName.of("COL1")
+            )
         ))
     );
 
@@ -190,7 +199,7 @@ public class QueryAnalyzerFunctionalTest {
     assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("TEST1")));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
-    final DataSource<?> test0 = metaStore.getSource(SourceName.of("TEST0"));
+    final DataSource test0 = metaStore.getSource(SourceName.of("TEST0"));
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
   }
@@ -199,7 +208,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldAnalyseTableFunctions() {
 
     // We need to load udfs for this
-    UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
+    final UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
         Thread.currentThread().getContextClassLoader(),
         s -> false,
         Optional.empty(), true
@@ -214,7 +223,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getTableFunctions(), hasSize(1));
-    assertThat(analysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
+    assertThat(analysis.getTableFunctions().get(0).getName().text(), equalTo("EXPLODE"));
   }
   
   @Test
@@ -230,8 +239,8 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID), contains(ITEM_ID));
-    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new ColumnReferenceExp(
-        ColumnRef.withoutSource(ColumnName.of("KSQL_AGG_VARIABLE_0"))))));
+    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new UnqualifiedColumnReferenceExp(
+        ColumnName.of("KSQL_AGG_VARIABLE_0")))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(ORDER_UNITS)));
     assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
   }
@@ -372,10 +381,10 @@ public class QueryAnalyzerFunctionalTest {
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
-    final Expression havingExpression = aggregateAnalysis.getHavingExpression();
+    final Expression havingExpression = aggregateAnalysis.getHavingExpression().get();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("KSQL_AGG_VARIABLE_1"))),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("KSQL_AGG_VARIABLE_1")),
         new IntegerLiteral(10))));
   }
 
@@ -515,7 +524,7 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
-        is(Format.DELIMITED));
+        is(FormatFactory.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

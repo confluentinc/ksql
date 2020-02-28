@@ -27,7 +27,7 @@ final class ComparisonUtil {
   }
 
   static boolean isValidComparison(
-      SqlType left, ComparisonExpression.Type operator, SqlType right
+      final SqlType left, final ComparisonExpression.Type operator, final SqlType right
   ) {
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
       return true;

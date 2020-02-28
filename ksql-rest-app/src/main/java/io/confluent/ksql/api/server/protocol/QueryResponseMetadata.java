@@ -15,29 +15,30 @@
 
 package io.confluent.ksql.api.server.protocol;
 
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Represents the metadata of a query stream response
  */
+@Immutable
 public class QueryResponseMetadata extends SerializableObject {
 
   public final String queryId;
-  public final List<String> columnNames;
-  public final List<String> columnTypes;
+  public final ImmutableList<String> columnNames;
+  public final ImmutableList<String> columnTypes;
 
   public QueryResponseMetadata(final String queryId, final List<String> columnNames,
       final List<String> columnTypes) {
     this.queryId = queryId;
-    this.columnNames = Objects.requireNonNull(columnNames);
-    this.columnTypes = Objects.requireNonNull(columnTypes);
+    this.columnNames = ImmutableList.copyOf(Objects.requireNonNull(columnNames));
+    this.columnTypes = ImmutableList.copyOf(Objects.requireNonNull(columnTypes));
   }
 
   public QueryResponseMetadata(final List<String> columnNames, final List<String> columnTypes) {
-    this.queryId = null;
-    this.columnNames = Objects.requireNonNull(columnNames);
-    this.columnTypes = Objects.requireNonNull(columnTypes);
+    this(null, columnNames, columnTypes);
   }
 
 }

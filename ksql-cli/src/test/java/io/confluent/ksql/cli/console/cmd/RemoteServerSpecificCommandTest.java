@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -169,8 +170,7 @@ public class RemoteServerSpecificCommandTest {
     assertThat(out.toString(), containsString(
         "Remote server at http://192.168.0.1:8080 looks to be configured to use HTTPS /\n"
             + "SSL. Please refer to the KSQL documentation on how to configure the CLI for SSL:\n"
-            + "https://docs.confluent.io/current/ksql/docs/installation/server-config/security.html"
-            + "#configuring-cli-for-https"));
+            + DocumentationLinks.SECURITY_CLI_SSL_DOC_URL));
   }
 
   @Test

@@ -60,9 +60,9 @@ tables.
 ## What is not in scope
 
 * Removing `INSERT INTO`.  This is prerequisite of the proposed design. It is covered by
-[KLIP-17: Sql Union](#4125).
+[KLIP-17: Sql Union][17].
 * Removing `TERMINATE`. This is prerequisite of the proposed design. It is covered by
-[KLIP-20: remove TERMINATE](https://github.com/confluentinc/ksql/pull/4126).
+[KLIP-20: remove TERMINATE][20].
 * Exposing the metastore tables via SQL. Allowing users to query the system tables using standard
 sql is very powerful. However, this will be covered by a later KLIP.
 * ALTER TABLE and ALTER TYPE support: this KLIP is a building block towards this work. However, the
@@ -88,7 +88,7 @@ No public API changes.
 
 The current write path for DDL statements can be seen as:
 
-![alt text](ksql-18-images/current-ddl-write-flow.png "Current DDL write flow")
+![alt text](https://github.com/confluentinc/ksql/blob/ed3d7a64987370cc1ab5eddec92ae150680d7cc1/design-proposals/klip-18-images/current-ddl-write-flow.png "Current DDL write flow")
 
 Incoming requests are received by the rest server and persisted to the command topic. All ksql nodes
 in the cluster consume this data and apply the series of statements to the engine. Where the DDL is
@@ -137,7 +137,7 @@ plan, i.e. start the persistent query. If the user were to then drop the stream,
 in the source's row being deleted from the `UserDataSources` table, and the engine would stop the
 persistent query when the callback was invoked.
 
-![alt text](ksql-18-images/proposed-ddl-write-flow.png "Proposed DDL write flow")
+![alt text](https://github.com/confluentinc/ksql/blob/ed3d7a64987370cc1ab5eddec92ae150680d7cc1/design-proposals/klip-18-images/proposed-ddl-write-flow.png "Proposed DDL write flow")
 
 With this design, the engine executes the DDL statements by making the appropriate changes to the
 metastore tables. As these changes are replicated out to each ksqlDB node it will take any
@@ -183,7 +183,7 @@ can be modeled by storing both in a the same table, with the name as the primary
 
 The above design relies on, or at least is simplified by, a few other KLIPs:
 
-#### [KLIP 17 - SQL Union](#4125)
+#### [KLIP 17 - SQL Union][17]
 
 The design relies on the fact that there is a one-to-one mapping between DDL statement and
 data-source, and between data-source and persistent query.
@@ -197,7 +197,7 @@ initial implementation to support `UPDATE TABLE` semantics on the metastore tabl
 Without `INSERT INTO` the `UPDATE TABLE` functionality is only required once we start to use this
 new design to support `ALTER` functionality on user `STREAM`s, `TABLE`s or `TYPE`s.
 
-#### [KLIP 20 - remove TERMINATE](#4126)
+#### [KLIP 20 - remove TERMINATE][20]
 
 `TERMINATE` stops a running persistent query that is keeping a materialized view (C*AS) up to date.
 It isn't really a DDL statement and does not fit into the data model of the proposed design.
@@ -374,7 +374,7 @@ queries.
 
 #### ALTER MATERIALIZED VIEW
 
-A large shortcomings highlighted in [KLIP-17: Sql Union](#4125) was that an SQL Union does not
+A large shortcomings highlighted in [KLIP-17: Sql Union][17] was that an SQL Union does not
 provide the same flexibility as the current `INSERT INTO` functionality. The former requires the
 user to define the full set of sources to query when creating the union, where as the later supports
 additional persistent queries being started later to add a new source.
@@ -387,12 +387,12 @@ could be limited to adding a new source to an existing SQL union, closing the fu
 
 Currently tables in ksql are a bit broken, as they allow updates from multiple sources, i.e. Kafka
 via changes to the changelog and KSQL via `INSERT VALUES` statements.
-[KLIP-19](https://github.com/confluentinc/ksql/pull/4177) goes into more detail on this. It proposes
+[KLIP-19][19] goes into more detail on this. It proposes
 separating _read-only_ materialized views from mutable tables, with the mutable tables being future
 work.
 
 The single-writer mutable tables required by the metatore database could provide the patterns and/or
-code for building the mutable tables discussed in KLIP-19.
+code for building the mutable tables discussed in [KLIP-19][19].
 
 ksqlDB could allow mutation of these tables with `INSERT VALUES` and `UPDATE TABLE` style
 operations. Changes to a table would be persisted to its changelog topic. Downstream sources can use
@@ -446,3 +446,7 @@ The new metastore changelog topics will need to be secured in the same way as th
 topic. This should be called out in the docs and we should ensure ksql treats the new topics as
 internal / read-only topics,  i.e. users should not be able to modify them via INSERT statements or
 use them as a sink for a query.
+
+[17]: https://github.com/confluentinc/ksql/pull/4125
+[19]: https://github.com/confluentinc/ksql/pull/4177
+[20]: https://github.com/confluentinc/ksql/pull/4126

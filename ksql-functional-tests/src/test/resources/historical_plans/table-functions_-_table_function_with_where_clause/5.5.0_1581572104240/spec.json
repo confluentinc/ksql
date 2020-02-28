@@ -1,0 +1,73 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572104240,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 ARRAY<INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, VAL INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "F0" : 0,
+      "F1" : [ 1, 2, 3 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "F0" : 1,
+      "F1" : [ 4, 5, 6 ]
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : "0",
+    "value" : {
+      "F0" : 2,
+      "F1" : [ 7, 8, 9 ]
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 0,
+      "VAL" : 1
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 0,
+      "VAL" : 2
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 0,
+      "VAL" : 3
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 2,
+      "VAL" : 7
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 2,
+      "VAL" : 8
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "0",
+    "value" : {
+      "F0" : 2,
+      "VAL" : 9
+    }
+  } ]
+}

@@ -24,8 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -34,9 +36,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -97,13 +100,17 @@ public class TestExecutorTest {
   private MetaStore metaStore;
   @Mock
   private Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
+  @Mock
+  private SchemaRegistryClient srClient;
 
   private TestExecutor executor;
-  private final Map<SourceName, DataSource<?>> allSources = new HashMap<>();
+  private final Map<SourceName, DataSource> allSources = new HashMap<>();
 
   @Before
   public void setUp() {
     allSources.clear();
+
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     executor = new TestExecutor(
         kafkaService,
@@ -166,8 +173,8 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", "matching-schemas");
-    givenActualTopology("a-topology", "matching-schemas");
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", "schemas"));
+    givenActualTopology("a-topology", ImmutableMap.of("matching", "schemas"));
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -198,8 +205,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", "expected-schemas");
-    givenActualTopology("the-topology", "actual-schemas");
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
+    givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
 
     // Then:
     expectedException.expect(AssertionError.class);
@@ -332,25 +339,28 @@ public class TestExecutorTest {
     when(expectedTopologyAndConfig.getTopology()).thenReturn(topology);
   }
 
-  private void givenExpectedTopology(final String topology, final String schemas) {
+  private void givenExpectedTopology(final String topology, final Map<String, String> schemas) {
     givenExpectedTopology(topology);
-    when(expectedTopologyAndConfig.getSchemas()).thenReturn(Optional.of(schemas));
+    when(expectedTopologyAndConfig.getSchemas()).thenReturn(schemas);
   }
 
   private void givenActualTopology(final String topology) {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final String schemas) {
+  private void givenActualTopology(final String topology, final Map<String, String> schemas) {
     givenActualTopology(topology);
-    when(testCase.getGeneratedSchemas()).thenReturn(ImmutableList.of(schemas));
+    when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }
 
   private void givenDataSourceTopic(final LogicalSchema schema) {
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKeyFormat())
-        .thenReturn(KeyFormat.of(FormatInfo.of(Format.KAFKA), Optional.empty()));
-    final DataSource<?> dataSource = mock(DataSource.class);
+        .thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), Optional.empty()));
+    when(topic.getValueFormat())
+        .thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
+
+    final DataSource dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);

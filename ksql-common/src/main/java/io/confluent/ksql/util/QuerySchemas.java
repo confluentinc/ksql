@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
@@ -27,6 +29,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -92,6 +95,14 @@ public final class QuerySchemas {
   @Override
   public int hashCode() {
     return Objects.hash(schemas);
+  }
+
+  public Map<String, String> getSchemasDescription() {
+    final ImmutableMap.Builder<String, String> builder = new Builder<>();
+    for (final Entry e : schemas) {
+      builder.put(e.loggerNamePrefix, schemaFormatter.format(e.schema.serializedSchema()));
+    }
+    return builder.build();
   }
 
   @Override

@@ -16,67 +16,70 @@ records based on the joining column. To ensure that records with the same
 join column are co-located on the same stream task, the join column must
 coincide with the column that the sources are partitioned by.
 
-Primary key
------------
+Keys
+----
 
-A *primary key*, when present, defines the partitioning column. Tables are
+A *key*, when present, defines the partitioning column. Tables are
 always partitioned by their primary key, and ksqlDB doesn't allow repartitioning
 of tables, so you can only use a table's primary key as a join column.
 
 Streams, on the other hand, may not have a defined key or may have a key that
-differs from the join column. In these cases, ksqlDB repartitions the stream,
-which implicitly defines a primary key for it. The primary keys for streams
-and tables are of data type `VARCHAR`. 
+differs from the join column. In these cases, ksqlDB internally repartitions
+the stream, which implicitly defines a key for it.
 
-For primary keys to match, they must have the same serialization format. For
-example, you can't join a `VARCHAR` key encoded as JSON with one encoded as
-AVRO.
-
-!!! note
-    ksqlDB requires that keys are encoded as UTF-8 strings.
+ksqlDB requires keys to use the `KAFKA` format. For more information, see
+[Serialization Formats](../serialization.md#serialization-formats). If internally
+repartitioning, ksqlDB uses the correct format.
 
 Because you can only use the primary key of a table as a joining column, it's
 important to understand how keys are defined. For both streams and tables, the
-column that represents the primary key has the name `ROWKEY`.
+column that represents the key has the name `ROWKEY`.
 
 When you create a table by using a CREATE TABLE statement, the key of the
 table is the same as that of the records in the underlying Kafka topic.
+You must set the type of the `ROWKEY` column in the
+CREATE TABLE statement to match the key data in the underlying {{ site.ak }} topic.
 
 When you create a table by using a CREATE TABLE AS SELECT statement, the key of
 the resulting table is determined as follows:
 
-- If the FROM clause is a single source, and the source is a stream, the
-  statement must have a GROUP BY clause, where the grouping columns determine
-  the key of the resulting table.
-- If the single source is a table, the key is copied over from the key of the
-  table in the FROM clause. If the FROM clause is a join, the primary key of the
-  resulting table is the joining column, since joins are allowed only on keys.
-- If the statement contains a GROUP BY, the key of the resulting table
-  comprises the grouping columns.
+- If the FROM clause contains a stream, the statement must have a GROUP BY clause,
+  and the grouping columns determine the key of the resulting table.
+    - When grouping by a single column or expression, the type of `ROWKEY` in the
+    resulting stream matches the type of the column or expression.
+    - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
+    resulting stream is an [SQL `STRING`](../../concepts/schemas).
+- If the FROM clause contains only tables and no GROUP BY clause, the key is
+  copied over from the key of the table(s) in the FROM clause.
+- If the FROM clause contains only tables and has a GROUP BY clause, the
+  grouping columns determine the key of the resulting table.
+    - When grouping by a single column or expression, the type of `ROWKEY` in the
+    resulting stream matches the type of the column or expression.
+    - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
+    resulting stream is an [SQL `STRING`](../../concepts/schemas).
 
-When the primary key consists of multiple columns, like when it's created as
-the result of a GROUP BY clause with multiple grouping columns, you must use
-ROWKEY as the joining column. Even when the primary key consists of a single
-column, we recommend using ROWKEY as the joining column to avoid confusion.
-
-The following example shows a `users` table joined with a `clicks` stream 
+The following example shows a `users` table joined with a `clicks` stream
 on the `userId` column. The `users` table has the correct primary key
 `userId` that coincides with the joining column. But the `clicks` stream
 doesn't have a defined key, and ksqlDB must repartition it on the joining
-column (`userId`) and assign the primary key before performing the join.
+column (`userId`) and assign the key before performing the join.
 
 ```sql
     -- clicks stream, with an unknown key.
-    -- the schema of stream clicks is: ROWTIME | ROWKEY | USERID | URL
-    CREATE STREAM clicks (userId STRING, url STRING) WITH(kafka_topic='clickstream', value_format='json');
+    -- the schema of stream clicks is: ROWTIME BIGINT | ROWKEY STRING | USERID BIGINT | URL STRING
+    CREATE STREAM clicks (userId BIGINT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
 
-    -- the primary key of table users becomes userId that is the key of the records topic:
-    -- the schema of table users is: ROWTIME | ROWKEY | USERID | URL
-    CREATE TABLE  users  (userId STRING, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
+    -- the primary key of table users is a BIGINT. 
+    -- The userId column in the value matches the key, so can be used as an alias for ROWKEY in queries to make them more readable.
+    -- the schema of table users is: ROWTIME BIGINT | ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
+    CREATE TABLE  users  (ROWKEY BIGINT KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
 
-    -- join using primary key of table users with newly assigned key of stream clicks
+    -- join of users table with clicks stream, joining on the table's primary key alias and the stream's userId column: 
     -- join will automatically repartition clicks stream:
-    SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.ROWKEY = users.ROWKEY;
+    SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.userId;
+    
+    -- The following is equivalent and does not rely on their being a copy of the tables key within the value schema:
+    SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.ROWKEY;
 ```
 
 Co-partitioning Requirements
@@ -87,7 +90,7 @@ and tables are *co-partitioned*, which means that input records on both sides
 of the join have the same configuration settings for partitions.
 
 - The input records for the join must have the
-  [same keying scheme](#records-have-the-same-keying-scheme).
+  [same keying schema](#records-have-the-same-keying-schema).
 - The input records must have the
   [same number of partitions](#records-have-the-same-number-of-partitions)
   on both sides.
@@ -98,26 +101,35 @@ When your inputs are co-partitioned, records with the same key, from
 both sides of the join, are delivered to the same stream task during
 processing.
 
-### Records Have the Same Keying Scheme
+### Records Have the Same Keying Schema
 
-For a join to work, the keys from both sides must have the same serialized
-binary data.
+For a join to work, the keys from both sides must have the same SQL type.
 
-For example, you can join a stream of user clicks that's keyed on a `VARCHAR`
-user id with a table of user profiles that's also keyed on a `VARCHAR` user id.
+For example, you can join a stream of user clicks that's keyed on a `STRING`
+user id with a table of user profiles that's also keyed on a `STRING` user id.
 Records with the exact same user id on both sides will be joined.
 
-ksqlDB requires that keys are UTF-8 encoded strings.
+If the schema of the columns you wish to join on don't match, it may be possible
+to `CAST` one side to match the other. For example, if one side of the join
+had a `INT` userId column, and the other a `LONG`, then you may choose to cast
+the `INT` side to a `LONG`:
 
-!!! note
-    A join depends on the key's underlying serialization format. For example,
-    no join occurs on a VARCHAR column that's encoded as JSON with a VARCHAR
-    column that's encoded as AVRO.
+```sql
+    -- stream with INT userId
+    CREATE STREAM clicks (userId INT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
+
+    -- table with BIGINT userId stored in they key:
+    CREATE TABLE  users  (ROWKEY BIGINT KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
+    
+   -- Join utilising a CAST to convert the left sides join column to match the rights type.
+   SELECT clicks.url, users.fullName FROM clicks JOIN users ON CAST(clicks.userId AS BIGINT) = users.ROWKEY;
+```
+
 
 Tables created on top of existing Kafka topics, for example those created with
 a `CREATE TABLE` statement, are keyed on the data held in the key of the records
 in the Kafka topic. ksqlDB presents this data in the `ROWKEY` column and expects
-the data to be a `VARCHAR`.
+the data to be in the `KAFKA` format.
 
 Tables created inside ksqlDB from other sources, for example those created with
 a `CREATE TABLE AS SELECT` statement, will copy the key from their source(s)

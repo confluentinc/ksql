@@ -15,15 +15,16 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static javax.ws.rs.core.Response.Status.FORBIDDEN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,32 +36,38 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -69,12 +76,15 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -110,11 +120,21 @@ public class StreamedQueryResourceTest {
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
   ));
+  private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
+  
+  private static final Response AUTHORIZATION_ERROR_RESPONSE = Response
+      .status(FORBIDDEN)
+      .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, "some error"))
+      .build();
 
   private static final String TOPIC_NAME = "test_stream";
   private static final String PUSH_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " EMIT CHANGES;";
   private static final String PULL_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
+
+  private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
+      (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
+          new RoutingFilters(ImmutableList.of());
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -135,10 +155,15 @@ public class StreamedQueryResourceTest {
   private Consumer<QueryMetadata> queryCloseCallback;
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
+  @Mock
+  private Errors errorsHandler;
+
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
   private PreparedStatement<Query> query;
   private PreparedStatement<PrintTopic> print;
+  private KsqlSecurityContext securityContext;
+  private PullQueryExecutor pullQueryExecutor;
 
   @Before
   public void setup() {
@@ -151,7 +176,12 @@ public class StreamedQueryResourceTest {
     when(pullQuery.isPullQuery()).thenReturn(true);
     final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
     when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
+    when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
 
+    securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+
+    pullQueryExecutor = new PullQueryExecutor(
+        mockKsqlEngine, Optional.empty(), ROUTING_FILTER_FACTORY);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -159,7 +189,9 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        pullQueryExecutor
     );
 
     testResource.configure(VALID_CONFIG);
@@ -184,7 +216,9 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        Optional.of(authorizationValidator)
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        pullQueryExecutor
     );
 
     // Then:
@@ -195,7 +229,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest("query", Collections.emptyMap(), null)
     );
   }
@@ -215,7 +249,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest("query", Collections.emptyMap(), null)
     );
   }
@@ -224,7 +258,7 @@ public class StreamedQueryResourceTest {
   public void shouldNotWaitIfCommandSequenceNumberSpecified() throws Exception {
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -236,7 +270,7 @@ public class StreamedQueryResourceTest {
   public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
     );
 
@@ -261,7 +295,7 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
     );
   }
@@ -270,13 +304,12 @@ public class StreamedQueryResourceTest {
   public void shouldNotCreateExternalClientsForPullQuery() {
     // Given
     testResource.configure(new KsqlConfig(ImmutableMap.of(
-        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -288,44 +321,24 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldThrowExceptionForPullQueryIfValidating() {
-    // When:
-    final Response response = testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    // Then:
-    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
-    assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
-    assertThat(
-        expectedEntity.getMessage(),
-        containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG)
-    );
-  }
-
-  @Test
-  public void shouldPassCheckForPullQueryIfNotValidating() {
-    // Given
-    testResource.configure(new KsqlConfig(ImmutableMap.of(
-        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
-    )));
+  public void shouldReturnForbiddenKafkaAccessForPullQueryAuthorizationDenied() {
+    // Given:
+    when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING))
+        .thenReturn(query);
+    doThrow(
+        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)))
+        .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
-    // Then:
-    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
-    assertThat(
-        expectedEntity.getMessage(),
-        not(containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-    );
+    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) AUTHORIZATION_ERROR_RESPONSE.getEntity();
+    assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
+    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
   @Test
@@ -345,7 +358,7 @@ public class StreamedQueryResourceTest {
       try {
         for (int i = 0; i != NUM_ROWS; i++) {
           final String key = Integer.toString(i);
-          final GenericRow value = new GenericRow(Collections.singletonList(i));
+          final GenericRow value = genericRow(i);
           synchronized (writtenRows) {
             writtenRows.add(value);
           }
@@ -371,14 +384,14 @@ public class StreamedQueryResourceTest {
             mockKafkaStreams,
             SOME_SCHEMA,
             Collections.emptySet(),
-            limitHandler -> {},
             "",
-            rowQueue,
+            new TestRowQueue(rowQueue),
             "",
             mock(Topology.class),
             Collections.emptyMap(),
             Collections.emptyMap(),
-            queryCloseCallback);
+            queryCloseCallback,
+            closeTimeout);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
@@ -386,7 +399,7 @@ public class StreamedQueryResourceTest {
 
     final Response response =
         testResource.streamQuery(
-            serviceContext,
+            securityContext,
             new KsqlRequest(queryString, requestStreamsProperties, null)
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
@@ -451,7 +464,7 @@ public class StreamedQueryResourceTest {
     verify(mockKafkaStreams).start();
     verify(mockKafkaStreams).setUncaughtExceptionHandler(any());
     verify(mockKafkaStreams).cleanUp();
-    verify(mockKafkaStreams).close();
+    verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 
     // If one of the other threads has somehow managed to throw an exception without breaking things up until this
     // point, we throw that exception now in the main thread and cause the test to fail
@@ -525,7 +538,7 @@ public class StreamedQueryResourceTest {
   public void shouldUpdateTheLastRequestTime() {
     /// When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
@@ -544,43 +557,13 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
     );
 
-    final Response expected = Errors.accessDeniedFromKafka(
-        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)));
-
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) expected.getEntity();
-    assertEquals(response.getStatus(), expected.getStatus());
-    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
-  }
-
-  @Test
-  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
-    // Given:
-    when(mockStatementParser.<Query>parseSingleStatement(PUSH_QUERY_STRING))
-        .thenReturn(query);
-    doThrow(new KsqlException(
-        "",
-        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME))))
-        .when(authorizationValidator).checkAuthorization(any(), any(), any());
-
-    // When:
-    final Response response = testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    final Response expected = Errors.accessDeniedFromKafka(
-        new KsqlException(
-            "",
-            new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME))));
-
-    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) expected.getEntity();
-    assertEquals(response.getStatus(), expected.getStatus());
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) AUTHORIZATION_ERROR_RESPONSE.getEntity();
+    assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
     assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
@@ -597,15 +580,12 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response = testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
     );
 
-    final Response expected = Errors.accessDeniedFromKafka(
-        new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(TOPIC_NAME)));
-
-    assertEquals(response.getStatus(), expected.getStatus());
-    assertEquals(response.getEntity(), expected.getEntity());
+    assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
+    assertEquals(response.getEntity(), AUTHORIZATION_ERROR_RESPONSE.getEntity());
   }
 
   @Test
@@ -646,8 +626,45 @@ public class StreamedQueryResourceTest {
 
     // When:
     testResource.streamQuery(
-        serviceContext,
+        securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), null)
     );
+  }
+
+  private static class TestRowQueue implements BlockingRowQueue {
+
+    private final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue;
+
+    TestRowQueue(
+        final SynchronousQueue<KeyValue<String, GenericRow>> rowQueue
+    ) {
+      this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+    }
+
+    @Override
+    public void setLimitHandler(final LimitHandler limitHandler) {
+
+    }
+
+    @Override
+    public KeyValue<String, GenericRow> poll(final long timeout, final TimeUnit unit)
+        throws InterruptedException {
+      return rowQueue.poll(timeout, unit);
+    }
+
+    @Override
+    public void drainTo(final Collection<? super KeyValue<String, GenericRow>> collection) {
+      rowQueue.drainTo(collection);
+    }
+
+    @Override
+    public int size() {
+      return rowQueue.size();
+    }
+
+    @Override
+    public void close() {
+
+    }
   }
 }

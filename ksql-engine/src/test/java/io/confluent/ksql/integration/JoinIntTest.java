@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -106,7 +107,7 @@ public class JoinIntTest {
 
     ksqlContext.sql(queryString);
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -115,7 +116,7 @@ public class JoinIntTest {
     );
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -174,7 +175,7 @@ public class JoinIntTest {
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -184,7 +185,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+        genericRow("ORDER_1", "ITEM_1", 10.0, "home cinema")
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
@@ -217,7 +218,7 @@ public class JoinIntTest {
         orderStreamTopicJson,
         ORDER_STREAM_NAME_JSON,
         ITEM_TABLE_NAME_JSON,
-        Format.JSON);
+        FormatFactory.JSON);
 
   }
 
@@ -247,7 +248,7 @@ public class JoinIntTest {
 
     final String outputStream = "OUTPUT";
 
-    final DataSource<?> source = ksqlContext.getMetaStore()
+    final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(outputStream));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -257,7 +258,7 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(ImmutableList.of("ORDER_1", "home cinema", 1))
+        genericRow("ORDER_1", "home cinema", 1L)
     );
 
     final Map<String, GenericRow> results = new HashMap<>();

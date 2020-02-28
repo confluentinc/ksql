@@ -3,15 +3,27 @@ layout: page
 title: Check the Health of a ksqlDB Server
 tagline: Make sure that ksqlDB is up and running  
 description: Tips for ensuring that ksqlDB Server is well and healthy   
-keywords: ksqldb, diagnostics, troubleshooting
+keywords: ksqldb, diagnostics, troubleshooting, health, jmx
 ---
 
-Check a ksqlDB Server Running in a Native Deployment
+Check a ksqlDB Server from the ksqlDB CLI
+-----------------------------------------
+
+Check the streams, tables, and queries on the ksqlDB Server that you're
+connected to by using the DESCRIBE EXTENDED and EXPLAIN statements
+in the ksqlDB CLI.
+
+-   Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
+-   Run SHOW QUERIES, then run `EXPLAIN <query-name>`.
+
+Check a ksqlDB Server running in a native deployment
 ----------------------------------------------------
 
 If you installed ksqlDB server by using a package manager, like a DEB or
 RPM, or from an archive, like a TAR or ZIP file, you can check the
 health of your ksqlDB Server instances by using shell commands.
+
+### Check the ksqlDB Server process status
 
 Use the `ps` command to check whether the ksqlDB Server process is
 running:
@@ -29,55 +41,73 @@ jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/ja
 If the process status of the JVM isn't `Sl` or `Ssl`, the ksqlDB server
 may be down.
 
-Check runtime stats for the ksqlDB server that you're connected to.
+### Inspect runtime stats
 
--   Run `ksql-print-metrics` on a server host. The tool connects to
-    a ksqlDB Server that's running on `localhost` and collects JMX
-    metrics from the server process. Metrics include the number of
-    messages, the total throughput, the throughput distribution, and
-    the error rate. For more information, see
-    [Monitoring and Metrics](../index.md#monitoring-and-metrics)
--   In the ksqlDB CLI or in {{ site.c3 }}, run SHOW STREAMS or SHOW
-    TABLES, then run DESCRIBE EXTENDED <stream|table>.
--   In the ksqlDB CLI or in {{ site.c3 }}, run SHOW QUERIES, then run
-    EXPLAIN <query>.
+You can check runtime stats for the ksqlDB server that you're connected to
+by using the `ksql-print-metrics` command-line utility.
+
+On a server host, run `ksql-print-metrics`. This tool connects to
+a ksqlDB Server that's running on `localhost` and collects JMX
+metrics from the server process. Metrics include the number of
+messages, the total throughput, the throughput distribution, and
+the error rate. For more information, see
+[JMX metrics](server-config/index.md#jmx-metrics)
 
 Check a ksqlDB Server by using the REST API
 -------------------------------------------
 
 The ksqlDB REST API supports a "server info" request, which you access
-with a URL like `http://<ksqldb-server-url>/info`. The `/info` endpoint
+with a URL like `http://<ksqldb-server-host>/info`. The `/info` endpoint
 returns the ksqlDB Server version, the {{ site.aktm }} cluster ID, and
-the service ID of the ksqlDB Server. For more information, see
-[ksqlDB REST API Reference](../../developer-guide/api.md).
+the service ID of the ksqlDB Server. 
 
-```bash
-curl -sX GET "http://localhost:8088/info"
-```
+Also, the ksqlDB REST API supports a basic health check endpoint at
+`/healthcheck`.
 
-Your output should resemble:
-
-```json
-{
-    "KsqlServerInfo":{
-        "version":"{{ site.release }}",
-        "kafkaClusterId":"X5ZV2fjQR1u4zQDLlw62PQ",
-        "ksqlServiceId":"default_"
-    }
-}
-```
-
-!!! note
+!!! important
 	This approach doesn't work for non-interactive, or *headless*,
     deployments of ksqlDB Server, because a headless deployment doesn't have
-    a REST API server.
+    a REST API server. Instead, check the [JMX metrics port](#check-the-jmx-metrics-port).
 
-ksqlDB Server Running in a Docker Container
--------------------------------------------
+For more information, see
+[Introspect server status](../../developer-guide/ksqldb-rest-api/info-endpoint.md).
+
+Check a ksqlDB Server running in a Docker container
+---------------------------------------------------
 
 If you're running ksqlDB server in a Docker container, run the
 `docker ps` or `docker-compose ps` command, and check that the status of
 the `ksql-server` container is `Up`. Check the health of the process in
 the container by running `docker logs <ksql-server-container-id>`.
 
-Page last revised on: {{ git_revision_date }}
+Check the JMX metrics port
+--------------------------
+
+In addition to the previous health checks, you can query the Java Management
+Extensions (JMX) port on a host that runs ksqlDB Server.
+
+This is useful when you need to check a headless ksqlDB Server that's running
+natively or in a Docker container, because headless deployments of ksqlDB Server
+don't have a REST server that you can query for health. Instead, you can probe
+the JMX port for liveness. A JMX probe is the most reliable way to determine
+readiness of a headless deployment.
+
+!!! note
+    JMX indicates that the JVM is up and responsive. This test is similar to
+    confirming is the ksqlDB process is running, but a successful response
+    doesn't necessarily mean that the ksqlDB service is fully operational.
+    To get better exposure, you can monitor the nodes from {{ site.c3 }} or JMX.
+
+The following command probes the JMX port by using the Netcat utility.
+
+```bash
+nc -z <ksql-node>:1099
+```
+
+An exit code of 0 for an open port tells you that the container and ksqlDB JVM
+are running. This confirmation has a level of confidence that's similar to the
+REST health check.
+
+The general responsiveness on the port should be sufficient as a high-level
+health check. For a list of the available metrics you can collect, see
+[JMX Metrics](server-config/index.md#jmx-metrics).

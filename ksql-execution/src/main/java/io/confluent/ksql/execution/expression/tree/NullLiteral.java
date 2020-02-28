@@ -26,12 +26,12 @@ public class NullLiteral extends Literal {
     super(Optional.empty());
   }
 
-  public NullLiteral(Optional<NodeLocation> location) {
+  public NullLiteral(final Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitNullLiteral(this, context);
   }
 
@@ -41,7 +41,7 @@ public class NullLiteral extends Literal {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

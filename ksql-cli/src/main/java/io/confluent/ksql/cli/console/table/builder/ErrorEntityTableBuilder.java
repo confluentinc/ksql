@@ -35,7 +35,7 @@ public class ErrorEntityTableBuilder implements TableBuilder<ErrorEntity> {
       formatted = MAPPER
           .writerWithDefaultPrettyPrinter()
           .writeValueAsString(MAPPER.readTree(message));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       formatted = String.join("\n", Splitter.fixedLength(60).splitToList(message));
     }
 

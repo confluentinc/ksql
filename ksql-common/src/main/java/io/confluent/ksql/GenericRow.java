@@ -15,53 +15,81 @@
 
 package io.confluent.ksql;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class GenericRow {
 
-  private final List<Object> columns;
+  private final ArrayList<Object> values;
 
   public GenericRow() {
-    columns = new ArrayList<>();
+    this(0);
   }
 
-  public GenericRow(final List<Object> columns) {
-    Objects.requireNonNull(columns);
-    this.columns = columns;
+  public GenericRow(final int initialCapacity) {
+    this.values = new ArrayList<>(initialCapacity);
   }
 
-  public GenericRow(final Object ...columns) {
-    this(Arrays.asList(columns));
+  @VisibleForTesting // Only use from tests
+  public static GenericRow genericRow(final Object... columns) {
+    return new GenericRow().appendAll(Arrays.asList(columns));
+  }
+
+  public static GenericRow fromList(final List<Object> columns) {
+    return new GenericRow().appendAll(columns);
+  }
+
+  /**
+   * Ensure the row has enough capacity to hold {@code additionalCapacity} more elements than its
+   * current size.
+   *
+   * <p>Useful to avoid unnecessary array copies when adding multiple elements.
+   *
+   * @param additionalCapacity the number of additional elements
+   */
+  public void ensureAdditionalCapacity(final int additionalCapacity) {
+    values.ensureCapacity(additionalCapacity + values.size());
+  }
+
+  public int size() {
+    return values.size();
+  }
+
+  public Object get(final int index) {
+    return values.get(index);
+  }
+
+  public void set(final int index, final Object value) {
+    values.set(index, value);
+  }
+
+  public GenericRow append(final Object value) {
+    values.add(value);
+    return this;
+  }
+
+  public GenericRow appendAll(final Collection<?> values) {
+    this.values.addAll(values);
+    return this;
+  }
+
+  @JsonProperty("columns")
+  public List<Object> values() {
+    return Collections.unmodifiableList(values);
   }
 
   @Override
   public String toString() {
-    final StringBuilder stringBuilder = new StringBuilder("[ ");
-    int currentIndex = 0;
-    for (int i = 0; i < columns.size(); i++) {
-      final Object obj = columns.get(i);
-      if (obj == null) {
-        stringBuilder.append("null");
-      } else if (obj.getClass().isArray()) {
-        stringBuilder.append(Arrays.toString((Object[]) obj));
-      } else if (obj instanceof String) {
-        stringBuilder.append("'")
-            .append(obj)
-            .append("'");
-      } else {
-        stringBuilder.append(obj);
-      }
-
-      currentIndex++;
-      if (currentIndex < columns.size()) {
-        stringBuilder.append(" | ");
-      }
-    }
-    stringBuilder.append(" ]");
-    return stringBuilder.toString();
+    return values.stream()
+        .map(GenericRow::formatValue)
+        .collect(Collectors.joining(" | ", "[ ", " ]"));
   }
 
   @Override
@@ -69,29 +97,33 @@ public class GenericRow {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final GenericRow that = (GenericRow) o;
-    if (columns.size() != that.columns.size()) {
-      return false;
-    }
 
-    // For now string matching is used to compare the rows as double comparison will cause issues
-    return this.toString().equals(that.toString());
+    final GenericRow that = (GenericRow) o;
+    return Objects.equals(this.values, that.values);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(columns);
+    return Objects.hash(values);
   }
 
-  public List<Object> getColumns() {
-    return columns;
-  }
+  private static String formatValue(final Object value) {
+    if (value == null) {
+      return "null";
+    }
 
-  @SuppressWarnings("unchecked")
-  public <T> T getColumnValue(final int columnIndex) {
-    return (T) columns.get(columnIndex);
+    if (value instanceof String) {
+      return "'" + value + "'";
+    }
+
+    if (value instanceof Long) {
+      return value.toString() + "L";
+    }
+
+    return value.toString();
   }
 }

@@ -59,7 +59,7 @@ final class TableRowValidation {
     }
 
     final int expectedValueCount = schema.value().size();
-    final int actualValueCount = value.getColumns().size();
+    final int actualValueCount = value.size();
     if (expectedValueCount != actualValueCount) {
       throw new IllegalArgumentException("value column count mismatch."
           + " expected: " + expectedValueCount

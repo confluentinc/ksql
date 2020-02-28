@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.util;
 
 import static java.util.Objects.requireNonNull;
+import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,11 +37,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
@@ -51,7 +56,10 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.acl.AccessControlEntry;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
@@ -67,7 +75,9 @@ import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.test.TestUtils;
+import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -81,6 +91,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
+  private static final Duration PRODUCE_TIMEOUT = Duration.ofSeconds(30);
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
@@ -252,17 +263,17 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Create a Kafka topic with 1 partition and a replication factor of 1.
    *
-   * @param topic The name of the topic.
+   * @param topics The name of the topics to create.
    */
-  public void createTopic(final String topic) {
-    broker.createTopic(topic, 1, 1);
+  public void createTopics(final String... topics) {
+    Arrays.stream(topics).forEach(topic -> broker.createTopic(topic, 1, 1));
   }
 
   /**
    * Create a Kafka topic with the given parameters.
    *
-   * @param topic       The name of the topic.
-   * @param partitions  The number of partitions for this topic.
+   * @param topic The name of the topic.
+   * @param partitions The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
   public void createTopic(final String topic, final int partitions, final int replication) {
@@ -272,16 +283,17 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Create a Kafka topic with the given parameters.
    *
-   * @param topic       The name of the topic.
-   * @param partitions  The number of partitions for this topic.
+   * @param topic The name of the topic.
+   * @param partitions The number of partitions for this topic.
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
   public void createTopic(
       final String topic,
-                          final int partitions,
-                          final int replication,
-                          final Map<String, String> topicConfig) {
+      final int partitions,
+      final int replication,
+      final Map<String, String> topicConfig
+  ) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
@@ -328,6 +340,47 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
+   * Publish test data to the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to produce to.
+   * @param recordsToPublish the records to produce.
+   * @param keySerializer the serializer to use to serialize keys.
+   * @param valueSerializer the serializer to use to serialize values.
+   * @param timestampSupplier supplier of timestamps.
+   * @return the map of produced rows, with an iteration order that matches produce order.
+   */
+  public <K, V> Map<K, RecordMetadata> produceRows(
+      final String topic,
+      final Map<K, V> recordsToPublish,
+      final Serializer<K> keySerializer,
+      final Serializer<V> valueSerializer,
+      final Supplier<Long> timestampSupplier
+  ) {
+    try (KafkaProducer<K, V> producer = new KafkaProducer<>(
+        producerConfig(),
+        keySerializer,
+        valueSerializer
+    )) {
+      final Map<K, Future<RecordMetadata>> futures = recordsToPublish.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, entry -> {
+            final K key = entry.getKey();
+            final V value = entry.getValue();
+            final Long timestamp = timestampSupplier.get();
+            return producer.send(new ProducerRecord<>(topic, null, timestamp, key, value));
+          }));
+
+      return futures.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, entry -> {
+            try {
+              return entry.getValue().get(PRODUCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+              throw new RuntimeException("Failed to send record to " + topic, e);
+            }
+          }));
+    }
+  }
+
+  /**
    * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
    *
    * @param topic the name of the topic to check.
@@ -359,6 +412,50 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       final Deserializer<K> keyDeserializer,
       final Deserializer<V> valueDeserializer
   ) {
+    return verifyAvailableRecords(
+        topic,
+        hasSize(expectedCount),
+        keyDeserializer,
+        valueDeserializer
+    );
+  }
+
+  /**
+   * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expected the expected records.
+   * @return the list of consumed records.
+   */
+  public <K, V> List<ConsumerRecord<K, V>> verifyAvailableRecords(
+      final String topic,
+      final Matcher<? super List<ConsumerRecord<K, V>>> expected,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<V> valueDeserializer
+  ) {
+    return verifyAvailableRecords(
+        topic,
+        expected,
+        keyDeserializer,
+        valueDeserializer,
+        ConsumerTestUtil.DEFAULT_VERIFY_TIMEOUT
+    );
+  }
+
+  /**
+   * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expected the expected records.
+   * @return the list of consumed records.
+   */
+  public <K, V> List<ConsumerRecord<K, V>> verifyAvailableRecords(
+      final String topic,
+      final Matcher<? super List<ConsumerRecord<K, V>>> expected,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<V> valueDeserializer,
+      final Duration timeout
+  ) {
     try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(
         consumerConfig(),
         keyDeserializer,
@@ -366,7 +463,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     ) {
       consumer.subscribe(Collections.singleton(topic));
 
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
+      return ConsumerTestUtil.verifyAvailableRecords(consumer, expected, timeout);
     }
   }
 

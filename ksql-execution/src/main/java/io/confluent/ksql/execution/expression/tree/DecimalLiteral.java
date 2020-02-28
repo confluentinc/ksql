@@ -19,42 +19,43 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class DecimalLiteral extends Literal {
 
-  private final String value;
+  private final BigDecimal value;
 
-  public DecimalLiteral(String value) {
+  public DecimalLiteral(final BigDecimal value) {
     this(Optional.empty(), value);
   }
 
-  public DecimalLiteral(Optional<NodeLocation> location, String value) {
+  public DecimalLiteral(final Optional<NodeLocation> location, final BigDecimal value) {
     super(location);
     this.value = requireNonNull(value, "value");
   }
 
   @Override
-  public String getValue() {
+  public BigDecimal getValue() {
     return value;
   }
 
   @Override
-  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitDecimalLiteral(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DecimalLiteral that = (DecimalLiteral) o;
+    final DecimalLiteral that = (DecimalLiteral) o;
     return Objects.equals(value, that.value);
   }
 

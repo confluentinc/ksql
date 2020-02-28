@@ -15,17 +15,13 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.time.Instant;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -34,16 +30,6 @@ import org.apache.kafka.connect.data.Struct;
  * Factory class for {@link TableRowsEntity}
  */
 public final class TableRowsEntityFactory {
-
-  @SuppressWarnings("deprecation")
-  private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
-      .of(Column.legacySystemWindowColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
-
-  @SuppressWarnings("deprecation")
-  private static final List<Column> SESSION_WINDOW_COLUMNS = ImmutableList.<Column>builder()
-      .addAll(TIME_WINDOW_COLUMNS)
-      .add(Column.legacySystemWindowColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
-      .build();
 
   private TableRowsEntityFactory() {
   }
@@ -58,32 +44,19 @@ public final class TableRowsEntityFactory {
 
   public static LogicalSchema buildSchema(
       final LogicalSchema schema,
-      final Optional<WindowType> windowType
+      final boolean windowed
   ) {
-    final LogicalSchema adjusted = LogicalSchema.builder()
+    final Builder builder = LogicalSchema.builder()
         .noImplicitColumns()
-        .keyColumns(schema.key())
+        .keyColumns(schema.key());
+
+    if (windowed) {
+      builder.keyColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.BIGINT);
+      builder.keyColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.BIGINT);
+    }
+
+    return builder
         .valueColumns(schema.metadata())
-        .valueColumns(schema.value())
-        .build();
-
-    return windowType
-        .map(wt -> addWindowFieldsIntoSchema(wt, adjusted))
-        .orElse(adjusted);
-  }
-
-  private static LogicalSchema addWindowFieldsIntoSchema(
-      final WindowType windowType,
-      final LogicalSchema schema
-  ) {
-    final List<Column> additionalKeyCols = windowType == WindowType.SESSION
-        ? SESSION_WINDOW_COLUMNS
-        : TIME_WINDOW_COLUMNS;
-
-    return LogicalSchema.builder()
-        .noImplicitColumns()
-        .keyColumns(schema.key())
-        .keyColumns(additionalKeyCols)
         .valueColumns(schema.value())
         .build();
   }
@@ -95,12 +68,12 @@ public final class TableRowsEntityFactory {
 
     row.window().ifPresent(window -> {
       rowList.add(window.start().toEpochMilli());
-      window.end().map(Instant::toEpochMilli).ifPresent(rowList::add);
+      rowList.add(window.end().toEpochMilli());
     });
 
     rowList.add(row.rowTime());
 
-    rowList.addAll(row.value().getColumns());
+    rowList.addAll(row.value().values());
 
     return rowList;
   }

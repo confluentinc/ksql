@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
@@ -22,8 +23,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -36,11 +37,12 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -59,8 +61,9 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class KsqlResourceFunctionalTest {
 
-  private static final String PAGE_VIEW_TOPIC = "pageviews";
-  private static final String PAGE_VIEW_STREAM = "pageviews_original";
+  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
+  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -78,7 +81,8 @@ public class KsqlResourceFunctionalTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
+
+    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
   }
 
   @After
@@ -159,11 +163,11 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.getSchemaRegistryClient()
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            AvroSchemas.getAvroSchema(
+            new AvroSchema(AvroSchemas.getAvroSchema(
                 schema.valueSchema(),
                 "books_value",
                 new KsqlConfig(REST_APP.getBaseConfig())
-            )
+            ))
         );
 
     // When:
@@ -181,11 +185,11 @@ public class KsqlResourceFunctionalTest {
         "books",
         contains(matches(
             "Metamorphosis",
-            new GenericRow(ImmutableList.of("Metamorphosis", "Franz Kafka")),
+            genericRow("Metamorphosis", "Franz Kafka"),
             0,
             0L,
             123L)),
-        Format.AVRO,
+        FormatFactory.AVRO,
         schema
     );
   }

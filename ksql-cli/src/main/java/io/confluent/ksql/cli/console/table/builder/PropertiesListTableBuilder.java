@@ -19,9 +19,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Property", "Default override", "Effective Value");
+      ImmutableList.of("Property", "Scope", "Default override", "Effective Value");
 
   @Override
   public Table buildTable(final PropertiesList entity) {
@@ -42,27 +42,29 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
   private static List<List<String>> defRowValues(final List<PropertyDef> properties) {
     return properties.stream()
         .sorted(Comparator.comparing(propertyDef -> propertyDef.propertyName))
-        .map(
-            def -> ImmutableList.of(def.propertyName, def.overrideType, def.effectiveValue))
+        .map(def -> ImmutableList.of(
+            def.propertyName, def.scope, def.overrideType, def.effectiveValue))
         .collect(Collectors.toList());
   }
 
   private static List<PropertyDef> propertiesListWithOverrides(final PropertiesList properties) {
 
-    final Function<Entry<String, ?>, PropertyDef> toPropertyDef = e -> {
-      final String value = e.getValue() == null ? "NULL" : e.getValue().toString();
-      if (properties.getOverwrittenProperties().contains(e.getKey())) {
-        return new PropertyDef(e.getKey(), "SESSION", value);
+    final Function<Property, PropertyDef> toPropertyDef = property -> {
+      final String value = property.getValue() == null ? "NULL" : property.getValue();
+      final String name = property.getName();
+      final String scope = property.getScope();
+      if (properties.getOverwrittenProperties().contains(name)) {
+        return new PropertyDef(name, scope, "SESSION", value);
       }
 
-      if (properties.getDefaultProperties().contains(e.getKey())) {
-        return new PropertyDef(e.getKey(), "", value);
+      if (properties.getDefaultProperties().contains(name)) {
+        return new PropertyDef(name, scope, "", value);
       }
 
-      return new PropertyDef(e.getKey(), "SERVER", value);
+      return new PropertyDef(name, scope, "SERVER", value);
     };
 
-    return properties.getProperties().entrySet().stream()
+    return properties.getProperties().stream()
         .map(toPropertyDef)
         .collect(Collectors.toList());
   }
@@ -70,14 +72,17 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
   private static class PropertyDef {
 
     private final String propertyName;
+    private final String scope;
     private final String overrideType;
     private final String effectiveValue;
 
     PropertyDef(
         final String propertyName,
+        final String scope,
         final String overrideType,
         final String effectiveValue) {
       this.propertyName = Objects.requireNonNull(propertyName, "propertyName");
+      this.scope = Objects.requireNonNull(scope, "scope");
       this.overrideType = Objects.requireNonNull(overrideType, "overrideType");
       this.effectiveValue = Objects.requireNonNull(effectiveValue, "effectiveValue");
     }

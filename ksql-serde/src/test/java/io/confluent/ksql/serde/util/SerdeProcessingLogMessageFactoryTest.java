@@ -15,12 +15,7 @@
 
 package io.confluent.ksql.serde.util;
 
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.TYPE;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -54,7 +49,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.empty()
+        Optional.empty(),
+        "topic"
     ).apply(config);
 
     // Then:
@@ -68,7 +64,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.of(record)
+        Optional.of(record),
+        "topic"
     ).apply(config);
 
     // Then:
@@ -91,6 +88,10 @@ public class SerdeProcessingLogMessageFactoryTest {
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64),
         equalTo(Base64.getEncoder().encodeToString(record))
     );
+    assertThat(
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_TOPIC),
+        equalTo("topic")
+    );
     schema.fields().forEach(
         f -> {
           if (!ImmutableList.of(TYPE, DESERIALIZATION_ERROR).contains(f.name())) {
@@ -110,7 +111,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.of(record)
+        Optional.of(record),
+        "topic"
     ).apply(config);
 
     // Then:

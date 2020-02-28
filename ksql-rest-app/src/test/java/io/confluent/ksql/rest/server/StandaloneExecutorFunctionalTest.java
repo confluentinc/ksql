@@ -15,16 +15,15 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.JSON;
-import static org.mockito.Mockito.when;
+import static io.confluent.ksql.serde.FormatFactory.AVRO;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -77,8 +76,6 @@ public class StandaloneExecutorFunctionalTest {
 
   @Mock
   private VersionCheckerAgent versionChecker;
-  @Mock
-  private ConfigStore configStore;
   private Path queryFile;
   private StandaloneExecutor standalone;
   private String s1;
@@ -106,8 +103,6 @@ public class StandaloneExecutorFunctionalTest {
         .build();
     ksqlConfig = new KsqlConfig(properties);
 
-    when(configStore.getKsqlConfig()).thenReturn(ksqlConfig);
-
     final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->
         TestServiceContext.create(
             ksqlConfig,
@@ -119,7 +114,7 @@ public class StandaloneExecutorFunctionalTest {
         queryFile.toString(),
         ".",
         serviceContextFactory,
-        (topicName, currentConfig) -> configStore,
+        KafkaConfigStore::new,
         activeQuerySupplier -> versionChecker,
         StandaloneExecutor::new
     );
@@ -143,7 +138,7 @@ public class StandaloneExecutorFunctionalTest {
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
         + "\n"
         + "CREATE TABLE T (ORDERTIME BIGINT) "
-        + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json', key='ORDERTIME');\n"
+        + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
         + "\n"
         + "SET 'auto.offset.reset' = 'earliest';"
         + "\n"
@@ -184,7 +179,7 @@ public class StandaloneExecutorFunctionalTest {
         + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + "\n"
         + "CREATE TABLE T (ORDERTIME BIGINT) "
-        + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro', key='ORDERTIME');\n"
+        + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + "\n"
         + "SET 'auto.offset.reset' = 'earliest';"
         + "\n"
@@ -318,7 +313,7 @@ public class StandaloneExecutorFunctionalTest {
   private void givenScript(final String contents) {
     try {
       Files.write(queryFile, contents.getBytes(StandardCharsets.UTF_8));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new AssertionError("Failed to save query file", e);
     }
   }

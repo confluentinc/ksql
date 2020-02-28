@@ -1,0 +1,22 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103690,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUBSTRING VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : "",
+    "value" : {
+      "source" : "some_string"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "SUBSTRING" : "string"
+    }
+  } ]
+}

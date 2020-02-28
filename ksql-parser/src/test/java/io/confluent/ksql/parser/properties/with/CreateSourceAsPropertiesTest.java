@@ -26,9 +26,8 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Rule;
@@ -56,7 +55,7 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
+    assertThat(properties.getFormatInfo(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
@@ -69,7 +68,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("ts")));
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnName.of("TS"))));
   }
 
   @Test
@@ -79,7 +78,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("a.ts")));
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.of(SourceName.of("A"), ColumnName.of("TS")))));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnName.of("TS"))));
   }
 
   @Test
@@ -115,7 +114,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
+    assertThat(properties.getFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

@@ -24,7 +24,7 @@ public final class StructType extends ObjectType {
 
   private final ImmutableMap<String, ParamType> schema;
 
-  private StructType(Map<String, ParamType> schema) {
+  private StructType(final Map<String, ParamType> schema) {
     this.schema = ImmutableMap.copyOf(Objects.requireNonNull(schema, "schema"));
   }
 
@@ -37,14 +37,14 @@ public final class StructType extends ObjectType {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    StructType that = (StructType) o;
+    final StructType that = (StructType) o;
     return Objects.equals(schema, that.schema);
   }
 
@@ -64,12 +64,12 @@ public final class StructType extends ObjectType {
   }
 
   public static final class Builder {
-    private ImmutableMap.Builder<String, ParamType> builder = new ImmutableMap.Builder<>();
+    private final ImmutableMap.Builder<String, ParamType> builder = new ImmutableMap.Builder<>();
 
     private Builder() {
     }
 
-    public Builder field(String name, ParamType value) {
+    public Builder field(final String name, final ParamType value) {
       builder.put(name, value);
       return this;
     }

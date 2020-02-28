@@ -20,10 +20,12 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.planned.PlannedTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilder;
 import java.nio.file.Path;
@@ -47,12 +49,16 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
-  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
 
+  @SuppressWarnings("UnstableApiUsage")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return ExpectedTopologiesTestLoader.of(testFileLoader(), TOPOLOGY_CHECKS_DIR)
-        .load()
+    return
+        Streams.concat(
+            testFileLoader().load(),
+            PlannedTestLoader.of(testFileLoader()).load(),
+            ExpectedTopologiesTestLoader.of(testFileLoader(), "expected_topology/").load()
+        )
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
   }

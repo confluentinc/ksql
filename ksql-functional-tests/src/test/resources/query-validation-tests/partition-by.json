@@ -3,7 +3,7 @@
     {
       "name": "partition by with projection select some",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
@@ -11,7 +11,17 @@
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "REPARTITIONED",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ROWKEY STRING KEY, NAME STRING, ID BIGINT"
+          }
+        ]
+      }
     },
     {
       "name": "int column",
@@ -85,7 +95,7 @@
     {
       "name": "partition by with projection select all",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
       ],
       "inputs": [
@@ -98,12 +108,12 @@
     {
       "name": "partition by with null value",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": null},
-        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
+        {"topic": "test_topic", "key": 0, "value": null},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
       ],
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
@@ -112,7 +122,7 @@
     {
       "name": "partition by with null partition by value",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [

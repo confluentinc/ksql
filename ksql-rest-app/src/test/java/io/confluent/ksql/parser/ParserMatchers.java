@@ -140,7 +140,7 @@ public final class ParserMatchers {
   public static final class StatementTextMatcher<T extends Statement>
       extends FeatureMatcher<PreparedStatement<T>, String> {
 
-    public StatementTextMatcher(Matcher<? super String> textMatcher) {
+    public StatementTextMatcher(final Matcher<? super String> textMatcher) {
       super(textMatcher, "a prepared statement with text", "statement text");
     }
 
@@ -168,7 +168,7 @@ public final class ParserMatchers {
   public static final class StatementMatcher<T extends Statement>
       extends FeatureMatcher<PreparedStatement<T>, Statement> {
 
-    public StatementMatcher(Matcher<? super Statement> statementMatcher) {
+    public StatementMatcher(final Matcher<? super Statement> statementMatcher) {
       super(statementMatcher, "a prepared statement", "statement");
     }
 

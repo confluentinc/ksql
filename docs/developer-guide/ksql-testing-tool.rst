@@ -38,6 +38,27 @@ To test a set of KSQL statements, you provide three files, one file containing t
                 This option may occur a maximum of 1 time
 
 
+Provide required jar files
+**************************
+
+Starting in version 5.3.0, ksql-test-runner throws a
+``ClassNotFoundException``, because the the following jars aren't packaged in
+KSQL.
+
+- `ksql-functional-tests/hamcrest-all-1.3.jar`
+- `ksql-functional-tests/junit-4.12.jar`
+
+The workaround is to copy the required jars into the ``ksql`` classpath at
+:litwithvars:`confluent-|release|/share/java/ksql`. For example,
+use the following commands for the classpath
+:litwithvars:`/opt/confluent/confluent-|release|/share/java/ksql`. 
+
+.. codewithvars:: bash
+
+    cd /opt/confluent/confluent-|release|/share/java/ksql
+    wget https://repo1.maven.org/maven2/junit/junit/4.12/junit-4.12.jar
+    wget https://repo1.maven.org/maven2/org/hamcrest/hamcrest-all/1.3/hamcrest-all-1.3.jar
+
 
 Test File Structure
 *******************
@@ -57,8 +78,8 @@ Here is a sample statements file for the testing tool:
 
 .. code:: sql
 
-    CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
+    CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
 
 Input File
 ----------
@@ -89,11 +110,11 @@ An expected output message should have a topic, a key, a value and a timestamp. 
 
      {
        "outputs": [
-               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESAULT": "medium"}, "key": 0},
-               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESAULT": "large"}, "key": 100},
-               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESAULT": "large"}, "key": 101},
-               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESAULT": "medium"}, "key": 101},
-               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESAULT": "small"},"key": 101}
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}, "key": 0},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}, "key": 100},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}, "key": 101},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}, "key": 101},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"},"key": 101}
              ]
      }
 
@@ -186,7 +207,7 @@ are submitted later can affect the output of a query. For example, consider the 
     INSERT INTO orders VALUES(10.0);
     INSERT INTO orders VALUES(15.0);
     INSERT INTO orders VALUES(20.0);
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
     INSERT INTO orders VALUES(25.0);
     INSERT INTO orders VALUES(30.0);
 

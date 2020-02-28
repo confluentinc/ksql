@@ -33,7 +33,7 @@ public final class PlanJsonMapper {
    * @return ObjectMapper instance
    */
   public static ObjectMapper create() {
-    ObjectMapper mapper = new ObjectMapper();
+    final ObjectMapper mapper = new ObjectMapper();
     mapper.registerModules(
         new Jdk8Module(),
         new JavaTimeModule(),

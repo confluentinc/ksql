@@ -19,7 +19,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -270,7 +273,7 @@ public final class DataGen {
         help = false;
         bootstrapServer = "localhost:9092";
         schemaFile = null;
-        keyFormat = Format.KAFKA;
+        keyFormat = FormatFactory.KAFKA;
         valueFormat = null;
         valueDelimiter = ',';
         topicName = null;
@@ -316,11 +319,11 @@ public final class DataGen {
         }
 
         public Format getKeyFormat() {
-          return Format.KAFKA;
+          return FormatFactory.KAFKA;
         }
 
         public Format getValueFormat() {
-          return Format.JSON;
+          return FormatFactory.JSON;
         }
       }
 
@@ -460,8 +463,8 @@ public final class DataGen {
 
       private static Format parseFormat(final String formatString) {
         try {
-          return Format.valueOf(formatString.toUpperCase());
-        } catch (final IllegalArgumentException exception) {
+          return FormatFactory.of(FormatInfo.of(formatString));
+        } catch (final KsqlException exception) {
           throw new ArgumentParseException(String.format(
               "Invalid format in '%s'; was expecting one of AVRO, JSON, KAFKA or DELIMITED "
               + "(case-insensitive)",
@@ -495,7 +498,7 @@ public final class DataGen {
                 result));
           }
           return result;
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
           throw new ArgumentParseException(String.format(
               "Invalid number of threads in '%s'; must be a positive number",
               numThreadsString));

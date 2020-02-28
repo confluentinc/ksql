@@ -1,0 +1,58 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092870,
+  "schemas" : {
+    "InsertQuery_0.KsqlTopic.Source" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL",
+    "InsertQuery_0.SINK" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "source",
+    "key" : "0",
+    "value" : {
+      "A" : 123,
+      "B" : "falcon"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "source",
+    "key" : "0",
+    "value" : {
+      "A" : 456,
+      "B" : "giraffe"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "source",
+    "key" : "0",
+    "value" : {
+      "A" : 789,
+      "B" : "turtle"
+    },
+    "timestamp" : 0
+  } ],
+  "outputs" : [ {
+    "topic" : "sink",
+    "key" : "0",
+    "value" : {
+      "A" : 123,
+      "B" : "falcon"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "sink",
+    "key" : "0",
+    "value" : {
+      "A" : 456,
+      "B" : "giraffe"
+    },
+    "timestamp" : 0
+  }, {
+    "topic" : "sink",
+    "key" : "0",
+    "value" : {
+      "A" : 789,
+      "B" : "turtle"
+    },
+    "timestamp" : 0
+  } ]
+}

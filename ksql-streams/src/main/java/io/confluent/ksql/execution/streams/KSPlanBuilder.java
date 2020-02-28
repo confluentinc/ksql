@@ -168,8 +168,8 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KStreamHolder<K> visitStreamStreamJoin(final StreamStreamJoin<K> join) {
-    final KStreamHolder<K> left = join.getLeft().build(this);
-    final KStreamHolder<K> right = join.getRight().build(this);
+    final KStreamHolder<K> left = join.getLeftSource().build(this);
+    final KStreamHolder<K> right = join.getRightSource().build(this);
     return StreamStreamJoinBuilder.build(
         left,
         right,
@@ -181,8 +181,8 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KStreamHolder<K> visitStreamTableJoin(final StreamTableJoin<K> join) {
-    final KTableHolder<K> right = join.getRight().build(this);
-    final KStreamHolder<K> left = join.getLeft().build(this);
+    final KTableHolder<K> right = join.getRightSource().build(this);
+    final KStreamHolder<K> left = join.getLeftSource().build(this);
     return StreamTableJoinBuilder.build(
         left,
         right,
@@ -274,8 +274,8 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public <K> KTableHolder<K> visitTableTableJoin(
       final TableTableJoin<K> tableTableJoin) {
-    final KTableHolder<K> left = tableTableJoin.getLeft().build(this);
-    final KTableHolder<K> right = tableTableJoin.getRight().build(this);
+    final KTableHolder<K> left = tableTableJoin.getLeftSource().build(this);
+    final KTableHolder<K> right = tableTableJoin.getRightSource().build(this);
     return TableTableJoinBuilder.build(left, right, tableTableJoin);
   }
 }

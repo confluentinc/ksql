@@ -1,0 +1,25 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101627,
+  "schemas" : {
+    "CSAS_EVENTSTEST_0.KsqlTopic.Source" : "STRUCT<ID INT, FIELD0 VARCHAR> NOT NULL",
+    "CSAS_EVENTSTEST_0.EVENTSTEST" : "STRUCT<ID INT, FIELD1 VARCHAR, FIELD0 VARCHAR> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "events",
+    "key" : "0",
+    "value" : {
+      "id" : 1,
+      "field0" : "0x10"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "EVENTSTEST",
+    "key" : "0",
+    "value" : {
+      "ID" : 1,
+      "FIELD1" : "x_0",
+      "FIELD0" : "0x10"
+    }
+  } ]
+}

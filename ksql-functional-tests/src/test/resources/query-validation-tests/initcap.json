@@ -5,7 +5,7 @@
   "tests": [
     {
       "name": "do initcap",
-      "format": ["JSON"],
+      "format": ["JSON", "PROTOBUF"],
       "properties": {
         "ksql.functions.substring.legacy.args": false
       },

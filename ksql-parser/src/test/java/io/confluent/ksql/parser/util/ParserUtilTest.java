@@ -23,6 +23,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
 import io.confluent.ksql.util.ParserUtil;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -43,9 +45,13 @@ public class ParserUtilTest {
   @Mock
   private DecimalLiteralContext decimalLiteralContext;
 
+  @Mock
+  private FloatLiteralContext floatLiteralContext;
+
   @Before
   public void setUp() {
     mockLocation(decimalLiteralContext, 1, 2);
+    mockLocation(floatLiteralContext, 1, 2);
   }
 
   @Test
@@ -55,10 +61,23 @@ public class ParserUtilTest {
 
     // Then:
     expectedException.expect(ParsingException.class);
-    expectedException.expectMessage("line 1:4: Not a number: NaN");
+    expectedException.expectMessage("line 1:4: Invalid numeric literal: NaN");
 
     // When:
     ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+  }
+
+  @Test
+  public void shouldThrowWhenParsingFloatIfNaN() {
+    // Given:
+    when(floatLiteralContext.getText()).thenReturn("NaN");
+
+    // Then:
+    expectedException.expect(ParsingException.class);
+    expectedException.expectMessage("line 1:4: Not a number: NaN");
+
+    // When:
+    ParserUtil.parseFloatLiteral(floatLiteralContext);
   }
 
   @Test
@@ -77,14 +96,14 @@ public class ParserUtilTest {
   @Test
   public void shouldThrowWhenParsingDecimalIfOverflowsDouble() {
     // Given:
-    when(decimalLiteralContext.getText()).thenReturn("1.7976931348623159E308");
+    when(floatLiteralContext.getText()).thenReturn("1.7976931348623159E308");
 
     // Then:
     expectedException.expect(ParsingException.class);
     expectedException.expectMessage("line 1:4: Number overflows DOUBLE: 1.7976931348623159E308");
 
     // When:
-    ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+    ParserUtil.parseFloatLiteral(floatLiteralContext);
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

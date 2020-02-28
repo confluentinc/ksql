@@ -22,8 +22,6 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
@@ -59,7 +57,6 @@ public class CommandStore implements CommandQueue, Closeable {
   private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;
-  private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
 
@@ -96,7 +93,6 @@ public class CommandStore implements CommandQueue, Closeable {
       return new CommandStore(
           commandTopicName,
           new CommandTopic(commandTopicName, kafkaConsumerProperties),
-          new CommandIdAssigner(),
           new SequenceNumberFutureStore(),
           kafkaConsumerProperties,
           kafkaProducerProperties,
@@ -108,14 +104,12 @@ public class CommandStore implements CommandQueue, Closeable {
   CommandStore(
       final String commandTopicName,
       final CommandTopic commandTopic,
-      final CommandIdAssigner commandIdAssigner,
       final SequenceNumberFutureStore sequenceNumberFutureStore,
       final Map<String, Object> kafkaConsumerProperties,
       final Map<String, Object> kafkaProducerProperties,
       final Duration commandQueueCatchupTimeout
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
-    this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
@@ -151,18 +145,10 @@ public class CommandStore implements CommandQueue, Closeable {
 
   @Override
   public QueuedCommandStatus enqueueCommand(
-      final ConfiguredStatement<?> statement,
+      final CommandId commandId,
+      final Command command,
       final Producer<CommandId, Command> transactionalProducer
   ) {
-    final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
-
-    // new commands that generate queries will use the new query id generation method from now on
-    final Command command = new Command(
-        statement.getStatementText(),
-        statement.getOverrides(),
-        statement.getConfig().getAllConfigPropsWithSecretsObfuscated()
-    );
-
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {
@@ -193,7 +179,7 @@ public class CommandStore implements CommandQueue, Closeable {
           String.format(
               "Could not write the statement '%s' into the "
                   + "command topic"
-                  + ".", statement.getStatementText()
+                  + ".", command.getStatement()
           ),
           e
       );
@@ -257,8 +243,8 @@ public class CommandStore implements CommandQueue, Closeable {
   public Producer<CommandId, Command> createTransactionalProducer() {
     return new KafkaProducer<>(
         kafkaProducerProperties,
-        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
+        InternalTopicSerdes.serializer(),
+        InternalTopicSerdes.serializer()
     );
   }
 
@@ -289,8 +275,8 @@ public class CommandStore implements CommandQueue, Closeable {
 
     try (Consumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
         kafkaConsumerProperties,
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
+        InternalTopicSerdes.deserializer(CommandId.class),
+        InternalTopicSerdes.deserializer(Command.class)
     )) {
       commandConsumer.assign(Collections.singleton(commandTopicPartition));
       return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))

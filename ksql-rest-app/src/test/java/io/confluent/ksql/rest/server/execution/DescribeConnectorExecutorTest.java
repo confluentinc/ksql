@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,10 +41,11 @@ import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -76,6 +78,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DescribeConnectorExecutorTest {
 
   private static final String TOPIC = "kafka-topic";
+  private static final String STATEMENT = "statement";
   private static final String CONNECTOR_NAME = "connector";
   private static final String CONNECTOR_CLASS = "io.confluent.ConnectorClazz";
 
@@ -98,7 +101,7 @@ public class DescribeConnectorExecutorTest {
   @Mock
   private MetaStore metaStore;
   @Mock
-  private DataSource<?> source;
+  private DataSource source;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -122,11 +125,12 @@ public class DescribeConnectorExecutorTest {
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
+    when(source.getSqlExpression()).thenReturn(STATEMENT);
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
             TOPIC,
-            KeyFormat.nonWindowed(FormatInfo.of(Format.AVRO)),
-            ValueFormat.of(FormatInfo.of(Format.AVRO))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.AVRO.name())),
+            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
         )
     );
     when(source.getSchema()).thenReturn(
@@ -160,7 +164,7 @@ public class DescribeConnectorExecutorTest {
   public void shouldDescribeKnownConnector() {
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());
@@ -179,13 +183,13 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldDescribeKnownConnectorIfTopicListFails() {
     // Given:
-    KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
+    final KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
     fut.cancel(true);
     when(topics.names()).thenReturn(fut);
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());
@@ -204,7 +208,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
@@ -220,7 +224,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
@@ -238,7 +242,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());

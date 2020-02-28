@@ -19,8 +19,9 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
@@ -42,13 +43,13 @@ public class ListFunctionsExecutorTest {
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
         engine.configure("LIST FUNCTIONS;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
+    final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
         new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),

@@ -15,18 +15,24 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,12 +50,13 @@ public class QueryMetadata {
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
+  private final Long closeTimeout;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  protected QueryMetadata(
+  public QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
@@ -59,7 +66,8 @@ public class QueryMetadata {
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
+      final Consumer<QueryMetadata> closeCallback,
+      final long closeTimeout
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -76,6 +84,7 @@ public class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
+    this.closeTimeout = closeTimeout;
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -89,6 +98,7 @@ public class QueryMetadata {
     this.sourceNames = other.sourceNames;
     this.logicalSchema = other.logicalSchema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.closeTimeout = other.closeTimeout;
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
@@ -124,6 +134,25 @@ public class QueryMetadata {
     return topology;
   }
 
+  public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
+    Map<String, Map<Integer, LagInfo>> getLagMap = null;
+    try {
+      getLagMap = kafkaStreams.allLocalStorePartitionLags();
+    } catch (IllegalStateException | StreamsException e) {
+      LOG.error(e.getMessage());
+    }
+    return getLagMap;
+  }
+
+  public Collection<StreamsMetadata> getAllMetadata() {
+    try {
+      return kafkaStreams.allMetadata();
+    } catch (IllegalStateException e) {
+      LOG.error(e.getMessage());
+    }
+    return ImmutableList.of();
+  }
+
   public Map<String, Object> getStreamsProperties() {
     return streamsProperties;
   }
@@ -141,7 +170,7 @@ public class QueryMetadata {
   }
 
   public void close() {
-    kafkaStreams.close();
+    kafkaStreams.close(Duration.ofMillis(closeTimeout));
 
     kafkaStreams.cleanUp();
 

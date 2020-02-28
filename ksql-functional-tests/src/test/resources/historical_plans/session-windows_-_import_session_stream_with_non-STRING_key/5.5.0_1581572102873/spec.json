@@ -1,0 +1,110 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102873,
+  "schemas" : {
+    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, WSTART BIGINT, WEND BIGINT, KEY INT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : "1",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 0,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 0,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : "2",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 0,
+      "end" : 10000,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "3",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 10000,
+      "end" : 10000,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : "4",
+    "timestamp" : 40000,
+    "window" : {
+      "start" : 10000,
+      "end" : 40000,
+      "type" : "SESSION"
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : "1,0,0,0",
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 0,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : null,
+    "timestamp" : 0,
+    "window" : {
+      "start" : 0,
+      "end" : 0,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : "2,0,10000,0",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 0,
+      "end" : 10000,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 1,
+    "value" : "3,10000,10000,1",
+    "timestamp" : 10000,
+    "window" : {
+      "start" : 10000,
+      "end" : 10000,
+      "type" : "SESSION"
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 1,
+    "value" : "4,10000,40000,1",
+    "timestamp" : 40000,
+    "window" : {
+      "start" : 10000,
+      "end" : 40000,
+      "type" : "SESSION"
+    }
+  } ]
+}

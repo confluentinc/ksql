@@ -18,39 +18,71 @@ package io.confluent.ksql.rest.server.computation;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
+  private final Optional<KsqlPlan> plan;
 
   @JsonCreator
-  public Command(@JsonProperty("statement") final String statement,
-      @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
-      @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
+  public Command(
+      @JsonProperty(value = "statement", required = true) final String statement,
+      @JsonProperty(value = "streamsProperties", required = true)
+      final Map<String, Object> overwriteProperties,
+      @JsonProperty(value = "originalProperties", required = true)
+      final Map<String, String> originalProperties,
+      @JsonProperty("plan")
+      final Optional<KsqlPlan> plan
+  ) {
     this.statement = statement;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
     this.originalProperties =
         originalProperties == null ? Collections.emptyMap() : originalProperties;
+    this.plan = Objects.requireNonNull(plan, "plan");
   }
 
-  @JsonProperty("statement")
   public String getStatement() {
     return statement;
   }
 
   @JsonProperty("streamsProperties")
-  Map<String, Object> getOverwriteProperties() {
+  public Map<String, Object> getOverwriteProperties() {
     return Collections.unmodifiableMap(overwriteProperties);
   }
 
-  @JsonProperty("originalProperties")
-  Map<String, String> getOriginalProperties() {
+  public Map<String, String> getOriginalProperties() {
     return originalProperties;
+  }
+
+  public Optional<KsqlPlan> getPlan() {
+    return plan;
+  }
+
+  public static Command of(final ConfiguredKsqlPlan configuredPlan) {
+    return new Command(
+        configuredPlan.getPlan().getStatementText(),
+        configuredPlan.getOverrides(),
+        configuredPlan.getConfig().getAllConfigPropsWithSecretsObfuscated(),
+        Optional.of(configuredPlan.getPlan())
+    );
+  }
+
+  public static Command of(final ConfiguredStatement<?> configuredStatement) {
+    return new Command(
+        configuredStatement.getStatementText(),
+        configuredStatement.getOverrides(),
+        configuredStatement.getConfig().getAllConfigPropsWithSecretsObfuscated(),
+        Optional.empty()
+    );
   }
 
   @Override

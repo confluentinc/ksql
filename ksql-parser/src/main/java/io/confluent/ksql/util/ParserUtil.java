@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -26,10 +27,12 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -109,7 +112,7 @@ public final class ParserUtil {
     }
   }
 
-  public static DoubleLiteral parseDecimalLiteral(final DecimalLiteralContext context) {
+  public static DoubleLiteral parseFloatLiteral(final FloatLiteralContext context) {
     final Optional<NodeLocation> location = getLocation(context);
 
     try {
@@ -121,6 +124,17 @@ public final class ParserUtil {
         throw new ParsingException("Number overflows DOUBLE: " + context.getText(), location);
       }
       return new DoubleLiteral(location, value);
+    } catch (final NumberFormatException e) {
+      throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
+    }
+  }
+
+  public static DecimalLiteral parseDecimalLiteral(final DecimalLiteralContext context) {
+    final Optional<NodeLocation> location = getLocation(context);
+
+    try {
+      final String value = context.getText();
+      return new DecimalLiteral(location, new BigDecimal(value));
     } catch (final NumberFormatException e) {
       throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }

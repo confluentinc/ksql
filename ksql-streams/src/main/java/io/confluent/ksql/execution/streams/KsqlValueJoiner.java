@@ -17,8 +17,6 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 
@@ -33,25 +31,28 @@ public final class KsqlValueJoiner implements ValueJoiner<GenericRow, GenericRow
 
   @Override
   public GenericRow apply(final GenericRow left, final GenericRow right) {
-    final List<Object> columns = new ArrayList<>();
+    final GenericRow row = new GenericRow(
+        leftSchema.value().size() + rightSchema.value().size()
+    );
+
     if (left != null) {
-      columns.addAll(left.getColumns());
+      row.appendAll(left.values());
     } else {
-      fillWithNulls(columns, leftSchema.value().size());
+      fillWithNulls(row, leftSchema.value().size());
     }
 
     if (right != null) {
-      columns.addAll(right.getColumns());
+      row.appendAll(right.values());
     } else {
-      fillWithNulls(columns, rightSchema.value().size());
+      fillWithNulls(row, rightSchema.value().size());
     }
 
-    return new GenericRow(columns);
+    return row;
   }
 
-  private static void fillWithNulls(final List<Object> columns, final int numToFill) {
+  private static void fillWithNulls(final GenericRow row, final int numToFill) {
     for (int i = 0; i < numToFill; ++i) {
-      columns.add(null);
+      row.append(null);
     }
   }
 

@@ -37,7 +37,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -63,9 +62,9 @@ public class MetaStoreImplTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private DataSource<?> dataSource;
+  private DataSource dataSource;
   @Mock
-  private DataSource<?> dataSource1;
+  private DataSource dataSource1;
   private MetaStoreImpl metaStore;
   private ExecutorService executor;
 
@@ -150,7 +149,7 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource);
 
-    final Map<SourceName, DataSource<?>> dataSources = metaStore
+    final Map<SourceName, DataSource> dataSources = metaStore
         .getAllDataSources();
 
     // When
@@ -346,7 +345,7 @@ public class MetaStoreImplTest {
     IntStream.range(0, 1_000)
         .parallel()
         .forEach(idx -> {
-          final DataSource<?> source = mock(DataSource.class);
+          final DataSource source = mock(DataSource.class);
           when(source.getName()).thenReturn(SourceName.of("source" + idx));
           metaStore.putSource(source);
           metaStore.getSource(source.getName());

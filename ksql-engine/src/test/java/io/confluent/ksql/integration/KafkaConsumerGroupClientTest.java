@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;

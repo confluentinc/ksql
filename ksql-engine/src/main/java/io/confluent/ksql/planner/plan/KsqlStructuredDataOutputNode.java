@@ -119,7 +119,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKsqlTopic().getKafkaTopicName(),
         getKsqlTopic().getValueFormat(),
         serdeOptions,
-        contextStacker
+        contextStacker,
+        getTimestampColumn()
     );
   }
 }

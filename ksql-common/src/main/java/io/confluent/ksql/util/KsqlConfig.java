@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
+import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collection;
@@ -159,24 +163,35 @@ public class KsqlConfig extends AbstractConfig {
           + "\"off\" disables the validator. If set to \"auto\", KSQL will attempt to discover "
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
-  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG =
-      "ksql.query.pull.skip.access.validator";
-  public static final boolean KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT = false;
-  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC = "If \"true\", KSQL will "
-      + " NOT enforce access validation checks for pull queries, which could expose Kafka topics"
-      + " which are secured with ACLs. Please enable only after careful consideration."
-      + " If \"false\", KSQL pull queries will fail against a secure Kafka cluster";
 
   public static final String KSQL_PULL_QUERIES_ENABLE_CONFIG = "ksql.pull.queries.enable";
   public static final String KSQL_QUERY_PULL_ENABLE_DOC =
       "Config to enable or disable transient pull queries on a specific KSQL server.";
   public static final boolean KSQL_QUERY_PULL_ENABLE_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG =
-      "ksql.query.pull.routing.timeout.ms";
-  public static final Long KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DEFAULT = 30000L;
-  public static final String KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DOC = "Timeout in milliseconds "
-      + "when waiting for the lookup of the owner of a row key";
+  public static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS =
+        "ksql.query.pull.enable.standby.reads";
+  private static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
+      "Config to enable/disable forwarding pull queries to standby hosts when the active is dead. "
+          + "This means that stale values may be returned for these queries since standby hosts"
+          + "receive updates from the changelog topic (to which the active writes to) "
+          + "asynchronously. Turning on this configuration, effectively sacrifices "
+          + "consistency for higher availability.  "
+          + "Possible values are \"true\", \"false\". Setting to \"true\" guarantees high "
+          + "availability for pull queries. If set to \"false\", pull queries will fail when"
+          + "the active is dead and until a new active is elected. Default value is \"false\". "
+          + "For using this functionality, the server must be configured with "
+          + "to ksql.streams.num.standby.replicas >= 1";
+  public static final boolean KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG =
+      "ksql.query.pull.max.allowed.offset.lag";
+  public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = Long.MAX_VALUE;
+  private static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
+      "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
+          + "hosts storing it, both active and standbys included. This can be overridden per query "
+          + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
+          + "By default, any amount of lag is is allowed.";
 
   public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
       "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
@@ -187,12 +202,66 @@ public class KsqlConfig extends AbstractConfig {
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
+  public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
+      "ksql.streams.shutdown.timeout.ms";
+  public static final Long KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT = 300_000L;
+  public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
+      + "milliseconds to block waiting for the underlying streams instance to exit";
+
+  public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS =
+      "ksql.authorization.cache.expiry.time.secs";
+  public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
+  public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC = "Time in "
+      + "seconds to keep KSQL authorization responses in the cache. (The cache is disabled if "
+      + "0 or a negative number is set).";
+
+  public static final String KSQL_AUTH_CACHE_MAX_ENTRIES =
+      "ksql.authorization.cache.max.entries";
+  public static final Long KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT = 10000L;
+  public static final String KSQL_AUTH_CACHE_MAX_ENTRIES_DOC = "Controls the size of the cache "
+      + "to a maximum number of KSQL authorization responses entries.";
+
+  public static final String KSQL_HIDDEN_TOPICS_CONFIG = "ksql.hidden.topics";
+  public static final String KSQL_HIDDEN_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
+      + ",_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,"
+      + "connect-status,connect-statuses";
+  public static final String KSQL_HIDDEN_TOPICS_DOC = "Comma-separated list of topics that will "
+      + "be hidden. Entries in the list may be literal topic names or "
+      + "[Java regular expressions](https://docs.oracle.com/javase/8/docs/api/java/util/regex/"
+      + "Pattern.html). "
+      + "For example, `_confluent.*` will match any topic whose name starts with the `_confluent`)."
+      + "\nHidden topics will not visible when running the `SHOW TOPICS` command unless "
+      + "`SHOW ALL TOPICS` is used."
+      + "\nThe default value hides known system topics from Kafka and Confluent products."
+      + "\nKSQL also marks its own internal topics as hidden. This is not controlled by this "
+      + "config.";
+
+  public static final String KSQL_READONLY_TOPICS_CONFIG = "ksql.readonly.topics";
+  public static final String KSQL_READONLY_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
+      + ",_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,"
+      + "connect-status,connect-statuses";
+  public static final String KSQL_READONLY_TOPICS_DOC = "Comma-separated list of topics that "
+      + "should be marked as read-only. Entries in the list may be literal topic names or "
+      + "[Java regular expressions](https://docs.oracle.com/javase/8/docs/api/java/util/regex/"
+      + "Pattern.html). "
+      + "For example, `_confluent.*` will match any topic whose name starts with the `_confluent`)."
+      + "\nRead-only topics cannot be modified by any KSQL command."
+      + "\nThe default value marks known system topics from Kafka and Confluent products as "
+      + "read-only."
+      + "\nKSQL also marks its own internal topics as read-only. This is not controlled by this "
+      + "config.";
+
+  public static final String KSQL_NEW_API_ENABLED = "ksql.new.api.enabled";
+  public static final Boolean KSQL_NEW_API_ENABLED_DEFAULT = false;
+  public static final String KSQL_NEW_API_ENABLED_DOC = "Is the new Vert.x based API enabled?";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
   }
 
   public static class CompatibilityBreakingConfigDef {
+
     private final String name;
     private final ConfigDef.Type type;
     private final Object defaultValueLegacy;
@@ -346,9 +415,9 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
-            DEFAULT_SCHEMA_REGISTRY_URL,
+            "",
             ConfigDef.Importance.MEDIUM,
-            "The URL for the schema registry, defaults to http://localhost:8081"
+            "The URL for the schema registry"
         ).define(
             CONNECT_URL_PROPERTY,
             ConfigDef.Type.STRING,
@@ -470,23 +539,24 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_QUERY_PULL_ENABLE_DOC
         ).define(
-            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG,
-            ConfigDef.Type.LONG,
-            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DOC
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
+        ).define(
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT,
+            zeroOrPositive(),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
         ).define(
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
             ConfigDef.Type.LONG,
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC
-        ).define(
-            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG,
-            Type.BOOLEAN,
-            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT,
-            Importance.LOW,
-            KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC
         ).define(
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
             Type.STRING,
@@ -499,6 +569,45 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
             Importance.MEDIUM,
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
+        ).define(
+            KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHUTDOWN_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
+            Type.LONG,
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT,
+            Importance.LOW,
+            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC
+        ).define(
+            KSQL_AUTH_CACHE_MAX_ENTRIES,
+            Type.LONG,
+            KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT,
+            Importance.LOW,
+            KSQL_AUTH_CACHE_MAX_ENTRIES_DOC
+        ).define(
+            KSQL_HIDDEN_TOPICS_CONFIG,
+            Type.LIST,
+            KSQL_HIDDEN_TOPICS_DEFAULT,
+            ConfigValidators.validRegex(),
+            Importance.LOW,
+            KSQL_HIDDEN_TOPICS_DOC
+        ).define(
+            KSQL_READONLY_TOPICS_CONFIG,
+            Type.LIST,
+            KSQL_READONLY_TOPICS_DEFAULT,
+            ConfigValidators.validRegex(),
+            Importance.LOW,
+            KSQL_READONLY_TOPICS_DOC
+        )
+        .define(
+            KSQL_NEW_API_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_API_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_API_ENABLED_DOC
         )
         .withClientSslSupport();
 
@@ -636,6 +745,10 @@ public class KsqlConfig extends AbstractConfig {
     return getConfigsFor(ProducerConfig.configNames());
   }
 
+  public Map<String, Object> getProcessingLogConfigProps() {
+    return getConfigsFor(ProcessingLogConfig.configNames());
+  }
+
   private Map<String, Object> getConfigsFor(final Set<String> configs) {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
@@ -730,7 +843,7 @@ public class KsqlConfig extends AbstractConfig {
       return value.equals("")
           ? Collections.emptyMap()
           : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       throw new KsqlException(
           String.format(
               "Invalid config value for '%s'. value: %s. reason: %s",

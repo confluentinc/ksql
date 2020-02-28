@@ -302,7 +302,27 @@ public class SchemaUtilTest {
         SqlTypes.map(SqlTypes.decimal(1, 1)),
         MapType.of(ParamTypes.DECIMAL)),
         is(true));
+  }
 
+  @Test
+  public void shouldPassCompatibleSchemasWithImplicitCasting() {
+    assertThat(SchemaUtil.areCompatible(SqlTypes.INTEGER, ParamTypes.LONG, true), is(true));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.INTEGER, ParamTypes.DOUBLE, true), is(true));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.INTEGER, ParamTypes.DECIMAL, true), is(true));
+
+    assertThat(SchemaUtil.areCompatible(SqlTypes.BIGINT, ParamTypes.DOUBLE, true), is(true));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.BIGINT, ParamTypes.DECIMAL, true), is(true));
+
+    assertThat(SchemaUtil.areCompatible(SqlTypes.decimal(2, 1), ParamTypes.DOUBLE, true), is(true));
+  }
+
+  @Test
+  public void shouldNotPassInCompatibleSchemasWithImplicitCasting() {
+    assertThat(SchemaUtil.areCompatible(SqlTypes.BIGINT, ParamTypes.INTEGER, true), is(false));
+
+    assertThat(SchemaUtil.areCompatible(SqlTypes.DOUBLE, ParamTypes.LONG, true), is(false));
+
+    assertThat(SchemaUtil.areCompatible(SqlTypes.DOUBLE, ParamTypes.DECIMAL, true), is(false));
   }
 
   @Test

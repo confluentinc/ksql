@@ -47,7 +47,7 @@ public final class KafkaClusterUtil {
       );
 
       return authorizedOperations.authorizedOperations().get() != null;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KsqlServerException("Could not get Kafka authorized operations!", e);
     }
   }

@@ -29,8 +29,11 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -44,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -58,10 +62,13 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
@@ -127,11 +134,11 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -572,7 +579,8 @@ public class AstBuilder {
 
     @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
-      return new ListTopics(getLocation(context), context.EXTENDED() != null);
+      return new ListTopics(getLocation(context),
+          context.ALL() != null, context.EXTENDED() != null);
     }
 
     @Override
@@ -926,6 +934,55 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitArrayConstructor(final ArrayConstructorContext context) {
+      final ImmutableList.Builder<Expression> values = ImmutableList.builder();
+
+      for (ExpressionContext exp : context.expression()) {
+        values.add((Expression) visit(exp));
+      }
+
+      return new CreateArrayExpression(
+          getLocation(context),
+          values.build()
+      );
+    }
+
+    @Override
+    public Node visitMapConstructor(final SqlBaseParser.MapConstructorContext context) {
+      final ImmutableMap.Builder<Expression, Expression> values = ImmutableMap.builder();
+
+      final List<ExpressionContext> expression = context.expression();
+      for (int i = 0; i < expression.size(); i += 2) {
+        values.put(
+            (Expression) visit(expression.get(i)),
+            (Expression) visit(expression.get(i + 1))
+        );
+      }
+
+      return new CreateMapExpression(
+          getLocation(context),
+          values.build()
+      );
+    }
+
+    @Override
+    public Node visitStructConstructor(final SqlBaseParser.StructConstructorContext context) {
+      final ImmutableList.Builder<Field> fields = ImmutableList.builder();
+
+      for (int i = 0; i < context.identifier().size(); i++) {
+        fields.add(new Field(
+            ParserUtil.getIdentifierText(context.identifier(i)),
+            (Expression) visit(context.expression(i))
+        ));
+      }
+
+      return new CreateStructExpression(
+          getLocation(context),
+          fields.build()
+      );
+    }
+
+    @Override
     public Node visitSubscript(final SqlBaseParser.SubscriptContext context) {
       return new SubscriptExpression(
           getLocation(context),
@@ -943,9 +1000,14 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
-      final ColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
-      final ColumnRef reference = columnReferenceExp.getReference();
-      reference.source().ifPresent(this::throwOnUnknownNameOrAlias);
+      return ColumnReferenceParser.resolve(context);
+    }
+
+    @Override
+    public Node visitQualifiedColumnReference(
+        final SqlBaseParser.QualifiedColumnReferenceContext context) {
+      final QualifiedColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
+      throwOnUnknownNameOrAlias(columnReferenceExp.getQualifier());
       return columnReferenceExp;
     }
 
@@ -1022,7 +1084,7 @@ public class AstBuilder {
         return new TimestampLiteral(location, value);
       }
       if (type.equals("DECIMAL")) {
-        return new DecimalLiteral(location, value);
+        return new DecimalLiteral(location, new BigDecimal(value));
       }
 
       throw new KsqlException("Unknown type: " + type + ", location:" + location);
@@ -1031,6 +1093,11 @@ public class AstBuilder {
     @Override
     public Node visitIntegerLiteral(final SqlBaseParser.IntegerLiteralContext context) {
       return ParserUtil.visitIntegerLiteral(context);
+    }
+
+    @Override
+    public Node visitFloatLiteral(final FloatLiteralContext context) {
+      return ParserUtil.parseFloatLiteral(context);
     }
 
     @Override
@@ -1097,7 +1164,7 @@ public class AstBuilder {
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
       if (sources.isPresent() && !sources.get().contains(name)) {
-        throw new KsqlException("'" + name.name() + "' is not a valid stream/table name or alias.");
+        throw new KsqlException("'" + name.text() + "' is not a valid stream/table name or alias.");
       }
     }
 

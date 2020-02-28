@@ -7,7 +7,7 @@ description: Learn to create ksqlDB applications
 
 These topics show how to develop ksqlDB applications.
 
-- [Configure ksqlDB CLI](../installation/cli-config) 
+- [Configure ksqlDB CLI](../operate-and-deploy/installation/cli-config.md) 
 - [Create a ksqlDB Stream](create-a-stream.md)
 - [Create a ksqlDB Table](create-a-table.md)
 - [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)

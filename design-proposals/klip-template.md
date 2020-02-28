@@ -20,7 +20,7 @@ the problem as possible._
 
 ## What is in scope
 
-_What we do want to cover in this proposal._
+_What requirements are you addressing. This should cover both functional and non-functional requirements. The non-functional requirements include things like expected performance profile of the feature, impact on efficiency, impact on scalability, etc._
 
 ## What is not in scope
 
@@ -43,13 +43,22 @@ support for data formats? Are we adding / removing configurations? Etc._
 
 ## Design
 
-_How does your solution work?_
+_How does your solution work? This should cover the main data and control flows that are changing._
 
 ## Test plan
 
-_What tests do you plan to write?  What are the failure scenarios that we do / do not cover? It goes 
-without saying that most classes should have unit tests. This section is more focussed on the 
-integration and system tests that you need to write to test the changes you are making._
+_What are the failure scenarios you are going to cover in your testing? What scale testing do you plan to run? What about peformance and load testing? It goes 
+without saying that most classes should have unit tests._
+
+## LOEs and Delivery Milestones
+
+_Large features should be built such that incremental value can be delivered along the way. For the feature you are building, outline the delivery milestones which result in concrete user facing value. If some milestones have dependencies on other ongoing work or planned changes, call that out here and include any relevant links for those dependencies._
+
+_Small features--say those which can complete in two or three weeks--may have only one delivery milestone._
+
+_Additionally, for each milestone, try to break the work down into more granular tasks. Make sure to include tasks for testing, documentation, etc., in addition to the core development tasks. Ideally, tasks should be scoped such that each task is at most 1 person-week, where a person-week is calendar time and accounts for time not spent actually developing the proposed feature._
+
+_Breaking a feature into milestones and tasks need not be done when first proposing a KLIP, since the scope, functionality, and design may change through the discussion. However, these breakdowns would ideally be provided as the KLIP is getting finalized and before execution begins._
 
 ## Documentation Updates
 
@@ -67,7 +76,7 @@ need to me made, since that will force us into thinking how the feature is actua
 used, and how users can be on-boarded onto the new feature. The upside is that the documentation 
 will be ready to go before any work even begins, so only the fun part is left._
 
-# Compatibility Implications
+## Compatibility Implications
 
 _Will the proposed changes break existing queries or work flows?_
 
@@ -75,9 +84,6 @@ _Are we deprecating existing APIs with these changes? If so, when do we plan to 
 
 _If we are removing old functionality, what is the migration plan?_
 
-## Performance Implications
-
-_Will the proposed changes affect performance, (either positively or negatively)._
 
 ## Security Implications
 

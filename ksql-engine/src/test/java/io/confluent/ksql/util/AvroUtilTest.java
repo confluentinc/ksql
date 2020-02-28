@@ -23,13 +23,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -38,17 +39,16 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -102,9 +102,11 @@ public class AvroUtilTest {
 
   private static final String RESULT_TOPIC_NAME = "actual-name";
 
-  private static final Formats FORMATS = Formats.of(
-      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
+  private static final io.confluent.ksql.execution.plan.Formats FORMATS = io.confluent.ksql.execution.plan.Formats
+      .of(
+      KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+      ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
+          .of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME))),
       SerdeOption.none()
   );
 
@@ -128,13 +130,13 @@ public class AvroUtilTest {
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
     // Given:
-    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
 
     // Then:
-    verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any());
+    verify(srClient).testCompatibility(eq(RESULT_TOPIC_NAME + "-value"), any(AvroSchema.class));
   }
 
   @Test
@@ -142,9 +144,9 @@ public class AvroUtilTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
-    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -160,10 +162,10 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema
         .from(SCHEMA_WITH_MAPS, SerdeOption.none());
 
-    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -179,10 +181,10 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.none());
 
-    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -196,18 +198,18 @@ public class AvroUtilTest {
     // Given:
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
     when(ddlCommand.getFormats())
-        .thenReturn(Formats.of(
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.AVRO)),
+        .thenReturn(io.confluent.ksql.execution.plan.Formats.of(
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())),
             ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)
         ));
     final PhysicalSchema schema = PhysicalSchema
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
-    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+    when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
-    final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
+    final AvroSchema expectedAvroSchema = new AvroSchema(AvroSchemas
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig));
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -219,7 +221,7 @@ public class AvroUtilTest {
   @Test
   public void shouldNotThrowInvalidEvolution() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any())).thenReturn(true);
+    when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(true);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -228,7 +230,7 @@ public class AvroUtilTest {
   @Test
   public void shouldReturnInvalidEvolution() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any())).thenReturn(false);
+    when(srClient.testCompatibility(any(), any(AvroSchema.class))).thenReturn(false);
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
@@ -240,7 +242,7 @@ public class AvroUtilTest {
   @Test
   public void shouldNotThrowInvalidEvolutionIfSubjectNotRegistered() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any()))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 404, 40401));
 
     // When:
@@ -250,7 +252,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnSrAuthorizationErrors() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any()))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
     // Expect:
@@ -269,7 +271,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any()))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new RestClientException("Unknown subject", 500, 40401));
 
     // Expect:
@@ -283,7 +285,7 @@ public class AvroUtilTest {
   @Test
   public void shouldThrowOnAnyOtherEvolutionIOException() throws Exception {
     // Given:
-    when(srClient.testCompatibility(any(), any()))
+    when(srClient.testCompatibility(any(), any(AvroSchema.class)))
         .thenThrow(new IOException("something"));
 
     // Expect:
@@ -298,7 +300,7 @@ public class AvroUtilTest {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    final Schema connectSchema = new ConnectSchemaTranslator()
+    final org.apache.kafka.connect.data.Schema connectSchema = new ConnectSchemaTranslator()
         .toKsqlSchema(avroData.toConnectSchema(avroSchema));
 
     final ConnectToSqlTypeConverter converter = SchemaConverters

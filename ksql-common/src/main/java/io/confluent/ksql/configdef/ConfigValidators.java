@@ -17,10 +17,12 @@ package io.confluent.ksql.configdef;
 
 import static java.util.Objects.requireNonNull;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
@@ -45,7 +47,7 @@ public final class ConfigValidators {
       }
       try {
         parser.apply((String)val);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         throw new ConfigException("Configuration " + name + " is invalid: " + e.getMessage());
       }
     };
@@ -76,6 +78,80 @@ public final class ConfigValidators {
     validValues[enumValues.length] = null;
 
     return ValidCaseInsensitiveString.in(validValues);
+  }
+
+  public static Validator validUrl() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      }
+      try {
+        new URL((String)val);
+      } catch (final Exception e) {
+        throw new ConfigException(name, val, "Not valid URL: " + e.getMessage());
+      }
+    };
+  }
+
+  public static Validator validRegex() {
+    return (name, val) -> {
+      if (!(val instanceof List)) {
+        throw new IllegalArgumentException("validator should only be used with "
+            + "LIST of STRING defs");
+      }
+
+      final StringBuilder regexBuilder = new StringBuilder();
+      for (Object item : (List)val) {
+        if (!(item instanceof String)) {
+          throw new IllegalArgumentException("validator should only be used with "
+              + "LIST of STRING defs");
+        }
+
+        if (regexBuilder.length() > 0) {
+          regexBuilder.append("|");
+        }
+
+        regexBuilder.append((String)item);
+      }
+
+      try {
+        Pattern.compile(regexBuilder.toString());
+      } catch (final Exception e) {
+        throw new ConfigException(name, val, "Not valid regular expression: " + e.getMessage());
+      }
+    };
+  }
+
+  public static Validator zeroOrPositive() {
+    return (name, val) -> {
+      if (val instanceof Long) {
+        if (((Long) val) < 0) {
+          throw new ConfigException(name, val, "Not >= 0");
+        }
+      } else if (val instanceof Integer) {
+        if (((Integer) val) < 0) {
+          throw new ConfigException(name, val, "Not >= 0");
+        }
+      } else {
+        throw new IllegalArgumentException("validator should only be used with int, long");
+      }
+    };
+  }
+
+  public static Validator oneOrMore() {
+    return (name, val) -> {
+      if (val instanceof Long) {
+        if (((Long) val) < 1) {
+          throw new ConfigException(name, val, "Not >= 1");
+        }
+      } else if (val instanceof Integer) {
+        if (((Integer) val) < 1) {
+          throw new ConfigException(name, val, "Not >= 1");
+        }
+      } else {
+        throw new IllegalArgumentException("validator should only be used with int, long");
+      }
+    };
   }
 
   public static final class ValidCaseInsensitiveString implements Validator {

@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -112,13 +111,13 @@ public class SelectValueMapper<K> {
         return null;
       }
 
-      final List<Object> newColumns = new ArrayList<>();
+      final GenericRow row = new GenericRow(selects.size());
 
       for (int i = 0; i < selects.size(); i++) {
-        newColumns.add(processColumn(i, value));
+        row.append(processColumn(i, value));
       }
 
-      return new GenericRow(newColumns);
+      return row;
     }
 
     private Object processColumn(final int column, final GenericRow row) {

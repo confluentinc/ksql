@@ -15,20 +15,19 @@
 
 package io.confluent.ksql.serde.tls;
 
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class ThreadLocalCloseableTest {
   @Test
@@ -43,7 +42,7 @@ public class ThreadLocalCloseableTest {
             closeables.add(closeable);
             try {
               closeable.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
               throw new RuntimeException(e);
             }
             expectLastCall();
@@ -64,7 +63,7 @@ public class ThreadLocalCloseableTest {
         t -> {
           try {
             t.join();
-          } catch (InterruptedException e) {
+          } catch (final InterruptedException e) {
             throw new RuntimeException(e);
           }
         });

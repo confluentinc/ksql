@@ -14,7 +14,7 @@
  */
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.Matchers.either;
@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConstants;
@@ -44,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -173,8 +173,8 @@ public class EndToEndIntegrationTest {
 
     final Set<Object> actualUsers = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.getColumns(), hasSize(6)))
-        .map(row -> row.getColumns().get(1))
+        .peek(row -> assertThat(row.values(), hasSize(6)))
+        .map(row -> row.get(1))
         .collect(Collectors.toSet());
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
@@ -193,8 +193,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> actualPages = rows.stream()
         .filter(Objects::nonNull)
-        .peek(row -> assertThat(row.getColumns(), hasSize(1)))
-        .map(row -> row.getColumns().get(0))
+        .peek(row -> assertThat(row.values(), hasSize(1)))
+        .map(row -> row.get(0))
         .collect(Collectors.toList());
 
     assertThat(actualPages.subList(0, expectedPages.size()), is(expectedPages));
@@ -216,7 +216,7 @@ public class EndToEndIntegrationTest {
         "SELECT * from pageviews_female EMIT CHANGES;");
 
     final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
-    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     // From the mock data, we expect exactly 3 page views from female users.
     final List<String> expectedPages = ImmutableList.of("PAGE_2", "PAGE_5", "PAGE_5");
@@ -246,7 +246,7 @@ public class EndToEndIntegrationTest {
     final List<String> actualUsers = new ArrayList<>();
 
     for (final KeyValue<String, GenericRow> result : results) {
-      final List<Object> columns = result.value.getColumns();
+      final List<Object> columns = result.value.values();
       log.debug("pageview join: {}", columns);
 
       assertThat(columns, hasSize(6));
@@ -368,7 +368,7 @@ public class EndToEndIntegrationTest {
         "expected-value"
     )));
 
-    rows.forEach(row -> assertThat(row.getColumns().get(0), is(-1L)));
+    rows.forEach(row -> assertThat(row.get(0), is(-1L)));
   }
 
   @SuppressWarnings("unchecked")
@@ -395,14 +395,14 @@ public class EndToEndIntegrationTest {
   private static List<Object> waitForFirstRow(
       final TransientQueryMetadata queryMetadata
   ) throws Exception {
-    return verifyAvailableRows(queryMetadata, 1).get(0).getColumns();
+    return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
   ) throws Exception {
-    final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
+    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     TestUtils.waitForCondition(
         () -> rowQueue.size() >= expectedRows,

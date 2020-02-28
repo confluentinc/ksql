@@ -14,6 +14,8 @@ The primary mechanism is by choosing the serialization format when you
 create a stream or table and specify the `VALUE_FORMAT` in the `WITH`
 clause.
 
+While ksqlDB supports different value formats, it requires keys to be `KAFKA` format.
+
 ```sql
 CREATE TABLE ORDERS (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
 ```
@@ -33,7 +35,12 @@ ksqlDB supports these serialization formats:
 
 ### DELIMITED
 
-The `DELIMITED` format supports comma separated values.
+The `DELIMITED` format supports comma-separated values. You can use other
+delimiter characters by specifying the VALUE_DELIMITER when you use
+VALUE_FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
+as a delimiter. The default is the comma character. For space- and
+tab-delimited values, use the special values `SPACE` or `TAB`, not an actual
+space or tab character.
 
 The serialized object should be a Kafka-serialized string, which will be
 split into columns.

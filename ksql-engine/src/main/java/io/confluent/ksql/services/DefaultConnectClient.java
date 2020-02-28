@@ -74,7 +74,7 @@ public class DefaultConnectClient implements ConnectClient {
 
     try {
       this.connectUri = new URI(connectUri);
-    } catch (URISyntaxException e) {
+    } catch (final URISyntaxException e) {
       throw new KsqlException(
           "Could not initialize connect client due to invalid URI: " + connectUri, e);
     }
@@ -233,10 +233,10 @@ public class DefaultConnectClient implements ConnectClient {
           .retryIfException()
           .build()
           .call(action);
-    } catch (ExecutionException e) {
+    } catch (final ExecutionException e) {
       // this should never happen because we retryIfException()
       throw new KsqlServerException("Unexpected exception!", e);
-    } catch (RetryException e) {
+    } catch (final RetryException e) {
       LOG.warn("Failed to query connect cluster after {} attempts.", e.getNumberOfFailedAttempts());
       if (e.getLastFailedAttempt().hasResult()) {
         return (ConnectResponse<T>) e.getLastFailedAttempt().getResult();

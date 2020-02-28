@@ -21,6 +21,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -31,7 +32,6 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -61,7 +61,7 @@ public final class DescribeConnectorExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeConnector> configuredStatement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext
   ) {
@@ -106,7 +106,6 @@ public final class DescribeConnectorExecutor {
           .map(source -> SourceDescriptionFactory.create(
               source,
               false,
-              source.getKsqlTopic().getValueFormat().getFormat().name(),
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty()))
@@ -120,7 +119,7 @@ public final class DescribeConnectorExecutor {
     try {
       topics = getTopics(serviceContext.getAdminClient(), connector);
       warnings = ImmutableList.of();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       topics = ImmutableList.of();
       warnings = ImmutableList.of(
           new KsqlWarning("Could not list related topics due to " + e.getMessage())

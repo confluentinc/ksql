@@ -12,7 +12,6 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -21,15 +20,15 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.MatcherAssert;
@@ -47,11 +46,12 @@ public class DdlCommandExecTest {
   private static final SourceName TABLE_NAME = SourceName.of("t1");
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueColumn(ColumnName.of("F1"), SqlPrimitiveType.of("INTEGER"))
-      .valueColumn(ColumnName.of("F2"), SqlPrimitiveType.of("VARCHAR"))
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
   private static final Set<SerdeOption> SERDE_OPTIONS = SerdeOption.none();
 
   private CreateStreamCommand createStream;
@@ -59,7 +59,7 @@ public class DdlCommandExecTest {
   private DropSourceCommand dropSource;
   private DropTypeCommand dropType;
 
-  private MutableMetaStore metaStore
+  private final MutableMetaStore metaStore
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Mock
@@ -312,7 +312,7 @@ public class DdlCommandExecTest {
         keyField.map(ColumnName::of),
         Optional.of(timestampColumn),
         "topic",
-        Formats.of(
+        io.confluent.ksql.execution.plan.Formats.of(
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS),
@@ -327,7 +327,7 @@ public class DdlCommandExecTest {
         Optional.empty(),
         Optional.of(timestampColumn),
         "topic",
-        Formats.of(
+        io.confluent.ksql.execution.plan.Formats.of(
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS),
@@ -342,7 +342,7 @@ public class DdlCommandExecTest {
         Optional.empty(),
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        Formats.of(
+        io.confluent.ksql.execution.plan.Formats.of(
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS
@@ -358,7 +358,7 @@ public class DdlCommandExecTest {
         keyField.map(ColumnName::of),
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        Formats.of(
+        io.confluent.ksql.execution.plan.Formats.of(
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS

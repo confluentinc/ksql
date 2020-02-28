@@ -19,26 +19,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,11 +47,9 @@ public class JoinNode extends PlanNode {
   }
 
   private final JoinType joinType;
-  private final DataSourceNode left;
-  private final DataSourceNode right;
+  private final PlanNode left;
+  private final PlanNode right;
   private final LogicalSchema schema;
-  private final ColumnRef leftJoinFieldName;
-  private final ColumnRef rightJoinFieldName;
   private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
   private final ImmutableList<SelectExpression> selectExpressions;
@@ -68,36 +58,23 @@ public class JoinNode extends PlanNode {
       final PlanNodeId id,
       final List<SelectExpression> selectExpressions,
       final JoinType joinType,
-      final DataSourceNode left,
-      final DataSourceNode right,
-      final ColumnRef leftJoinFieldName,
-      final ColumnRef rightJoinFieldName,
+      final PlanNode left,
+      final PlanNode right,
       final Optional<WithinExpression> withinExpression
   ) {
     super(id, calculateSinkType(left, right));
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
-    this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
-    this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
     this.selectExpressions = ImmutableList
         .copyOf(Objects.requireNonNull(selectExpressions, "selectExpressions"));
 
-    final Column leftKeyCol = validateSchemaColumn(leftJoinFieldName, left.getSchema());
-    validateSchemaColumn(rightJoinFieldName, right.getSchema());
-
     this.keyField = joinType == JoinType.OUTER
         ? KeyField.none() // Both source key columns can be null, hence neither can be the keyField
-        : left.getSchema().isKeyColumn(leftKeyCol.name())
-            ? left.getKeyField()
-            : KeyField.of(leftKeyCol.ref());
+        : left.getKeyField();
 
-    this.schema = JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
-
-    if (schema.key().get(0).type().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("JOIN is not supported with non-STRING keys");
-    }
+    this.schema = buildJoinSchema(left, right);
   }
 
   @Override
@@ -125,11 +102,11 @@ public class JoinNode extends PlanNode {
     return selectExpressions;
   }
 
-  public DataSourceNode getLeft() {
+  public PlanNode getLeft() {
     return left;
   }
 
-  public DataSourceNode getRight() {
+  public PlanNode getRight() {
     return right;
   }
 
@@ -143,7 +120,7 @@ public class JoinNode extends PlanNode {
         this,
         builder.buildNodeContext(getId().toString()));
 
-    return joinerFactory.getJoiner(left.getDataSourceType(), right.getDataSourceType()).join();
+    return joinerFactory.getJoiner(left.getNodeOutputType(), right.getNodeOutputType()).join();
   }
 
   @Override
@@ -166,14 +143,8 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private static String getSourceName(final DataSourceNode node) {
-    return node.getDataSource().getName().name();
-  }
-
-  private static Column validateSchemaColumn(final ColumnRef column, final LogicalSchema schema) {
-    return schema.findValueColumn(column)
-        .orElseThrow(() -> new IllegalArgumentException(
-            "Invalid join field, not found in schema: " + column));
+  private static String getSourceName(final PlanNode node) {
+    return node.getTheSourceNode().getAlias().text();
   }
 
   private static class JoinerFactory {
@@ -225,23 +196,13 @@ public class JoinNode extends PlanNode {
 
     public abstract SchemaKStream<K> join();
 
-    SchemaKStream<K> buildStream(
-        final PlanNode node,
-        final ColumnRef joinFieldName
-    ) {
-      return maybeRePartitionByKey(
-          node.buildStream(builder),
-          joinFieldName,
-          contextStacker
-      );
+    @SuppressWarnings("unchecked")
+    SchemaKStream<K> buildStream(final PlanNode node) {
+      return (SchemaKStream<K>) node.buildStream(builder);
     }
 
     @SuppressWarnings("unchecked")
-    SchemaKTable<K> buildTable(
-        final PlanNode node,
-        final ColumnRef joinFieldName,
-        final SourceName tableName
-    ) {
+    SchemaKTable<K> buildTable(final PlanNode node) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
           builder.withKsqlConfig(builder.getKsqlConfig()
               .cloneWithPropertyOverwrite(Collections.singletonMap(
@@ -252,50 +213,12 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      final Optional<Column> keyColumn = schemaKStream
-          .getKeyField()
-          .resolve(schemaKStream.getSchema());
-
-      final ColumnRef rowKey = ColumnRef.of(
-          tableName,
-          SchemaUtil.ROWKEY_NAME
-      );
-
-      final boolean namesMatch = keyColumn
-          .map(field -> field.ref().equals(joinFieldName))
-          .orElse(false);
-
-      if (namesMatch || joinFieldName.equals(rowKey)) {
-        return (SchemaKTable) schemaKStream;
-      }
-
-      if (!keyColumn.isPresent()) {
-        throw new KsqlException(
-            "Source table (" + tableName.name() + ") has no key column defined. "
-                + "Only 'ROWKEY' is supported in the join criteria."
-        );
-      }
-
-      throw new KsqlException(
-          "Source table (" + tableName.toString(FormatOptions.noEscape()) + ") key column ("
-              + keyColumn.get().ref().toString(FormatOptions.noEscape()) + ") "
-              + "is not the column used in the join criteria ("
-              + joinFieldName.toString(FormatOptions.noEscape()) + "). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
-      );
+      return ((SchemaKTable<K>) schemaKStream);
     }
 
-    @SuppressWarnings("unchecked")
-    static <K> SchemaKStream<K> maybeRePartitionByKey(
-        final SchemaKStream stream,
-        final ColumnRef joinFieldName,
-        final Stacker contextStacker
-    ) {
-      return stream.selectKey(new ColumnReferenceExp(joinFieldName), contextStacker);
-    }
-
-    static ValueFormat getFormatForSource(final DataSourceNode sourceNode) {
-      return sourceNode.getDataSource()
+    static ValueFormat getFormatForSource(final PlanNode sourceNode) {
+      return sourceNode.getTheSourceNode()
+          .getDataSource()
           .getKsqlTopic()
           .getValueFormat();
     }
@@ -321,10 +244,10 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.leftJoinFieldName);
+          joinNode.getLeft());
 
       final SchemaKStream<K> rightStream = buildStream(
-          joinNode.getRight(), joinNode.rightJoinFieldName);
+          joinNode.getRight());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -378,11 +301,10 @@ public class JoinNode extends PlanNode {
             + " the WITHIN clause) and try to execute your join again.");
       }
 
-      final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
+      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight());
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.leftJoinFieldName);
+          joinNode.getLeft());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -428,10 +350,8 @@ public class JoinNode extends PlanNode {
             + "join again.");
       }
 
-      final SchemaKTable<K> leftTable = buildTable(
-          joinNode.getLeft(), joinNode.leftJoinFieldName, joinNode.left.getAlias());
-      final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
+      final SchemaKTable<K> leftTable = buildTable(joinNode.getLeft());
+      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -456,13 +376,20 @@ public class JoinNode extends PlanNode {
   }
 
   private static DataSourceType calculateSinkType(
-      final DataSourceNode left,
-      final DataSourceNode right
+      final PlanNode left,
+      final PlanNode right
   ) {
-    final DataSourceType leftType = left.getDataSourceType();
-    final DataSourceType rightType = right.getDataSourceType();
+    final DataSourceType leftType = left.getNodeOutputType();
+    final DataSourceType rightType = right.getNodeOutputType();
     return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
+  }
+
+  private static LogicalSchema buildJoinSchema(
+      final PlanNode left,
+      final PlanNode right
+  ) {
+    return JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
   }
 }

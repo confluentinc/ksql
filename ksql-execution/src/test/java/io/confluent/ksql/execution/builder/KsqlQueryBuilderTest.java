@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -36,12 +37,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
@@ -71,7 +73,7 @@ public class KsqlQueryBuilderTest {
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(Format.AVRO, Optional.of("io.confluent.ksql"), Optional.empty());
+      .of(FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql"));
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));
@@ -144,7 +146,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldBuildNodeContext() {
     // When:
-    Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
+    final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
     assertThat(result, is(new Stacker().push("some-id")));
@@ -153,10 +155,10 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldSwapInKsqlConfig() {
     // Given:
-    KsqlConfig other = mock(KsqlConfig.class);
+    final KsqlConfig other = mock(KsqlConfig.class);
 
     // When:
-    KsqlQueryBuilder result = ksqlQueryBuilder.withKsqlConfig(other);
+    final KsqlQueryBuilder result = ksqlQueryBuilder.withKsqlConfig(other);
 
     // Then:
     assertThat(ksqlQueryBuilder.getKsqlConfig(), is(ksqlConfig));
@@ -243,7 +245,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
     // Given:
-    PhysicalSchema schema = PhysicalSchema.from(
+    final PhysicalSchema schema = PhysicalSchema.from(
         SOME_SCHEMA.logicalSchema(),
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
     );

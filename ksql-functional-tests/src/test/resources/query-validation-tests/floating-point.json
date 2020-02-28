@@ -1,0 +1,45 @@
+{
+  "comments": [
+    "Tests covering working with floating point numbers"
+  ],
+  "tests": [
+    {
+      "name": "filter by DOUBLE",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY > 0.1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0.0, "value": {"ID": 0}},
+        {"topic": "test_topic", "key": 0.099, "value": {"ID": 1}},
+        {"topic": "test_topic", "key": 0.1, "value": {"ID": 2}},
+        {"topic": "test_topic", "key": 0.10001, "value": {"ID": 3}},
+        {"topic": "test_topic", "key": 0.2, "value": {"ID": 4}},
+        {"topic": "test_topic", "key": null, "value": {"ID": 5}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0.10001, "value": {"ID": 3}},
+        {"topic": "OUTPUT", "key": 0.2, "value": {"ID": 4}}
+      ]
+    },
+    {
+      "name": "with exponent",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ROWKEY > 1e-1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0.0, "value": {"ID": 0}},
+        {"topic": "test_topic", "key": 0.099, "value": {"ID": 1}},
+        {"topic": "test_topic", "key": 0.1, "value": {"ID": 2}},
+        {"topic": "test_topic", "key": 0.10001, "value": {"ID": 3}},
+        {"topic": "test_topic", "key": 0.2, "value": {"ID": 4}},
+        {"topic": "test_topic", "key": null, "value": {"ID": 5}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0.10001, "value": {"ID": 3}},
+        {"topic": "OUTPUT", "key": 0.2, "value": {"ID": 4}}
+      ]
+    }
+  ]
+}

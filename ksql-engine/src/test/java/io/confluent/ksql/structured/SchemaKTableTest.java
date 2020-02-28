@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
@@ -29,7 +30,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -39,12 +39,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -77,12 +76,12 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
@@ -127,7 +126,7 @@ public class SchemaKTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
-  private final Grouped grouped = Grouped.with(
+  private final Grouped<String, String> grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
 
   private SchemaKTable initialSchemaKTable;
@@ -140,18 +139,17 @@ public class SchemaKTableTest {
   private KeyField validKeyField;
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
-  private LogicalSchema joinSchema;
   private StepSchemaResolver schemaResolver;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private static final Expression TEST_2_COL_1 =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL2")));
-  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
-  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
+      new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
+  private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   private PlanBuilder planBuilder;
 
@@ -183,13 +181,14 @@ public class SchemaKTableTest {
 
     mockKTable = EasyMock.niceMock(KTable.class);
     validKeyField = KeyField
-        .of(Optional.of(ColumnRef.of(ksqlTable.getName(), ColumnName.of("COL1"))));
+        .of(Optional.of(ColumnName.of("TEST2_COL0")));
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
-    joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
 
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -237,10 +236,9 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTable(final KsqlTable ksqlTable, final KTable kTable) {
-    final LogicalSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
+    final LogicalSchema schema = ksqlTable.getSchema();
 
-    final Optional<ColumnRef> newKeyName = ksqlTable.getKeyField().ref()
-        .map(ref -> ref.withSource(ksqlTable.getName()));
+    final Optional<ColumnName> newKeyName = ksqlTable.getKeyField().ref();
 
     final KeyField keyFieldWithAlias = KeyField.of(newKeyName);
 
@@ -251,10 +249,19 @@ public class SchemaKTableTest {
     );
   }
 
+  private LogicalSchema buildJoinSchema(final KsqlTable table) {
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    builder.keyColumns(table.getSchema().key());
+    for (final Column c : table.getSchema().value()) {
+      builder.valueColumn(ColumnName.generatedJoinColumnAlias(table.getName(), c.name()), c.type());
+    }
+    return builder.build();
+  }
+
   private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
     return buildSchemaKTable(
-        ksqlTable.getSchema().withAlias(ksqlTable.getName()),
-        ksqlTable.getKeyField().withAlias(ksqlTable.getName()),
+        buildJoinSchema(ksqlTable),
+        KeyField.none(),
         kTable
     );
   }
@@ -383,13 +390,14 @@ public class SchemaKTableTest {
     // Then:
     final SourceName test2 = SourceName.of("TEST2");
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
-        valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
-        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL0"), SqlTypes.BIGINT),
         valueColumn(test2, ColumnName.of("COL1"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL2"), SqlTypes.STRING),
         valueColumn(test2, ColumnName.of("COL3"), SqlTypes.DOUBLE),
-        valueColumn(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN)
+        valueColumn(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN),
+        valueColumn(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
+
+        valueColumn(test2, ColumnName.of("ROWKEY"), SqlTypes.BIGINT)
     ));
   }
 
@@ -415,8 +423,7 @@ public class SchemaKTableTest {
         Matchers.equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"),
-                    ColumnName.of("ROWTIME"))),
+                new UnqualifiedColumnReferenceExp(ColumnName.of("ROWTIME")),
                 new LongLiteral(441763200000L)
             )
         )
@@ -492,7 +499,8 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
+                io.confluent.ksql.execution.plan.Formats
+                    .of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
                 groupByExpressions
             )
         )
@@ -582,7 +590,7 @@ public class SchemaKTableTest {
     result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
-    final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
+    final GenericRow value = genericRow(100, "foo", "bar", 0, "key");
     final KeyValue<String, GenericRow> keyValue =
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 
@@ -609,7 +617,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -630,7 +637,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -651,7 +657,6 @@ public class SchemaKTableTest {
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
     verify(mockKTable);
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
-    assertEquals(joinSchema, joinedKStream.getSchema());
     assertThat(joinedKStream.getKeyField(), is(validKeyField));
   }
 
@@ -730,7 +735,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -745,7 +750,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -760,7 +765,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
+        is(KeyField.of(ColumnName.of("NEWKEY"))));
   }
 
   @Test
@@ -789,7 +794,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")))));
+        is(KeyField.of(ColumnName.of("COL0"))));
   }
 
   @Test
@@ -829,7 +834,9 @@ public class SchemaKTableTest {
     final SchemaKTable selected = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
-    final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
+    final List<Expression> groupByExprs =  ImmutableList.of(
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
+    );
 
     // When:
     final SchemaKGroupedTable result = selected
@@ -837,24 +844,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL1")))));
-  }
-
-  private LogicalSchema getJoinSchema(
-      final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema
-  ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final SourceName leftAlias = ksqlTable.getName();
-    final SourceName rightAlias = secondKsqlTable.getName();
-    for (final Column field : leftSchema.value()) {
-      schemaBuilder.valueColumn(leftAlias, field.name(), field.type());
-    }
-
-    for (final Column field : rightSchema.value()) {
-      schemaBuilder.valueColumn(rightAlias, field.name(), field.type());
-    }
-    return schemaBuilder.build();
+        is(KeyField.of(ColumnName.of("COL0"))));
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

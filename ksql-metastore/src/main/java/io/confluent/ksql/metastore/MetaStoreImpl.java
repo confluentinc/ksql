@@ -23,6 +23,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -67,7 +68,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public DataSource<?> getSource(final SourceName sourceName) {
+  public DataSource getSource(final SourceName sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -76,7 +77,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final DataSource<?> dataSource) {
+  public void putSource(final DataSource dataSource) {
     final SourceInfo existing = dataSources
         .putIfAbsent(dataSource.getName(), new SourceInfo(dataSource));
 
@@ -87,7 +88,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
       throw new KsqlException(String.format(
           "Cannot add %s '%s': A %s with the same name already exists",
-          newType, name.name(), existingType));
+          newType, name.text(), existingType));
     }
   }
 
@@ -97,7 +98,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
       dataSources.compute(sourceName, (ignored, source) -> {
         if (source == null) {
           throw new KsqlException(String.format("No data source with name %s exists.",
-              sourceName.name()));
+              sourceName.text()));
         }
 
         final String sourceForQueriesMessage = source.referentialIntegrity
@@ -128,7 +129,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<SourceName, DataSource<?>> getAllDataSources() {
+  public Map<SourceName, DataSource> getAllDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -203,20 +204,20 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public UdfFactory getUdfFactory(final String functionName) {
+  public UdfFactory getUdfFactory(final FunctionName functionName) {
     return functionRegistry.getUdfFactory(functionName);
   }
 
-  public boolean isAggregate(final String functionName) {
+  public boolean isAggregate(final FunctionName functionName) {
     return functionRegistry.isAggregate(functionName);
   }
 
-  public boolean isTableFunction(final String functionName) {
+  public boolean isTableFunction(final FunctionName functionName) {
     return functionRegistry.isTableFunction(functionName);
   }
 
   public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      final String functionName,
+      final FunctionName functionName,
       final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
@@ -224,7 +225,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   public KsqlTableFunction getTableFunction(
-      final String functionName,
+      final FunctionName functionName,
       final List<SqlType> argumentTypes
   ) {
     return functionRegistry.getTableFunction(functionName, argumentTypes);
@@ -236,12 +237,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public AggregateFunctionFactory getAggregateFactory(final String functionName) {
+  public AggregateFunctionFactory getAggregateFactory(final FunctionName functionName) {
     return functionRegistry.getAggregateFactory(functionName);
   }
 
   @Override
-  public TableFunctionFactory getTableFunctionFactory(final String functionName) {
+  public TableFunctionFactory getTableFunctionFactory(final FunctionName functionName) {
     return functionRegistry.getTableFunctionFactory(functionName);
   }
 
@@ -260,7 +261,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
         .map(sourceName -> {
           final SourceInfo sourceInfo = dataSources.get(sourceName);
           if (sourceInfo == null) {
-            throw new KsqlException("Unknown source: " + sourceName.name());
+            throw new KsqlException("Unknown source: " + sourceName.text());
           }
 
           return sourceInfo;
@@ -289,18 +290,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
 
-    private final DataSource<?> source;
+    private final DataSource source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     private SourceInfo(
-        final DataSource<?> source
+        final DataSource source
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
-        final DataSource<?> source,
+        final DataSource source,
         final ReferentialIntegrityTableEntry referentialIntegrity
     ) {
       this.source = Objects.requireNonNull(source, "source");

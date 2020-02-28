@@ -1,0 +1,64 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572102725,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO MAP<VARCHAR, DOUBLE>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "MAP<VARCHAR, DOUBLE>"
+  },
+  "inputs" : [ {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : {
+        "a" : 1.1,
+        "b" : 2.2,
+        "c" : 3.456
+      }
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : {
+        "a" : 1.1,
+        "b" : 2.2,
+        "c" : null
+      }
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : {
+      "FOO" : null
+    }
+  }, {
+    "topic" : "input_topic",
+    "key" : "",
+    "value" : null
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "a" : 1.1,
+      "b" : 2.2,
+      "c" : 3.456
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "a" : 1.1,
+      "b" : 2.2,
+      "c" : null
+    }
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : null
+  }, {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : null
+  } ]
+}

@@ -88,7 +88,7 @@ public final class DecimalUtil {
 
     try {
       return Integer.parseInt(scaleString);
-    } catch (NumberFormatException e) {
+    } catch (final NumberFormatException e) {
       throw new DataException("Invalid scale parameter found in Decimal schema: ", e);
     }
   }
@@ -106,7 +106,7 @@ public final class DecimalUtil {
 
     try {
       return Integer.parseInt(precisionString);
-    } catch (NumberFormatException e) {
+    } catch (final NumberFormatException e) {
       throw new DataException("Invalid precision parameter found in Decimal schema: ", e);
     }
   }
@@ -126,18 +126,28 @@ public final class DecimalUtil {
   }
 
   /**
-   * @param value  a decimal value
-   * @param schema the schema that it should fit within
+   * @see #ensureFit(BigDecimal, SqlDecimal)
+   */
+  public static BigDecimal ensureFit(final BigDecimal value, final Schema schema) {
+    return ensureFit(value, precision(schema), scale(schema));
+  }
+
+  public static BigDecimal ensureFit(final BigDecimal value, final SqlDecimal schema) {
+    return ensureFit(value, schema.getPrecision(), schema.getScale());
+  }
+
+  /**
+   * @param value     a decimal value
+   * @param precision the target precision
+   * @param scale     the target scale
+   *
    * @return the decimal value if it fits
    * @throws KsqlException if the value does not fit
    */
-  public static BigDecimal ensureFit(final BigDecimal value, final Schema schema) {
+  public static BigDecimal ensureFit(final BigDecimal value, final int precision, final int scale) {
     if (value == null) {
       return null;
     }
-
-    final int precision = precision(schema);
-    final int scale = scale(schema);
 
     validateParameters(precision, scale);
     ensureMax(value, precision, scale);
@@ -229,5 +239,9 @@ public final class DecimalUtil {
         String.format("DECIMAL scale must be >= 0: DECIMAL(%d,%d)", precision, scale));
     KsqlPreconditions.checkArgument(precision >= scale,
         String.format("DECIMAL precision must be >= scale: DECIMAL(%d,%d)", precision, scale));
+  }
+
+  public static SqlType fromValue(final BigDecimal value) {
+    return SqlTypes.decimal(value.precision(), value.scale());
   }
 }

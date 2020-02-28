@@ -71,7 +71,7 @@ public class SchemaKSourceFactoryTest {
   @Mock
   private KsqlQueryBuilder builder;
   @Mock
-  private DataSource<?> dataSource;
+  private DataSource dataSource;
   @Mock
   private Stacker contextStacker;
   @Mock
@@ -122,8 +122,7 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        KEY_FIELD,
-        ALIAS
+        KEY_FIELD
     );
 
     // Then:
@@ -146,8 +145,7 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        KEY_FIELD,
-        ALIAS
+        KEY_FIELD
     );
 
     // Then:
@@ -170,8 +168,7 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        KEY_FIELD,
-        ALIAS
+        KEY_FIELD
     );
 
     // Then:
@@ -194,8 +191,7 @@ public class SchemaKSourceFactoryTest {
         builder,
         dataSource,
         contextStacker,
-        KEY_FIELD,
-        ALIAS
+        KEY_FIELD
     );
 
     // Then:

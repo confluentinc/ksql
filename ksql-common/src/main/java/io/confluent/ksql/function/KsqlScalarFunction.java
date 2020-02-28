@@ -65,8 +65,10 @@ public final class KsqlScalarFunction extends KsqlFunction {
       final FunctionName functionName,
       final Class<? extends Kudf> kudfClass
   ) {
-    ParamType javaReturnType = SchemaConverters.sqlToFunctionConverter().toFunctionType(returnType);
-    List<ParameterInfo> paramInfos = arguments
+    final ParamType javaReturnType = SchemaConverters.sqlToFunctionConverter()
+        .toFunctionType(returnType);
+
+    final List<ParameterInfo> paramInfos = arguments
         .stream()
         .map(type -> new ParameterInfo("", type, "", false))
         .collect(Collectors.toList());

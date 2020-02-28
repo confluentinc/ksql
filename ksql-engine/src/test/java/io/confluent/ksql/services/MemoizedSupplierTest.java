@@ -27,7 +27,7 @@ public class MemoizedSupplierTest {
   @Test
   public void shouldReturnIsInitializedAfterConstructor() {
     // Given
-    MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
+    final MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
 
     // When
     memoizedSupplier.get();
@@ -39,7 +39,7 @@ public class MemoizedSupplierTest {
   @Test
   public void shouldReturnNotInitializedAfterConstructor() {
     // Given
-    MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
+    final MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
 
     // Then
     assertThat(memoizedSupplier.isInitialized(), is(false));
@@ -48,11 +48,11 @@ public class MemoizedSupplierTest {
   @Test
   public void shouldReturnSameInstance() {
     // Given
-    MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
+    final MemoizedSupplier<String> memoizedSupplier = new MemoizedSupplier<>(() -> "");
 
     // When
-    String s1 = memoizedSupplier.get();
-    String s2 = memoizedSupplier.get();
+    final String s1 = memoizedSupplier.get();
+    final String s2 = memoizedSupplier.get();
 
     // Then
     assertThat(s1, sameInstance(s2));

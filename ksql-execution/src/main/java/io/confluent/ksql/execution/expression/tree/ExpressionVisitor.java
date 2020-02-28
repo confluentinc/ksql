@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 
 public interface ExpressionVisitor<R, C> {
 
-  default R process(Expression node, @Nullable C context) {
+  default R process(final Expression node, @Nullable final C context) {
     return node.accept(this, context);
   }
 
@@ -63,7 +63,9 @@ public interface ExpressionVisitor<R, C> {
 
   R visitNullLiteral(NullLiteral exp, @Nullable C context);
 
-  R visitColumnReference(ColumnReferenceExp exp, @Nullable C context);
+  R visitColumnReference(UnqualifiedColumnReferenceExp exp, @Nullable C context);
+
+  R visitQualifiedColumnReference(QualifiedColumnReferenceExp exp, @Nullable C context);
 
   R visitSearchedCaseExpression(SearchedCaseExpression exp, @Nullable C context);
 
@@ -72,6 +74,12 @@ public interface ExpressionVisitor<R, C> {
   R visitStringLiteral(StringLiteral exp, @Nullable C context);
 
   R visitSubscriptExpression(SubscriptExpression exp, @Nullable C context);
+
+  R visitCreateArrayExpression(CreateArrayExpression exp, @Nullable C context);
+
+  R visitCreateMapExpression(CreateMapExpression exp, @Nullable C context);
+
+  R visitStructExpression(CreateStructExpression exp, @Nullable C context);
 
   R visitTimeLiteral(TimeLiteral exp, @Nullable C context);
 

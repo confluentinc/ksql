@@ -17,13 +17,13 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.FunctionName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -43,12 +43,12 @@ public class AggregateExpressionRewriter
   public Optional<Expression> visitFunctionCall(
       final FunctionCall node,
       final ExpressionTreeRewriter.Context<Void> context) {
-    final String functionName = node.getName().name();
+    final FunctionName functionName = node.getName();
     if (functionRegistry.isAggregate(functionName)) {
       final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
-          new ColumnReferenceExp(node.getLocation(), ColumnRef.withoutSource(aggVarName)));
+          new UnqualifiedColumnReferenceExp(node.getLocation(), aggVarName));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {

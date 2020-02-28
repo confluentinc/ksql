@@ -72,12 +72,12 @@ public class RepartitionNode extends PlanNode {
   }
 
   @Override
-  protected int getPartitions(KafkaTopicClient kafkaTopicClient) {
+  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
 
   @Override
-  public SchemaKStream<?> buildStream(KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return source.buildStream(builder)
         .selectKey(partitionBy, builder.buildNodeContext(getId().toString()));
   }
@@ -85,5 +85,10 @@ public class RepartitionNode extends PlanNode {
   @VisibleForTesting
   public Expression getPartitionBy() {
     return partitionBy;
+  }
+
+  @Override
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
+    return visitor.visitRepartition(this, context);
   }
 }

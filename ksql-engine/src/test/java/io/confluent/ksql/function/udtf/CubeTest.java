@@ -26,15 +26,15 @@ import org.junit.Test;
 
 public class CubeTest {
 
-  private Cube cubeUdtf = new Cube();
+  private final Cube cubeUdtf = new Cube();
 
   @Test
   public void shouldCubeSingleColumn() {
     // Given:
-    Object[] args = {1};
+    final Object[] args = {1};
 
     // When:
-    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
+    final List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
 
     // Then:
     assertThat(result.size(), is(2));
@@ -45,10 +45,10 @@ public class CubeTest {
   @Test
   public void shouldCubeSingleNullColumn() {
     // Given:
-    Object[] oneNull = {null};
+    final Object[] oneNull = {null};
 
     // When:
-    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
+    final List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
 
     // Then:
     assertThat(result.size(), is(1));
@@ -58,10 +58,10 @@ public class CubeTest {
   @Test
   public void shouldCubeColumnsWithDifferentTypes() {
     // Given:
-    Object[] args = {1, "foo"};
+    final Object[] args = {1, "foo"};
 
     // When:
-    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
+    final List<List<Object>> result = cubeUdtf.cube(Arrays.asList(args));
 
     // Then:
     assertThat(result.size(), is(4));
@@ -74,10 +74,10 @@ public class CubeTest {
   @Test
   public void shouldHandleOneNull() {
     // Given:
-    Object[] oneNull = {1, null};
+    final Object[] oneNull = {1, null};
 
     // When:
-    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
+    final List<List<Object>> result = cubeUdtf.cube(Arrays.asList(oneNull));
 
     // Then:
     assertThat(result.size(), is(2));
@@ -88,10 +88,10 @@ public class CubeTest {
   @Test
   public void shouldHandleAllNulls() {
     // Given:
-    Object[] allNull = {null, null};
+    final Object[] allNull = {null, null};
 
     // When:
-    List<List<Object>> result = cubeUdtf.cube(Arrays.asList(allNull));
+    final List<List<Object>> result = cubeUdtf.cube(Arrays.asList(allNull));
 
     // Then:
     assertThat(result.size(), is(1));

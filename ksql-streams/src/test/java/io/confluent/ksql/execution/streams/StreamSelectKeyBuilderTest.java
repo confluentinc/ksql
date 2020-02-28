@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -37,12 +37,10 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,25 +62,23 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyBuilderTest {
 
-  private static final SourceName ALIAS = SourceName.of("ATL");
-
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withAlias(ALIAS)
-      .withMetaAndKeyColsInValue();
+      .withMetaAndKeyColsInValue(false);
 
-  private static final ColumnReferenceExp KEY =
-      new ColumnReferenceExp(ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI")));
+  private static final UnqualifiedColumnReferenceExp KEY =
+      new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-      .valueColumn(ALIAS, SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ALIAS, ColumnName.of("BIG"), SqlTypes.BIGINT)
-      .valueColumn(ALIAS, ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.text()), SqlTypes.BIGINT)
+      // Note: Type of ROWKEY is old key's type:
+      .valueColumn(ColumnName.of(SchemaUtil.ROWKEY_NAME.text()), SqlTypes.STRING)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);
@@ -159,12 +155,12 @@ public class StreamSelectKeyBuilderTest {
 
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
-        FormatInfo.of(Format.JSON),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.JSON),
+        FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
         queryContext);
   }
@@ -189,7 +185,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, null)),
+        predicate.test(SOURCE_KEY, value(A_BIG, null, 0, "dre")),
         is(false)
     );
   }
@@ -203,7 +199,7 @@ public class StreamSelectKeyBuilderTest {
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
     assertThat(
-        predicate.test(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
+        predicate.test(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
         is(true)
     );
   }
@@ -216,7 +212,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = getPredicate();
-    assertThat(predicate.test(SOURCE_KEY, value(0, "dre", null, A_BOI)), is(true));
+    assertThat(predicate.test(SOURCE_KEY, value(null, A_BOI, 0, "dre")), is(true));
   }
 
   @Test
@@ -227,7 +223,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     final KeyValueMapper<Struct, GenericRow, Struct> keyValueMapper = getKeyMapper();
     assertThat(
-        keyValueMapper.apply(SOURCE_KEY, value(0, "dre", A_BIG, A_BOI)),
+        keyValueMapper.apply(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
         is(RESULT_KEY_BUILDER.build(A_BOI))
     );
   }
@@ -252,11 +248,11 @@ public class StreamSelectKeyBuilderTest {
   }
 
   private static GenericRow value(
-      final int rowTime,
-      final String rowKey,
       final Long big,
-      final Long boi
+      final Long boi,
+      final int rowTime,
+      final String rowKey
   ) {
-    return new GenericRow(rowTime, rowKey, big, boi);
+    return GenericRow.genericRow(big, boi, rowTime, rowKey);
   }
 }

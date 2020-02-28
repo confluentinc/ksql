@@ -35,11 +35,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
@@ -87,8 +86,8 @@ public class PullQueryFunctionalTest {
   private static final String USER_WITH_ACCESS = "harry";
   private static final String USER_WITH_ACCESS_PWD = "changeme";
 
-  private static final TestDataProvider USER_PROVIDER = new UserDataProvider();
-  private static final Format VALUE_FORMAT = Format.JSON;
+  private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
 
   private static final TestBasicJaasConfig JASS_CONFIG = TestBasicJaasConfig
@@ -99,6 +98,7 @@ public class PullQueryFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final int BASE_TIME = 1_000_000;
+  private static final int ONE_SECOND = (int)TimeUnit.SECONDS.toMillis(1);
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
@@ -112,7 +112,6 @@ public class PullQueryFunctionalTest {
       .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
@@ -124,7 +123,6 @@ public class PullQueryFunctionalTest {
       .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
@@ -156,11 +154,11 @@ public class PullQueryFunctionalTest {
 
     makeAdminRequest(
         "CREATE STREAM " + USERS_STREAM
-            + " " + USER_PROVIDER.ksqlSchemaString()
+            + " (" + USER_PROVIDER.ksqlSchemaString() + ")"
             + " WITH ("
             + "   kafka_topic='" + USER_TOPIC + "', "
             + "   key='" + USER_PROVIDER.key() + "', "
-            + "   value_format='" + VALUE_FORMAT + "'"
+            + "   value_format='" + VALUE_FORMAT.name() + "'"
             + ");"
     );
   }
@@ -200,7 +198,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
   @Test
@@ -229,7 +227,13 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, BASE_TIME, 1)));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
+        key,                    // ROWKEY
+        BASE_TIME,              // WINDOWSTART
+        BASE_TIME + ONE_SECOND, // WINDOWEND
+        BASE_TIME,              // ROWTIME
+        1                       // COUNT
+    )));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

@@ -22,8 +22,8 @@ import java.util.Optional;
 
 final class KsqlPlanV1 implements KsqlPlan {
   private final String statementText;
-  private Optional<DdlCommand> ddlCommand;
-  private Optional<QueryPlan> queryPlan;
+  private final Optional<DdlCommand> ddlCommand;
+  private final Optional<QueryPlan> queryPlan;
 
   KsqlPlanV1(
       @JsonProperty(value = "statementText", required = true) final String statementText,
@@ -45,5 +45,25 @@ final class KsqlPlanV1 implements KsqlPlan {
 
   public String getStatementText() {
     return statementText;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final KsqlPlanV1 that = (KsqlPlanV1) o;
+    return Objects.equals(statementText, that.statementText)
+        && Objects.equals(ddlCommand, that.ddlCommand)
+        && Objects.equals(queryPlan, that.queryPlan);
+  }
+
+  @Override
+  public int hashCode() {
+
+    return Objects.hash(statementText, ddlCommand, queryPlan);
   }
 }

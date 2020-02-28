@@ -72,14 +72,14 @@ Create and produce data to the Kafka topics ``pageviews`` and ``users``. These s
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews maxInterval=500
+       $ <path-to-confluent>/bin/ksql-datagen quickstart=pageviews format=delimited topic=pageviews msgRate=5
 
 2. Produce Kafka data to the ``users`` topic using the data generator. The following example continuously generates data with a value in
    JSON format.
 
    .. code:: bash
 
-       $ <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users maxInterval=100
+       $ <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users msgRate=1
 
 .. tip:: You can also produce Kafka data using the ``kafka-console-producer`` CLI provided with |cp|.
 
@@ -144,11 +144,12 @@ Your output should resemble:
 
 ::
 
-    Format:JSON
-    {"ROWTIME":1540254230041,"ROWKEY":"User_1","registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
-    {"ROWTIME":1540254230081,"ROWKEY":"User_3","registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
-    {"ROWTIME":1540254230091,"ROWKEY":"User_7","registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
-    ^C{"ROWTIME":1540254232442,"ROWKEY":"User_4","registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
+    Key format: KAFKA_STRING
+    Value format: AVRO
+    rowtime: 10/30/18 10:15:51 PM GMT, key: User_1, value: {"registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
+    rowtime: 10/30/18 10:15:51 PM GMT, key: User_3, value: {"registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
+    rowtime: 10/30/18 10:15:53 PM GMT, key: User_7, value: {"registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
+    ^Crowtime: 10/30/18 10:15:59 PM GMT, key: User_4, value: {"registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
     Topic printing ceased
 
 Press CTRL+C to stop printing messages.
@@ -163,13 +164,13 @@ Your output should resemble:
 
 ::
 
-    Format:STRING
-    10/23/18 12:24:03 AM UTC , 9461 , 1540254243183,User_9,Page_20
-    10/23/18 12:24:03 AM UTC , 9471 , 1540254243617,User_7,Page_47
-    10/23/18 12:24:03 AM UTC , 9481 , 1540254243888,User_4,Page_27
-    ^C10/23/18 12:24:05 AM UTC , 9521 , 1540254245161,User_9,Page_62
+    Key format: KAFKA_INTEGER
+    Format: KAFKA_STRING
+    rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243183, value: 1540254243183,User_9,Page_20
+    rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243617, value: 1540254243617,User_7,Page_47
+    rowtime: 10/23/18 12:24:03 AM PSD, key: 1540254243888, value: 1540254243888,User_4,Page_27
+    ^Crowtime: 10/23/18 12:24:05 AM PSD, key: 1540254245161, value: 1540254245161,User_9,Page_62
     Topic printing ceased
-    ksql>
 
 Press CTRL+C to stop printing messages.
 

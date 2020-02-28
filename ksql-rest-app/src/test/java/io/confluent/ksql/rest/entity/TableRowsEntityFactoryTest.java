@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -25,19 +26,17 @@ import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.execution.streams.materialization.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
 
 public class TableRowsEntityFactoryTest {
@@ -72,7 +71,7 @@ public class TableRowsEntityFactoryTest {
         Row.of(
             SIMPLE_SCHEMA,
             STRING_KEY_BUILDER.build("x"),
-            new GenericRow(false),
+            genericRow(false),
             ROWTIME
         )
     );
@@ -89,22 +88,20 @@ public class TableRowsEntityFactoryTest {
   public void shouldAddWindowedRowToValues() {
     // Given:
     final Instant now = Instant.now();
-    final Window window0 = Window.of(now, Optional.empty());
-    final Window window1 = Window.of(now, Optional.of(now));
+    final TimeWindow window0 = new TimeWindow(now.toEpochMilli(), now.plusMillis(2).toEpochMilli());
+    final TimeWindow window1 = new TimeWindow(now.toEpochMilli(), now.plusMillis(1).toEpochMilli());
 
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            STRING_KEY_BUILDER.build("x"),
-            window0,
-            new GenericRow(true),
+            new Windowed<>(STRING_KEY_BUILDER.build("x"), window0),
+            genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            STRING_KEY_BUILDER.build("y"),
-            window1,
-            new GenericRow(false),
+            new Windowed<>(STRING_KEY_BUILDER.build("y"), window1),
+            genericRow(false),
             ROWTIME
         )
     );
@@ -114,20 +111,16 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(output, hasSize(2));
-    assertThat(output.get(0), contains("x", now.toEpochMilli(), ROWTIME, true));
+    assertThat(output.get(0),
+        contains("x", now.toEpochMilli(), now.plusMillis(2).toEpochMilli(), ROWTIME, true));
     assertThat(output.get(1),
-        contains("y", now.toEpochMilli(), now.toEpochMilli(), ROWTIME, false));
+        contains("y", now.toEpochMilli(), now.plusMillis(1).toEpochMilli(), ROWTIME, false));
   }
 
   @Test
   public void shouldSupportNullColumns() {
     // Given:
-    final List<Object> newColumns = new ArrayList<>();
-    newColumns.add(null);
-    newColumns.add(null);
-    newColumns.add(null);
-    newColumns.add(null);
-    GenericRow row = new GenericRow(newColumns);
+    final GenericRow row = genericRow(null, null, null, null);
 
     final Builder<Row> builder = ImmutableList.builder();
     builder.add(Row.of(SCHEMA_NULL, STRING_KEY_BUILDER.build("k"), row, ROWTIME));
@@ -143,7 +136,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldJustDuplicateRowTimeInValueIfNotWindowed() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, Optional.empty());
+    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, false);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -160,46 +153,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldAddHoppingWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.HOPPING));
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
-        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldAddTumblingWindowFieldsToSchema() {
-    // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.TUMBLING));
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
-        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
-        .build()
-    ));
-  }
-
-  @Test
-  public void shouldAddSessionWindowFieldsToSchema() {
-    // When:
-    final LogicalSchema result = TableRowsEntityFactory
-        .buildSchema(SCHEMA, Optional.of(WindowType.SESSION));
+    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, true);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()

@@ -11,7 +11,7 @@
     {
       "name": "string to timestamp",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, timestamp varchar) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM TEST (ID bigint, NAME varchar, timestamp varchar) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM TS AS select id, stringtotimestamp(timestamp, 'yyyy-MM-dd''T''HH:mm:ssX') as ts from test;"
       ],
       "inputs": [

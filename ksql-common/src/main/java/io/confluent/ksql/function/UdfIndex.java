@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -99,7 +100,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
   void addFunction(final T function) {
     final List<ParamType> parameters = function.parameters();
-    if (allFunctions.put(function.parameters(), function) != null) {
+    if (allFunctions.put(parameters, function) != null) {
       throw new KsqlException(
           "Can't add function "
               + function
@@ -125,7 +126,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
       // then add a new child node with the parameter value type
       // and add this function to that node
-      final ParamType varargSchema = Iterables.getLast(function.parameters());
+      final ParamType varargSchema = Iterables.getLast(parameters);
       final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
       leaf.update(function, order);
@@ -141,8 +142,21 @@ public class UdfIndex<T extends FunctionSignature> {
 
   T getFunction(final List<SqlType> arguments) {
     final List<Node> candidates = new ArrayList<>();
-    getCandidates(arguments, 0, root, candidates, new HashMap<>());
 
+    // first try to get the candidates without any implicit casting
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), false);
+    final Optional<T> fun = candidates
+        .stream()
+        .max(Node::compare)
+        .map(node -> node.value);
+
+    if (fun.isPresent()) {
+      return fun.get();
+    }
+
+    // if none were found (candidates is empty) try again with
+    // implicit casting
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), true);
     return candidates
         .stream()
         .max(Node::compare)
@@ -155,7 +169,8 @@ public class UdfIndex<T extends FunctionSignature> {
       final int argIndex,
       final Node current,
       final List<Node> candidates,
-      final Map<GenericType, SqlType> reservedGenerics
+      final Map<GenericType, SqlType> reservedGenerics,
+      final boolean allowCasts
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
@@ -167,9 +182,9 @@ public class UdfIndex<T extends FunctionSignature> {
     final SqlType arg = arguments.get(argIndex);
     for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
       final Map<GenericType, SqlType> reservedCopy = new HashMap<>(reservedGenerics);
-      if (candidate.getKey().accepts(arg, reservedCopy)) {
+      if (candidate.getKey().accepts(arg, reservedCopy, allowCasts)) {
         final Node node = candidate.getValue();
-        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy);
+        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy, allowCasts);
       }
     }
   }
@@ -177,12 +192,23 @@ public class UdfIndex<T extends FunctionSignature> {
   private KsqlException createNoMatchingFunctionException(final List<SqlType> paramTypes) {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
-    final String sqlParamTypes = paramTypes.stream()
+    final String requiredTypes = paramTypes.stream()
         .map(type -> type == null ? "null" : type.toString(FormatOptions.noEscape()))
-        .collect(Collectors.joining(", ", "[", "]"));
+        .collect(Collectors.joining(", ", "(", ")"));
+
+    final String acceptedTypes = allFunctions.values().stream()
+        .map(UdfIndex::formatAvailableSignatures)
+        .collect(Collectors.joining(System.lineSeparator()));
 
     return new KsqlException("Function '" + udfName
-        + "' does not accept parameters of types:" + sqlParamTypes);
+        + "' does not accept parameters " + requiredTypes + "."
+        + System.lineSeparator()
+        + "Valid alternatives are:"
+        + System.lineSeparator()
+        + acceptedTypes
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;"
+    );
   }
 
   public Collection<T> values() {
@@ -194,6 +220,34 @@ public class UdfIndex<T extends FunctionSignature> {
     sb.append("-ROOT\n");
     root.describe(sb, 1);
     return sb.toString();
+  }
+
+  private static <T extends FunctionSignature> String formatAvailableSignatures(final T function) {
+    final boolean variadicFunction = function.isVariadic();
+    final List<ParameterInfo> parameters = function.parameterInfo();
+
+    final StringBuilder result = new StringBuilder();
+    result.append(function.name().toString(FormatOptions.noEscape())).append("(");
+
+    for (int i = 0; i < parameters.size(); i++) {
+      final ParameterInfo param = parameters.get(i);
+      final boolean variadicParam = variadicFunction && i == (parameters.size() - 1);
+      final String type = variadicParam
+          ? ((ArrayType) param.type()).element().toString() + "..."
+          : param.type().toString();
+
+      if (i != 0) {
+        result.append(", ");
+      }
+
+      result.append(type);
+
+      if (!param.name().isEmpty()) {
+        result.append(" ").append(param.name());
+      }
+    }
+
+    return result.append(")").toString();
   }
 
   private final class Node {
@@ -238,7 +292,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     @Override
     public String toString() {
-      return value != null ? value.name().name() : "EMPTY";
+      return value != null ? value.name().text() : "EMPTY";
     }
 
     int compare(final Node other) {
@@ -285,12 +339,13 @@ public class UdfIndex<T extends FunctionSignature> {
      * @param reservedGenerics a mapping of generics to already reserved types - this map
      *                         will be updated if the parameter is generic to point to the
      *                         current argument for future checks to accept
-     *
+     * @param allowCasts       whether or not to accept an implicit cast
      * @return whether or not this argument can be used as a value for
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics) {
+    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics,
+        final boolean allowCasts) {
       if (argument == null) {
         return true;
       }
@@ -299,7 +354,7 @@ public class UdfIndex<T extends FunctionSignature> {
         return reserveGenerics(type, argument, reservedGenerics);
       }
 
-      return SchemaUtil.areCompatible(argument, type);
+      return SchemaUtil.areCompatible(argument, type, allowCasts);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
@@ -312,7 +367,9 @@ public class UdfIndex<T extends FunctionSignature> {
         return false;
       }
 
-      Map<GenericType, SqlType> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
+      final Map<GenericType, SqlType> genericMapping = GenericsUtil
+          .resolveGenerics(schema, argument);
+
       for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
         final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
         if (old != null && !old.equals(entry.getValue())) {
@@ -328,5 +385,4 @@ public class UdfIndex<T extends FunctionSignature> {
       return type + (isVararg ? "(VARARG)" : "");
     }
   }
-
 }

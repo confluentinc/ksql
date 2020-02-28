@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,14 +33,14 @@ public interface StatementExecutor<T extends Statement> {
    * Executes the query against the parameterized {@code ksqlEngine}.
    *
    * @param statement the statement to execute
-   * @param mutableScopedProperties the session properties
+   * @param sessionProperties the session properties
    * @param executionContext the context in which to execute it
    * @param serviceContext the services to use to execute it
    * @return the execution result, if present, else {@link Optional#empty()}
    */
   Optional<KsqlEntity> execute(
       ConfiguredStatement<T> statement,
-      Map<String, Object> mutableScopedProperties,
+      SessionProperties sessionProperties,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext
   );

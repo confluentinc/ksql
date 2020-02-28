@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Pojo for storing window bounds
@@ -25,27 +24,27 @@ import java.util.Optional;
 public final class Window {
 
   private final Instant start;
-  private final Optional<Instant> end;
+  private final Instant end;
 
   /**
    * Create instance.
    *
    * @param start the start of the window.
-   * @param end the end of a session window, otherwise {@link Optional#empty()}.
+   * @param end the end of the window.
    * @return the instance.
    */
-  public static Window of(final Instant start, final Optional<Instant> end) {
+  public static Window of(final Instant start, final Instant end) {
     return new Window(start, end);
   }
 
-  private Window(final Instant start, final Optional<Instant> end) {
+  private Window(final Instant start, final Instant end) {
     this.start = Objects.requireNonNull(start, "start");
     this.end = Objects.requireNonNull(end, "end");
 
-    if (end.map(e -> e.isBefore(start)).orElse(false)) {
+    if (end.isBefore(start)) {
       throw new IllegalArgumentException("end before start."
           + " start: " + start
-          + ", end: " + end.get()
+          + ", end: " + end
       );
     }
   }
@@ -54,7 +53,7 @@ public final class Window {
     return start;
   }
 
-  public Optional<Instant> end() {
+  public Instant end() {
     return end;
   }
 

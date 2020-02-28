@@ -37,8 +37,8 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
-
   QUERY_ENDPOINT(Query.class, PullQueryExecutor::validate),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 
@@ -82,9 +81,7 @@ public enum CustomValidators {
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
   DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
-
-  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
+  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset);
 
   public static final Map<Class<? extends Statement>, StatementValidator<?>> VALIDATOR_MAP =
       ImmutableMap.copyOf(
@@ -116,9 +113,9 @@ public enum CustomValidators {
 
   public void validate(
       final ConfiguredStatement<?> statement,
-      final Map<String, Object> mutableScopedProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, mutableScopedProperties, executionContext, serviceContext);
+    validator.validate(statement, sessionProperties, executionContext, serviceContext);
   }
 }

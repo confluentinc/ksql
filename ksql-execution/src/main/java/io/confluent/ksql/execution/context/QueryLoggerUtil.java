@@ -23,7 +23,7 @@ public final class QueryLoggerUtil {
   private QueryLoggerUtil() {
   }
 
-  public static String queryLoggerName(QueryId queryId, QueryContext queryContext) {
+  public static String queryLoggerName(final QueryId queryId, final QueryContext queryContext) {
     return String.join(
         ".",
         new ImmutableList.Builder<String>()

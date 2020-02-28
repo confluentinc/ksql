@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.allOf;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.test.model.matchers.FormatMatchers.KeyFormatMatchers;
 import java.time.Duration;
@@ -36,11 +38,13 @@ public final class KeyFormatNode {
   private final Optional<Duration> windowSize;
 
   public KeyFormatNode(
-      @JsonProperty("format") final Format format,
+      @JsonProperty("format") final String format,
       @JsonProperty("windowType") final WindowType windowType,
       @JsonProperty("windowSize") final Long windowSize
   ) {
-    this.format = Optional.ofNullable(format);
+    this.format = Optional.ofNullable(format)
+        .map(FormatInfo::of)
+        .map(FormatFactory::of);
     this.windowType = Optional.ofNullable(windowType);
     this.windowSize = Optional.ofNullable(windowSize)
         .map(Duration::ofMillis);

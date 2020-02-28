@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
@@ -27,7 +29,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
@@ -49,13 +50,12 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query
   ) {
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.exec = Objects.requireNonNull(exec, "exec");
-    this.query = Objects.requireNonNull(query, "query");
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.exec = requireNonNull(exec, "exec");
+    this.query = requireNonNull(query, "query");
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
     final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, query);
@@ -77,7 +77,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         final TransientQueryMetadata queryMetadata
     ) {
       super(exec, subscriber, queryMetadata.getLogicalSchema());
-      this.queryMetadata = queryMetadata;
+      this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");
 
       queryMetadata.setLimitHandler(this::setDone);
       queryMetadata.setUncaughtExceptionHandler(

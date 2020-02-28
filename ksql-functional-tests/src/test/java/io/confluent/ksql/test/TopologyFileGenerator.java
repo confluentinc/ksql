@@ -29,13 +29,11 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
-import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -111,7 +109,7 @@ public final class TopologyFileGenerator {
     }
 
     static void generateTopologies(final Path base) throws Exception {
-        final String formattedVersion = "0_6_0-pre";
+        final String formattedVersion = getFormattedVersionFromPomFile();
         final Path generatedTopologyPath = base.resolve(formattedVersion);
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));
@@ -237,23 +235,11 @@ public final class TopologyFileGenerator {
                 .getSource(persistentQueryMetadata.getSinkName())
                 .getKafkaTopicName();
 
-            final SerdeSupplier<?> keySerdes = SerdeUtil.getKeySerdeSupplier(
-                persistentQueryMetadata.getResultTopic().getKeyFormat(),
-                queryMetadata::getLogicalSchema
-            );
-
-            final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-                persistentQueryMetadata.getResultTopic().getValueFormat().getFormat(),
-                queryMetadata::getLogicalSchema
-            );
-
             final Topic sinkTopic = new Topic(
                 sinkKafkaTopicName,
-                Optional.empty(),
-                keySerdes,
-                valueSerdes,
                 1,
-                1
+                1,
+                Optional.empty()
             );
 
             stubKafkaService.createTopic(sinkTopic);

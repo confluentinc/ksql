@@ -16,11 +16,11 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,22 +32,22 @@ public final class KeyField {
 
   private static final KeyField NONE = KeyField.of(Optional.empty());
 
-  private final Optional<ColumnRef> keyField;
+  private final Optional<ColumnName> keyField;
 
   public static KeyField none() {
     return NONE;
   }
 
-  public static KeyField of(final ColumnRef keyField) {
+  public static KeyField of(final ColumnName keyField) {
     return new KeyField(Optional.of(keyField));
   }
 
-  public static KeyField of(final Optional<ColumnRef> keyField) {
+  public static KeyField of(final Optional<ColumnName> keyField) {
     return new KeyField(keyField);
   }
 
   private KeyField(
-      final Optional<ColumnRef> keyField
+      final Optional<ColumnName> keyField
   ) {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
   }
@@ -64,7 +64,7 @@ public final class KeyField {
     return this;
   }
 
-  public Optional<ColumnRef> ref() {
+  public Optional<ColumnName> ref() {
     return keyField;
   }
 
@@ -84,21 +84,15 @@ public final class KeyField {
    * @throws IllegalArgumentException if new key field is required but not available in the schema.
    */
   public Optional<Column> resolve(final LogicalSchema schema) {
-    return keyField
+    final Optional<Column> resolved = keyField
         .map(colRef -> schema.findValueColumn(colRef)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Invalid key field, not found in schema: "
                     + colRef.toString(FormatOptions.noEscape()))));
-  }
 
-  /**
-   * Build a new instance with the supplied {@code alias} applied to both new and legacy fields.
-   *
-   * @param alias the field alias to apply.
-   * @return the new instance.
-   */
-  public KeyField withAlias(final SourceName alias) {
-    return KeyField.of(keyField.map(fieldName -> ColumnRef.of(alias, fieldName.name())));
+    resolved.ifPresent(col -> throwOnTypeMismatch(schema, col));
+
+    return resolved;
   }
 
   @Override
@@ -122,5 +116,25 @@ public final class KeyField {
   @Override
   public String toString() {
     return "KeyField(" + keyField + ')';
+  }
+
+  private static void throwOnTypeMismatch(final LogicalSchema schema, final Column keyField) {
+    if (schema.key().size() != 1) {
+      throw new UnsupportedOperationException("Only single key column supported");
+    }
+
+    final Column keyCol = schema.key().get(0);
+    final SqlType keyType = keyCol.type();
+    final SqlType keyFieldType = keyField.type();
+
+    if (!keyType.equals(keyFieldType)) {
+      throw new IllegalArgumentException("The type of the KEY field defined in the WITH clause "
+          + "does not match the type of the actual row key column."
+          + System.lineSeparator()
+          + "KEY column in WITH clause: " + keyField
+          + System.lineSeparator()
+          + "actual key column:" + keyCol
+      );
+    }
   }
 }

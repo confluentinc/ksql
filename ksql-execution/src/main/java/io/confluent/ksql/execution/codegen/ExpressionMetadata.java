@@ -38,10 +38,10 @@ public class ExpressionMetadata {
   private final CodeGenSpec spec;
 
   public ExpressionMetadata(
-      IExpressionEvaluator expressionEvaluator,
-      CodeGenSpec spec,
-      SqlType expressionType,
-      Expression expression
+      final IExpressionEvaluator expressionEvaluator,
+      final CodeGenSpec spec,
+      final SqlType expressionType,
+      final Expression expression
   ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
@@ -62,16 +62,16 @@ public class ExpressionMetadata {
     return expression;
   }
 
-  public Object evaluate(GenericRow row) {
+  public Object evaluate(final GenericRow row) {
     try {
       return expressionEvaluator.evaluate(getParameters(row));
-    } catch (InvocationTargetException e) {
+    } catch (final InvocationTargetException e) {
       throw new KsqlException(e.getCause().getMessage(), e.getCause());
     }
   }
 
-  private Object[] getParameters(GenericRow row) {
-    Object[] parameters = this.threadLocalParameters.get();
+  private Object[] getParameters(final GenericRow row) {
+    final Object[] parameters = this.threadLocalParameters.get();
     spec.resolve(row, parameters);
     return parameters;
   }

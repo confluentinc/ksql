@@ -23,18 +23,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +55,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
-        ImmutableMap.of(),
+            mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -70,7 +75,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -78,8 +83,11 @@ public class ListQueriesExecutorTest {
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
-            ImmutableSet.of(metadata.getSinkName().name()),
-            metadata.getQueryId())));
+            ImmutableSet.of(metadata.getSinkName().text()),
+            ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
+            metadata.getQueryId(),
+            Optional.of(metadata.getState())
+        )));
   }
 
   @Test
@@ -95,7 +103,7 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -107,9 +115,18 @@ public class ListQueriesExecutorTest {
   @SuppressWarnings("SameParameterValue")
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
+    when(metadata.getStatementString()).thenReturn("sql");
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
+    when(metadata.getState()).thenReturn("Running");
+    when(metadata.getTopologyDescription()).thenReturn("topology");
+    when(metadata.getExecutionPlan()).thenReturn("plan");
+
+    final KsqlTopic sinkTopic = mock(KsqlTopic.class);
+    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKafkaTopicName()).thenReturn(id);
+    when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;
   }

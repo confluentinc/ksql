@@ -15,52 +15,53 @@
 
 package io.confluent.ksql.execution.function.udaf;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.List;
-import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
 
-  private final List<Integer> nonAggColumnIndexes;
+  private final int nonAggColumnCount;
   private final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions;
+  private final int columnCount;
 
   public KudafUndoAggregator(
-      List<Integer> nonAggColumnIndexes,
-      List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
+      final int nonAggColumnCount,
+      final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
   ) {
-    Objects.requireNonNull(aggregateFunctions, "aggregateFunctions");
-    this.aggregateFunctions = ImmutableList.copyOf(aggregateFunctions);
-    this.nonAggColumnIndexes = ImmutableList.copyOf(nonAggColumnIndexes);
-  }
+    this.nonAggColumnCount = nonAggColumnCount;
+    this.aggregateFunctions = ImmutableList
+        .copyOf(requireNonNull(aggregateFunctions, "aggregateFunctions"));
+    this.columnCount = nonAggColumnCount + aggregateFunctions.size();
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public GenericRow apply(Struct k, GenericRow rowValue, GenericRow aggRowValue) {
-    int idx = 0;
-    for (; idx < nonAggColumnIndexes.size(); idx++) {
-      final int idxInRow = nonAggColumnIndexes.get(idx);
-      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idxInRow));
+    if (aggregateFunctions.isEmpty()) {
+      throw new IllegalArgumentException("Aggregator needs aggregate functions");
     }
 
-    for (TableAggregationFunction function : aggregateFunctions) {
-      Object argument = rowValue.getColumns().get(function.getArgIndexInValue());
-      Object previous = aggRowValue.getColumns().get(idx);
-      aggRowValue.getColumns().set(idx, function.undo(argument, previous));
-      idx++;
+    if (nonAggColumnCount < 0) {
+      throw new IllegalArgumentException("negative nonAggColumnCount: " + nonAggColumnCount);
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  @Override
+  public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
+    for (int idx = 0; idx < nonAggColumnCount; idx++) {
+      aggRowValue.set(idx, rowValue.get(idx));
+    }
+
+    for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
+      final TableAggregationFunction function = aggregateFunctions.get(idx - nonAggColumnCount);
+      final Object argument = rowValue.get(function.getArgIndexInValue());
+      final Object previous = aggRowValue.get(idx);
+      aggRowValue.set(idx, function.undo(argument, previous));
     }
 
     return aggRowValue;
-  }
-
-  public List<Integer> getNonAggColumnIndexes() {
-    return nonAggColumnIndexes;
-  }
-
-  public List<TableAggregationFunction<?, ?, ?>> getAggregateFunctions() {
-    return aggregateFunctions;
   }
 }

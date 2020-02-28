@@ -36,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -279,15 +280,15 @@ public class KsqlEngineTest {
     expectedException.expect(rawMessage(containsString(
         "Incompatible key fields for sink and results. "
             + "Sink key field is ORDERTIME (type: BIGINT) "
-            + "while result key field is ITEMID (type: STRING)")));
+            + "while result key field is ORDERID (type: BIGINT)")));
     expectedException.expect(statementText(
-        is("insert into bar select * from orders partition by itemid;")));
+        is("insert into bar select * from orders partition by orderid;")));
 
     // When:
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "insert into bar select * from orders partition by itemid;",
+        "insert into bar select * from orders partition by orderid;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -640,7 +641,7 @@ public class KsqlEngineTest {
         .name("clientHash").type().fixed("MD5").size(16).noDefault()
         .endRecord();
 
-    schemaRegistryClient.register("BAR-value", schema);
+    schemaRegistryClient.register("BAR-value", new AvroSchema(schema));
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -767,7 +768,7 @@ public class KsqlEngineTest {
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
         + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
         + "\n"
-        + "CREATE TABLE T1 (f0 BIGINT, f1 DOUBLE) "
+        + "CREATE TABLE T1 (ROWKEY BIGINT KEY, f0 BIGINT, f1 DOUBLE) "
         + "     WITH (kafka_topic='t1_topic', value_format='JSON', key = 'f0');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"
@@ -1131,7 +1132,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    verify(schemaRegistryClient, never()).register(any(), any());
+    verify(schemaRegistryClient, never()).register(any(), any(AvroSchema.class));
   }
 
   @Test
@@ -1281,7 +1282,8 @@ public class KsqlEngineTest {
   private void givenTopicWithSchema(final String topicName, final Schema schema) {
     try {
       givenTopicsExist(1, topicName);
-      schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+      schemaRegistryClient.register(
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
     } catch (final Exception e) {
       fail("invalid test:" + e.getMessage());
     }

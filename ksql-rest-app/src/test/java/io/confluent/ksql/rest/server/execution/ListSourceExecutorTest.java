@@ -22,9 +22,11 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,6 +38,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -56,10 +59,15 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -69,6 +77,17 @@ public class ListSourceExecutorTest {
   public final TemporaryEngine engine = new TemporaryEngine();
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private TopicDescription topicWith1PartitionAndRfOf1;
+
+  @Before
+  public void setUp() {
+    final Node node = mock(Node.class);
+    final TopicPartitionInfo topicInfo = mock(TopicPartitionInfo.class);
+    when(topicInfo.replicas()).thenReturn(ImmutableList.of(node));
+    when(topicWith1PartitionAndRfOf1.partitions()).thenReturn(ImmutableList.of(topicInfo));
+  }
 
   @Test
   public void shouldShowStreams() {
@@ -81,7 +100,7 @@ public class ListSourceExecutorTest {
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -112,7 +131,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS EXTENDED;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -122,17 +141,15 @@ public class ListSourceExecutorTest {
         SourceDescriptionFactory.create(
             stream1,
             true,
-            "JSON",
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.empty()),
+            Optional.of(topicWith1PartitionAndRfOf1)),
         SourceDescriptionFactory.create(
             stream2,
             true,
-            "JSON",
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.empty())
+            Optional.of(topicWith1PartitionAndRfOf1))
     ));
   }
 
@@ -147,7 +164,7 @@ public class ListSourceExecutorTest {
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -180,7 +197,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES EXTENDED;"),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -191,7 +208,6 @@ public class ListSourceExecutorTest {
         SourceDescriptionFactory.create(
             table1,
             true,
-            "JSON",
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName()))
@@ -199,7 +215,6 @@ public class ListSourceExecutorTest {
         SourceDescriptionFactory.create(
             table2,
             true,
-            "JSON",
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName()))
@@ -217,7 +232,7 @@ public class ListSourceExecutorTest {
     );
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final DataSource<?> stream = engine.getEngine().getMetaStore().getSource(SourceName.of("SINK"));
+    final DataSource stream = engine.getEngine().getMetaStore().getSource(SourceName.of("SINK"));
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
@@ -229,7 +244,7 @@ public class ListSourceExecutorTest {
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
-            ImmutableMap.of(),
+            mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -239,12 +254,14 @@ public class ListSourceExecutorTest {
         equalTo(SourceDescriptionFactory.create(
             stream,
             false,
-            "JSON",
             ImmutableList.of(),
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
-                metadata.getQueryId())),
+                ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
+                metadata.getQueryId(),
+                Optional.of(metadata.getState())
+            )),
             Optional.empty())));
   }
 
@@ -257,7 +274,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE S;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -279,7 +296,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -288,9 +305,9 @@ public class ListSourceExecutorTest {
     verify(spyTopicClient, never()).describeTopic(anyString());
   }
 
-  private void assertSourceListWithWarning(
+  private static void assertSourceListWithWarning(
       final KsqlEntity entity,
-      final DataSource<?>... sources) {
+      final DataSource... sources) {
     assertThat(entity, instanceOf(SourceDescriptionList.class));
     final SourceDescriptionList listing = (SourceDescriptionList) entity;
     assertThat(
@@ -302,7 +319,6 @@ public class ListSourceExecutorTest {
                         SourceDescriptionFactory.create(
                             s,
                             true,
-                            "JSON",
                             ImmutableList.of(),
                             ImmutableList.of(),
                             Optional.empty()
@@ -336,7 +352,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS EXTENDED;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -356,7 +372,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
         engine.configure("SHOW TABLES EXTENDED;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -375,7 +391,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE EXTENDED STREAM1;"),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -389,7 +405,6 @@ public class ListSourceExecutorTest {
             SourceDescriptionFactory.create(
                 stream1,
                 true,
-                "JSON",
                 ImmutableList.of(),
                 ImmutableList.of(),
                 Optional.empty()

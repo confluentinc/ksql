@@ -1,0 +1,24 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572100544,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<KEY VARCHAR, ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KEY VARCHAR, ID BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "1",
+    "value" : {
+      "key" : "a",
+      "id" : 1
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "1",
+    "value" : {
+      "ID" : 1,
+      "KEY" : "a"
+    }
+  } ]
+}

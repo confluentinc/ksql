@@ -34,22 +34,26 @@ public final class TabularRow {
   private static final String CLIPPED = "...";
   private static final int MIN_CELL_WIDTH = 5;
 
-  private final int width;
+  private final int cellWidth;
   private final List<String> columns;
   private final boolean isHeader;
   private final boolean shouldWrap;
 
-  public static TabularRow createHeader(final int width, final LogicalSchema schema) {
+  public static TabularRow createHeader(
+      final int width,
+      final LogicalSchema schema,
+      final CliConfig config
+  ) {
     final List<String> headings = schema.columns().stream()
         .map(Column::name)
-        .map(ColumnName::name)
+        .map(ColumnName::text)
         .collect(Collectors.toList());
 
     return new TabularRow(
         width,
         headings,
         true,
-        true
+        config
     );
   }
 
@@ -60,9 +64,9 @@ public final class TabularRow {
   ) {
     return new TabularRow(
         width,
-        value.getColumns().stream().map(Objects::toString).collect(Collectors.toList()),
+        value.values().stream().map(Objects::toString).collect(Collectors.toList()),
         false,
-        config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString())
+        config
     );
   }
 
@@ -70,12 +74,21 @@ public final class TabularRow {
       final int width,
       final List<String> columns,
       final boolean isHeader,
-      final boolean shouldWrap
+      final CliConfig config
   ) {
     this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
-    this.width = width;
     this.isHeader = isHeader;
-    this.shouldWrap = shouldWrap;
+    this.shouldWrap = isHeader
+        || config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString());
+
+    final int configCellWidth = config.getInt(CliConfig.COLUMN_WIDTH_CONFIG);
+    if (configCellWidth > 0) {
+      this.cellWidth = configCellWidth;
+    } else if (!columns.isEmpty()) {
+      this.cellWidth = Math.max(width / columns.size() - 2, MIN_CELL_WIDTH);
+    } else {
+      cellWidth = MIN_CELL_WIDTH;
+    }
   }
 
   @Override
@@ -84,7 +97,6 @@ public final class TabularRow {
       return "";
     }
 
-    final int cellWidth = Math.max(width / columns.size() - 2, MIN_CELL_WIDTH);
     final StringBuilder builder = new StringBuilder();
 
     if (isHeader) {

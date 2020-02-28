@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -43,7 +44,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -59,7 +59,7 @@ public final class ListSourceExecutor {
       final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final List<? extends DataSource<?>> sources
+      final List<? extends DataSource> sources
   ) {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
@@ -82,7 +82,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> streams(
       final ConfiguredStatement<ListStreams> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -107,7 +107,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> tables(
       final ConfiguredStatement<ListTables> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -131,7 +131,7 @@ public final class ListSourceExecutor {
 
   public static Optional<KsqlEntity> columns(
       final ConfiguredStatement<ShowColumns> statement,
-      final Map<String, ?> sessionProperties,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -180,11 +180,11 @@ public final class ListSourceExecutor {
       final SourceName name,
       final boolean extended,
       final String statementText) {
-    final DataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
-          name.name()
+          name.text()
       ), statementText);
     }
 
@@ -205,7 +205,6 @@ public final class ListSourceExecutor {
         SourceDescriptionFactory.create(
             dataSource,
             extended,
-            dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
             getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
             getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
             topicDescription
@@ -222,15 +221,17 @@ public final class ListSourceExecutor {
         .filter(predicate)
         .map(q -> new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().name()),
-            q.getQueryId()
+            ImmutableSet.of(q.getSinkName().text()),
+            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+            q.getQueryId(),
+            Optional.of(q.getState())
         ))
         .collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {
     return new Stream(
-        dataSource.getName().name(),
+        dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getValueFormat().getFormat().name()
     );
@@ -238,7 +239,7 @@ public final class ListSourceExecutor {
 
   private static Table sourceTable(final KsqlTable<?> dataSource) {
     return new Table(
-        dataSource.getName().name(),
+        dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
         dataSource.getKsqlTopic().getKeyFormat().isWindowed()

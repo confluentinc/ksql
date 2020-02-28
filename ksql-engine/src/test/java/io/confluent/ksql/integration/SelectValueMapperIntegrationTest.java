@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -34,7 +35,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
@@ -73,7 +73,7 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow transformed = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0D, "blah"),
+        genericRow(1L, "hi", "bye", 2.0D, "blah", 1521834663L, "key1"),
         ctx
     );
 
@@ -92,7 +92,7 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow row = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9D, "boo", "hoo"),
+        genericRow(2L, "foo", "whatever", 6.9D, "boo", "hoo", 1521834663L, "key1"),
         ctx
     );
 
@@ -113,9 +113,5 @@ public class SelectValueMapperIntegrationTest {
         ksqlConfig,
         TestFunctionRegistry.INSTANCE.get()
     ).getTransformer(processingLogger);
-  }
-
-  private static GenericRow genericRow(final Object... columns) {
-    return new GenericRow(Arrays.asList(columns));
   }
 }

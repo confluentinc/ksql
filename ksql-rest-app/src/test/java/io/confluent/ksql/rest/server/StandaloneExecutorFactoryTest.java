@@ -16,10 +16,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
-import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Collections;
 import java.util.Map;
@@ -47,10 +47,7 @@ public class StandaloneExecutorFactoryTest {
   private final Map<String, String> properties = Collections.emptyMap();
   private final KsqlConfig baseConfig = new KsqlConfig(properties);
   private final KsqlConfig mergedConfig = new KsqlConfig(Collections.emptyMap());
-  private final String configTopicName = KsqlInternalTopicUtils.getTopicName(
-      baseConfig,
-      StandaloneExecutorFactory.CONFIG_TOPIC_SUFFIX
-  );
+  private final String configTopicName = ReservedInternalTopics.configsTopic(baseConfig);
 
   @Mock
   private Function<KsqlConfig, ServiceContext> serviceContextFactory;

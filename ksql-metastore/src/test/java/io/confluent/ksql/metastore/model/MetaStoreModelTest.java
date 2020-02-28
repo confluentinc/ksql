@@ -28,11 +28,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -57,22 +56,21 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
-          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-          ValueFormat.of(FormatInfo.of(Format.JSON))
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))
-      .put(ColumnRef.class, ColumnRef.withoutSource(ColumnName.of("f0")))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty()))
-      .put(Column.class, Column.of(Optional.empty(), ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
+      .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
-      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)))
-      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON)))
+      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))
+      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())))
       .build();
 
   private final Class<?> modelClass;

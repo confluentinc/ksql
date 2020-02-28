@@ -34,11 +34,6 @@ final class LogicalSchemaSerializer extends JsonSerializer<LogicalSchema> {
       final JsonGenerator gen,
       final SerializerProvider serializerProvider
   ) throws IOException {
-    final String text = schema.toString();
-    gen.writeString(trimArrayBrackets(text));
-  }
-
-  private static String trimArrayBrackets(final String text) {
-    return text.substring(1, text.length() - 1);
+    gen.writeString(schema.toString());
   }
 }

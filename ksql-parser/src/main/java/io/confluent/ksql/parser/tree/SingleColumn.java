@@ -46,8 +46,8 @@ public class SingleColumn extends SelectItem {
   ) {
     super(location);
 
-    checkForReservedToken(expression, alias, SchemaUtil.ROWTIME_NAME);
-    checkForReservedToken(expression, alias, SchemaUtil.ROWKEY_NAME);
+    SchemaUtil.systemColumnNames()
+        .forEach(columnName -> checkForReservedToken(expression, alias, columnName));
 
     this.expression = requireNonNull(expression, "expression");
     this.alias = requireNonNull(alias, "alias");
@@ -65,11 +65,11 @@ public class SingleColumn extends SelectItem {
     if (!alias.isPresent()) {
       return;
     }
-    if (alias.get().name().equalsIgnoreCase(reservedToken.name())) {
+    if (alias.get().text().equalsIgnoreCase(reservedToken.text())) {
       final String text = expression.toString();
-      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.name())) {
-        throw new ParseFailedException(reservedToken.name()
-            + " is a reserved token for implicit column. "
+      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.text())) {
+        throw new ParseFailedException(reservedToken.text()
+            + " is a reserved system column name. "
             + "You cannot use it as an alias for a column.");
       }
     }

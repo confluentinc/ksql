@@ -22,7 +22,10 @@ public class KafkaDeleteTopicsException extends KafkaTopicClientException {
 
   private final List<Pair<String, Throwable>> exceptionList;
 
-  public KafkaDeleteTopicsException(String message, List<Pair<String, Throwable>> failList) {
+  public KafkaDeleteTopicsException(
+      final String message,
+      final List<Pair<String, Throwable>> failList
+  ) {
     super(message);
     exceptionList = failList;
   }

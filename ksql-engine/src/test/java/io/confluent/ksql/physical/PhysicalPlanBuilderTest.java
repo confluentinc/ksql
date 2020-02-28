@@ -37,7 +37,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -68,19 +68,19 @@ public class PhysicalPlanBuilderTest {
       + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON', KEY='ID');";
+      + "(ROWKEY BIGINT KEY, ID2 BIGINT, COL0 VARCHAR, COL1 BIGINT) "
+      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON', KEY='ID2');";
 
   private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID');";
+      + "(ROWKEY BIGINT KEY, ID3 BIGINT, COL0 BIGINT, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID3');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
-      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + "(ROWKEY BIGINT KEY, ID BIGINT, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
 
   private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
@@ -203,29 +203,33 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
 
     assertThat(lines[0], startsWith(
-        " > [ PROJECT ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
-            + "KSQL_COL_2 BIGINT] |"));
+        " > [ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, KSQL_COL_1 DOUBLE, "
+            + "KSQL_COL_2 BIGINT |"));
     assertThat(lines[1], startsWith(
-        "\t\t > [ AGGREGATE ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+        "\t\t > [ AGGREGATE ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE, KSQL_AGG_VARIABLE_0 DOUBLE, "
-            + "KSQL_AGG_VARIABLE_1 BIGINT] |"));
+            + "KSQL_AGG_VARIABLE_1 BIGINT |"));
     assertThat(lines[2], startsWith(
-        "\t\t\t\t > [ GROUP_BY ] | Schema: [ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE] |"
+        "\t\t\t\t > [ GROUP_BY ] | Schema: ROWKEY BIGINT KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE |"
     ));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
-            + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
+        "\t\t\t\t\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, KSQL_INTERNAL_COL_0 BIGINT, "
+            + "KSQL_INTERNAL_COL_1 DOUBLE |"));
     assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
-            + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
-            + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
+        "\t\t\t\t\t\t\t\t > [ FILTER ] | Schema: ROWKEY STRING KEY, "
+            + "COL0 BIGINT, COL1 STRING, COL2 STRING, "
+            + "COL3 DOUBLE, COL4 ARRAY<DOUBLE>, "
+            + "COL5 MAP<STRING, DOUBLE>, "
+            + "ROWTIME BIGINT, ROWKEY STRING"
+            + " |"));
     assertThat(lines[5], startsWith(
-        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
-            + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
-            + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
+        "\t\t\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, "
+            + "COL0 BIGINT, COL1 STRING, COL2 STRING, "
+            + "COL3 DOUBLE, COL4 ARRAY<DOUBLE>, "
+            + "COL5 MAP<STRING, DOUBLE>, "
+            + "ROWTIME BIGINT, ROWKEY STRING"
+            + " |"));
   }
 
   @Test
@@ -243,16 +247,16 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
-        " > [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.S1");
+        " > [ SINK ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
-        "\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.Project");
+        "\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] | Logger: InsertQuery_1.KsqlTopic.Source");
+        "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING | Logger: InsertQuery_1.KsqlTopic.Source");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
     assertThat(persistentQuery.getResultTopic().getValueFormat().getFormat(),
-        equalTo(Format.DELIMITED));
+        equalTo(FormatFactory.DELIMITED));
   }
 
   @Test
@@ -273,13 +277,13 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(3));
     assertThat(lines[0], containsString(
-        "> [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
+        "> [ SINK ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[1], containsString(
-        "> [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
+        "> [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[2], containsString(
-        "> [ SOURCE ] | Schema: [TEST1.ROWKEY STRING KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 INTEGER]"));
+        "> [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 INTEGER, ROWTIME BIGINT, ROWKEY STRING"));
   }
 
   @Test
@@ -294,13 +298,13 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
-    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
-        + "DOUBLE] | Logger: InsertQuery_1.S1"));
+    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 "
+        + "DOUBLE | Logger: InsertQuery_1.S1"));
     assertThat(lines[2],
-        containsString("[ REKEY ] | Schema: [ROWKEY BIGINT KEY, TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] "
+        containsString("[ REKEY ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING "
             + "| Logger: InsertQuery_1.PartitionBy"));
-    assertThat(lines[1], containsString("[ PROJECT ] | Schema: [ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
-        + ", COL2 DOUBLE] | Logger: InsertQuery_1.Project"));
+    assertThat(lines[1], containsString("[ PROJECT ] | Schema: ROWKEY BIGINT KEY, COL0 BIGINT, COL1 STRING"
+        + ", COL2 DOUBLE | Logger: InsertQuery_1.Project"));
   }
 
   @Test
@@ -312,11 +316,13 @@ public class PhysicalPlanBuilderTest {
     // When:
     final QueryMetadata result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.col1 = test3.id;")
+        + "ON test2.col1 = test3.id3;")
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY DOUBLE KEY, TEST2."));
+    assertThat(result.getExecutionPlan(), containsString(
+        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID2"
+    ));
   }
 
   @Test
@@ -328,11 +334,13 @@ public class PhysicalPlanBuilderTest {
     // When:
     final QueryMetadata result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.id = test3.col0;")
+        + "ON test2.id2 = test3.col0;")
         .get(0);
 
     // Then:
-    assertThat(result.getExecutionPlan(), containsString("[ REKEY ] | Schema: [ROWKEY STRING KEY, TEST3."));
+    assertThat(result.getExecutionPlan(), containsString(
+        "[ REKEY ] | Schema: ROWKEY BIGINT KEY, ID3"
+    ));
   }
 
   @Test
@@ -343,9 +351,8 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST4) key column (TEST4.ID) is not the column "
-            + "used in the join criteria (TEST4.COL0).");
+    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
+        + "sure that the criteria uses the TABLE key `ID` instead of COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "
@@ -361,9 +368,8 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST5) key column (TEST5.ID) is not the column "
-            + "used in the join criteria (TEST5.COL0).");
+    expectedException.expectMessage("Cannot repartition a TABLE source. If this is a join, make "
+        + "sure that the criteria uses the TABLE key `ID` instead of COL0");
 
     // When:
     execute("CREATE TABLE t1 AS "
@@ -380,7 +386,7 @@ public class PhysicalPlanBuilderTest {
     // When:
     final QueryMetadata result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.id = test3.id;")
+        + "ON test2.id2 = test3.id3;")
         .get(0);
 
     // Then:

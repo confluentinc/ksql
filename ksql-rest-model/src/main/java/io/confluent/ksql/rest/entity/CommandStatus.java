@@ -64,4 +64,9 @@ public class CommandStatus {
   public int hashCode() {
     return Objects.hash(getStatus(), getMessage());
   }
+
+  @Override
+  public String toString() {
+    return status.name() + ": " + message;
+  }
 }

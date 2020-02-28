@@ -215,7 +215,7 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    String schemaFullName = "com.custom.schema";
+    final String schemaFullName = "com.custom.schema";
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName);
     final Struct ksqlRow = new Struct(schema)

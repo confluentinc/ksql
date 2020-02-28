@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.schema.ksql;
 
-import static io.confluent.ksql.schema.ksql.ColumnMatchers.column;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.metaColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
@@ -26,22 +25,21 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWEND_NAME;
+import static io.confluent.ksql.util.SchemaUtil.WINDOWSTART_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -50,7 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"UnstableApiUsage","unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings({"UnstableApiUsage","unchecked"})
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -62,16 +60,11 @@ public class LogicalSchemaTest {
   private static final ColumnName F1 = ColumnName.of("f1");
   private static final ColumnName VALUE = ColumnName.of("value");
 
-  private static final SourceName BOB = SourceName.of("bob");
-  private static final SourceName FRED = SourceName.of("fred");
-
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(F0, STRING)
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
-
-  private static final LogicalSchema ALIASED_SCHEMA = SOME_SCHEMA.withAlias(BOB);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -117,95 +110,21 @@ public class LogicalSchemaTest {
         )
         .addEqualityGroup(
             aSchema,
-
             aSchema
-                .withMetaAndKeyColsInValue()
+                .withMetaAndKeyColsInValue(false)
                 .withoutMetaAndKeyColsInValue(),
 
             aSchema
-                .withAlias(BOB)
-                .withoutAlias()
+                .withMetaAndKeyColsInValue(true)
+                .withoutMetaAndKeyColsInValue()
         )
         .addEqualityGroup(
-            aSchema.withAlias(BOB)
+            aSchema.withMetaAndKeyColsInValue(true)
         )
         .addEqualityGroup(
-            aSchema.withMetaAndKeyColsInValue()
+            aSchema.withMetaAndKeyColsInValue(false)
         )
         .testEquals();
-  }
-
-  @Test
-  public void shouldBuildSchemaWithAlias() {
-    // When:
-    final LogicalSchema result = SOME_SCHEMA.withAlias(BOB);
-
-    // Then:
-    assertThat(result.columns(), contains(
-        metaColumn(BOB, ROWTIME_NAME, BIGINT),
-        valueColumn(BOB, F0, STRING),
-        keyColumn(BOB, K0, BIGINT),
-        valueColumn(BOB, F1, BIGINT)
-    ));
-  }
-
-  @Test
-  public void shouldOnlyAddAliasToTopLevelColumns() {
-    // Given:
-    final SqlStruct structType = SqlTypes.struct()
-        .field("nested", BIGINT)
-        .build();
-
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(K0, BIGINT)
-        .valueColumn(F0, STRING)
-        .valueColumn(F1, structType)
-        .build();
-
-    // When:
-    final LogicalSchema result = schema.withAlias(BOB);
-
-    // Then:
-    assertThat(result.columns(), contains(
-        column(BOB, ROWTIME_NAME, BIGINT),
-        column(BOB, K0, BIGINT),
-        column(BOB, F0, STRING),
-        column(BOB, F1, structType)
-    ));
-  }
-
-  @Test
-  public void shouldBuildSchemaWithoutAlias() {
-    // When:
-    final LogicalSchema result = ALIASED_SCHEMA.withoutAlias();
-
-    // Then:
-    assertThat(result, is(SOME_SCHEMA));
-  }
-
-  @Test
-  public void shouldOnlyRemoveAliasFromTopLevelColumns() {
-    // Given:
-    final SqlStruct structType = SqlTypes.struct()
-        .field("bob.nested", BIGINT)
-        .build();
-
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(K0, INTEGER)
-        .valueColumn(F0, STRING)
-        .valueColumn(F1, structType)
-        .build().withAlias(BOB);
-
-    // When:
-    final LogicalSchema result = schema.withoutAlias();
-
-    // Then:
-    assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(K0, INTEGER)
-        .valueColumn(F0, STRING)
-        .valueColumn(F1, structType)
-        .build()
-    ));
   }
 
   @Test
@@ -223,117 +142,82 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, contains(
-        Column.of(Optional.empty(), ROWTIME_NAME, BIGINT, Namespace.META, 0),
-        Column.of(Optional.empty(), F0, STRING, Namespace.VALUE, 0),
-        Column.of(Optional.empty(), K0, BIGINT, Namespace.KEY, 0),
-        Column.of(Optional.empty(), F1, BIGINT, Namespace.VALUE, 1),
-        Column.of(Optional.empty(), K1, BOOLEAN, Namespace.KEY, 1)
+        Column.of(ROWTIME_NAME, BIGINT, Namespace.META, 0),
+        Column.of(F0, STRING, Namespace.VALUE, 0),
+        Column.of(K0, BIGINT, Namespace.KEY, 0),
+        Column.of(F1, BIGINT, Namespace.VALUE, 1),
+        Column.of(K1, BOOLEAN, Namespace.KEY, 1)
     ));
   }
 
   @Test
   public void shouldGetColumnByName() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(F0));
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(F0);
 
     // Then:
     assertThat(result, is(Optional.of(
-        Column.of(Optional.empty(), F0, STRING, Namespace.VALUE, 0))
+        Column.of(F0, STRING, Namespace.VALUE, 0))
     ));
-  }
-
-  @Test
-  public void shouldGetColumnByAliasedName() {
-    // When:
-    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(
-        ColumnRef.of(BOB, F0)
-    );
-
-    // Then:
-    assertThat(result,
-        is(Optional.of(Column.of(Optional.of(BOB), F0, STRING, Namespace.VALUE, 0))));
   }
 
   @Test
   public void shouldNotGetColumnByNameIfWrongCase() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(
-        ColumnRef.withoutSource(ColumnName.of("F0")));
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnName.of("F0"));
 
     // Then:
     assertThat(result, is(Optional.empty()));
   }
 
   @Test
-  public void shouldGetColumnByNameIfBothColumnAndNameAreAliased() {
-    // When:
-    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(ColumnRef.of(BOB, F0));
-
-    // Then:
-    assertThat(result, is(not(Optional.empty())));
-    assertThat(result.get(), is(column(BOB, F0, STRING)));
-  }
-
-  @Test
   public void shouldNotGetMetaColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ROWTIME_NAME), is(Optional.empty()));
   }
 
   @Test
   public void shouldNotGetKeyColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(K0)), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(K0), is(Optional.empty()));
   }
 
   @Test
   public void shouldGetMetaColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)),
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
+
+    // Then:
+    assertThat(schema.findValueColumn(ROWTIME_NAME),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetKeyColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(K0)),
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withMetaAndKeyColsInValue(false);
+
+    // Then:
+    assertThat(schema.findValueColumn(K0),
         is(not(Optional.empty())));
   }
 
   @Test
-  public void shouldFindExactValueColumn() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(F0, BIGINT)
-        .valueColumn(BOB, F0, STRING)
-        .build();
-
-    // Then:
-    assertThat(
-        schema.findValueColumn(ColumnRef.withoutSource(F0)),
-        is(Optional.of(Column.of(Optional.empty(), F0, BIGINT, Namespace.VALUE, 0)))
-    );
-
-    assertThat(
-        schema.findValueColumn(ColumnRef.of(BOB, F0)),
-        is(Optional.of(Column.of(Optional.of(BOB), F0, STRING, Namespace.VALUE, 1)))
-    );
-  }
-
-  @Test
   public void shouldGetMetaFields() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)), is(Optional.of(
-        Column.of(Optional.empty(), ROWTIME_NAME, BIGINT, Namespace.META, 0)
+    assertThat(SOME_SCHEMA.findColumn(ROWTIME_NAME), is(Optional.of(
+        Column.of(ROWTIME_NAME, BIGINT, Namespace.META, 0)
     )));
   }
 
   @Test
   public void shouldGetKeyColumns() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(K0)), is(Optional.of(
-        Column.of(Optional.empty(), K0, BIGINT, Namespace.KEY, 0)
+    assertThat(SOME_SCHEMA.findColumn(K0), is(Optional.of(
+        Column.of(K0, BIGINT, Namespace.KEY, 0)
     )));
   }
 
   @Test
   public void shouldGetValueColumns() {
-    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(F0)), is(Optional.of(
-        Column.of(Optional.empty(), F0, STRING, Namespace.VALUE, 0)
+    assertThat(SOME_SCHEMA.findColumn(F0), is(Optional.of(
+        Column.of(F0, STRING, Namespace.VALUE, 0)
     )));
   }
 
@@ -348,7 +232,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(
-        schema.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)).map(Column::namespace),
+        schema.findColumn(ROWTIME_NAME).map(Column::namespace),
         is(Optional.of(Namespace.KEY))
     );
   }
@@ -363,28 +247,8 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(
-        schema.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)).map(Column::namespace),
+        schema.findColumn(ROWTIME_NAME).map(Column::namespace),
         is(Optional.of(Namespace.VALUE))
-    );
-  }
-
-  @Test
-  public void shouldFindExactColumn() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(F0, BIGINT)
-        .valueColumn(BOB, F0, STRING)
-        .build();
-
-    // Then:
-    assertThat(
-        schema.findColumn(ColumnRef.withoutSource(F0)),
-        is(Optional.of(Column.of(Optional.empty(), F0, BIGINT, Namespace.KEY, 0)))
-    );
-
-    assertThat(
-        schema.findColumn(ColumnRef.of(BOB, F0)),
-        is(Optional.of(Column.of(Optional.of(BOB), F0, STRING, Namespace.VALUE, 0)))
     );
   }
 
@@ -396,37 +260,9 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldExposeAliasedMetaColumns() {
-    // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withAlias(BOB);
-
-    // When:
-    final List<Column> columns = schema.metadata();
-
-    // Then:
-    assertThat(columns, contains(
-        metaColumn(BOB, ROWTIME_NAME, BIGINT)
-    ));
-  }
-
-  @Test
   public void shouldExposeKeyColumns() {
     assertThat(SOME_SCHEMA.key(), contains(
         keyColumn(K0, BIGINT)
-    ));
-  }
-
-  @Test
-  public void shouldExposeAliasedKeyColumns() {
-    // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withAlias(BOB);
-
-    // When:
-    final List<Column> columns = schema.key();
-
-    // Then:
-    assertThat(columns, contains(
-        keyColumn(BOB, K0, BIGINT)
     ));
   }
 
@@ -435,21 +271,6 @@ public class LogicalSchemaTest {
     assertThat(SOME_SCHEMA.value(), contains(
         valueColumn(F0, STRING),
         valueColumn(F1, BIGINT)
-    ));
-  }
-
-  @Test
-  public void shouldExposeAliasedValueColumns() {
-    // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withAlias(BOB);
-
-    // When:
-    final List<Column> columns = schema.value();
-
-    // Then:
-    assertThat(columns, contains(
-        valueColumn(BOB, F0, STRING),
-        valueColumn(BOB, F1, BIGINT)
     ));
   }
 
@@ -481,23 +302,6 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldExposeAliasedAllColumns() {
-    // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withAlias(BOB);
-
-    // When:
-    final List<Column> columns = schema.columns();
-
-    // Then:
-    assertThat(columns, contains(
-        metaColumn(BOB, ROWTIME_NAME, BIGINT),
-        valueColumn(BOB, F0, STRING),
-        keyColumn(BOB, K0, BIGINT),
-        valueColumn(BOB, F1, BIGINT)
-    ));
-  }
-
-  @Test
   public void shouldConvertSchemaToString() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -520,8 +324,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "`k0` BIGINT KEY, "
+        "`k0` BIGINT KEY, "
             + "`k1` DOUBLE KEY, "
             + "`f0` BOOLEAN, "
             + "`f1` INTEGER, "
@@ -531,7 +334,7 @@ public class LogicalSchemaTest {
             + "`f6` STRUCT<`a` BIGINT>, "
             + "`f7` ARRAY<STRING>, "
             + "`f8` MAP<STRING, STRING>"
-            + "]"));
+    ));
   }
 
   @Test
@@ -550,13 +353,12 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "`f0` BOOLEAN, "
+        "`f0` BOOLEAN, "
             + "`k0` BIGINT KEY, "
             + "`v0` INTEGER, "
             + "`k1` DOUBLE KEY, "
             + "`v1` BOOLEAN"
-            + "]"));
+    ));
   }
 
   @Test
@@ -578,73 +380,65 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(s, is(
-        "["
-            + "ROWKEY STRING KEY, "
+        "ROWKEY STRING KEY, "
             + "`f0` BOOLEAN, "
             + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
-            + "]"));
+    ));
   }
 
   @Test
-  public void shouldConvertAliasedSchemaToString() {
+  public void shouldAddMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(F0, BOOLEAN)
-        .build()
-        .withAlias(BOB);
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .build();
 
     // When:
-    final String s = schema.toString();
+    final LogicalSchema result = schema.withMetaAndKeyColsInValue(false);
 
     // Then:
-    assertThat(s, is(
-        "["
-            + "`bob`.`ROWKEY` STRING KEY, "
-            + "`bob`.`f0` BOOLEAN"
-            + "]"));
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .build()
+    ));
   }
 
   @Test
-  public void shouldAddMetaAndKeyColumns() {
+  public void shouldAddWindowedMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .build();
 
     // When:
     final LogicalSchema result = schema
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(true);
 
     // Then:
-    assertThat(result.value(), hasSize(schema.value().size() + 2));
-    assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.value().get(0).type(), is(BIGINT));
-    assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().get(1).type(), is(STRING));
-  }
-
-  @Test
-  public void shouldAddMetaAndKeyColumnsWhenAliased() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .valueColumn(WINDOWSTART_NAME, BIGINT)
+        .valueColumn(WINDOWEND_NAME, BIGINT)
         .build()
-        .withAlias(BOB);
-
-    // When:
-    final LogicalSchema result = schema
-        .withMetaAndKeyColsInValue();
-
-    // Then:
-    assertThat(result.value(), hasSize(schema.value().size() + 2));
-    assertThat(result.value().get(0).source(), is(Optional.of(BOB)));
-    assertThat(result.value().get(0).name(), is(ROWTIME_NAME));
-    assertThat(result.value().get(0).type(), is(BIGINT));
-    assertThat(result.value().get(1).source(), is(Optional.of(BOB)));
-    assertThat(result.value().get(1).name(), is(ROWKEY_NAME));
-    assertThat(result.value().get(1).type(), is(STRING));
+    ));
   }
 
   @Test
@@ -654,10 +448,10 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .build()
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
 
     // When:
-    final LogicalSchema result = schema.withMetaAndKeyColsInValue();
+    final LogicalSchema result = schema.withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result, is(schema));
@@ -668,20 +462,20 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
         .valueColumn(F0, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, DOUBLE)
+        .valueColumn(ROWKEY_NAME, DOUBLE)
         .valueColumn(F1, BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, DOUBLE)
+        .valueColumn(ROWTIME_NAME, DOUBLE)
         .build();
 
     // When:
-    final LogicalSchema result = ksqlSchema.withMetaAndKeyColsInValue();
+    final LogicalSchema result = ksqlSchema.withMetaAndKeyColsInValue(false);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .valueColumn(SchemaUtil.ROWTIME_NAME, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWKEY_NAME, STRING)
         .build()
     ));
   }
@@ -693,7 +487,27 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withMetaAndKeyColsInValue();
+        .withMetaAndKeyColsInValue(false);
+
+    // When
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+    ));
+  }
+
+ @Test
+  public void shouldRemoveWindowedMetaColumnsFromValue() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+        .withMetaAndKeyColsInValue(true);
 
     // When
     final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
@@ -711,9 +525,9 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, BIGINT)
-        .valueColumn(SchemaUtil.ROWKEY_NAME, STRING)
+        .valueColumn(ROWKEY_NAME, STRING)
         .valueColumn(F1, BIGINT)
-        .valueColumn(SchemaUtil.ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
         .build();
 
     // When
@@ -724,28 +538,6 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-    ));
-  }
-
-  @Test
-  public void shouldRemoveMetaColumnsEvenIfAliased() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(F0, BIGINT)
-        .valueColumn(F1, BIGINT)
-        .build()
-        .withMetaAndKeyColsInValue()
-        .withAlias(BOB);
-
-    // When
-    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
-
-    // Then:
-    assertThat(result.columns(), contains(
-        metaColumn(BOB, ROWTIME_NAME, BIGINT),
-        keyColumn(BOB, ROWKEY_NAME, STRING),
-        valueColumn(BOB, F0, BIGINT),
-        valueColumn(BOB, F1, BIGINT)
     ));
   }
 
@@ -805,50 +597,10 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldAllowKeyColumnsWithSameNameButDifferentSource() {
-    // Given:
-    final Builder builder = LogicalSchema.builder();
-
-    // When:
-    builder
-        .keyColumn(KEY, BIGINT)
-        .keyColumn(BOB, KEY, BIGINT)
-        .keyColumn(FRED, KEY, BIGINT);
-
-    // Then:
-    assertThat(builder.build().key(), contains(
-        keyColumn(KEY, BIGINT),
-        keyColumn(BOB, KEY, BIGINT),
-        keyColumn(FRED, KEY, BIGINT)
-    ));
-  }
-
-  @Test
-  public void shouldAllowValueColumnsWithSameNameButDifferentSource() {
-    // Given:
-    final Builder builder = LogicalSchema.builder();
-
-    // When:
-    builder
-        .valueColumn(F0, BIGINT)
-        .valueColumn(BOB, F0, BIGINT)
-        .valueColumn(FRED, F0, BIGINT);
-
-    // Then:
-    assertThat(builder.build().value(), contains(
-        valueColumn(F0, BIGINT),
-        valueColumn(BOB, F0, BIGINT),
-        valueColumn(FRED, F0, BIGINT)
-    ));
-  }
-
-  @Test
   public void shouldGetKeyConnectSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(F0, DOUBLE)
-        .keyColumn(BOB, F0, BOOLEAN)
-        .keyColumn(FRED, F0, STRING)
         .valueColumn(F0, BIGINT)
         .build();
 
@@ -858,9 +610,7 @@ public class LogicalSchemaTest {
     // Then:
     final List<org.apache.kafka.connect.data.Field> fields = result.fields();
     assertThat(fields, contains(
-        connectField("f0", 0, Schema.OPTIONAL_FLOAT64_SCHEMA),
-        connectField("bob.f0", 1, Schema.OPTIONAL_BOOLEAN_SCHEMA),
-        connectField("fred.f0", 2, Schema.OPTIONAL_STRING_SCHEMA)
+        connectField("f0", 0, Schema.OPTIONAL_FLOAT64_SCHEMA)
     ));
   }
 
@@ -870,8 +620,7 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(F0, STRING)
         .valueColumn(F0, BIGINT)
-        .valueColumn(BOB, F0, INTEGER)
-        .valueColumn(FRED, F0, STRING)
+        .valueColumn(F1, STRING)
         .build();
 
     // When:
@@ -881,8 +630,7 @@ public class LogicalSchemaTest {
     final List<org.apache.kafka.connect.data.Field> fields = result.fields();
     assertThat(fields, contains(
         connectField("f0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        connectField("bob.f0", 1, Schema.OPTIONAL_INT32_SCHEMA),
-        connectField("fred.f0", 2, Schema.OPTIONAL_STRING_SCHEMA)
+        connectField("f1", 1, Schema.OPTIONAL_STRING_SCHEMA)
     ));
   }
 
@@ -907,18 +655,45 @@ public class LogicalSchemaTest {
     // When:
     final LogicalSchema schema = LogicalSchema.builder()
         .noImplicitColumns()
-        .keyColumns(ALIASED_SCHEMA.value())
+        .keyColumns(SOME_SCHEMA.value())
         .valueColumns(SOME_SCHEMA.metadata())
         .valueColumns(SOME_SCHEMA.key())
         .build();
 
     // Then:
     assertThat(schema.columns(), contains(
-        keyColumn(BOB, F0, STRING),
-        keyColumn(BOB, F1, BIGINT),
+        keyColumn(F0, STRING),
+        keyColumn(F1, BIGINT),
         valueColumn(ROWTIME_NAME, BIGINT),
         valueColumn(K0, BIGINT)
     ));
+  }
+
+  @Test
+  public void shouldMatchAnyValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, STRING)
+        .keyColumn(K0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(schema.valueContainsAny(ImmutableSet.of(F0)), is(true));
+    assertThat(schema.valueContainsAny(ImmutableSet.of(V0, F0, F1, V1)), is(true));
+  }
+
+  @Test
+  public void shouldOnlyMatchValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, STRING)
+        .keyColumn(K0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // Then:
+    assertThat(schema.valueContainsAny(ImmutableSet.of(K0, V0, ROWTIME_NAME)), is(false));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

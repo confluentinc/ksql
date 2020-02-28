@@ -79,8 +79,19 @@ Access the fields in a ``STRUCT`` by using the dereference operator (``->``):
 
 For more info, see :ref:`operators`.
 
-.. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
-   but you can copy existing ``STRUCT`` fields as-is.
+You can create a ``STRUCT`` in a query by specifying the names of the columns
+and expressions that construct the values, separated by commas. The following
+example SELECT statement creates a schema that has a ``STRUCT``.
+
+.. code:: sql
+
+   SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
+
+If ``col0`` is a string and ``col1`` is an integer, the resulting schema is:
+
+.. code:: sql
+
+   col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
 
 .. _ksql-time-units:
 
@@ -1180,7 +1191,7 @@ DROP STREAM [IF EXISTS] [DELETE TOPIC];
 
 Drops an existing stream.
 
-If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
+If the DELETE TOPIC clause is present, the stream's source topic is marked
 for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
@@ -1208,8 +1219,8 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 
 Drops an existing table.
 
-If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
-for deletion and if the topic format is AVRO, the corresponding Avro schema is
+If the DELETE TOPIC clause is present, the table's source topic is marked
+for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted in the schema registry. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
@@ -1279,7 +1290,7 @@ Pulls the current value from the materialized table and terminate.
 The result of this statement will not be persisted in a Kafka topic and will only be printed out in
 the console.
 
-The WHERE clause must contain a single value of ``ROWKEY`` to retieve and may optionally include
+The WHERE clause must contain a single value of ``ROWKEY`` to retrieve and may optionally include
 bounds on WINDOWSTART if the materialized table is windowed.
 
 Example:
@@ -2145,12 +2156,6 @@ Aggregate functions
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
 |                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
-+------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| WindowStart            | ``WindowStart()``         | Stream     | Extract the start time of the current window, in milliseconds.      |
-|                        |                           | Table      | If the query is not windowed the function will return null.         |
-+------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| WindowEnd              | ``WindowEnd()``           | Stream     | Extract the end time of the current window, in milliseconds.        |
-|                        |                           | Table      | If the query is not windowed the function will return null.         |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
 For more information, see :ref:`aggregate-streaming-data-with-ksql`.

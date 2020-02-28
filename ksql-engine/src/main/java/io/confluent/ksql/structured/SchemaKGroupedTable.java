@@ -27,9 +27,9 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -72,7 +72,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
-      final List<ColumnRef> nonAggregateColumns,
+      final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
@@ -86,7 +86,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema))
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
-        .map(FunctionName::name)
+        .map(FunctionName::text)
         .collect(Collectors.toList());
     if (!unsupportedFunctionNames.isEmpty()) {
       throw new KsqlException(

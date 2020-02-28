@@ -24,7 +24,7 @@ import java.util.Optional;
 @Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  KsqlWindowExpression(Optional<NodeLocation> nodeLocation) {
+  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation) {
     super(nodeLocation);
   }
 

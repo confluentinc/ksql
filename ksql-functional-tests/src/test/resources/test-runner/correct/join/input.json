@@ -1,12 +1,12 @@
 {
   "inputs": [
-    {"topic": "left_topic", "key": "0", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-    {"topic": "right_topic", "key": "0", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-    {"topic": "left_topic", "key": "10", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-    {"topic": "left_topic", "key": "0", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-    {"topic": "right_topic", "key": "0", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-    {"topic": "right_topic", "key": "100", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-    {"topic": "left_topic", "key": "90", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-    {"topic": "left_topic", "key": "0", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+    {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+    {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+    {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+    {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+    {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+    {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+    {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+    {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
   ]
 }

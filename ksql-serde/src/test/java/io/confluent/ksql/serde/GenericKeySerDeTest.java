@@ -19,11 +19,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -49,7 +51,9 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -57,8 +61,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GenericKeySerDeTest {
 
-  private static final FormatInfo FORMAT = FormatInfo.of(Format.JSON);
-  private static final WindowInfo WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
+  private static final FormatInfo FORMAT = FormatInfo.of(FormatFactory.JSON.name());
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
   private static final String LOGGER_NAME_PREFIX = "bob";
 
@@ -77,6 +80,9 @@ public class GenericKeySerDeTest {
           .build(),
       true
   );
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SerdeFactories serdeFactories;
@@ -107,6 +113,33 @@ public class GenericKeySerDeTest {
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
+  }
+
+  @Test
+  public void shouldValidateFormatCanHandleSchema() {
+    // Given:
+    doThrow(new RuntimeException("Boom!"))
+        .when(serdeFactories).validate(FORMAT, WRAPPED_SCHEMA);
+
+    // Expect:
+    expectedException.expect(SchemaNotSupportedException.class);
+    expectedException.expectMessage("Key format does not support key schema."
+        + System.lineSeparator()
+        + "format: JSON"
+        + System.lineSeparator()
+        + "schema: Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, unwrapped=false}"
+        + System.lineSeparator()
+        + "reason: Boom!");
+
+    // When:
+    factory.create(
+        FORMAT,
+        WRAPPED_SCHEMA,
+        CONFIG,
+        srClientFactory,
+        LOGGER_NAME_PREFIX,
+        processingLogCxt
+    );
   }
 
   @Test

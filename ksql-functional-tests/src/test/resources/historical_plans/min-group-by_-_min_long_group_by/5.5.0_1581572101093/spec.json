@@ -1,0 +1,138 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101093,
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, MIN BIGINT> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "test_topic",
+    "key" : 1,
+    "value" : {
+      "id" : 1,
+      "value" : null
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : -1000000
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 5
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : null
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 100
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 6
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 100,
+    "value" : {
+      "id" : 100,
+      "value" : 300
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : -9223372036854775807
+    }
+  }, {
+    "topic" : "test_topic",
+    "key" : 0,
+    "value" : {
+      "id" : 0,
+      "value" : 100
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "S2",
+    "key" : 1,
+    "value" : {
+      "ID" : 1,
+      "MIN" : null
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "MIN" : -1000000
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "MIN" : -1000000
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "MIN" : -1000000
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "MIN" : 100
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "MIN" : 6
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 100,
+    "value" : {
+      "ID" : 100,
+      "MIN" : 6
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "MIN" : -9223372036854775807
+    }
+  }, {
+    "topic" : "S2",
+    "key" : 0,
+    "value" : {
+      "ID" : 0,
+      "MIN" : -9223372036854775807
+    }
+  } ]
+}

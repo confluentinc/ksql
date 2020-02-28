@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static org.junit.Assert.assertEquals;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -31,14 +29,18 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
-import java.util.Collections;
+import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
@@ -49,14 +51,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.glassfish.jersey.internal.util.Base64;
 
-final class RestIntegrationTestUtil {
+public final class RestIntegrationTestUtil {
 
   private RestIntegrationTestUtil() {
   }
 
-  static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
+  public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
     return makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
@@ -80,9 +81,18 @@ final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
+    return makeQueryRequest(restApp, sql, userCreds, null);
+  }
+
+  static List<StreamedRow> makeQueryRequest(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Map<String, ?> properties
+  ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
-      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null);
+      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
 
       throwOnError(res);
 
@@ -93,6 +103,22 @@ final class RestIntegrationTestUtil {
         builder.add(s.next());
       }
       return builder.build();
+    }
+  }
+
+  static KsqlErrorMessage makeQueryRequestWithError(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Map<String, ?> properties
+  ) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+
+      final RestResponse<QueryStream> res = restClient.makeQueryRequest(sql, null, properties);
+
+      throwOnNoError(res);
+
+      return res.getErrorMessage();
     }
   }
 
@@ -134,26 +160,14 @@ final class RestIntegrationTestUtil {
     }
   }
 
-  static void createStreams(final TestKsqlRestApp restApp, final String streamName, final String topicName) {
-    final Client client = TestKsqlRestApp.buildClient();
-
-    try (final Response response = client
-        .target(restApp.getHttpListener())
-        .path("ksql")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(ksqlRequest(
-            "CREATE STREAM " + streamName + " "
-                + "(viewtime bigint, pageid varchar, userid varchar) "
-                + "WITH (kafka_topic='" + topicName + "', value_format='json');"))) {
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-    } finally {
-      client.close();
-    }
-  }
-
-  private static Entity<?> ksqlRequest(final String sql) {
-    return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
+  public static void createStream(final TestKsqlRestApp restApp,
+      final TestDataProvider<?> dataProvider) {
+    makeKsqlRequest(
+        restApp,
+        "CREATE STREAM " + dataProvider.kstreamName()
+            + " (" + dataProvider.ksqlSchemaString() + ") "
+            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
+    );
   }
 
   private static List<KsqlEntity> awaitResults(
@@ -201,6 +215,12 @@ final class RestIntegrationTestUtil {
     }
   }
 
+  private static void throwOnNoError(final RestResponse<?> res) {
+    if (!res.isErroneous()) {
+      throw new AssertionError("Failed to get erroneous result.");
+    }
+  }
+
   static WebSocketClient makeWsRequest(
       final URI baseUri,
       final String sql,
@@ -232,7 +252,8 @@ final class RestIntegrationTestUtil {
   }
 
   private static String buildBasicAuthHeader(final Credentials credentials) {
-    return Base64.encodeAsString(credentials.username + ":" + credentials.password);
+    final String creds = credentials.username + ":" + credentials.password;
+    return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
   private static String buildStreamingRequest(final String sql) {

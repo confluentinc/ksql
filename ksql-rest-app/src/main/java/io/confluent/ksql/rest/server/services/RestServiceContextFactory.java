@@ -16,12 +16,10 @@
 package io.confluent.ksql.rest.server.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -36,7 +34,8 @@ public final class RestServiceContextFactory {
 
     ServiceContext create(
         KsqlConfig config,
-        Optional<String> authHeader
+        Optional<String> authHeader,
+        Supplier<SchemaRegistryClient> srClientFactory
     );
   }
 
@@ -52,13 +51,14 @@ public final class RestServiceContextFactory {
 
   public static ServiceContext create(
       final KsqlConfig ksqlConfig,
-      final Optional<String> authHeader
+      final Optional<String> authHeader,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return create(
         ksqlConfig,
         authHeader,
         new DefaultKafkaClientSupplier(),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get
+        schemaRegistryClientFactory
     );
   }
 

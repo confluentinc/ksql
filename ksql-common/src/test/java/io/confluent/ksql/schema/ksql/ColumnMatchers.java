@@ -31,23 +31,12 @@ public final class ColumnMatchers {
   private ColumnMatchers() {
   }
 
-  public static Matcher<Column> column(
-      final SourceName source,
-      final ColumnName name
-  ) {
-    return allOf(
-        hasSource(Optional.of(source)),
-        hasName(name)
-    );
+  public static Matcher<Column> column(final ColumnName name) {
+    return hasName(name);
   }
 
-  public static Matcher<Column> column(
-      final SourceName source,
-      final ColumnName name,
-      final SqlType type
-  ) {
+  public static Matcher<Column> column(final ColumnName name, final SqlType type) {
     return allOf(
-        hasSource(Optional.of(source)),
         hasName(name),
         hasType(type)
     );
@@ -58,7 +47,6 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(Optional.empty()),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.META)
@@ -71,7 +59,6 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(Optional.of(source)),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.META)
@@ -83,20 +70,6 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(Optional.empty()),
-        hasName(name),
-        hasType(type),
-        hasNamespace(Namespace.KEY)
-    );
-  }
-
-  public static Matcher<Column> keyColumn(
-      final SourceName source,
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return allOf(
-        hasSource(Optional.of(source)),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.KEY)
@@ -108,7 +81,6 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(Optional.empty()),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.VALUE)
@@ -121,7 +93,6 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(Optional.of(source)),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.VALUE)
@@ -134,24 +105,10 @@ public final class ColumnMatchers {
       final SqlType type
   ) {
     return allOf(
-        hasSource(source),
         hasName(name),
         hasType(type),
         hasNamespace(Namespace.VALUE)
     );
-  }
-
-  public static Matcher<Column> hasSource(final Optional<SourceName> source) {
-    return new FeatureMatcher<Column, Optional<SourceName>>(
-        is(source),
-        "column with source",
-        "source"
-    ) {
-      @Override
-      protected Optional<SourceName> featureValueOf(final Column actual) {
-        return actual.source();
-      }
-    };
   }
 
   public static Matcher<Column> hasName(final ColumnName name) {

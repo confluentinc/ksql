@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "count distinct",
+      "statements": [
+        "CREATE STREAM TEST (ID varchar, NAME varchar) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE S2 as SELECT id, count_distinct(name) as count FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": {"id": "foo", "name": "one"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": "foo", "name": "two"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": "foo", "name": "one"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": "foo", "name": "two"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": "bar", "name": "one"}},
+        {"topic": "test_topic", "key": "0", "value": {"id": "foo", "name": null}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": "foo" ,"value": {"ID": "foo", "COUNT": 1}},
+        {"topic": "S2", "key": "foo" ,"value": {"ID": "foo", "COUNT": 2}},
+        {"topic": "S2", "key": "foo" ,"value": {"ID": "foo", "COUNT": 2}},
+        {"topic": "S2", "key": "foo" ,"value": {"ID": "foo", "COUNT": 2}},
+        {"topic": "S2", "key": "bar" ,"value": {"ID": "bar", "COUNT": 1}},
+        {"topic": "S2", "key": "foo" ,"value": {"ID": "foo", "COUNT": 2}}
+      ]
+    }
+  ]
+}

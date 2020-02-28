@@ -24,7 +24,8 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
@@ -40,7 +41,6 @@ import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -492,11 +492,14 @@ public class AstBuilderTest {
     return statements.get(0).getStatement();
   }
 
-  private static ColumnReferenceExp column(final String fieldName) {
-    return new ColumnReferenceExp(ColumnRef.of(Optional.empty(), ColumnName.of(fieldName)));
+  private static UnqualifiedColumnReferenceExp column(final String fieldName) {
+    return new UnqualifiedColumnReferenceExp(ColumnName.of(fieldName));
   }
 
-  private static ColumnReferenceExp column(final SourceName source, final String fieldName) {
-    return new ColumnReferenceExp(ColumnRef.of(source, ColumnName.of(fieldName)));
+  private static QualifiedColumnReferenceExp column(
+      final SourceName source,
+      final String fieldName
+  ) {
+    return new QualifiedColumnReferenceExp(source, ColumnName.of(fieldName));
   }
 }

@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.util.KsqlException;
 
 public class PushQueryValidator implements QueryValidator {
 
@@ -24,5 +27,21 @@ public class PushQueryValidator implements QueryValidator {
     if (analysis.getResultMaterialization() != ResultMaterialization.CHANGES) {
       throw new IllegalArgumentException("Push queries don't support `EMIT FINAL`.");
     }
+
+    failPersistentQueryOnWindowedTable(analysis);
+  }
+
+  private static void failPersistentQueryOnWindowedTable(final Analysis analysis) {
+    if (!analysis.getInto().isPresent()) {
+      return;
+    }
+    if (analysis.getFromDataSources().stream().anyMatch(PushQueryValidator::isWindowedTable)) {
+      throw new KsqlException("KSQL does not support persistent queries on windowed tables.");
+    }
+  }
+
+  private static boolean isWindowedTable(final AliasedDataSource dataSource) {
+    return dataSource.getDataSource().getDataSourceType() == DataSourceType.KTABLE
+        && dataSource.getDataSource().getKsqlTopic().getKeyFormat().isWindowed();
   }
 }

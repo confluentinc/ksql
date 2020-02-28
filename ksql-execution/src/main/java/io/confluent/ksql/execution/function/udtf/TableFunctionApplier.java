@@ -33,16 +33,16 @@ public class TableFunctionApplier {
   private final ImmutableList<ExpressionMetadata> expressionMetadataList;
 
   public TableFunctionApplier(
-      KsqlTableFunction tableFunction, List<ExpressionMetadata> expressionMetadataList
+      final KsqlTableFunction tableFunction, final List<ExpressionMetadata> expressionMetadataList
   ) {
     this.tableFunction = requireNonNull(tableFunction);
     this.expressionMetadataList = ImmutableList.copyOf(requireNonNull(expressionMetadataList));
   }
 
   List<?> apply(final GenericRow row) {
-    Object[] args = new Object[expressionMetadataList.size()];
+    final Object[] args = new Object[expressionMetadataList.size()];
     int i = 0;
-    for (ExpressionMetadata expressionMetadata : expressionMetadataList) {
+    for (final ExpressionMetadata expressionMetadata : expressionMetadataList) {
       args[i++] = expressionMetadata.evaluate(row);
     }
     return tableFunction.apply(args);

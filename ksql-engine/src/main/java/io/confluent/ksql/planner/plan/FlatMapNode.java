@@ -22,16 +22,16 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -147,12 +147,13 @@ public class FlatMapNode extends PlanNode {
         final FunctionCall node,
         final Context<Void> context
     ) {
-      final String functionName = node.getName().name();
+      final FunctionName functionName = node.getName();
       if (functionRegistry.isTableFunction(functionName)) {
         final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;
         return Optional.of(
-            new ColumnReferenceExp(node.getLocation(), ColumnRef.of(Optional.empty(), varName)));
+            new UnqualifiedColumnReferenceExp(node.getLocation(), varName)
+        );
       } else {
         final List<Expression> arguments = new ArrayList<>();
         for (final Expression argExpression : node.getArguments()) {

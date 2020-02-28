@@ -24,15 +24,20 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +48,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
 public class PullQueryExecutorTest {
+  private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
+      (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
+          new RoutingFilters(ImmutableList.of());
 
   public static class Disabled {
     @Rule
@@ -62,18 +70,15 @@ public class PullQueryExecutorTest {
           ImmutableMap.of(),
           engine.getKsqlConfig()
       );
+      PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
+          engine.getEngine(), Optional.empty(), ROUTING_FILTER_FACTORY);
 
       // Then:
       expectedException.expect(KsqlException.class);
       expectedException.expectMessage(containsString("Pull queries are disabled"));
 
       // When:
-      PullQueryExecutor.execute(
-          query,
-          ImmutableMap.of(),
-          engine.getEngine(),
-          engine.getServiceContext()
-      );
+      pullQueryExecutor.execute(query, engine.getServiceContext());
     }
   }
 
@@ -107,7 +112,7 @@ public class PullQueryExecutorTest {
       // When:
       CustomValidators.QUERY_ENDPOINT.validate(
           query,
-          ImmutableMap.of(),
+          mock(SessionProperties.class),
           engine.getEngine(),
           engine.getServiceContext()
       );

@@ -63,8 +63,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
-  ) {
+      final Consumer<QueryMetadata> closeCallback,
+      final long closeTimeout) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -76,7 +76,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
         topology,
         streamsProperties,
         overriddenProperties,
-        closeCallback);
+        closeCallback,
+        closeTimeout);
 
     this.id = requireNonNull(id, "id");
     this.resultTopic = requireNonNull(resultTopic, "resultTopic");
@@ -122,7 +123,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkName;
   }
 
-  public String getSchemasDescription() {
+  public Map<String, String> getSchemasDescription() {
+    return schemas.getSchemasDescription();
+  }
+
+  public String getSchemasString() {
     return schemas.toString();
   }
 

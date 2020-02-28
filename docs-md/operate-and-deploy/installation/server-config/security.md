@@ -583,6 +583,11 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 
 # Allow ksqlDB to manage its record processing log topic, if configured:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
+
+# Allow ksqlDB to produce to the command topic:
+bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Describe  --topic __transaction_state
+bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Describe --topic __consumer_offsets
+bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
 ```
 
 The following table shows the necessary ACLs in the Kafka cluster to
@@ -620,6 +625,9 @@ allow ksqlDB to operate in interactive mode.
 |ALLOW        |DESCRIBE            |GROUP      | `*`                                   | LITERAL
 |ALLOW        |DESCRIBE_CONFIGS    |TOPIC      | `*`                                   | LITERAL
 |ALLOW        |DESCRIBE_CONFIGS    |GROUP      | `*`                                   | LITERAL
+|ALLOW        |DESCRIBE            |TRANSACTIONAL_ID | `<ksql-service-id>`             | LITERAL
+|ALLOW        |WRITE               |TRANSACTIONAL_ID | `<ksql-service-id>`             | LITERAL
+
 
 #### Confluent Platform versions below v5.0 (Apache Kafka < v2.0)
 

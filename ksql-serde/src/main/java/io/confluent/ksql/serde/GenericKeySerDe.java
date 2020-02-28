@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -112,6 +113,20 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final ProcessingLogContext processingLogContext,
       final Class<T> targetType
   ) {
+    try {
+      serdeFactories.validate(format, schema);
+    } catch (final Exception e) {
+      throw new SchemaNotSupportedException("Key format does not support key schema."
+          + System.lineSeparator()
+          + "format: " + format.getFormat()
+          + System.lineSeparator()
+          + "schema: " + schema
+          + System.lineSeparator()
+          + "reason: " + e.getMessage(),
+          e
+      );
+    }
+
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
@@ -149,7 +164,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private static <T> Serde<Struct> wrapped(
       final Serde<T> innerSerde,
       final Class<T> type

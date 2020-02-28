@@ -24,7 +24,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serializer;
@@ -50,7 +49,7 @@ public class ThreadLocalSerializerTest {
 
     for (int i = 0; i < 3; i++) {
       final Thread t = new Thread(
-          () -> serializer.serialize("foo", new GenericRow(Collections.emptyList()))
+          () -> serializer.serialize("foo", new GenericRow())
       );
       t.start();
       t.join();

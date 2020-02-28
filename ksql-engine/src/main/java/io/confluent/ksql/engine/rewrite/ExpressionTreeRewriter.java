@@ -16,13 +16,18 @@
 package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -39,6 +44,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -46,8 +52,10 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -85,18 +93,16 @@ public final class ExpressionTreeRewriter<C> {
 
   private final RewritingVisitor<C> rewriter;
 
-  @SuppressWarnings("unchecked")
   public static <C, T extends Expression> T rewriteWith(
       final BiFunction<Expression, Context<C>, Optional<Expression>> plugin, final T expression) {
     return rewriteWith(plugin, expression, null);
   }
 
-  @SuppressWarnings("unchecked")
   public static <C, T extends Expression> T rewriteWith(
       final BiFunction<Expression, Context<C>, Optional<Expression>> plugin,
       final T expression,
       final C context) {
-    return new ExpressionTreeRewriter<C>(plugin).rewrite(expression, context);
+    return new ExpressionTreeRewriter<>(plugin).rewrite(expression, context);
   }
 
   @SuppressWarnings("unchecked")
@@ -174,7 +180,7 @@ public final class ExpressionTreeRewriter<C> {
         final SubscriptExpression node,
         final C context) {
       final Optional<Expression> result
-          = plugin.apply(node, new Context<C>(context, this));
+          = plugin.apply(node, new Context<>(context, this));
       if (result.isPresent()) {
         return result.get();
       }
@@ -183,6 +189,36 @@ public final class ExpressionTreeRewriter<C> {
       final Expression index = rewriter.apply(node.getIndex(), context);
 
       return new SubscriptExpression(node.getLocation(), base, index);
+    }
+
+    @Override
+    public Expression visitCreateArrayExpression(final CreateArrayExpression exp, final C context) {
+      final Builder<Expression> values = ImmutableList.builder();
+      for (Expression value : exp.getValues()) {
+        values.add(rewriter.apply(value, context));
+      }
+      return new CreateArrayExpression(exp.getLocation(), values.build());
+    }
+
+    @Override
+    public Expression visitCreateMapExpression(final CreateMapExpression exp, final C context) {
+      final ImmutableMap.Builder<Expression, Expression> map = ImmutableMap.builder();
+      for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
+        map.put(
+            rewriter.apply(entry.getKey(), context),
+            rewriter.apply(entry.getValue(), context)
+        );
+      }
+      return new CreateMapExpression(exp.getLocation(), map.build());
+    }
+
+    @Override
+    public Expression visitStructExpression(final CreateStructExpression node, final C context) {
+      final Builder<Field> fields = ImmutableList.builder();
+      for (final Field field : node.getFields()) {
+        fields.add(new Field(field.getName(), rewriter.apply(field.getValue(), context)));
+      }
+      return new CreateStructExpression(node.getLocation(), fields.build());
     }
 
     @Override
@@ -390,7 +426,14 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitColumnReference(
-        final ColumnReferenceExp node,
+        final UnqualifiedColumnReferenceExp node,
+        final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
         final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }

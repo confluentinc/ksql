@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.auth;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
@@ -23,22 +24,15 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
-import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.TextOutputCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import org.apache.commons.collections4.CollectionUtils;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,10 +45,28 @@ public class JaasAuthProvider implements AuthProvider {
 
   private final Server server;
   private final ApiServerConfig config;
+  private final LoginContextSupplier loginContextSupplier;
 
   public JaasAuthProvider(final Server server, final ApiServerConfig config) {
-    this.server = Objects.requireNonNull(server);
-    this.config = Objects.requireNonNull(config);
+    this(server, config, LoginContext::new);
+  }
+
+  @VisibleForTesting
+  JaasAuthProvider(
+      final Server server,
+      final ApiServerConfig config,
+      final LoginContextSupplier loginContextSupplier
+  ) {
+    this.server = Objects.requireNonNull(server, "server");
+    this.config = Objects.requireNonNull(config, "config");
+    this.loginContextSupplier =
+        Objects.requireNonNull(loginContextSupplier, "loginContextSupplier");
+  }
+
+  @VisibleForTesting
+  @FunctionalInterface
+  interface LoginContextSupplier {
+    LoginContext get(String name, CallbackHandler callbackHandler) throws LoginException;
   }
 
   @Override
@@ -94,7 +106,7 @@ public class JaasAuthProvider implements AuthProvider {
   ) {
     final LoginContext lc;
     try {
-      lc = new LoginContext(contextName, new BasicCallbackHandler(username, password));
+      lc = loginContextSupplier.get(contextName, new BasicCallbackHandler(username, password));
     } catch (LoginException | SecurityException e) {
       log.error("Failed to create LoginContext. " + e.getMessage());
       handler.handle(Future.failedFuture("Failed to create LoginContext."));
@@ -174,51 +186,6 @@ public class JaasAuthProvider implements AuthProvider {
         this.authProvider = (JaasAuthProvider)authProvider;
       } else {
         throw new IllegalArgumentException("Not a JaasAuthProvider");
-      }
-    }
-  }
-
-  private static class BasicCallbackHandler implements CallbackHandler {
-
-    private final String username;
-    private final String password;
-
-    BasicCallbackHandler(final String username, final String password) {
-      this.username = Objects.requireNonNull(username, "username");
-      this.password = Objects.requireNonNull(password, "password");
-    }
-
-    @Override
-    public void handle(final Callback[] callbacks)
-        throws IOException, UnsupportedCallbackException {
-      for (final Callback callback : callbacks) {
-        if (callback instanceof NameCallback) {
-          final NameCallback nc = (NameCallback)callback;
-          nc.setName(username);
-        } else if (callback instanceof ObjectCallback) {
-          final ObjectCallback oc = (ObjectCallback)callback;
-          oc.setObject(password);
-        } else if (callback instanceof PasswordCallback) {
-          final PasswordCallback pc = (PasswordCallback)callback;
-          pc.setPassword(password.toCharArray());
-        } else if (callback instanceof TextOutputCallback) {
-          final TextOutputCallback toc = (TextOutputCallback) callback;
-          switch (toc.getMessageType()) {
-            case TextOutputCallback.ERROR:
-              log.error(toc.getMessage());
-              break;
-            case TextOutputCallback.WARNING:
-              log.warn(toc.getMessage());
-              break;
-            case TextOutputCallback.INFORMATION:
-              log.info(toc.getMessage());
-              break;
-            default:
-              throw new IOException("Unsupported message type: " + toc.getMessageType());
-          }
-        } else {
-          throw new UnsupportedCallbackException(callback);
-        }
       }
     }
   }

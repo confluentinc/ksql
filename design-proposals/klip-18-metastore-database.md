@@ -183,28 +183,39 @@ can be modeled by storing both in a the same table, with the name as the primary
 
 The above design relies on, or at least is simplified by, a few other KLIPs:
 
+All existing DDL statements, except `INSERT INTO`  and `TERMINATE`, either create or drop a new
+data-source or custom type.  Where as `INSERT INTO`  and `TERMINATE` _modify_ an existing type.
+
+Also, this design relies on the fact that there is a `1->[0..1]` mapping between data-source and
+persistent query, i.e. a data-source can have zero or one associated persistent queries. Basically,
+source's created by `CREATE STREAM` or `CREATE TABLE` statements have no associated query, where as
+the materialized views created  by `CREATE STREAM AS SELECT` or `CREATE TABLE AS SELECT` have a
+single associated query, which keeps the view up to date.
+
 #### [KLIP 17 - SQL Union][17]
 
-The design relies on the fact that there is a one-to-one mapping between DDL statement and
-data-source, and between data-source and persistent query.
-
-The current `INSERT INTO` does not fit this one-to-one relationship as the DDL statement does not
-create a data-source and creates an additional query associated with an existing data-source.
+The current `INSERT INTO` does not create or delete a data-source, it _modifies_ an existing one by
+adding an additional query that is needed to populate the view. Hence with `INSERT INTO` the mapping
+between data-source and persistent query is not `1->[0..1]`, it is `1->[0..n]`.
 
 It would potentially be possible to support `INSERT INTO` with the proposed design by allowing
-multiple query plans to be attached to existing data sources. However, this would require the
-initial implementation to support `UPDATE TABLE` semantics on the metastore tables themselves.
+multiple query plans to be attached to existing data sources. However, modifying an existing source
+would require the initial implementation to support `UPDATE TABLE` semantics on the metastore tables
+themselves.
+
 Without `INSERT INTO` the `UPDATE TABLE` functionality is only required once we start to use this
-new design to support `ALTER` functionality on user `STREAM`s, `TABLE`s or `TYPE`s.
+new design to support `ALTER` functionality on user `STREAM`s, `TABLE`s or `TYPE`s. So removing
+`INSERT INTO` lowers the LOE for a MVP.
 
 #### [KLIP 20 - remove TERMINATE][20]
 
 `TERMINATE` stops a running persistent query that is keeping a materialized view (C*AS) up to date.
-It isn't really a DDL statement and does not fit into the data model of the proposed design.
+It isn't really a DDL statement. It doesn't create or drop a data-source. It does not fit into the
+data model of the proposed design that well.
 
-It would be possible to support `TERMINATE` by setting a flag on a data source's entry in the
-`UserDataSources` table.  However, like `INSERT INTO`, this would require `UPDATE TABLE` semantics
-on the metastore's tables, which can otherwise be avoided in the initial implementation.
+It would be possible to support `TERMINATE` by setting a `stopped` flag on a data source's entry in
+the `UserDataSources` table.  However, like `INSERT INTO`, this would require `UPDATE TABLE`
+semantics on the metastore's tables, which can otherwise be avoided in the initial implementation.
 
 ### Low level
 

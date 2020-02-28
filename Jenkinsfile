@@ -72,15 +72,15 @@ def job = {
             error("If you are doing a release build you must provide a git sha.")
         }
 
-        config.revision = params.GIT_REVISION
         // For a release build we remove the -SNAPSHOT from the version.
         config.ksql_db_version = config.ksql_db_version.tokenize("-")[0]
         config.docker_tag = config.ksql_db_version
     } else {
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
-        // Use revision param if provided, otherwise default to master
-        config.revision = params.GIT_REVISION ?: 'refs/heads/master'
     }
+    
+    // Use revision param if provided, otherwise default to master
+    config.revision = params.GIT_REVISION ?: 'refs/heads/master'
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"

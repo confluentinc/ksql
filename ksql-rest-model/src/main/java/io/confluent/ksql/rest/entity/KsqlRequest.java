@@ -62,6 +62,7 @@ public class KsqlRequest {
     return ksql;
   }
 
+  @JsonProperty("streamsProperties")
   public Map<String, Object> getConfigOverrides() {
     return coerceTypes(configOverrides);
   }

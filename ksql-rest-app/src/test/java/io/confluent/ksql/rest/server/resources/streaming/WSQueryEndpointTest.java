@@ -353,7 +353,7 @@ public class WSQueryEndpointTest {
     // Given:
     final String jsonRequest = "{"
         + "\"ksql\":\"sql\","
-        + "\"configOverrides\":{"
+        + "\"streamsProperties\":{"
         + "\"unknown-property\":true"
         + "}}";
 

@@ -44,7 +44,7 @@ public class KsqlRequest {
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
-      @JsonProperty("configOverrides") final Map<String, ?> configOverrides,
+      @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
@@ -62,6 +62,7 @@ public class KsqlRequest {
     return ksql;
   }
 
+  @JsonProperty("streamsProperties")
   public Map<String, Object> getConfigOverrides() {
     return coerceTypes(configOverrides);
   }

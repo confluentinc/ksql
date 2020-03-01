@@ -46,7 +46,7 @@ public class KsqlRequestTest {
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
   private static final String A_JSON_REQUEST = "{"
       + "\"ksql\":\"sql\","
-      + "\"configOverrides\":{"
+      + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
                 + TimestampExtractor.class.getCanonicalName() + "\""
@@ -56,7 +56,7 @@ public class KsqlRequestTest {
       + "}}";
   private static final String A_JSON_REQUEST_WITH_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
-      + "\"configOverrides\":{"
+      + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
                 + TimestampExtractor.class.getCanonicalName() + "\""
@@ -67,7 +67,7 @@ public class KsqlRequestTest {
       + "\"commandSequenceNumber\":2}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
-      + "\"configOverrides\":{"
+      + "\"streamsProperties\":{"
       + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
       + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
                 + TimestampExtractor.class.getCanonicalName() + "\""
@@ -178,7 +178,7 @@ public class KsqlRequestTest {
     // Given:
     final String jsonRequest = "{"
         + "\"ksql\":\"sql\","
-        + "\"configOverrides\":{"
+        + "\"streamsProperties\":{"
         + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\""
         + "}}";
 

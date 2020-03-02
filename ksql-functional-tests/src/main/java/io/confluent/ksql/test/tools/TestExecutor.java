@@ -63,7 +63,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.Matcher;
-import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("deprecation")
@@ -138,10 +137,6 @@ public class TestExecutor implements Closeable {
               ksqlConfig,
               stubKafkaService
           );
-
-      testCase.expectedException().map(ee -> {
-        throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
-      });
 
       writeInputIntoTopics(testCase.getInputRecords(), stubKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()

@@ -68,6 +68,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("deprecation")
@@ -218,6 +219,10 @@ public final class TestExecutorUtil {
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
+
+    testCase.expectedException().map(ee -> {
+      throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
+    });
 
     assertThat("test did not generate any queries.", queries, is(not(empty())));
     return queries;

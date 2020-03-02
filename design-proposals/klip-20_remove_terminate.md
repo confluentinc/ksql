@@ -11,7 +11,7 @@ user experience. The id of the query(s) that need terminating are not determinis
 through SQL. We propose dropping the source should automatically drop persistent query(s) that write
 to it.
 
-*NB*: is most likely dependent on [KLIP-17](klip-17-sql-union.md).
+*NB*: is most likely dependent on [KLIP-17][17].
 
 ## Motivation and background
 
@@ -29,14 +29,14 @@ those query ids will change from one run to another in most cases. Hence it is g
 possible to drop a table or stream in a script.
 
 The problem is compounded by the fact that _mutiple_ persistent queries can be writing into the
-source or table.  However, [KLIP-17](klip-17-sql-union.md) proposes to correct this, so that there
+source or table.  However, [KLIP-17][17] proposes to correct this, so that there
 will be, at-most, a single persistent query writing to any table or stream.
 
 There also seems to be no clear benefit of being able to terminate a query without dropping the 
 associated stream or table. Especially, given there is no means to restart it.
 
 Consider that `CSAS` and `CTAS` statements are equivalent to `MATERIALIZED VIEW`s used in RDBSs, 
-(as proposed in [KLIP-19](klip-19-materialize-views.md)). In a traditional RDBS the underlying 
+(as proposed in [KLIP-19][19]). In a traditional RDBS the underlying
 process by which the materialized view is kept up to data is not exposed to the user.  There is
 no 'persistent query' to either list or terminate. Hence we propose we should remove the 
 problematic `TERMINATE` from our syntax and instead allow users to drop the view, even if there 
@@ -69,12 +69,12 @@ Remove `TERMINATE` will make KSQL easier to operate, which will help drive adopt
 
 ## Design
 
-This KLIP could potentially be done independently of [KLIP-17](klip-17-sql-union.md), which restores 
+This KLIP could potentially be done independently of [KLIP-17][17], which restores
 the (1 - 0..1) relationship between source and persistent query. However, this is likely more complex 
 as there are potentially multiple queries writing to a source. This may make recovering from the 
-command topic more challenging.
+command topic more challenging, as it will need to check for multiple queries. 
 
-With [KLIP-17](klip-17-sql-union.md) complete there are _at-most_ a single persistent query updating each 
+With [KLIP-17][17] complete there are _at-most_ a single persistent query updating each
 source. The engine could track this relationship. When the user attempts to drop the source the engine will 
 check if the source is used in any downstream queries. If it is, then the drop will be denied, as it does today. 
 The engine will also check for upstream queries writing to the source. If found, instead of failing, 
@@ -119,3 +119,6 @@ None.
 ## Security Implications
 
 None.
+
+[17]: https://github.com/confluentinc/ksql/pull/4125
+[19]: https://github.com/confluentinc/ksql/pull/4177

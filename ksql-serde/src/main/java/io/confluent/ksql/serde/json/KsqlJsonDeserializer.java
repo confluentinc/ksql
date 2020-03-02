@@ -82,7 +82,9 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       final PersistenceSchema physicalSchema,
       final boolean isJsonSchema
   ) {
-    this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
+    this.physicalSchema = JsonSerdeUtils.validateSchema(
+        Objects.requireNonNull(physicalSchema, "physicalSchema")
+    );
     this.isJsonSchema = isJsonSchema;
   }
 

@@ -114,7 +114,7 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     final String topicName = statement.getStatement().getProperties().getKafkaTopic();
 
-    final SchemaResult result = statement.getStatement().getProperties().getAvroSchemaId()
+    final SchemaResult result = statement.getStatement().getProperties().getSchemaId()
         .map(id -> schemaSupplier.getValueSchema(topicName, Optional.of(id)))
         .orElseGet(() -> schemaSupplier.getValueSchema(topicName, Optional.empty()));
 
@@ -145,7 +145,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    if (properties.getAvroSchemaId().isPresent()) {
+    if (properties.getSchemaId().isPresent()) {
       return statement.copyWith(elements, properties);
     }
     return statement.copyWith(elements, properties.withSchemaId(schema.id));

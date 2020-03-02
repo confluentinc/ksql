@@ -251,10 +251,6 @@ public class KsqlConfig extends AbstractConfig {
       + "\nKSQL also marks its own internal topics as read-only. This is not controlled by this "
       + "config.";
 
-  public static final String KSQL_NEW_API_ENABLED = "ksql.new.api.enabled";
-  public static final Boolean KSQL_NEW_API_ENABLED_DEFAULT = false;
-  public static final String KSQL_NEW_API_ENABLED_DOC = "Is the new Vert.x based API enabled?";
-
   public static final String KSQL_TIMESTAMP_THROW_ON_INVALID = "ksql.timestamp.throw.on.invalid";
   public static final Boolean KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT = false;
   public static final String KSQL_TIMESTAMP_THROW_ON_INVALID_DOC = "If an incoming message "
@@ -608,13 +604,6 @@ public class KsqlConfig extends AbstractConfig {
             ConfigValidators.validRegex(),
             Importance.LOW,
             KSQL_READONLY_TOPICS_DOC
-        )
-        .define(
-            KSQL_NEW_API_ENABLED,
-            Type.BOOLEAN,
-            KSQL_NEW_API_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_NEW_API_ENABLED_DOC
         )
         .define(
             KSQL_TIMESTAMP_THROW_ON_INVALID,

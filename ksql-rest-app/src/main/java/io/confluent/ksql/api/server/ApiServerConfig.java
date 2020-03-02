@@ -87,9 +87,6 @@ public class ApiServerConfig extends AbstractConfig {
   public static final String MAX_PUSH_QUERIES_DOC =
       "The maximum number of push queries allowed on the server at any one time";
 
-  public static final String PROXY_PORT = propertyName("proxy.port");
-  public static final int DEFAULT_PROXY_PORT = 8089;
-
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
   }
@@ -165,14 +162,7 @@ public class ApiServerConfig extends AbstractConfig {
           DEFAULT_MAX_PUSH_QUERIES,
           zeroOrPositive(),
           Importance.MEDIUM,
-          MAX_PUSH_QUERIES_DOC)
-      .define(
-          PROXY_PORT,
-          Type.INT,
-          DEFAULT_PROXY_PORT,
-          zeroOrPositive(),
-          Importance.MEDIUM,
-          "");
+          MAX_PUSH_QUERIES_DOC);
 
   public ApiServerConfig(final Map<?, ?> map) {
     super(CONFIG_DEF, map);

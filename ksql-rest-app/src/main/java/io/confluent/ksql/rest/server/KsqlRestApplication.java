@@ -94,6 +94,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
@@ -135,6 +136,8 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -178,9 +181,48 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   // We embed this in here for now
   private Vertx vertx = null;
   private Server apiServer = null;
+  private ApiServerConfig apiServerConfig;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
+  }
+
+  public static KsqlRestConfig convertListenerConfig(final KsqlRestConfig config) {
+    final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
+    final String listener = listeners.get(0).trim();
+    final URI uri = URI.create(listener);
+
+    final Map<String, Object> origs = config.getOriginals();
+    origs.put(KsqlRestConfig.LISTENERS_CONFIG, "http://127.0.0.1:0");
+
+    origs.put(ApiServerConfig.LISTEN_HOST, uri.getHost());
+    origs.put(ApiServerConfig.LISTEN_PORT, uri.getPort());
+
+    return new KsqlRestConfig(origs);
+  }
+
+  public static KsqlRestConfig convertConfigSslConfig(final KsqlRestConfig config) {
+    final Map<String, Object> origs = config.getOriginals();
+
+    final String keyStoreLocation = config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    if (keyStoreLocation != null && !keyStoreLocation.isEmpty()) {
+      origs.put(ApiServerConfig.TLS_ENABLED, true);
+      origs.put(ApiServerConfig.TLS_KEY_STORE_PATH, keyStoreLocation);
+      final Password keyStorePassword = config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+      origs.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD,
+          keyStorePassword == null ? "" : keyStorePassword.value());
+    }
+
+    final String trustStoreLocation = config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
+      origs.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStoreLocation);
+      final Password trustStorePassword = config
+          .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+      origs.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD,
+          trustStorePassword == null ? "" : trustStorePassword.value());
+    }
+
+    return new KsqlRestConfig(origs);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -261,7 +303,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
   @Override
   public void startAsync() {
-    log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
+
+    startApiServer(ksqlConfigNoPort);
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
     startKsql(ksqlConfigWithPort);
@@ -270,9 +313,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     if (versionCheckerAgent != null) {
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
-    if (ksqlConfigWithPort.getBoolean(KsqlConfig.KSQL_NEW_API_ENABLED)) {
-      startApiServer(ksqlConfigWithPort);
-    }
+
+    final int jettyPort = getJettyListeners().get(0).getPort();
+
+    System.out.println("Jetty port is " + jettyPort);
+
+    apiServer.setJettyPort(jettyPort);
+
+    log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     displayWelcomeMessage();
   }
 
@@ -299,8 +347,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         RestServiceContextFactory::create,
         new PullQueryExecutorDelegate(pullQueryExecutor)
     );
-    final ApiServerConfig config = new ApiServerConfig(ksqlConfigWithPort.originals());
-    apiServer = new Server(vertx, config, endpoints);
+    apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
+    apiServer = new Server(vertx, apiServerConfig, endpoints);
     apiServer.start();
     log.info("KSQL New API Server started");
   }
@@ -440,6 +488,21 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   }
 
   List<URL> getListeners() {
+    final boolean tls = apiServerConfig.getBoolean(ApiServerConfig.TLS_ENABLED);
+    final String host = apiServerConfig.getString(ApiServerConfig.LISTEN_HOST);
+    final int port = apiServer.getActualPort();
+    final String suri = tls ? "https://" : "http://" + host + ":" + port;
+    final URI uri = URI.create(suri);
+    final URL url;
+    try {
+      url = uri.toURL();
+    } catch (MalformedURLException e) {
+      throw new KsqlException("Malformed url", e);
+    }
+    return ImmutableList.of(url);
+  }
+
+  List<URL> getJettyListeners() {
     final Function<URL, Set<Integer>> resolvePort = url ->
         Arrays.stream(server.getConnectors())
             .filter(connector -> connector instanceof ServerConnector)

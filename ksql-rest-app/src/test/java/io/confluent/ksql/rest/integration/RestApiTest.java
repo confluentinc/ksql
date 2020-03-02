@@ -176,7 +176,12 @@ public class RestApiTest {
 
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
 
-    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
+    try {
+      RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw new RuntimeException(t.getMessage(), t);
+    }
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"

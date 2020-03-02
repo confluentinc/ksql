@@ -85,9 +85,9 @@ public class ApiIntegrationTest {
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
-      .withProperty("ksql.new.api.enabled", true)
-      .withProperty("ksql.apiserver.listen.host", "localhost")
-      .withProperty("ksql.apiserver.listen.port", 0)
+      // .withProperty("ksql.new.api.enabled", true)
+      // .withProperty("ksql.apiserver.listen.host", "localhost")
+      // .withProperty("ksql.apiserver.listen.port", 0)
       .withProperty("ksql.apiserver.verticle.instances", 4)
       .build();
 

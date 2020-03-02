@@ -52,18 +52,23 @@ public class Server {
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
-  private final SocketAddress proxyTarget;
+  //private final SocketAddress proxyTarget;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
   private final AtomicInteger actualPort = new AtomicInteger(-1);
+  private int jettyPort = -1;
 
   public Server(final Vertx vertx, final ApiServerConfig config, final Endpoints endpoints) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
     this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
-    final int proxyPort = config.getInt(ApiServerConfig.PROXY_PORT);
-    this.proxyTarget = SocketAddress.inetSocketAddress(proxyPort, "127.0.0.1");
+    //final int proxyPort = config.getInt(ApiServerConfig.JETTY_SERVER_PORT);
+    //this.proxyTarget = SocketAddress.inetSocketAddress(proxyPort, "127.0.0.1");
+  }
+
+  public synchronized SocketAddress getProxyTarget() {
+    return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
   }
 
   public synchronized void start() {
@@ -77,7 +82,7 @@ public class Server {
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
     vertx.deployVerticle(() ->
-            new ServerVerticle(endpoints, createHttpServerOptions(config), this, proxyTarget),
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this),
         options,
         future);
     try {
@@ -148,6 +153,10 @@ public class Server {
 
   public int getActualPort() {
     return actualPort.get();
+  }
+
+  public synchronized void setJettyPort(final int jettyPort) {
+    this.jettyPort = jettyPort;
   }
 
   private static HttpServerOptions createHttpServerOptions(final ApiServerConfig apiServerConfig) {

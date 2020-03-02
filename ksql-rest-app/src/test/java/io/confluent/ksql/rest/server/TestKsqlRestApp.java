@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.rest.server.KsqlRestApplication.convertConfigSslConfig;
+import static io.confluent.ksql.rest.server.KsqlRestApplication.convertListenerConfig;
 import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
@@ -250,17 +252,19 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+
     try {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          config,
+          convertConfigSslConfig(config),
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           serviceContextBinderFactory
       );
+
       restServer = new ExecutableServer<>(
-          new ApplicationServer<>(config),
+          new ApplicationServer<>(convertListenerConfig(config)),
           ImmutableList.of(ksqlRestApplication)
       );
     } catch (final Exception e) {

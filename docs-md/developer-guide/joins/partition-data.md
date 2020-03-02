@@ -32,31 +32,46 @@ ksqlDB requires keys to use the `KAFKA` format. For more information, see
 repartitioning, ksqlDB uses the correct format.
 
 Because you can only use the primary key of a table as a joining column, it's
-important to understand how keys are defined. For both streams and tables, the
-column that represents the key has the name `ROWKEY`.
+important to understand how keys are defined.
 
-When you create a table by using a CREATE TABLE statement, the key of the
-table is the same as that of the records in the underlying Kafka topic.
-You must set the type of the `ROWKEY` column in the
-CREATE TABLE statement to match the key data in the underlying {{ site.ak }} topic.
+When you create a table or stream by using a CREATE TABLE or CREATE STREAM statement, the key of the
+table or stream should be the same as that of the records in the underlying {{ site.ak }} topic.
+You can set the type of the key column in the statement. Key columns are identified by the `KEY`
+namespace.  For example, the following statement creates a stream with a key column named `ID` of
+type `BIGINT`:
 
-When you create a table by using a CREATE TABLE AS SELECT statement, the key of
-the resulting table is determined as follows:
 
-- If the FROM clause contains a stream, the statement must have a GROUP BY clause,
-  and the grouping columns determine the key of the resulting table.
-    - When grouping by a single column or expression, the type of `ROWKEY` in the
-    resulting stream matches the type of the column or expression.
-    - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
-    resulting stream is an [SQL `STRING`](../../concepts/schemas).
-- If the FROM clause contains only tables and no GROUP BY clause, the key is
-  copied over from the key of the table(s) in the FROM clause.
-- If the FROM clause contains only tables and has a GROUP BY clause, the
-  grouping columns determine the key of the resulting table.
-    - When grouping by a single column or expression, the type of `ROWKEY` in the
-    resulting stream matches the type of the column or expression.
-    - When grouping by multiple columns or expressions, the type of `ROWKEY` in the
-    resulting stream is an [SQL `STRING`](../../concepts/schemas).
+```sql
+CREATE STREAM USERS (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='users', value_format='json');
+```
+
+When you create a stream by using a CREATE STREAM AS SELECT statement, the key of the resulting
+stream is determined as follows:
+
+- If the statement includes a PARTITION BY clause the, the key type is set to the type of the
+  PARTITION BY clause. The key column will have the default name of `ROWKEY`.
+- If the statement does not include a PARTITION BY clause, the key is copied over from the key of
+  the first stream in the FROM clause.
+
+When you create a table by using a CREATE TABLE AS SELECT statement, the key of the resulting table
+is determined as follows:
+
+- If the FROM clause contains a stream, the statement must have a GROUP BY clause. The key column
+  will have the default name of `ROWKEY` and the grouping column(s) determine the type of the key
+  of the resulting table.
+    - When grouping by a single column or expression, the type of the key column in the
+    resulting table matches the type of this column or expression.
+    - When grouping by multiple columns or expressions, the type of the key column in the
+    resulting table is an [SQL `STRING`](../../concepts/schemas).
+- If the FROM clause contains only tables and no GROUP BY clause, the key is copied over from the
+  key of the first table in the FROM clause.
+- If the FROM clause contains only tables and has a GROUP BY clause, The key column will have the
+  default name of `ROWKEY` and the grouping column(s) determine the type of the key of the resulting
+  table.
+    - When grouping by a single column or expression, the type of the key column in the
+    resulting table matches the type of this column or expression.
+    - When grouping by multiple columns or expressions, the type of the key column in the
+    resulting table is an [SQL `STRING`](../../concepts/schemas).
 
 The following example shows a `users` table joined with a `clicks` stream
 on the `userId` column. The `users` table has the correct primary key
@@ -65,21 +80,17 @@ doesn't have a defined key, and ksqlDB must repartition it on the joining
 column (`userId`) and assign the key before performing the join.
 
 ```sql
-    -- clicks stream, with an unknown key.
-    -- the schema of stream clicks is: ROWTIME BIGINT | ROWKEY STRING | USERID BIGINT | URL STRING
+    -- clicks stream, with an unknown key:
+    -- the schema of stream clicks is: USERID BIGINT | URL STRING
     CREATE STREAM clicks (userId BIGINT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
 
-    -- the primary key of table users is a BIGINT. 
-    -- The userId column in the value matches the key, so can be used as an alias for ROWKEY in queries to make them more readable.
-    -- the schema of table users is: ROWTIME BIGINT | ROWKEY BIGINT | USERID BIGINT | FULLNAME STRING
-    CREATE TABLE  users  (ROWKEY BIGINT KEY, userId BIGINT, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
+    -- the schema of table users is: USERID BIGINT KEY | FULLNAME STRING
+    CREATE TABLE  users  (userId BIGINT KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
 
-    -- join of users table with clicks stream, joining on the table's primary key alias and the stream's userId column: 
+    -- join of users table with clicks stream, joining on the table's primary key and the stream's userId column:
     -- join will automatically repartition clicks stream:
+    -- the schema of the result is: USERID BIGINT KEY | CLICKS_URL STRING | USERS_FULLNAME STRING
     SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.userId;
-    
-    -- The following is equivalent and does not rely on their being a copy of the tables key within the value schema:
-    SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.ROWKEY;
 ```
 
 Co-partitioning Requirements
@@ -112,29 +123,27 @@ Records with the exact same user id on both sides will be joined.
 If the schema of the columns you wish to join on don't match, it may be possible
 to `CAST` one side to match the other. For example, if one side of the join
 had a `INT` userId column, and the other a `LONG`, then you may choose to cast
-the `INT` side to a `LONG`:
+the `INT` side to a `LONG`. Note, this will incur the cost of an internal repartition of the data:
 
 ```sql
     -- stream with INT userId
     CREATE STREAM clicks (userId INT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
 
     -- table with BIGINT userId stored in they key:
-    CREATE TABLE  users  (ROWKEY BIGINT KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
+    CREATE TABLE  users  (userId BIGINT KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
     
    -- Join utilising a CAST to convert the left sides join column to match the rights type.
-   SELECT clicks.url, users.fullName FROM clicks JOIN users ON CAST(clicks.userId AS BIGINT) = users.ROWKEY;
+   SELECT clicks.url, users.fullName FROM clicks JOIN users ON CAST(clicks.userId AS BIGINT) = users.userId;
 ```
 
+Tables or streams created on top of existing Kafka topics, for example those created with
+a `CREATE TABLE` or `CREATE STREAM` statements, are keyed on the data held in the key of the records
+in the Kafka topic. ksqlDB expects the data to be in the `KAFKA` format.
 
-Tables created on top of existing Kafka topics, for example those created with
-a `CREATE TABLE` statement, are keyed on the data held in the key of the records
-in the Kafka topic. ksqlDB presents this data in the `ROWKEY` column and expects
-the data to be in the `KAFKA` format.
-
-Tables created inside ksqlDB from other sources, for example those created with
-a `CREATE TABLE AS SELECT` statement, will copy the key from their source(s)
-unless there is an explicit `GROUP BY` clause, which can change what the table
-is keyed on.
+Tables or streams created inside ksqlDB from other sources, for example those created with
+a `CREATE TABLE AS SELECT` or `CREATE STREAM AS SELECT` statements, will copy the key from their
+source(s) unless there is an explicit `GROUP BY` or `PARTITION BY` clauses, which can change what
+they are keyed on. See the [Keys](#keys) section above for more information.
 
 !!! note
     ksqlDB automatically repartitions a stream if a join requires it, but ksqlDB
@@ -145,7 +154,7 @@ is keyed on.
 
 If you are using the same sources in more than one join that requires the data
 to be repartitioned, you may prefer to repartition manually to avoid ksqlDB
-repartitioning multiple times.
+repartitioning the same data multiple times.
 
 To repartition a stream, use the PARTITION BY clause. Be aware that Kafka
 guarantees the relative order of any two messages from one source partition
@@ -182,10 +191,10 @@ the partition counts of the source topics, or repartition one side to match the
 partition count of the other.
 
 The following example creates a repartitioned stream, maintaining the existing
-key, with the specified number of partitions.
+key, `productId` in this case, with the specified number of partitions.
 
 ```sql
-CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY ROWKEY;
+CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY productId;
 ```
 
 ### Records Have the Same Partitioning Strategy

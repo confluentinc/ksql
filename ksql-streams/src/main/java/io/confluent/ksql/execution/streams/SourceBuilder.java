@@ -98,7 +98,7 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        nonWindowedRowKeyGenerator(source.getSourceSchema())
+        nonWindowedKeyGenerator(source.getSourceSchema())
     );
 
     return new KStreamHolder<>(
@@ -138,7 +138,7 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        windowedRowKeyGenerator(source.getSourceSchema())
+        windowedKeyGenerator(source.getSourceSchema())
     );
 
     return new KStreamHolder<>(
@@ -184,7 +184,7 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        nonWindowedRowKeyGenerator(source.getSourceSchema()),
+        nonWindowedKeyGenerator(source.getSourceSchema()),
         materialized
     );
 
@@ -233,7 +233,7 @@ public final class SourceBuilder {
         source,
         queryBuilder,
         consumed,
-        windowedRowKeyGenerator(source.getSourceSchema()),
+        windowedKeyGenerator(source.getSourceSchema()),
         materialized
     );
 
@@ -275,27 +275,27 @@ public final class SourceBuilder {
       final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> rowKeyGenerator
+      final Function<K, Collection<?>> keyGenerator
   ) {
     final KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
 
     return stream
-        .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
+        .transformValues(new AddKeyAndTimestampColumns<>(keyGenerator));
   }
 
   private static <K> KTable<K, GenericRow> buildKTable(
       final SourceStep<?> streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> rowKeyGenerator,
+      final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
   ) {
     final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
         .table(streamSource.getTopicName(), consumed, materialized);
 
     return table
-        .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
+        .transformValues(new AddKeyAndTimestampColumns<>(keyGenerator));
   }
 
   private static TimestampExtractor timestampExtractor(
@@ -352,7 +352,7 @@ public final class SourceBuilder {
     return StreamsUtil.buildOpName(stacker.push("Reduce").getQueryContext());
   }
 
-  private static Function<Windowed<Struct>, Collection<?>> windowedRowKeyGenerator(
+  private static Function<Windowed<Struct>, Collection<?>> windowedKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
@@ -368,7 +368,7 @@ public final class SourceBuilder {
     };
   }
 
-  private static Function<Struct, Collection<?>> nonWindowedRowKeyGenerator(
+  private static Function<Struct, Collection<?>> nonWindowedKeyGenerator(
       final LogicalSchema schema
   ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
@@ -384,10 +384,10 @@ public final class SourceBuilder {
   private static class AddKeyAndTimestampColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
-    private final Function<K, Collection<?>> rowKeyGenerator;
+    private final Function<K, Collection<?>> keyGenerator;
 
-    AddKeyAndTimestampColumns(final Function<K, Collection<?>> rowKeyGenerator) {
-      this.rowKeyGenerator = requireNonNull(rowKeyGenerator, "rowKeyGenerator");
+    AddKeyAndTimestampColumns(final Function<K, Collection<?>> keyGenerator) {
+      this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
     }
 
     @Override
@@ -407,7 +407,7 @@ public final class SourceBuilder {
           }
 
           final long timestamp = processorContext.timestamp();
-          final Collection<?> keyColumns = rowKeyGenerator.apply(key);
+          final Collection<?> keyColumns = keyGenerator.apply(key);
 
           row.ensureAdditionalCapacity(1 + keyColumns.size());
           row.append(timestamp);

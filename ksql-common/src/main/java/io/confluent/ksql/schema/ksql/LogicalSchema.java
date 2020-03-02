@@ -306,17 +306,25 @@ public final class LogicalSchema {
 
   public static class Builder {
 
-    private final ImmutableList.Builder<Column> explicitColumns = ImmutableList.builder();
-
+    private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
 
+    // Todo(ac): remove
     private boolean addImplicitRowKey = true;
     private boolean addImplicitRowTime = true;
 
+    // Todo(ac): remove
     public Builder noImplicitColumns() {
       addImplicitRowKey = false;
       addImplicitRowTime = false;
+      return this;
+    }
+
+    // Todo(ac): Test.
+    public Builder withRowTime() {
+      addImplicitRowTime = false;
+      columns.add(IMPLICIT_TIME_COLUMN);
       return this;
     }
 
@@ -359,7 +367,7 @@ public final class LogicalSchema {
         allColumns.add(IMPLICIT_KEY_COLUMN);
       }
 
-      allColumns.addAll(explicitColumns.build());
+      allColumns.addAll(columns.build());
 
       return new LogicalSchema(allColumns.build());
     }
@@ -383,7 +391,7 @@ public final class LogicalSchema {
           break;
       }
 
-      explicitColumns.add(column);
+      columns.add(column);
     }
   }
 }

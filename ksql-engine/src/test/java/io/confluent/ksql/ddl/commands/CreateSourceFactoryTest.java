@@ -858,7 +858,7 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnKeyColumnThatIsNotCalledRowKey() {
+  public void shouldNotThrowOnKeyColumnThatIsNotCalledRowKey() {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
@@ -867,13 +867,14 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'someKey' is an invalid KEY column name. "
-        + "KSQL currently only supports KEY columns named ROWKEY.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final CreateStreamCommand result = createSourceFactory
+        .createStreamCommand(statement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSchema().key(), contains(
+        keyColumn(ColumnName.of("someKey"), SqlTypes.STRING)
+    ));
   }
 
   private void givenProperty(final String name, final Literal value) {

@@ -47,8 +47,8 @@ In the previous statements, `from_item` is one of the following:
 -   `table_name [ alias ]`
 -   `from_item LEFT JOIN from_item ON join_condition`
 
-The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWTIME` and `ROWKEY` system columns.
+The WHERE clause can refer to any column defined for a stream or table, including the `ROWTIME`
+system column.
 
 Example
 -------

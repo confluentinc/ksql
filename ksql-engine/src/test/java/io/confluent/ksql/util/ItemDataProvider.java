@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Map;
 
+// Todo(ac): next: update data providers & demos to use custom key names, not WITH(KEY)
 public class ItemDataProvider extends TestDataProvider<String> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()

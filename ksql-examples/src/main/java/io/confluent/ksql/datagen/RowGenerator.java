@@ -49,7 +49,7 @@ public class RowGenerator {
   private final Generator generator;
   private final AvroData avroData;
   private final SessionManager sessionManager = new SessionManager();
-  private final String keyFieldName;
+  private final String keyFieldName; // Todo(ac): future: remove.
   private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
   private final int keyFieldIndex;
@@ -141,6 +141,7 @@ public class RowGenerator {
       }
     }
 
+    // Todo(ac): next
     final Struct keyStruct = new Struct(keySchema);
     keyStruct.put(SchemaUtil.ROWKEY_NAME.text(), row.get(keyFieldIndex));
 
@@ -280,6 +281,7 @@ public class RowGenerator {
     final Builder schemaBuilder = LogicalSchema.builder();
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
+    // Todo(ac): next
     schemaBuilder
         .keyColumn(SchemaUtil.ROWKEY_NAME, converter.toSqlType(keyField.schema()));
 

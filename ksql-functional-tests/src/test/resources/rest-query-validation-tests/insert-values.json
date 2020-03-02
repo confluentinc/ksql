@@ -6,8 +6,8 @@
     {
       "name": "explicitly supply all column values",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWTIME, ROWKEY, ID) VALUES (1234, 'key', 10);"
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (ROWTIME, K, ID) VALUES (1234, 'key', 10);"
       ],
       "inputs": [
       ],
@@ -21,8 +21,8 @@
     {
       "name": "explicitly supply values out of order",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ID, ROWTIME, ROWKEY) VALUES (10, 1234, 'key');"
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
       ],
       "inputs": [
       ],
@@ -33,8 +33,8 @@
     {
       "name": "explicitly supply default set of column values",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('key', 10);"
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (K, ID) VALUES ('key', 10);"
       ],
       "inputs": [
       ],
@@ -45,7 +45,7 @@
     {
       "name": "implicitly supply default set of column values",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST VALUES ('key', 10);"
       ],
       "inputs": [
@@ -57,8 +57,8 @@
     {
       "name": "should insert nulls for any fields not provided",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWKEY) VALUES ('10');"
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (K) VALUES ('10');"
       ],
       "inputs": [
       ],
@@ -81,7 +81,7 @@
     {
       "name": "rowkey should be set when stream has int key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (10);"
       ],
       "inputs": [
@@ -105,7 +105,7 @@
     {
       "name": "rowkey should be set when stream has double key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (K DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (1.23);"
       ],
       "inputs": [
@@ -117,7 +117,7 @@
     {
       "name": "rowkey should be set when stream has bigint key and only key specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST (K BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "INSERT INTO TEST (ID) VALUES (10);"
       ],
       "inputs": [
@@ -129,8 +129,8 @@
     {
       "name": "keyfield should be set when stream has string key and only rowkey specified in insert",
       "statements": [
-        "CREATE STREAM TEST (ID STRING) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY) VALUES ('10');"
+        "CREATE STREAM TEST (K STRING KEY, ID STRING) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K) VALUES ('10');"
       ],
       "inputs": [
       ],
@@ -141,8 +141,8 @@
     {
       "name": "rowkey and key should match when stream has int key",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 10);"
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K, ID) VALUES (10, 10);"
       ],
       "inputs": [
       ],
@@ -153,8 +153,8 @@
     {
       "name": "rowkey and key should match when stream has String key",
       "statements": [
-        "CREATE STREAM TEST (ID STRING) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('10', '10');"
+        "CREATE STREAM TEST (K STRING KEY, ID STRING) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K, ID) VALUES ('10', '10');"
       ],
       "inputs": [
       ],
@@ -165,8 +165,8 @@
     {
       "name": "rowkey and key should match when stream has double key",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES (1.23, 1.23);"
+        "CREATE STREAM TEST (K DOUBLE KEY, ID DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K, ID) VALUES (1.23, 1.23);"
       ],
       "inputs": [
       ],
@@ -177,8 +177,8 @@
     {
       "name": "rowkey and key should match when stream has bigint key",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 10);"
+        "CREATE STREAM TEST (K BIGINT KEY, ID BIGINT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K, ID) VALUES (10, 10);"
       ],
       "inputs": [
       ],
@@ -189,24 +189,24 @@
     {
       "name": "should fail on mismatch between explicit columns and value counts",
       "statements": [
-        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES ('10');"
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (K, ID) VALUES ('10');"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to prepare statement: Expected number columns and values to match: [ROWKEY, ID], ['10']",
+        "message": "Failed to prepare statement: Expected number columns and values to match: [K, ID], ['10']",
         "status": 400
       }
     },
     {
       "name": "should fail on mismatch between rowkey and key values when stream has key",
       "statements": [
-        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
-        "INSERT INTO TEST (ROWKEY, ID) VALUES (10, 5);"
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "INSERT INTO TEST (K, ID) VALUES (10, 5);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to insert values into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
+        "message": "Failed to insert values into 'TEST'. Expected K and ID to match but got 10 and 5 respectively.",
         "status": 400
       }
     },
@@ -261,8 +261,8 @@
     {
       "name": "should handle quoted identifiers",
       "statements": [
-        "CREATE STREAM `test` (`id!` INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO `test` (ROWTIME, ROWKEY, `id!`) VALUES (1234, 'key', 10);"
+        "CREATE STREAM `test` (`@key` STRING KEY, `id!` INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO `test` (ROWTIME, `@key`, `id!`) VALUES (1234, 'key', 10);"
       ],
       "inputs": [
       ],
@@ -276,7 +276,7 @@
     {
       "name": "should handle struct expressions",
       "statements": [
-        "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (val) VALUES (STRUCT(FOO := 2.1, `bar` := ARRAY['bar']));"
       ],
       "inputs": [
@@ -288,7 +288,7 @@
     {
       "name": "should handle struct coercion",
       "statements": [
-        "CREATE STREAM TEST (val STRUCT<foo BIGINT, bar ARRAY<BIGINT>, baz DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, val STRUCT<foo BIGINT, bar ARRAY<BIGINT>, baz DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (val) VALUES (STRUCT(FOO := 2, BAR := ARRAY[2], BAZ := 2));"
       ],
       "inputs": [
@@ -300,13 +300,25 @@
     {
       "name": "should handle empty struct expressions",
       "statements": [
-        "CREATE STREAM TEST (val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, val STRUCT<foo DECIMAL(2, 1), `bar` ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO TEST (val) VALUES (STRUCT());"
       ],
       "inputs": [
       ],
       "outputs": [
         {"topic": "test_topic", "key": null, "value": {"VAL": {"FOO": null, "bar": null}}}
+      ]
+    },
+    {
+      "name": "should handled quoted key and value",
+      "statements": [
+        "CREATE STREAM TEST (`Key` STRING KEY, `Value` INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (`Key`, `Value`) VALUES ('key', 10);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": "key", "value": {"Value": 10}}
       ]
     }
   ]

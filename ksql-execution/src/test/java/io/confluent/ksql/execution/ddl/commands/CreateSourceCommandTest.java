@@ -65,7 +65,7 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldThrowIfKeyFieldDoesNotMatchRowKeyType() {
+  public void shouldThrowIfKeyFieldDoesNotMatchKeyType() {
     // Given:
     final ColumnName keyField = ColumnName.of("keyField");
 
@@ -79,10 +79,10 @@ public class CreateSourceCommandTest {
     expectedException.expectMessage("The KEY field (keyField) identified in the "
         + "WITH clause is of a different type to the actual key column.");
     expectedException.expectMessage(
-        "Either change the type of the KEY field to match ROWKEY, or explicitly set ROWKEY "
-            + "to the type of the KEY field by adding 'ROWKEY STRING KEY' in the schema.");
+        "Use of the KEY field is deprecated. Remove the KEY field from the WITH clause and "
+            + "specify the name of the key column by adding 'keyField STRING KEY' to the schema.");
     expectedException.expectMessage("KEY field type: STRING");
-    expectedException.expectMessage("ROWKEY type: INTEGER");
+    expectedException.expectMessage("key column type: INTEGER");
 
     // When:
     new TestCommand(
@@ -97,7 +97,7 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldNotThrowIfKeyFieldMatchesRowKeyType() {
+  public void shouldNotThrowIfKeyFieldMatchesKeyType() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(K0, SqlTypes.INTEGER)
@@ -122,7 +122,7 @@ public class CreateSourceCommandTest {
   public void shouldThrowOnWindowStartColumn() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWSTART_NAME, SqlTypes.INTEGER)
         .build();
 
@@ -146,7 +146,7 @@ public class CreateSourceCommandTest {
   public void shouldThrowOnWindowEndColumn() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
         .valueColumn(SchemaUtil.WINDOWEND_NAME, SqlTypes.INTEGER)
         .build();
 

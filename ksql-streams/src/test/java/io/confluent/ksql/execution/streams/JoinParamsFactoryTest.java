@@ -9,7 +9,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -17,11 +16,13 @@ import org.junit.rules.ExpectedException;
 public class JoinParamsFactoryTest {
 
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("LK"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("RK"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build();
@@ -38,7 +39,7 @@ public class JoinParamsFactoryTest {
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("LK"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)

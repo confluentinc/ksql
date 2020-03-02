@@ -54,7 +54,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -75,8 +74,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
-  private static final ColumnName TIMESTAMP_FIELD
-      = ColumnName.of("timestamp");
+  private static final ColumnName TIMESTAMP_FIELD = ColumnName.of("timestamp");
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final SourceName SOURCE_NAME = SourceName.of("datasource");
 
@@ -89,7 +87,7 @@ public class DataSourceNodeTest {
   private static final ColumnName FIELD3 = ColumnName.of("field3");
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)

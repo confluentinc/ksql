@@ -537,6 +537,7 @@ public class KsMaterializationFunctionalTest {
 
   private static Struct asKeyStruct(final String rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
+    // TOdo(ac):
     key.put(SchemaUtil.ROWKEY_NAME.text(), rowKey);
     return key;
   }

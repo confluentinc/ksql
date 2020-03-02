@@ -449,6 +449,11 @@ public final class QueryExecutor {
     final LogicalSchema.Builder builder = LogicalSchema.builder()
         .noImplicitColumns();
 
+    // Todo(ac): Don't just return value schema. Return true schema with KEY columns
+    //   If we pass namespace info to CLI this will also allow CLI to id any KEY column(s)
+    //   Returned schema should only include ROWTIME if pass schema has it in the value.
+    //   Returned schema should only include key columns(s)? if pass schema has it in the value.
+
     builder.valueColumns(fullSchema.value());
     return builder.build();
   }

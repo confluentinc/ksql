@@ -423,6 +423,9 @@ public class LogicalPlanner {
         sourcePlanNode.getSelectExpressions()
     );
 
+    // Todo(ac): Support getting key name from GROUP BY
+    // Todo(ac): Support aliasing in GROUP BY to provide key column name?
+    // Todo(ac): Update partition-data.md once done.
     return LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
@@ -440,6 +443,9 @@ public class LogicalPlanner {
 
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 
+    // Todo(ac): Support getting key name from partition by column
+    // Todo(ac): Support aliasing in PARTITION BY to provide key column name?
+    // Todo(ac): Update partition-data.md once done.
     return LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())

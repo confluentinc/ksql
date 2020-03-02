@@ -4,7 +4,17 @@
   ],
   "tests": [
     {
-      "name": "should fail if ROWKEY used as column name",
+      "name": "should fail if ROWKEY used as key column name",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY int) WITH (kafka_topic='test', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWKEY' is a reserved column name. It can only be used for KEY columns."
+      }
+    },
+    {
+      "name": "should fail if ROWKEY used as value column name",
       "statements": [
         "CREATE STREAM INPUT (x int) WITH (kafka_topic='test', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT x AS rowkey FROM INPUT;"

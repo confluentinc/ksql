@@ -576,7 +576,7 @@ class Analyzer {
         // See https://github.com/confluentinc/ksql/issues/3731 for more info
         final List<Column> valueColumns = persistent && !analysis.isJoin()
             ? schema.value()
-            : systemColumnsToTheFront(schema.withMetaAndKeyColsInValue(windowed).value());
+            : orderColumns(schema.withMetaAndKeyColsInValue(windowed).value(), schema);
 
         for (final Column column : valueColumns) {
 
@@ -596,12 +596,15 @@ class Analyzer {
       }
     }
 
-    private List<Column> systemColumnsToTheFront(final List<Column> columns) {
-      // When doing a `select *` the system columns should be at the front of the column list
+    private List<Column> orderColumns(
+        final List<Column> columns,
+        final LogicalSchema schema
+    ) {
+      // When doing a `select *` system and key columns should be at the front of the column list
       // but are added at the back during processing for performance reasons.
       // Switch them around here:
-      final Map<Boolean, List<Column>> partitioned = columns.stream()
-          .collect(Collectors.groupingBy(c -> SchemaUtil.isSystemColumn(c.name())));
+      final Map<Boolean, List<Column>> partitioned = columns.stream().collect(Collectors
+          .groupingBy(c -> SchemaUtil.isSystemColumn(c.name()) || schema.isKeyColumn(c.name())));
 
       final List<Column> all = partitioned.get(true);
       all.addAll(partitioned.get(false));
@@ -638,6 +641,13 @@ class Analyzer {
         if (SchemaUtil.isSystemColumn(columnName)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
+        }
+
+        // Todo(ac): This needs to check against the key columns of the RESTUL schema.
+        if (analysis.getKeyColumnNames().contains(columnName)) {
+          throw new KsqlException("Value column name "
+              + "'" + columnName.text() + "' "
+              + "clashes with key column name. Please remove or alias the column.");
         }
       }
 

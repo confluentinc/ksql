@@ -17,18 +17,17 @@ underlying {{ site.ak }} topic.
 A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-types),
 and possibly a namespace.
 
-Key columns have a `KEY` namespace suffix. Key columns have the following restrictions:
-  * The can only be a single key column, currently.
-  * The key column must be named `ROWKEY` in the KSQL schema.
+Key columns have a `KEY` namespace suffix. The can only be a single key column, currently, and the
+key column can have any [valid name](#valid-identifiers).
 
-Value columns have no namespace suffix. There can be one or more value columns amd the value columns
-can have any name.
+Value columns have no namespace suffix. There can be one or more value columns and the value columns
+can have any [valid name](#valid-identifiers).
 
-For example, the following declares a schema with a single `INT` key column and several value
-columns:
+For example, the following declares a schema with a single `INT` key column, containing some Id, and
+several value columns:
 
 ```sql
-ROWKEY INT KEY, ID BIGINT, STRING NAME, ADDRESS ADDRESS_TYPE
+ID INT KEY, STRING NAME, ADDRESS ADDRESS_TYPE
 ```
 
 ## Valid Identifiers

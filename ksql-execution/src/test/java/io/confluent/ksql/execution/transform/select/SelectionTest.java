@@ -44,7 +44,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectionTest {
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
@@ -112,11 +114,12 @@ public class SelectionTest {
     final LogicalSchema resultSchema = selection.getSchema();
 
     // Then:
-    final LogicalSchema expected = new LogicalSchema.Builder()
-        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+    assertThat(resultSchema, equalTo(new LogicalSchema.Builder()
+        .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
-        .build();
-    assertThat(resultSchema, equalTo(expected));
+        .build()));
   }
 }
+
+// Todo(ac): Ensure testing tool can work with other key names

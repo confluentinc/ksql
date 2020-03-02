@@ -297,6 +297,7 @@ public class AggregateNode extends PlanNode {
       final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable);
 
       final Function<Expression, Expression> mapper = e -> {
+        // Todo(ac):
         final boolean rowKey = e instanceof UnqualifiedColumnReferenceExp
             && ((UnqualifiedColumnReferenceExp) e).getReference().equals(
                 SchemaUtil.ROWKEY_NAME);

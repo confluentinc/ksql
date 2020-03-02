@@ -21,44 +21,41 @@ Description
 -----------
 
 Produce a row into an existing stream or table and its underlying topic
-based on explicitly specified values. The first `column_name` of every
-schema is `ROWKEY`, which defines the corresponding Kafka key. If the
-source specifies a `key` and that column is present in the column names
-for this INSERT statement then that value and the `ROWKEY` value are
-expected to match, otherwise the value from `ROWKEY` will be copied into
-the value of the key column (or conversely from the key column into the
-`ROWKEY` column).
+based on explicitly specified values.
 
-Any column not explicitly given a value is set to `null`. If no columns
-are specified, a value for every column is expected in the same order as
-the schema with `ROWKEY` as the first column. If columns are specified,
-the order does not matter.
+If no columns are specified, a value for every column is expected in the same order as
+the schema. If columns are specified, the order of values must match the order of the names.
+Any column not explicitly given a value is set to `null`.
 
 !!! note
 	`ROWTIME` may be specified as an explicit column but isn't required
     when you omit the column specifications.
 
+!!! note
+  While streams will allow inserts where the KEY column is `null`, tables require a value for their
+  PRIMARY KEY and will reject any statement without one.
+
 Example
 -------
 
 The following statements are valid for a source with a schema like
-`<KEY_COL VARCHAR, COL_A VARCHAR>` with `KEY=KEY_COL`.
+`ID INT KEY, COL_A VARCHAR`.
 
 ```sql
--- inserts (1234, "key", "key", "A")
-INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, 'key', 'key', 'A');
+-- inserts (rowtime=1234, id="key", col_a="A")
+INSERT INTO foo (ROWTIME, ID, COL_A) VALUES (1234, 'key', 'A');
 
--- inserts (current_time(), "key", "key", "A")
-INSERT INTO foo VALUES ('key', 'key', 'A');
+-- also inserts (rowtime=1234, id="key", col_a="A")
+INSERT INTO foo (COL_A, ID, ROWTIME) VALUES ('A', 'key', 1234);
 
--- inserts (current_time(), "key", "key", "A")
+-- inserts (rowtime=current_time(), id="key", col_a="A")
+INSERT INTO foo VALUES ('key', 'A');
+
+-- inserts (rowtime=current_time(), id="key", COL_A="A")
 INSERT INTO foo (KEY_COL, COL_A) VALUES ('key', 'A');
 
--- inserts (current_time(), "key", "key", null)
+-- inserts (rowtime=current_time(), id="key", COL_A=null)
 INSERT INTO foo (KEY_COL) VALUES ('key');
 ```
-
-The values are serialized by using the `value_format` specified in the
-original `CREATE` statement. The key is always serialized as a String.
 
 Page last revised on: {{ git_revision_date }}

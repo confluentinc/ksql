@@ -85,6 +85,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TabularRow;
 import java.io.Closeable;
 import java.io.File;
@@ -454,11 +455,12 @@ public class Console implements Closeable {
       final Optional<WindowType> windowType,
       final String keyField
   ) {
-    if (field.getName().equals("ROWTIME")) {
+    if (field.getName().equals(SchemaUtil.ROWTIME_NAME.text())) {
       return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
     }
 
-    if (field.getName().equals("ROWKEY")) {
+    // Todo(ac):
+    if (field.getName().equals(SchemaUtil.ROWKEY_NAME.text())) {
       final String wt = windowType
           .map(v -> " (Window type: " + v + ")")
           .orElse("");

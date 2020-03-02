@@ -30,6 +30,7 @@ public abstract class ColumnReferenceExp extends Expression {
     this.name = Objects.requireNonNull(name, "name");
   }
 
+  // Todo(ac): future: Name!
   public ColumnName getReference() {
     return name;
   }

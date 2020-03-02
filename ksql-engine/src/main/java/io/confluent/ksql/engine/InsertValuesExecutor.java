@@ -37,7 +37,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -62,7 +61,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -143,6 +141,7 @@ public class InsertValuesExecutor {
     this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
+  @SuppressWarnings("unused") // Part of required API.
   public void execute(
       final ConfiguredStatement<InsertValues> statement,
       final SessionProperties sessionProperties,
@@ -176,7 +175,7 @@ public class InsertValuesExecutor {
     }
   }
 
-  private DataSource getDataSource(
+  private static DataSource getDataSource(
       final KsqlConfig ksqlConfig,
       final MetaStore metaStore,
       final InsertValues insertValues
@@ -267,11 +266,23 @@ public class InsertValuesExecutor {
     final Map<ColumnName, Object> values = resolveValues(
         insertValues, columns, schema, functionRegistry, config);
 
-    handleExplicitKeyField(values, dataSource.getKeyField());
+    handleExplicitKeyField(
+        values,
+        dataSource.getKeyField(),
+        Iterables.getOnlyElement(dataSource.getSchema().key())
+    );
 
-    if (dataSource.getDataSourceType() == DataSourceType.KTABLE
-        && values.get(SchemaUtil.ROWKEY_NAME) == null) {
-      throw new KsqlException("Value for ROWKEY is required for tables");
+    if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
+      final String noValue = dataSource.getSchema().key().stream()
+          .map(Column::name)
+          .filter(colName -> !values.containsKey(colName))
+          .map(ColumnName::text)
+          .collect(Collectors.joining(", "));
+
+      if (!noValue.isEmpty()) {
+        throw new KsqlException("Value for primary key column(s) "
+            + noValue + " is required for tables");
+      }
     }
 
     final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
@@ -358,26 +369,29 @@ public class InsertValuesExecutor {
 
   private static void handleExplicitKeyField(
       final Map<ColumnName, Object> values,
-      final KeyField keyField
+      final KeyField keyField,
+      final Column keyColumn
   ) {
-    final Optional<ColumnName> keyFieldName = keyField.ref();
-    if (keyFieldName.isPresent()) {
-      final ColumnName key = keyFieldName.get();
-      final Object keyValue = values.get(key);
-      final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
+    // key column: the key column in the source's schema.
+    // key field: the column identified in the WITH clause as being an alias to the key column.
 
-      if (keyValue != null ^ rowKeyValue != null) {
-        if (keyValue == null) {
-          values.put(key, rowKeyValue);
+    keyField.ref().ifPresent(keyFieldName -> {
+      final ColumnName keyColumnName = keyColumn.name();
+      final Object keyFieldValue = values.get(keyFieldName);
+      final Object keyColumnValue = values.get(keyColumnName);
+
+      if (keyFieldValue != null ^ keyColumnValue != null) {
+        if (keyFieldValue == null) {
+          values.put(keyFieldName, keyColumnValue);
         } else {
-          values.put(SchemaUtil.ROWKEY_NAME, keyValue);
+          values.put(keyColumnName, keyFieldValue);
         }
-      } else if (keyValue != null && !Objects.equals(keyValue, rowKeyValue)) {
-        throw new KsqlException(String.format(
-            "Expected ROWKEY and %s to match but got %s and %s respectively.",
-            key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));
+      } else if (keyFieldValue != null && !Objects.equals(keyFieldValue, keyColumnValue)) {
+        throw new KsqlException(
+            "Expected " + keyColumnName.text() + " and " + keyFieldName.text() + " to match "
+                + "but got " + keyColumnValue + " and " + keyFieldValue + " respectively.");
       }
-    }
+    });
   }
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {

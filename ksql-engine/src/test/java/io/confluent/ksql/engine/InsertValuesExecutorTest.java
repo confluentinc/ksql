@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -67,6 +68,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -97,19 +99,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
+  private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName COL0 = ColumnName.of("COL0");
-  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
+  private static final ColumnName COL1 = ColumnName.of("COL1");
+  private static final ColumnName INT_COL = ColumnName.of("INT");
+
+  private static final LogicalSchema SINGLE_VALUE_COLUMN_SCHEMA = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("COL1"), SqlTypes.BIGINT)
+      .valueColumn(COL1, SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
-      .valueColumn(COL0, SqlTypes.STRING) // named COL0 for auto-ROWKEY
-      .valueColumn(ColumnName.of("INT"), SqlTypes.INTEGER)
+      .keyColumn(K0, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(INT_COL, SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BIGINT"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("DOUBLE"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("BOOLEAN"), SqlTypes.BOOLEAN)
@@ -203,10 +212,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldInsertWrappedSingleField() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of(COL0));
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_FIELD_SCHEMA),
+        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -223,13 +232,13 @@ public class InsertValuesExecutorTest {
   public void shouldInsertUnwrappedSingleField() {
     // Given:
     givenSourceStreamWithSchema(
-        SINGLE_FIELD_SCHEMA,
+        SINGLE_VALUE_COLUMN_SCHEMA,
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES),
         Optional.of(COL0))
     ;
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        valueFieldNames(SINGLE_FIELD_SCHEMA),
+        valueFieldNames(SINGLE_VALUE_COLUMN_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -245,8 +254,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInRowtime() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new StringLiteral("str"),
@@ -264,10 +273,10 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldHandleRowTimeWithoutRowKey() {
+  public void shouldHandleRowTimeWithoutKey() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWTIME", "COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(SchemaUtil.ROWTIME_NAME, COL0, COL1),
         ImmutableList.of(
             new LongLiteral(1234L),
             new StringLiteral("str"),
@@ -285,10 +294,10 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldFillInRowKeyFromSpecifiedKey() {
+  public void shouldFillInKeyColumnFromSpecifiedKeyField() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -328,8 +337,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInMissingColumnsWithNulls() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
         ImmutableList.of(
             new StringLiteral("str"),
             new StringLiteral("str"))
@@ -347,8 +356,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInKeyFromRowKey() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -367,8 +376,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleOutOfOrderSchema() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL1", "COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL1, COL0),
         ImmutableList.of(
             new LongLiteral(2L),
             new StringLiteral("str")
@@ -387,8 +396,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleAllSortsOfLiterals() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL1", "COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL1, COL0),
         ImmutableList.of(
             new LongLiteral(2L),
             new StringLiteral("str"))
@@ -438,10 +447,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNegativeValueExpression() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(ColumnName.of("COL0")));
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))
@@ -460,10 +469,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0),
         ImmutableList.of(
             new FunctionCall(
                 FunctionName.of("SUBSTRING"),
@@ -481,10 +490,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0),
         ImmutableList.of(
             new FunctionCall(
                 FunctionName.of("SUBSTRING"),
@@ -510,8 +519,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new IntegerLiteral(1)
@@ -682,8 +691,8 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowIfRowKeyAndKeyDoNotMatch() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL0"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
         ImmutableList.of(
             new StringLiteral("foo"),
             new StringLiteral("bar"))
@@ -691,7 +700,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
+    expectedException.expectCause(hasMessage(containsString("Expected k0 and COL0 to match")));
 
     // When:
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
@@ -719,8 +728,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("INT"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(INT_COL),
         ImmutableList.of(
             new DoubleLiteral(1.1)
         )
@@ -739,8 +748,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0, COL1),
         ImmutableList.of(
             new StringLiteral("key"),
             new StringLiteral("str"),
@@ -761,8 +770,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceTableWithSchema(SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("ROWKEY", "COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0, COL1),
         ImmutableList.of(
             new StringLiteral("key"),
             new StringLiteral("str"),
@@ -783,8 +792,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L))
@@ -804,8 +813,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceTableWithSchema(SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL0", "COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL0, COL1),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L))
@@ -814,7 +823,7 @@ public class InsertValuesExecutorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables");
 
     // When:
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
@@ -825,8 +834,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceTableWithSchema(SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
-        ImmutableList.of("COL1"),
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(COL1),
         ImmutableList.of(
             new LongLiteral(2L))
     );
@@ -834,7 +843,7 @@ public class InsertValuesExecutorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+        "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables");
 
     // When:
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
@@ -872,13 +881,6 @@ public class InsertValuesExecutorTest {
         "",
         NoopProcessingLogContext.INSTANCE
     );
-  }
-
-  private static ConfiguredStatement<InsertValues> givenInsertValuesStrings(
-      final List<String> columns,
-      final List<Expression> values
-  ) {
-    return givenInsertValues(columns.stream().map(ColumnName::of).collect(Collectors.toList()), values);
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(
@@ -923,7 +925,7 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(kf))
+        .map(KeyField::of)
         .orElse(KeyField.none());
 
     final DataSource dataSource;
@@ -959,7 +961,7 @@ public class InsertValuesExecutorTest {
 
   private static Struct keyStruct(final String rowKey) {
     final Struct key = new Struct(SCHEMA.keyConnectSchema());
-    key.put("ROWKEY", rowKey);
+    key.put(Iterables.getOnlyElement(SCHEMA.key()).name().text(), rowKey);
     return key;
   }
 

@@ -43,6 +43,7 @@ public final class MetaStoreFixture {
     return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
   }
 
+  // Todo(ac): Switch one stream and one table to have custom key name
   public static MutableMetaStore getNewMetaStore(
       final FunctionRegistry functionRegistry,
       final ValueFormat valueFormat

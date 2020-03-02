@@ -461,8 +461,9 @@ public class LogicalSchemaTest {
   public void shouldRemoveOthersWhenAddingMetasAndKeyColumns() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
-        .valueColumn(ROWKEY_NAME, DOUBLE)
+        .valueColumn(K0, DOUBLE)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, DOUBLE)
         .build();
@@ -472,10 +473,11 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
-        .valueColumn(ROWKEY_NAME, STRING)
+        .valueColumn(K0, STRING)
         .build()
     ));
   }
@@ -524,8 +526,9 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaColumnsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
-        .valueColumn(ROWKEY_NAME, STRING)
+        .valueColumn(K0, STRING)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
         .build();
@@ -535,6 +538,7 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()

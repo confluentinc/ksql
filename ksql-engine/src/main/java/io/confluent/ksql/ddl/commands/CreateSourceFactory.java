@@ -177,12 +177,7 @@ public final class CreateSourceFactory {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
       }
 
-      if (e.getNamespace() == Namespace.KEY) {
-        if (!isRowKey) {
-          throw new KsqlException("'" + e.getName().text() + "' is an invalid KEY column name. "
-              + "KSQL currently only supports KEY columns named ROWKEY.");
-        }
-      } else if (isRowKey) {
+      if (isRowKey && e.getNamespace() != Namespace.KEY) {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
             + "It can only be used for KEY columns.");
       }

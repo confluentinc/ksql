@@ -46,9 +46,9 @@ public class PullQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + "For example, the following are pull queries:"
       + System.lineSeparator()
-      + "\t'SELECT * FROM X WHERE ROWKEY=Y;' (non-windowed table)"
+      + "\t'SELECT * FROM X WHERE <key-column>>=Y;' (non-windowed table)"
       + System.lineSeparator()
-      + "\t'SELECT * FROM X WHERE ROWKEY=Y AND WINDOWSTART>=Z;' (windowed table)"
+      + "\t'SELECT * FROM X WHERE <key-column>=Y AND WINDOWSTART>=Z;' (windowed table)"
       + System.lineSeparator()
       + System.lineSeparator()
       + "The following is a push query:"

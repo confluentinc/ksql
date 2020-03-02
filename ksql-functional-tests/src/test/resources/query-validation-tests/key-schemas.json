@@ -319,22 +319,48 @@
     {
       "name": "explicit key field named other than ROWKEY",
       "statements": [
-        "CREATE STREAM INPUT (OTHER STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+        "CREATE STREAM INPUT (OTHER DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, OTHER as KEY FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'OTHER' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
+      "inputs": [
+        {"topic": "input", "key": 3.0, "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3.0, "value": {"ID": 1, "KEY": 3.0}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "OTHER DOUBLE KEY, ID BIGINT, KEY DOUBLE"
+          }
+        ]
       }
     },
     {
       "name": "KEY key field name",
       "comment": "tests that `KEY` is allowed as a KEY column name",
       "statements": [
-        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, KEY as KEY2 FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'KEY' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
+      "inputs": [
+        {"topic": "input", "key": "a", "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"ID": 1, "KEY2": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "KEY STRING KEY, ID BIGINT, KEY2 STRING"
+          }
+        ]
       }
     },
     {

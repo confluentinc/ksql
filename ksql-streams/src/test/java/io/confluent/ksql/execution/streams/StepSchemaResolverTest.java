@@ -84,6 +84,7 @@ public class StepSchemaResolverTest {
   private static final KsqlConfig CONFIG = new KsqlConfig(Collections.emptyMap());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
@@ -133,6 +134,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
             .build())
@@ -142,13 +144,13 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForStreamWindowedAggregate() {
     // Given:
-    givenAggregateFunction("SUM", SqlTypes.BIGINT);
+    givenAggregateFunction("COUNT", SqlTypes.BIGINT);
     final StreamWindowedAggregate step = new StreamWindowedAggregate(
         PROPERTIES,
         groupedStreamSource,
         formats,
         ImmutableList.of(ColumnName.of("ORANGE")),
-        ImmutableList.of(functionCall("SUM", "APPLE")),
+        ImmutableList.of(functionCall("COUNT", "APPLE")),
         new TumblingWindowExpression(10, TimeUnit.SECONDS)
     );
 
@@ -158,6 +160,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
             .valueColumn(SchemaUtil.WINDOWSTART_NAME, SchemaUtil.WINDOWBOUND_TYPE)
@@ -184,6 +187,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("CITRUS"), SqlTypes.INTEGER)
@@ -207,6 +211,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("APPLE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("BANANA"), SqlTypes.STRING)
@@ -343,6 +348,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("ORANGE"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
             .build())
@@ -387,6 +393,7 @@ public class StepSchemaResolverTest {
     // Then:
     assertThat(result, is(
         LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
             .valueColumn(ColumnName.of("JUICE"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("PLANTAIN"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("CITRUS"), SqlTypes.INTEGER)
@@ -460,7 +467,6 @@ public class StepSchemaResolverTest {
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
     when(functionRegistry.getAggregateFunction(eq(FunctionName.of(name)), any(), any()))
         .thenReturn(aggregateFunction);
-    when(aggregateFunction.name()).thenReturn(FunctionName.of(name));
     when(aggregateFunction.getAggregateType()).thenReturn(SqlTypes.INTEGER);
     when(aggregateFunction.returnType()).thenReturn(returnType);
     when(aggregateFunction.getInitialValueSupplier()).thenReturn(mock(Supplier.class));

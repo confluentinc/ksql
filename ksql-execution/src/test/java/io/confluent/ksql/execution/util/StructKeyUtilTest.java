@@ -32,9 +32,10 @@ import org.junit.Test;
 public class StructKeyUtilTest {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("BOB"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("Bob"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("DOES_NOT_MATTER"), SqlTypes.STRING)
       .build();
+
   private KeyBuilder builder;
 
   @Before
@@ -58,7 +59,7 @@ public class StructKeyUtilTest {
 
     // Then:
     assertThat(result.schema(), is(SchemaBuilder.struct()
-        .field("ROWKEY", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("Bob", Schema.OPTIONAL_INT32_SCHEMA)
         .build()));
   }
 
@@ -68,7 +69,7 @@ public class StructKeyUtilTest {
     final Struct result = builder.build(1);
 
     // Then:
-    assertThat(result.getInt32("ROWKEY"), is(1));
+    assertThat(result.getInt32("Bob"), is(1));
   }
 
   @Test
@@ -77,6 +78,6 @@ public class StructKeyUtilTest {
     final Struct result = builder.build(null);
 
     // Then:
-    assertThat(result.getInt32("ROWKEY"), is(nullValue()));
+    assertThat(result.getInt32("Bob"), is(nullValue()));
   }
 }

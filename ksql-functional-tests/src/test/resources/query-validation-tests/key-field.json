@@ -831,7 +831,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The KEY field (FOO) identified in the WITH clause is of a different type to the actual key column.\nEither change the type of the KEY field to match ROWKEY, or explicitly set ROWKEY to the type of the KEY field by adding 'ROWKEY INTEGER KEY' in the schema.\nKEY field type: INTEGER\nROWKEY type: STRING"
+        "message": "The KEY field (FOO) identified in the WITH clause is of a different type to the actual key column.\nUse of the KEY field is deprecated. Remove the KEY field from the WITH clause and specify the name of the key column by adding 'FOO INTEGER KEY' to the schema.\nKEY field type: INTEGER\nkey column type: STRING"
       }
     },
     {

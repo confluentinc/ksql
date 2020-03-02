@@ -72,7 +72,7 @@ public class SchemaParserTest {
   }
 
   @Test
-  public void shouldParseValidSchemaWithKeyField() {
+  public void shouldParseValidSchemaWithRowKeyField() {
     // Given:
     final String schema = "ROWKEY STRING KEY, bar INT";
 
@@ -82,6 +82,21 @@ public class SchemaParserTest {
     // Then:
     assertThat(elements, contains(
         new TableElement(Namespace.KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithKeyField() {
+    // Given:
+    final String schema = "K STRING KEY, bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(Namespace.KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
         new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
     ));
   }

@@ -574,8 +574,25 @@
         "CREATE STREAM OUTPUT AS SELECT ROWKEY FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Reserved column name in select: `ROWKEY`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "non-join should reject KEY column name in projection",
+      "comments": [
+        "changes to the ksql query semantics are required to allow this.",
+        "At the moment, the key schema passes through the select un-changed.",
+        "which means the key column in the projection is added to the value schema",
+        "but the name of the column clashes with the key column, resulting in an error"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Value column name 'K' clashes with key column name."
       }
     },
     {
@@ -629,8 +646,26 @@
         "CREATE STREAM OUTPUT as SELECT l.ROWKEY AS ROWKEY, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.rowkey = r.rowkey;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Reserved column name in select: `ROWKEY`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "join should reject KEY column name in projection",
+      "comments": [
+        "changes to the ksql query semantics are required to allow this.",
+        "At the moment, the key schema passes through the select un-changed.",
+        "which means the key column in the projection is added to the value schema",
+        "but the name of the column clashes with the key column, resulting in an error"
+      ],
+      "statements": [
+        "CREATE STREAM LEFT_STREAM (K DOUBLE KEY, F0 INT) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM RIGHT_STREAM (K DOUBLE KEY, F1 INT) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT l.K AS K, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.k = r.k;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Value column name 'K' clashes with key column name."
       }
     },
     {

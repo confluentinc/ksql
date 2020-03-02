@@ -41,7 +41,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +59,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlMaterializationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();

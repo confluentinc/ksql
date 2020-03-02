@@ -69,10 +69,11 @@ public class StructuredDataSourceTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsRowKey() {
+  public void shouldThrowOnDuplicateColumnNames() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("dup"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("dup"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 

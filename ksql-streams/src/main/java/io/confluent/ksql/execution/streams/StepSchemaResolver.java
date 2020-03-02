@@ -217,6 +217,7 @@ public final class StepSchemaResolver {
     final SqlType keyType = expressionTypeManager
         .getExpressionSqlType(step.getKeyExpression());
 
+    // Todo(ac):
     return LogicalSchema.builder()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())

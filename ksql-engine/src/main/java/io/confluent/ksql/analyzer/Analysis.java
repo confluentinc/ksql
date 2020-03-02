@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -58,6 +59,7 @@ public class Analysis implements ImmutableAnalysis {
   private final ResultMaterialization resultMaterialization;
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
+  private final Set<ColumnName> fromKeyColumns = new HashSet<>();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
@@ -190,6 +192,10 @@ public class Analysis implements ImmutableAnalysis {
     return ImmutableList.copyOf(fromDataSources);
   }
 
+  Set<ColumnName> getKeyColumnNames() {
+    return ImmutableSet.copyOf(fromKeyColumns);
+  }
+
   @Override
   public SourceSchemas getFromSourceSchemas(final boolean postAggregate) {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
@@ -205,6 +211,10 @@ public class Analysis implements ImmutableAnalysis {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
     }
+
+    dataSource.getSchema().key().stream()
+        .map(Column::name)
+        .forEach(fromKeyColumns::add);
 
     fromDataSources.add(new AliasedDataSource(alias, dataSource));
   }

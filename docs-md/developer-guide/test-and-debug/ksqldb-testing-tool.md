@@ -61,8 +61,8 @@ are the supported statements in the testing tool:
 Here is a sample statements file for the testing tool:
 
 ```sql
-CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
+CREATE STREAM orders (ORDERID INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
+CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS size FROM orders EMIT CHANGES;
 ```
 
 ### Input File
@@ -77,11 +77,11 @@ the previous test:
 ```json
 {
   "inputs": [
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 4.0}, "key": 100},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 6.0 }, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 3.0}, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 1.0}, "key": 101}
+          {"topic": "test_topic", "timestamp": 0, "key": 99, "value": {"ORDERUNITS": 2.0}},
+          {"topic": "test_topic", "timestamp": 10, "key": 100, "value": {"ORDERUNITS": 4.0}},
+          {"topic": "test_topic", "timestamp": 11, "key": 101, "value": {"ORDERUNITS": 6.0 }},
+          {"topic": "test_topic", "timestamp": 12, "key": 102, "value": {"ORDERUNITS": 3.0}},
+          {"topic": "test_topic", "timestamp": 9, "key": 106, "value": {"ORDERUNITS": 1.0}}
         ]
 }
 ```
@@ -99,11 +99,11 @@ expected output file for the previous test:
 ```json
 {
   "outputs": [
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}, "key": 0},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}, "key": 100},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"},"key": 101}
+          {"topic": "S1", "timestamp": 0, "key": 99, "value": {"ORDERUNITS": 2.0, "SIZE": "medium"}},
+          {"topic": "S1", "timestamp": 10, "key": 100, "value": {"ORDERUNITS": 4.0, "SIZE": "large"}},
+          {"topic": "S1", "timestamp": 11, "key": 101, "value": {"ORDERUNITS": 6.0, "SIZE": "large"}},
+          {"topic": "S1", "timestamp": 12, "key": 102, "value": {"ORDERUNITS": 3.0, "SIZE": "medium"}},
+          {"topic": "S1", "timestamp": 9,"key": 106, "value": {"ORDERUNITS": 1.0, "SIZE": "small"}}
         ]
 }
 ```
@@ -114,7 +114,7 @@ specify a window for a message you can add a `window` field to the
 message. A window field has three fields:
 
 -   **start:** the start time for the window.
--   **end:** the end time for the window.
+-   **end:** the end time for the window. (ignored if not a session window)
 -   **type:** the type of the window. A window type can be `time` or
     `session`.
 

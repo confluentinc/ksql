@@ -25,6 +25,7 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.SocketAddress;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -51,6 +52,7 @@ public class Server {
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
   private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
   private final int maxPushQueryCount;
+  private final SocketAddress proxyTarget;
   private String deploymentID;
   private WorkerExecutor workerExecutor;
   private final AtomicInteger actualPort = new AtomicInteger(-1);
@@ -60,6 +62,8 @@ public class Server {
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
     this.maxPushQueryCount = config.getInt(ApiServerConfig.MAX_PUSH_QUERIES);
+    final int proxyPort = config.getInt(ApiServerConfig.PROXY_PORT);
+    this.proxyTarget = SocketAddress.inetSocketAddress(proxyPort, "127.0.0.1");
   }
 
   public synchronized void start() {
@@ -73,7 +77,7 @@ public class Server {
     log.debug("Deploying " + options.getInstances() + " instances of server verticle");
     final VertxCompletableFuture<String> future = new VertxCompletableFuture<>();
     vertx.deployVerticle(() ->
-            new ServerVerticle(endpoints, createHttpServerOptions(config), this),
+            new ServerVerticle(endpoints, createHttpServerOptions(config), this, proxyTarget),
         options,
         future);
     try {

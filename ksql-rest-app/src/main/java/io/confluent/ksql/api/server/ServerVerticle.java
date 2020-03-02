@@ -18,9 +18,12 @@ package io.confluent.ksql.api.server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.util.Objects;
@@ -41,11 +44,18 @@ public class ServerVerticle extends AbstractVerticle {
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
 
+  private HttpClient proxyClient;
+  private final SocketAddress proxyTarget;
+
   public ServerVerticle(final Endpoints endpoints, final HttpServerOptions httpServerOptions,
-      final Server server) {
+      final Server server, final SocketAddress proxyTarget) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
+    this.proxyTarget = Objects.requireNonNull(proxyTarget);
+    this.proxyClient = vertx
+        .createHttpClient(
+            new HttpClientOptions().setMaxPoolSize(10).setMaxInitialLineLength(65536));
   }
 
   @Override
@@ -65,6 +75,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void stop(final Promise<Void> stopPromise) {
+    proxyClient.close();
     if (httpServer == null) {
       stopPromise.complete();
     } else {
@@ -86,6 +97,8 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
     router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
+    // Everything else is proxied
+    router.route().handler(new ProxyHandler(proxyTarget, proxyClient));
     return router;
   }
 }

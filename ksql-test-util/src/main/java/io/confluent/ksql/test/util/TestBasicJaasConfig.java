@@ -64,9 +64,9 @@ public final class TestBasicJaasConfig extends ExternalResource {
     setJvmJaasConfig(previous);
   }
 
-  private static Optional<String> setJvmJaasConfig(final Optional<String> jassPath) {
-    final String previous = jassPath.isPresent()
-        ? System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jassPath.get())
+  private static Optional<String> setJvmJaasConfig(final Optional<String> jaasPath) {
+    final String previous = jaasPath.isPresent()
+        ? System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jaasPath.get())
         : System.clearProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM);
 
     forceJvmToReloadJaasConfig();

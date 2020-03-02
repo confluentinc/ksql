@@ -31,6 +31,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -46,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 public class BaseApiTest {
 
-  private static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
+  protected static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
 
   protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("name").add("age")
       .add("male");
@@ -130,10 +132,11 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    client.post("/query-stream")
-        .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(requestBody, ar -> {
-        });
+    streamRequest(client, "/query-stream",
+        (request) -> request
+            .as(BodyCodec.pipe(writeStream))
+            .sendJsonObject(requestBody, ar -> {
+    }));
 
     // Wait for all rows to arrive
     assertThatEventually(() -> {
@@ -152,7 +155,6 @@ public class BaseApiTest {
     return new QueryResponse(writeStream.getBody().toString());
   }
 
-
   protected HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
       throws Exception {
     return sendRequest(client, uri, requestBody);
@@ -166,6 +168,17 @@ public class BaseApiTest {
         .post(uri)
         .sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
+  }
+
+  protected void streamRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
+    streamRequest(client, uri, requestSender);
+  }
+
+  protected void streamRequest(
+      final WebClient client,
+      final String uri,
+      final Consumer<HttpRequest<Buffer>> requestSender) {
+    requestSender.accept(client.post(uri));
   }
 
   protected static void validateError(final int errorCode, final String message,

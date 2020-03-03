@@ -112,35 +112,43 @@ public class RestTestExecutor implements Closeable {
 
     final StatementSplit statements = splitStatements(testCase);
 
-    final Optional<List<RqttResponse>> adminResults = sendAdminStatements(testCase,
-        statements.admin);
-    if (!adminResults.isPresent()) {
-      return;
+    testCase.getProperties().forEach(restClient::setProperty);
+
+    try {
+      final Optional<List<RqttResponse>> adminResults =
+          sendAdminStatements(testCase, statements.admin);
+
+      if (!adminResults.isPresent()) {
+        return;
+      }
+
+      produceInputs(testCase.getInputsByTopic());
+
+      if (!testCase.expectedError().isPresent()
+          && testCase.getExpectedResponses().size() > statements.admin.size()) {
+        waitForWarmStateStores(
+            statements.queries,
+            testCase.getExpectedResponses()
+                .subList(statements.admin.size(), testCase.getExpectedResponses().size())
+        );
+      }
+
+      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries);
+      if (!queryResults.isEmpty()) {
+        failIfExpectingError(testCase);
+      }
+
+      final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
+          .addAll(adminResults.get())
+          .addAll(queryResults)
+          .build();
+
+      verifyOutput(testCase);
+      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
+
+    } finally {
+      testCase.getProperties().keySet().forEach(restClient::unsetProperty);
     }
-
-    produceInputs(testCase.getInputsByTopic());
-
-    if (!testCase.expectedError().isPresent()
-        && testCase.getExpectedResponses().size() > statements.admin.size()) {
-      waitForWarmStateStores(
-          statements.queries,
-          testCase.getExpectedResponses()
-              .subList(statements.admin.size(), testCase.getExpectedResponses().size())
-      );
-    }
-
-    final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries);
-    if (!queryResults.isEmpty()) {
-      failIfExpectingError(testCase);
-    }
-
-    final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
-        .addAll(adminResults.orElseGet(ImmutableList::of))
-        .addAll(queryResults)
-        .build();
-
-    verifyOutput(testCase);
-    verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
   }
 
   public void close() {

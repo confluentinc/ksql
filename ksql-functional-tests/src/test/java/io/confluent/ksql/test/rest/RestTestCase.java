@@ -19,7 +19,6 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
@@ -33,11 +32,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
-@Immutable
 class RestTestCase implements Test {
 
   private final Path testPath;
   private final String name;
+  private final Map<String, Object> properties;
   private final ImmutableList<Topic> topics;
   private final ImmutableList<Record> inputRecords;
   private final ImmutableList<Record> outputRecords;
@@ -48,6 +47,7 @@ class RestTestCase implements Test {
   RestTestCase(
       final Path testPath,
       final String name,
+      final Map<String, Object> properties,
       final Collection<Topic> topics,
       final Collection<Record> inputRecords,
       final Collection<Record> outputRecords,
@@ -57,6 +57,7 @@ class RestTestCase implements Test {
   ) {
     this.name = requireNonNull(name, "name");
     this.testPath = requireNonNull(testPath, "testPath");
+    this.properties = immutableCopyOf(requireNonNull(properties, "properties"));
     this.topics = immutableCopyOf(requireNonNull(topics, "topics"));
     this.inputRecords = immutableCopyOf(requireNonNull(inputRecords, "inputRecords"));
     this.outputRecords = immutableCopyOf(requireNonNull(outputRecords, "outputRecords"));
@@ -99,5 +100,9 @@ class RestTestCase implements Test {
 
   public Optional<Matcher<RestResponse<?>>> expectedError() {
     return expectedError;
+  }
+
+  public Map<String, Object> getProperties() {
+    return properties;
   }
 }

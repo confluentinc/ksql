@@ -26,6 +26,7 @@ import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -41,6 +42,7 @@ public class RestTestCaseNode {
   private final List<TopicNode> topics;
   private final List<String> statements;
   private final List<Response> responses;
+  private final Map<String, Object> properties;
   private final Optional<ExpectedErrorNode> expectedError;
   private final boolean enabled;
 
@@ -51,6 +53,7 @@ public class RestTestCaseNode {
       @JsonProperty("outputs") final List<RecordNode> outputs,
       @JsonProperty("topics") final List<TopicNode> topics,
       @JsonProperty("statements") final List<String> statements,
+      @JsonProperty("properties") final Map<String, Object> properties,
       @JsonProperty("expectedError") final ExpectedErrorNode expectedError,
       @JsonProperty("responses") final List<Response> responses,
       @JsonProperty("enabled") final Boolean enabled
@@ -61,6 +64,7 @@ public class RestTestCaseNode {
     this.inputs = immutableCopyOf(inputs);
     this.outputs = immutableCopyOf(outputs);
     this.topics = immutableCopyOf(topics);
+    this.properties = immutableCopyOf(properties);
     this.expectedError = Optional.ofNullable(expectedError);
     this.responses = immutableCopyOf(responses);
     this.enabled = !Boolean.FALSE.equals(enabled);
@@ -102,6 +106,10 @@ public class RestTestCaseNode {
 
   public List<Response> getResponses() {
     return responses;
+  }
+
+  public Map<String, Object> properties() {
+    return properties;
   }
 
   private void validate() {

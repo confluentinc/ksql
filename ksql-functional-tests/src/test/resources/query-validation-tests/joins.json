@@ -96,9 +96,7 @@
     },
     {
       "name": "stream stream left join with rowkey - rekey",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
-      "enabled": false,
-      "comment": "disabled until https://github.com/confluentinc/ksql/issues/4094 is done",
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
         "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
@@ -130,10 +128,41 @@
       }
     },
     {
+      "name": "stream stream left join with rowkey - rekey",
+      "format": ["PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, t.rowkey, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "T_ROWKEY": "foo","NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "T_ROWKEY": "foo", "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "T_ROWKEY": "foo", "NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "T_ROWKEY": "foo", "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "T_ROWKEY": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "T_ROWKEY": "foo", "NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "T_ROWKEY": "foo", "NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
+        ]
+      }
+    },
+    {
       "name": "stream stream left join - rekey",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
-      "enabled": false,
-      "comment": "disabled until https://github.com/confluentinc/ksql/issues/4094 is done",
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
         "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
@@ -150,22 +179,22 @@
         {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"ROWTIME": 0, "ROWKEY": "", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"ROWTIME": 10000, "ROWKEY": "", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 10, "value": {"ROWTIME": 11000, "ROWKEY": "", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"ROWTIME": 13000, "ROWKEY": "", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"ROWTIME": 15000, "ROWKEY": "", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 100, "value": {"ROWTIME": 16000, "ROWKEY": "", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 90, "value": {"ROWTIME": 17000, "ROWKEY": "", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"ROWTIME": 30000, "ROWKEY": "", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 0, "end": 11000, "type": "time"}, "key": 0, "value": {"ROWTIME": 0, "ROWKEY": "", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 10000, "end": 21000, "type": "time"}, "key": 0, "value": {"ROWTIME": 10000, "ROWKEY": "", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 11000, "end": 22000, "type": "time"}, "key": 10, "value": {"ROWTIME": 11000, "ROWKEY": "", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 13000, "end": 24000, "type": "time"}, "key": 0, "value": {"ROWTIME": 13000, "ROWKEY": "", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 140000, "end": 25000, "type": "time"}, "key": 0, "value": {"ROWTIME": 15000, "ROWKEY": "", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 16000, "end": 27000, "type": "time"}, "key": 100, "value": {"ROWTIME": 16000, "ROWKEY": "", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 17000, "end": 28000, "type": "time"}, "key": 90, "value": {"ROWTIME": 17000, "ROWKEY": "", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 30000, "end": 41000, "type": "time"}, "key": 0, "value": {"ROWTIME": 30000, "ROWKEY": "", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 0, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "zero", "T_VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 10, "value": {"T_ROWTIME": 11000, "T_ROWKEY": "", "T_ID": 10, "T_NAME": "100", "T_VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 13000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "foo", "T_VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 100, "value": {"TT_ROWTIME": 16000, "TT_ROWKEY": "", "TT_ID": 100, "TT_F1": "newblah", "TT_F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 90, "value": {"T_ROWTIME": 17000, "T_ROWKEY": "", "T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 30000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "bar", "T_VALUE": 99}, "timestamp": 30000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 0, "end": 11000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 0, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "zero", "T_VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 10000, "end": 21000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 11000, "end": 22000, "type": "time"}, "key": 10, "value": {"T_ROWTIME": 11000, "T_ROWKEY": "", "T_ID": 10, "T_NAME": "100", "T_VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 13000, "end": 24000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 13000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "foo", "T_VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 15000, "end": 26000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 16000, "end": 27000, "type": "time"}, "key": 100, "value": {"TT_ROWTIME": 16000, "TT_ROWKEY": "", "TT_ID": 100, "TT_F1": "newblah", "TT_F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 17000, "end": 28000, "type": "time"}, "key": 90, "value": {"T_ROWTIME": 17000, "T_ROWKEY": "", "T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 30000, "end": 41000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 30000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "bar", "T_VALUE": 99}, "timestamp": 30000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
@@ -173,6 +202,55 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - rekey",
+      "format": ["PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 0, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "zero", "T_VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 10, "value": {"T_ROWTIME": 11000, "T_ROWKEY": "", "T_ID": 10, "T_NAME": "100", "T_VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 13000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "foo", "T_VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 0, "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": 100, "value": {"TT_ROWTIME": 16000, "TT_ROWKEY": "", "TT_ID": 100, "TT_F1": "newblah", "TT_F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 90, "value": {"T_ROWTIME": 17000, "T_ROWKEY": "", "T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": 0, "value": {"T_ROWTIME": 30000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "bar", "T_VALUE": 99}, "timestamp": 30000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 0, "end": 11000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 0, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "zero", "T_VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 10000, "end": 21000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 11000, "end": 22000, "type": "time"}, "key": 10, "value": {"T_ROWTIME": 11000, "T_ROWKEY": "", "T_ID": 10, "T_NAME": "100", "T_VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 13000, "end": 24000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 13000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "foo", "T_VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 15000, "end": 26000, "type": "time"}, "key": 0, "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000019-store-changelog", "window": {"start": 16000, "end": 27000, "type": "time"}, "key": 100, "value": {"TT_ROWTIME": 16000, "TT_ROWKEY": "", "TT_ID": 100, "TT_F1": "newblah", "TT_F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 17000, "end": 28000, "type": "time"}, "key": 90, "value": {"T_ROWTIME": 17000, "T_ROWKEY": "", "T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000018-store-changelog", "window": {"start": 30000, "end": 41000, "type": "time"}, "key": 0, "value": {"T_ROWTIME": 30000, "T_ROWKEY": "", "T_ID": 0, "T_NAME": "bar", "T_VALUE": 99}, "timestamp": 30000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -214,8 +292,6 @@
     },
     {
       "name": "stream stream left join - right join key in projection",
-      "enabled": false,
-      "comment": "disabled until https://github.com/confluentinc/ksql/issues/4094 is done",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -232,13 +308,13 @@
         {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "10", "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "90", "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
         "comments": [
@@ -251,8 +327,6 @@
     },
     {
       "name": "stream stream left join - both join keys in projection",
-      "enabled": false,
-      "comment": "disabled until https://github.com/confluentinc/ksql/issues/4094 is done",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -269,13 +343,13 @@
         {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"T_ID": 0, "TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"T_ID": 0, "TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "10", "value": {"T_ID": 10, "TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "90", "value": {"T_ID": 90, "TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": "0", "value": {"T_ID": 0, "TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -1461,24 +1535,22 @@
       }
     },
     {
-      "name": "stream to table when neither have key field and joining by table ROWKEY",
-      "enabled": false,
-      "comment": "disabled until https://github.com/confluentinc/ksql/issues/4094 is done",
+      "name": "stream to table when neither have key field and joining by table key column",
       "statements": [
         "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE NO_KEY (ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
+        "CREATE TABLE NO_KEY (ROWKEY BIGINT KEY, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id as ID, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
       ],
       "inputs": [
-        {"topic": "NO_KEY", "key": "0", "value": {"ID": 0, "name": "bob"}, "timestamp": 0},
-        {"topic": "S", "key": "0", "value": {"ID": 0}, "timestamp": 10}
+        {"topic": "NO_KEY", "key": 0, "value": {"ID": 0, "name": "bob"}, "timestamp": 0},
+        {"topic": "S", "value": {"ID": 0}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0", "value": {"S_ID": 0, "NAME": "bob"}, "timestamp": 10}
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 0, "NAME": "bob"}, "timestamp": 10}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": "S_ID"}
+          {"name": "OUTPUT", "type": "stream", "keyField": "ID", "schema": "ROWKEY BIGINT KEY, ID BIGINT, NAME STRING"}
         ]
       }
     },

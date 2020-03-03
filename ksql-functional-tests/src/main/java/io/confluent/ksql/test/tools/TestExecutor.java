@@ -63,6 +63,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("deprecation")

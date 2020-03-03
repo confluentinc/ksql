@@ -37,6 +37,7 @@ final class SchemaRegistryClientFactory {
       final Format valueFormat,
       final KsqlConfig ksqlConfig
   ) {
+    // the ksql datagen at the moment only supports AVRO, not JSON/PROTOBUF
     if (keyFormat != FormatFactory.AVRO && valueFormat != FormatFactory.AVRO) {
       return Optional.empty();
     }

@@ -140,7 +140,7 @@ public class TopicDeleteInjectorTest {
   }
 
   @Test
-  public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
+  public void shouldDeleteAvroSchemaInSR() throws IOException, RestClientException {
     // Given:
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())));
 
@@ -152,7 +152,22 @@ public class TopicDeleteInjectorTest {
   }
 
   @Test
-  public void shouldNotDeleteSchemaInSRIfNotAvro() throws IOException, RestClientException {
+  public void shouldDeleteProtoSchemaInSR() throws IOException, RestClientException {
+    // Given:
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.PROTOBUF.name())));
+
+    // When:
+    deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
+
+    // Then:
+    verify(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
+  @Test
+  public void shouldNotDeleteSchemaInSRIfNotSRSupported() throws IOException, RestClientException {
+    // Given:
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name())));
+
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
 

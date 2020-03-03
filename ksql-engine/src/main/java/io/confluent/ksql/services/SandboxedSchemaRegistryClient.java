@@ -23,7 +23,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collections;
 import java.util.Objects;
-import org.apache.avro.Schema;
 
 /**
  * SchemaRegistryClient used when trying out operations.
@@ -42,8 +41,6 @@ final class SandboxedSchemaRegistryClient {
         .swallow("register", anyParams(), 123)
         .forward("getLatestSchemaMetadata", methodParams(String.class), delegate)
         .forward("getSchemaBySubjectAndId", methodParams(String.class, int.class), delegate)
-        .forward("testCompatibility",
-            methodParams(String.class, Schema.class), delegate)
         .forward("testCompatibility",
             methodParams(String.class, ParsedSchema.class), delegate)
         .swallow("deleteSubject", methodParams(String.class), Collections.emptyList())

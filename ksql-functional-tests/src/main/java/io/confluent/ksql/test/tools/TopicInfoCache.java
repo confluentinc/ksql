@@ -23,7 +23,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
@@ -165,7 +165,7 @@ public class TopicInfoCache {
       final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient);
 
       serializer.configure(ImmutableMap.of(
-          KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+          AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
       ), true);
 
       return (Serializer) serializer;
@@ -179,7 +179,7 @@ public class TopicInfoCache {
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
 
       serializer.configure(ImmutableMap.of(
-          KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+          AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
       ), false);
 
       return (Serializer) serializer;

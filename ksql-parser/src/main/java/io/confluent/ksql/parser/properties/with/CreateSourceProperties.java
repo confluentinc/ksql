@@ -129,8 +129,13 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  public Optional<Integer> getAvroSchemaId() {
-    return Optional.ofNullable(props.getInt(CreateConfigs.AVRO_SCHEMA_ID));
+  public Optional<Integer> getSchemaId() {
+    Integer schemaId = props.getInt(CreateConfigs.SCHEMA_ID);
+    if (schemaId == null) {
+      schemaId = props.getInt(CreateConfigs.AVRO_SCHEMA_ID);
+    }
+
+    return Optional.ofNullable(schemaId);
   }
 
   public FormatInfo getFormatInfo() {
@@ -161,7 +166,7 @@ public final class CreateSourceProperties {
 
   public CreateSourceProperties withSchemaId(final int id) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
-    originals.put(CreateConfigs.AVRO_SCHEMA_ID, new IntegerLiteral(id));
+    originals.put(CreateConfigs.SCHEMA_ID, new IntegerLiteral(id));
 
     return new CreateSourceProperties(originals, durationParser);
   }

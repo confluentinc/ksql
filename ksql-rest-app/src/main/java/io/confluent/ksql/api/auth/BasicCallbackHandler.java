@@ -74,14 +74,14 @@ class BasicCallbackHandler implements CallbackHandler {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    BasicCallbackHandler that = (BasicCallbackHandler) o;
+    final BasicCallbackHandler that = (BasicCallbackHandler) o;
     return username.equals(that.username)
         && password.equals(that.password);
   }

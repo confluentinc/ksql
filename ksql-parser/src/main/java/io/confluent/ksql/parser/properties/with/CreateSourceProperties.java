@@ -130,12 +130,7 @@ public final class CreateSourceProperties {
   }
 
   public Optional<Integer> getSchemaId() {
-    Integer schemaId = props.getInt(CreateConfigs.SCHEMA_ID);
-    if (schemaId == null) {
-      schemaId = props.getInt(CreateConfigs.AVRO_SCHEMA_ID);
-    }
-
-    return Optional.ofNullable(schemaId);
+    return Optional.ofNullable(props.getInt(CreateConfigs.SCHEMA_ID));
   }
 
   public FormatInfo getFormatInfo() {

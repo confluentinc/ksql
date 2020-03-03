@@ -32,7 +32,6 @@ public final class CreateConfigs {
   public static final String KEY_NAME_PROPERTY = "KEY";
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
-  public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
   public static final String SCHEMA_ID = "SCHEMA_ID";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
 
@@ -69,12 +68,6 @@ public final class CreateConfigs {
           null,
           Importance.LOW,
           "Undocumented feature"
-      ).define(
-          AVRO_SCHEMA_ID,
-          ConfigDef.Type.INT,
-          null,
-          Importance.LOW,
-          "Undocumented feature (deprecated - use SCHEMA_ID instead)"
       ).define(
           SOURCE_CONNECTOR,
           Type.STRING,

@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -65,6 +66,8 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
@@ -214,10 +217,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private void givenInsertIntoNode() {
     this.createInto = false;
-    buildNode();
-  }
-
-  private void givenNodePartitioningByKey(final String field) {
     buildNode();
   }
 

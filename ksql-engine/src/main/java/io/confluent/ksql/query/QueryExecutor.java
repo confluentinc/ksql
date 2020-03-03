@@ -446,9 +446,7 @@ public final class QueryExecutor {
    * only have the value columns.
    */
   private static LogicalSchema buildTransientQuerySchema(final LogicalSchema fullSchema) {
-    final LogicalSchema.Builder builder = LogicalSchema.builder()
-        .noImplicitColumns();
-
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.valueColumns(fullSchema.value());
     return builder.build();
   }

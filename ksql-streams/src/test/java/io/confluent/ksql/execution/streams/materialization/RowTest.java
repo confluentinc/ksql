@@ -41,6 +41,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RowTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
@@ -79,6 +80,7 @@ public class RowTest {
   @Test
   public void shouldImplementEquals() {
     final LogicalSchema differentSchema = LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("diff0"), SqlTypes.STRING)

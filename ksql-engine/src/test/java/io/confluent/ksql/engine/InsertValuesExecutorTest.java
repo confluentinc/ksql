@@ -67,6 +67,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -99,15 +100,21 @@ public class InsertValuesExecutorTest {
 
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("COL1"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING) // named COL0 for auto-ROWKEY
       .valueColumn(ColumnName.of("INT"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BIGINT"), SqlTypes.BIGINT)

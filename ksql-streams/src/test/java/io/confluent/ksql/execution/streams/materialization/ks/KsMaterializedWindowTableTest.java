@@ -35,6 +35,7 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -62,7 +63,8 @@ public class KsMaterializedWindowTableTest {
   private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 

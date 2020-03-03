@@ -32,9 +32,11 @@ import org.junit.Test;
 public class StructKeyUtilTest {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ColumnName.of("BOB"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("DOES_NOT_MATTER"), SqlTypes.STRING)
       .build();
+
   private KeyBuilder builder;
 
   @Before
@@ -48,6 +50,7 @@ public class StructKeyUtilTest {
     StructKeyUtil.keyBuilder(LogicalSchema.builder()
         .keyColumn(ColumnName.of("BOB"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("JOHN"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
         .build());
   }
 

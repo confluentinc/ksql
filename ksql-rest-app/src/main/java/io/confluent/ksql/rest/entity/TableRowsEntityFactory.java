@@ -47,7 +47,6 @@ public final class TableRowsEntityFactory {
       final boolean windowed
   ) {
     final Builder builder = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumns(schema.key());
 
     if (windowed) {

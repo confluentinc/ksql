@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
+import io.confluent.ksql.util.SchemaUtil;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Optional;
@@ -67,6 +68,8 @@ public class MetaStoreModelTest {
       .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER, Namespace.VALUE, 1))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
+          .withRowTime()
+          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
       .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))

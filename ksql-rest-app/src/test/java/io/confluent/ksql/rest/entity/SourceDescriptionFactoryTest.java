@@ -36,6 +36,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -71,6 +72,8 @@ public class SourceDescriptionFactoryTest {
       final String kafkaTopicName,
       final Optional<TimestampColumn> timestampColumn) {
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("field0"), SqlTypes.INTEGER)
         .build();
 

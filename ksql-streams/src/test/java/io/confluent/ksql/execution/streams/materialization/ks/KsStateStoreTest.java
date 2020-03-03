@@ -61,7 +61,6 @@ public class KsStateStoreTest {
   private static final String STORE_NAME = "someStore";
   private static final Long TIMEOUT_MS = 10L;
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("v0"), SqlTypes.BIGINT)
       .build();

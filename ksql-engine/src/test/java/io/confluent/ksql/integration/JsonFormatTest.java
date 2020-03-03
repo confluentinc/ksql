@@ -46,6 +46,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,6 +120,8 @@ public class JsonFormatTest {
     TEST_HARNESS.produceRows(inputTopic, orderDataProvider, JSON);
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 

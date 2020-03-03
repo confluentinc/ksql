@@ -306,17 +306,12 @@ public final class LogicalSchema {
 
   public static class Builder {
 
-    private final ImmutableList.Builder<Column> explicitColumns = ImmutableList.builder();
-
+    private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
 
-    private boolean addImplicitRowKey = true;
-    private boolean addImplicitRowTime = true;
-
-    public Builder noImplicitColumns() {
-      addImplicitRowKey = false;
-      addImplicitRowTime = false;
+    public Builder withRowTime() {
+      columns.add(IMPLICIT_TIME_COLUMN);
       return this;
     }
 
@@ -349,19 +344,7 @@ public final class LogicalSchema {
     }
 
     public LogicalSchema build() {
-      final ImmutableList.Builder<Column> allColumns = ImmutableList.builder();
-
-      if (addImplicitRowTime) {
-        allColumns.add(IMPLICIT_TIME_COLUMN);
-      }
-
-      if (addImplicitRowKey) {
-        allColumns.add(IMPLICIT_KEY_COLUMN);
-      }
-
-      allColumns.addAll(explicitColumns.build());
-
-      return new LogicalSchema(allColumns.build());
+      return new LogicalSchema(columns.build());
     }
 
     private void addColumn(final Column column) {
@@ -370,7 +353,6 @@ public final class LogicalSchema {
           if (!seenKeys.add(column.name())) {
             throw new KsqlException("Duplicate keys found in schema: " + column);
           }
-          addImplicitRowKey = false;
           break;
 
         case VALUE:
@@ -383,7 +365,7 @@ public final class LogicalSchema {
           break;
       }
 
-      explicitColumns.add(column);
+      columns.add(column);
     }
   }
 }

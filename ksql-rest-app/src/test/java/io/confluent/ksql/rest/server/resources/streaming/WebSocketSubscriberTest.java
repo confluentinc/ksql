@@ -27,6 +27,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.Map;
 import javax.websocket.CloseReason;
@@ -121,6 +122,8 @@ public class WebSocketSubscriberTest {
     EasyMock.replay(subscription, session, basic);
 
     subscriber.onSchema(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("currency"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("amount"), SqlTypes.DOUBLE)
         .build());

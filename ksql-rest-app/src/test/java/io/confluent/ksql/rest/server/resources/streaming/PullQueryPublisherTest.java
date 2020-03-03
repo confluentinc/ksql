@@ -50,7 +50,6 @@ import org.mockito.stubbing.Answer;
 public class PullQueryPublisherTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .noImplicitColumns()
       .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
       .build();

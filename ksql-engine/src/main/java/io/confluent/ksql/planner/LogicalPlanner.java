@@ -379,13 +379,15 @@ public class LogicalPlanner {
 
   private LogicalSchema buildProjectionSchema(
       final LogicalSchema schema,
-      final List<SelectExpression> projection) {
+      final List<SelectExpression> projection
+  ) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         schema,
         functionRegistry
     );
 
-    final Builder builder = LogicalSchema.builder();
+    final Builder builder = LogicalSchema.builder()
+        .withRowTime();
 
     final List<Column> keyColumns = schema.key();
 
@@ -424,6 +426,7 @@ public class LogicalPlanner {
     );
 
     return LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
@@ -441,6 +444,7 @@ public class LogicalPlanner {
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 
     return LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();

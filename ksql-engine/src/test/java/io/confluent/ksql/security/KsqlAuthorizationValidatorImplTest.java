@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.common.acl.AclOperation;
@@ -53,6 +54,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlAuthorizationValidatorImplTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 

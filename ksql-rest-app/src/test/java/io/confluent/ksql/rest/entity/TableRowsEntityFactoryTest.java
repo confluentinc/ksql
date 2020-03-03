@@ -44,10 +44,13 @@ public class TableRowsEntityFactoryTest {
   private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
@@ -55,6 +58,7 @@ public class TableRowsEntityFactoryTest {
       .build();
 
   private static final LogicalSchema SCHEMA_NULL = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
@@ -140,7 +144,6 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
@@ -157,7 +160,6 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)

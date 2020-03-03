@@ -415,7 +415,7 @@ public class RestApiTest {
           }
       );
     } catch (final Exception e) {
-      throw new AssertionError("Invalid JSON received: " + response);
+      throw new AssertionError("Invalid JSON received: " + response, e);
     }
   }
 

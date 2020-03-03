@@ -151,7 +151,8 @@ public class AggregateParamsFactory {
       final boolean useAggregate,
       final boolean addWindowBounds
   ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
+        .withRowTime();
 
     schemaBuilder.keyColumns(schema.key());
 

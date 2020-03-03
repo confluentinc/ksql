@@ -45,6 +45,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
@@ -64,6 +65,8 @@ import org.mockito.junit.MockitoRule;
 public class StreamSelectBuilderTest {
 
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
@@ -175,6 +178,8 @@ public class StreamSelectBuilderTest {
     assertThat(
         result.getSchema(),
         is(LogicalSchema.builder()
+            .withRowTime()
+            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)
             .build())

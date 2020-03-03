@@ -34,6 +34,7 @@ import org.junit.rules.ExpectedException;
 public class KeyFieldTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.BIGINT)
       .build();

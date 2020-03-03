@@ -41,6 +41,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.After;
@@ -56,6 +57,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SourceTopicsExtractorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 

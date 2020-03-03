@@ -30,6 +30,7 @@ import java.util.Map;
 public class OrderDataProvider extends TestDataProvider<Long> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.STRING)

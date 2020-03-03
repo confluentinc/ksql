@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -54,6 +55,8 @@ public class ProjectNodeTest {
   private static final SelectExpression SELECT_1 = SelectExpression.of(ColumnName.of("col1"), FALSE_EXPRESSION);
   private static final String KEY_FIELD_NAME = "col0";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();

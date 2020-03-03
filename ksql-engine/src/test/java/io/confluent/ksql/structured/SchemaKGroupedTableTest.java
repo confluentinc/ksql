@@ -40,6 +40,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,18 +53,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedTableTest {
+
   private static final LogicalSchema IN_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN1"), SqlTypes.INTEGER)
       .build();
+
   private static final LogicalSchema OUT_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
+
   private static final List<ColumnName> NON_AGG_COLUMNS = ImmutableList.of(
       ColumnName.of("IN0")
   );
+
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
   private static final FunctionCall SUM = udaf("SUM");

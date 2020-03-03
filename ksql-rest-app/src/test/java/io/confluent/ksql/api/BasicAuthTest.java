@@ -15,13 +15,10 @@
 
 package io.confluent.ksql.api;
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.api.server.ApiServerConfig;
-import io.confluent.ksql.api.utils.ReceiveStream;
-import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
@@ -29,7 +26,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.codec.BodyCodec;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.ClassRule;
@@ -90,7 +86,10 @@ public class BasicAuthTest extends ApiTest {
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {
-    streamRequestWithCreds(client, uri, requestSender, USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    requestSender.accept(
+        client.post(uri)
+            .basicAuthentication(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
+    );
   }
 
   @Test
@@ -99,7 +98,7 @@ public class BasicAuthTest extends ApiTest {
   }
 
   @Test
-  public void shouldFailPushQueryWithBadCredentials() {
+  public void shouldFailPushQueryWithBadCredentials() throws Exception {
     shouldFailPushQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
   }
 
@@ -114,17 +113,12 @@ public class BasicAuthTest extends ApiTest {
   }
 
   @Test
-  public void shouldFailInsertStreamWithBadCredentials() {
-    shouldFailInsertStream(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
-  }
-
-  @Test
   public void shouldFailPullQueryWithIncorrectRole() throws Exception {
     shouldFailPullQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
   @Test
-  public void shouldFailPushQueryWithIncorrectRole() {
+  public void shouldFailPushQueryWithIncorrectRole() throws Exception {
     shouldFailPushQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
@@ -136,11 +130,6 @@ public class BasicAuthTest extends ApiTest {
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
     shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
-  }
-
-  @Test
-  public void shouldFailInsertStreamWithIncorrectRole() {
-    shouldFailInsertStream(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
   }
 
   private void shouldFailPullQuery(final String username, final String password) throws Exception {
@@ -162,23 +151,18 @@ public class BasicAuthTest extends ApiTest {
     assertThat(response.statusMessage(), is("Unauthorized"));
   }
 
-  private void shouldFailPushQuery(final String username, final String password) {
-    // Given
-    ReceiveStream writeStream = new ReceiveStream(vertx);
-
+  private void shouldFailPushQuery(final String username, final String password) throws Exception {
     // When
-    streamRequestWithCreds(
+    HttpResponse<Buffer> response = sendRequestWithCreds(
         "/query-stream",
-        (request) -> request
-            .as(BodyCodec.pipe(writeStream))
-            .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, ar -> {
-            }),
+        DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer(),
         username,
         password
     );
 
     // Then
-    assertThatEventually(() -> writeStream.getBody().toString(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(401));
+    assertThat(response.statusMessage(), is("Unauthorized"));
   }
 
   private void shouldFailCloseQuery(final String username, final String password) throws Exception {
@@ -220,30 +204,6 @@ public class BasicAuthTest extends ApiTest {
     assertThat(response.statusMessage(), is("Unauthorized"));
   }
 
-  private void shouldFailInsertStream(final String username, final String password) {
-    // Given
-    // Stream for piping the HTTP request body
-    SendStream readStream = new SendStream(vertx);
-    // Stream for receiving the HTTP response body
-    ReceiveStream writeStream = new ReceiveStream(vertx);
-    VertxCompletableFuture<HttpResponse<Void>> fut = new VertxCompletableFuture<>();
-
-    // When
-    streamRequestWithCreds(
-        "/inserts-stream",
-        (request) ->
-            request
-                .as(BodyCodec.pipe(writeStream))
-                .sendStream(readStream, fut),
-        username,
-        password
-    );
-    readStream.acceptBuffer(new JsonObject().put("some", "content").toBuffer().appendString("\n"));
-
-    // Then
-    assertThatEventually(() -> writeStream.getBody().toString(), is("Unauthorized"));
-  }
-
   private HttpResponse<Buffer> sendRequestWithCreds(
       final String uri,
       final Buffer requestBody,
@@ -266,24 +226,5 @@ public class BasicAuthTest extends ApiTest {
         .basicAuthentication(username, password)
         .sendBuffer(requestBody, requestFuture);
     return requestFuture.get();
-  }
-
-  private void streamRequestWithCreds(
-      final String uri,
-      final Consumer<HttpRequest<Buffer>> requestSender,
-      final String username,
-      final String password
-  ) {
-    streamRequestWithCreds(client, uri, requestSender, username, password);
-  }
-
-  private static void streamRequestWithCreds(
-      final WebClient client,
-      final String uri,
-      final Consumer<HttpRequest<Buffer>> requestSender,
-      final String username,
-      final String password
-  ) {
-    requestSender.accept(client.post(uri).basicAuthentication(username, password));
   }
 }

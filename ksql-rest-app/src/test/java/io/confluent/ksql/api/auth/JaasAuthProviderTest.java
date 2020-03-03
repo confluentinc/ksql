@@ -18,6 +18,8 @@ package io.confluent.ksql.api.auth;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,8 @@ import io.confluent.ksql.api.server.ApiServerConfig;
 import io.confluent.ksql.api.server.Server;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import java.security.Principal;
@@ -43,7 +47,9 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JaasAuthProviderTest {
@@ -54,6 +60,8 @@ public class JaasAuthProviderTest {
 
   @Mock
   private Server server;
+  @Mock
+  private WorkerExecutor worker;
   @Mock
   private ApiServerConfig config;
   @Mock
@@ -73,6 +81,7 @@ public class JaasAuthProviderTest {
 
   @Before
   public void setUp() throws Exception {
+    handleAsyncExecution();
     when(config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
@@ -169,7 +178,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginFailure("invalid username/password");
+    verifyLoginFailure("Failed to log in: Invalid roles.");
   }
 
   @Test
@@ -182,7 +191,7 @@ public class JaasAuthProviderTest {
     authProvider.authenticate(authInfo, userHandler);
 
     // Then:
-    verifyLoginFailure("invalid username/password");
+    verifyLoginFailure("Failed to log in: Invalid roles.");
   }
 
   private void givenAllowedRoles(final String... roles) {
@@ -218,5 +227,20 @@ public class JaasAuthProviderTest {
     final Principal mockPrincipal = mock(Principal.class);
     when(mockPrincipal.getName()).thenReturn(name);
     return mockPrincipal;
+  }
+
+  private void handleAsyncExecution() {
+    when(server.getWorkerExecutor()).thenReturn(worker);
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(final InvocationOnMock invocation) throws Throwable {
+        final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
+        final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(1);
+        final Promise<User> promise = Promise.promise();
+        promise.future().setHandler(resultHandler);
+        blockingCodeHandler.handle(promise);
+        return null;
+      }
+    }).when(worker).executeBlocking(any(), any());
   }
 }

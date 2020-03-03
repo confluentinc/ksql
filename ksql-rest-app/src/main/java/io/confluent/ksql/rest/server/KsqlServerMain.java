@@ -95,9 +95,11 @@ public class KsqlServerMain {
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     final Executable restApp = new ExecutableServer<>(
-        new ApplicationServer<>(KsqlRestApplication.convertListenerConfig(restConfig)),
+        new ApplicationServer<>(KsqlRestApplication.convertToLocalListener(restConfig)),
         ImmutableList.of(
-            KsqlRestApplication.buildApplication(restConfig, KsqlVersionCheckerAgent::new)
+            KsqlRestApplication
+                .buildApplication(KsqlRestApplication.convertToApiServerConfig(restConfig),
+                    KsqlVersionCheckerAgent::new)
         )
     );
 

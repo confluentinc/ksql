@@ -58,7 +58,7 @@ public class TlsTest extends ApiTest {
         setTrustAll(true).
         setVerifyHost(false).
         setDefaultHost("localhost").
-        setDefaultPort(server.getActualPort());
+        setDefaultPort(server.getListeners().get(0).getPort());
   }
 
 }

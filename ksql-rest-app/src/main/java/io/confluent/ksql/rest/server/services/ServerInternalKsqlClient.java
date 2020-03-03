@@ -104,4 +104,8 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   ) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public void close() {
+  }
 }

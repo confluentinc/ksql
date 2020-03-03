@@ -69,13 +69,16 @@ public interface SimpleKsqlClient {
   RestResponse<ClusterStatusResponse> makeClusterStatusRequest(URI serverEndPoint);
 
   /**
-   * Send a request to remote Ksql server to inquire to inquire about which state stores the
-   * remote server maintains as an active and standby.
-   * @param serverEndPoint the remote destination.
+   * Send a request to remote Ksql server to inquire to inquire about which state stores the remote
+   * server maintains as an active and standby.
+   *
+   * @param serverEndPoint      the remote destination.
    * @param lagReportingMessage the host lag data
    */
   void makeAsyncLagReportRequest(
       URI serverEndPoint,
       LagReportingMessage lagReportingMessage
   );
+
+  void close();
 }

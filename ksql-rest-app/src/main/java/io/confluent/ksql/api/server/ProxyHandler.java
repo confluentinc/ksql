@@ -51,7 +51,6 @@ public class ProxyHandler implements Handler<RoutingContext> {
       proxyTarget = server.getProxyTarget();
     }
     final HttpServerRequest serverRequest = routingContext.request();
-    System.out.println("Got request: " + serverRequest.path());
     final HttpClientRequest clientRequest = proxyClient.request(serverRequest.method(),
         proxyTarget, proxyTarget.port(), proxyTarget.host(),
         serverRequest.path(),

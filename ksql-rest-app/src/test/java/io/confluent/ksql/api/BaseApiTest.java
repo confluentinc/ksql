@@ -74,7 +74,7 @@ public class BaseApiTest {
 
     testEndpoints = new TestEndpoints();
     ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, testEndpoints);
+    server = new Server(vertx, serverConfig, testEndpoints, false);
     server.start();
     this.client = createClient();
     setDefaultRowGenerator();
@@ -111,7 +111,7 @@ public class BaseApiTest {
     return new WebClientOptions()
         .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
         .setDefaultHost("localhost")
-        .setDefaultPort(server.getActualPort())
+        .setDefaultPort(server.getListeners().get(0).getPort())
         .setReusePort(true);
   }
 

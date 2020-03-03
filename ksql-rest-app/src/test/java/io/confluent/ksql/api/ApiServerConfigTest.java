@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.server.ApiServerConfig;
 import io.vertx.core.http.ClientAuth;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
@@ -34,8 +35,7 @@ public class ApiServerConfigTest {
     // Given:
     Map<String, Object> map = new HashMap<>();
     map.put(ApiServerConfig.VERTICLE_INSTANCES, 2);
-    map.put(ApiServerConfig.LISTEN_HOST, "foo.com");
-    map.put(ApiServerConfig.LISTEN_PORT, 8089);
+    map.put(ApiServerConfig.LISTENERS, "http://foo.com:8088,https:://foo.com:8089");
     map.put(ApiServerConfig.TLS_ENABLED, true);
     map.put(ApiServerConfig.TLS_KEY_STORE_PATH, "uygugy");
     map.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD, "ewfwef");
@@ -48,8 +48,8 @@ public class ApiServerConfigTest {
 
     // Then:
     assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(2));
-    assertThat(config.getString(ApiServerConfig.LISTEN_HOST), is("foo.com"));
-    assertThat(config.getInt(ApiServerConfig.LISTEN_PORT), is(8089));
+    assertThat(config.getList(ApiServerConfig.LISTENERS),
+        is(Arrays.asList("http://foo.com:8088", "https:://foo.com:8089")));
     assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(true));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is("uygugy"));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is("ewfwef"));
@@ -70,8 +70,7 @@ public class ApiServerConfigTest {
     // Then:
     int expectedVerticleInstances = 2 * Runtime.getRuntime().availableProcessors();
     assertThat(config.getInt(ApiServerConfig.VERTICLE_INSTANCES), is(expectedVerticleInstances));
-    assertThat(config.getString(ApiServerConfig.LISTEN_HOST), is("localhost"));
-    assertThat(config.getInt(ApiServerConfig.LISTEN_PORT), is(8088));
+    assertThat(config.getList(ApiServerConfig.LISTENERS), is(Arrays.asList("http://0.0.0.0:8088")));
     assertThat(config.getBoolean(ApiServerConfig.TLS_ENABLED), is(false));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PATH), is(""));
     assertThat(config.getString(ApiServerConfig.TLS_KEY_STORE_PASSWORD), is(""));

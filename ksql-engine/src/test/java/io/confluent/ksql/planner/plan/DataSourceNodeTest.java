@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -36,6 +37,9 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -43,6 +47,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -141,6 +146,12 @@ public class DataSourceNodeTest {
   private SchemaKTable<Struct> table;
   @Mock
   private KsqlTopic topic;
+  @Mock
+  private ProcessingLogContext processingLogContext;
+  @Mock
+  private ProcessingLoggerFactory processingLoggerFactory;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private DataSourceNode node;
 
@@ -149,6 +160,10 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
+    when(ksqlStreamBuilder.getQueryId()).thenReturn(new QueryId("fooQuery"));
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->

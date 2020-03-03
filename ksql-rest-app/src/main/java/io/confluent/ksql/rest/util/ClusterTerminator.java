@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -82,7 +81,7 @@ public class ClusterTerminator {
     final List<DataSource> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
 
     deleteTopics(topicNames(toDelete));
-    cleanUpSinkAvroSchemas(subjectNames(toDelete));
+    cleanUpSinkSchemas(subjectNames(toDelete));
   }
 
   private List<String> filterNonExistingTopics(final Collection<String> topicList) {
@@ -104,7 +103,7 @@ public class ClusterTerminator {
     }
   }
 
-  private void cleanUpSinkAvroSchemas(final Collection<String> subjectsToDelete) {
+  private void cleanUpSinkSchemas(final Collection<String> subjectsToDelete) {
     final Set<String> knownSubject = SchemaRegistryUtil
         .getSubjectNames(serviceContext.getSchemaRegistryClient())
         .collect(Collectors.toSet());
@@ -145,7 +144,7 @@ public class ClusterTerminator {
 
   private static Set<String> subjectNames(final List<DataSource> sources) {
     return sources.stream()
-        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat() == FormatFactory.AVRO)
+        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference())
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)

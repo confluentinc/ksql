@@ -33,6 +33,7 @@ public final class CreateConfigs {
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
   public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
+  public static final String SCHEMA_ID = "SCHEMA_ID";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
@@ -63,11 +64,17 @@ public final class CreateConfigs {
               + "then the property should be used to provide the window size, "
               + "for example: '20 SECONDS'."
       ).define(
-          AVRO_SCHEMA_ID,
+          SCHEMA_ID,
           ConfigDef.Type.INT,
           null,
           Importance.LOW,
           "Undocumented feature"
+      ).define(
+          AVRO_SCHEMA_ID,
+          ConfigDef.Type.INT,
+          null,
+          Importance.LOW,
+          "Undocumented feature (deprecated - use SCHEMA_ID instead)"
       ).define(
           SOURCE_CONNECTOR,
           Type.STRING,

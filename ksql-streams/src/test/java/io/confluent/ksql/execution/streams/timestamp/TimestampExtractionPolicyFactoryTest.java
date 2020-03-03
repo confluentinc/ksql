@@ -21,6 +21,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -30,12 +31,17 @@ import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.processor.UsePartitionTimeOnInvalidTimestamp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TimestampExtractionPolicyFactoryTest {
 
   private final LogicalSchema.Builder schemaBuilder2 = LogicalSchema.builder()
@@ -45,6 +51,9 @@ public class TimestampExtractionPolicyFactoryTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private ProcessingLogger logger;
 
   @Before
   public void setup() {
@@ -63,8 +72,11 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
-    assertThat(((MetadataTimestampExtractor)result.create(0)).getTimestampExtractor(),
-        instanceOf(FailOnInvalidTimestamp.class));
+    final TimestampExtractor timestampExtractor = result.create(0, true, logger);
+    assertThat(timestampExtractor, instanceOf(LoggingTimestampExtractor.class));
+    assertThat(
+        ((LoggingTimestampExtractor) timestampExtractor).getDelegate(),
+        instanceOf(MetadataTimestampExtractor.class));
   }
 
   @Test

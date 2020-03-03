@@ -37,7 +37,7 @@ public final class SchemaRegistryUtil {
   private SchemaRegistryUtil() {
   }
 
-  public static void cleanUpInternalTopicAvroSchemas(
+  public static void cleanupInternalTopicSchemas(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient
   ) {

@@ -50,6 +50,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,8 @@ public class DefaultSchemaInjectorTest {
   private static final String SQL_TEXT = "Some SQL";
 
   private static final List<? extends SimpleColumn> SUPPORTED_SCHEMAS = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("doubleField"), SqlTypes.DOUBLE)

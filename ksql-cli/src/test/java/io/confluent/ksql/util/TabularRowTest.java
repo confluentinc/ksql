@@ -42,7 +42,6 @@ public class TabularRowTest {
   public void shouldFormatHeader() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
         .build();
@@ -61,7 +60,6 @@ public class TabularRowTest {
   public void shouldMultilineFormatHeader() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("bar is a long string"), SqlTypes.STRING)
         .build();
@@ -165,7 +163,6 @@ public class TabularRowTest {
   public void shouldFormatNoColumnsHeader() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .build();
 
     // When:
@@ -179,7 +176,6 @@ public class TabularRowTest {
   public void shouldFormatMoreColumnsThanWidth() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("baz"), SqlTypes.DOUBLE)
@@ -202,7 +198,6 @@ public class TabularRowTest {
     givenCustomColumnWidth(10);
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("baz"), SqlTypes.DOUBLE)

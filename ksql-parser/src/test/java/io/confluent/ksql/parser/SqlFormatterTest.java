@@ -116,6 +116,8 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema TABLE_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("TABLE"), SqlTypes.STRING)
       .build();
 

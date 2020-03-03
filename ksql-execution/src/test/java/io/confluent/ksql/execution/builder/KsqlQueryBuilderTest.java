@@ -46,6 +46,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -65,6 +66,8 @@ public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
+          .withRowTime()
+          .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
       SerdeOption.none()

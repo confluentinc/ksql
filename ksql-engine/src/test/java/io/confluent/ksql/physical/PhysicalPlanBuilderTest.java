@@ -47,6 +47,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
@@ -152,7 +153,6 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
         .build()
@@ -167,6 +167,8 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
         .build()

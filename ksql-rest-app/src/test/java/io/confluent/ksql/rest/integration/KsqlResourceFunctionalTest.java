@@ -42,6 +42,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -153,6 +154,8 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
+            .withRowTime()
+            .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),

@@ -48,8 +48,11 @@ public class CreateSourceCommandTest {
   public void shouldThrowOnMultipleKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .keyColumn(K0, SqlTypes.STRING)
         .keyColumn(K1, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
         .build();
 
     // When:

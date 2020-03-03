@@ -32,6 +32,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,10 +43,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UdafUtilTest {
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("FOO"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
       .build();
+
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(
       FunctionName.of("AGG"),
       ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("BAR")))

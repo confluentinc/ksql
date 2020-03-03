@@ -45,6 +45,8 @@ import org.mockito.junit.MockitoRule;
 
 public class SelectionTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
@@ -113,7 +115,8 @@ public class SelectionTest {
 
     // Then:
     final LogicalSchema expected = new LogicalSchema.Builder()
-        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .withRowTime()
+        .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
         .build();

@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.rest.RestTestExecutor.RqttQueryResponse;
+import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +33,8 @@ import org.junit.rules.ExpectedException;
 public class RestTestExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
       .build();
 

@@ -29,6 +29,7 @@ import org.junit.rules.ExpectedException;
 public class TableRowValidationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
@@ -81,7 +82,6 @@ public class TableRowValidationTest {
   public void shouldThrowOnNoMetaColumnsInSchema() {
     // Given:
     final LogicalSchema noMetaColumns = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumns(SCHEMA.key())
         .valueColumns(SCHEMA.value())
         .build();

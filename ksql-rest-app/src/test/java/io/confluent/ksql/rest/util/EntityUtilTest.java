@@ -60,7 +60,6 @@ public class EntityUtilTest {
   public void shouldBuildCorrectMapField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.map(SqlTypes.INTEGER))
         .build();
 
@@ -80,7 +79,6 @@ public class EntityUtilTest {
   public void shouldBuildCorrectArrayField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.array(SqlTypes.BIGINT))
         .build();
 
@@ -100,7 +98,6 @@ public class EntityUtilTest {
   public void shouldBuildCorrectStructField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.struct()
             .field("innerField", SqlTypes.STRING)
             .build())
@@ -123,7 +120,6 @@ public class EntityUtilTest {
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
         .build();
@@ -143,7 +139,6 @@ public class EntityUtilTest {
   public void shouldSupportRowTimeAndKeyInValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
@@ -162,13 +157,14 @@ public class EntityUtilTest {
   public void shouldSupportSchemasWithMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .withRowTime()
         .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(fields, hasSize(2));
+    assertThat(fields, hasSize(1));
     assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
   }
@@ -177,7 +173,6 @@ public class EntityUtilTest {
   public void shouldSupportSchemasWithKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .keyColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
 
@@ -194,7 +189,6 @@ public class EntityUtilTest {
   public void shouldMaintainColumnOrder() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field0"), SqlTypes.DOUBLE)
         .keyColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
@@ -216,7 +210,6 @@ public class EntityUtilTest {
   ) {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), primitiveSchema)
         .build();
 

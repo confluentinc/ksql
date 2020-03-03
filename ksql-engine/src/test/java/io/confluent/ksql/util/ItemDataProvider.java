@@ -29,6 +29,7 @@ import java.util.Map;
 public class ItemDataProvider extends TestDataProvider<String> {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("ID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("DESCRIPTION"), SqlTypes.STRING)

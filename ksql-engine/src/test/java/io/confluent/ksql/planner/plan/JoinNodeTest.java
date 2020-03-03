@@ -28,7 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -67,7 +66,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -90,12 +88,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JoinNodeTest {
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
+      .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("C0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("R1"), SqlTypes.BIGINT)
@@ -646,6 +646,7 @@ public class JoinNodeTest {
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_" + "L1"), SqlTypes.STRING)
@@ -696,6 +697,7 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.BIGINT)
         .valueColumns(LEFT_NODE_SCHEMA.value())
         .valueColumns(RIGHT_NODE_SCHEMA.value())
@@ -773,31 +775,6 @@ public class JoinNodeTest {
         .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
   }
 
-  private static Optional<Column> getColumn(final LogicalSchema schema, final Predicate<ColumnName> filter) {
-    return schema.value().stream()
-        .filter(col -> filter.test(col.name()))
-        .findFirst();
-  }
-
-  private static ColumnName getNonKeyColumn(
-      final LogicalSchema schema,
-      final SourceName alias,
-      final ColumnName keyName
-  ) {
-    final ImmutableList<ColumnName> blackList = ImmutableList.of(
-        SchemaUtil.ROWKEY_NAME,
-        SchemaUtil.ROWTIME_NAME,
-        keyName
-    );
-
-    final Column column =
-        getColumn(schema, s -> !blackList.contains(s))
-            .orElseThrow(AssertionError::new);
-
-    final Column field = schema.findValueColumn(column.name()).get();
-    return field.name();
-  }
-
   private static void setUpSource(
       final DataSourceNode node,
       final ValueFormat valueFormat,
@@ -812,7 +789,8 @@ public class JoinNodeTest {
   }
 
   private static LogicalSchema prependAlias(final SourceName alias, final LogicalSchema schema) {
-    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    final LogicalSchema.Builder builder = LogicalSchema.builder()
+        .withRowTime();
     builder.keyColumns(schema.key());
     for (final Column c : schema.value()) {
       builder.valueColumn(ColumnName.generatedJoinColumnAlias(alias, c.name()), c.type());

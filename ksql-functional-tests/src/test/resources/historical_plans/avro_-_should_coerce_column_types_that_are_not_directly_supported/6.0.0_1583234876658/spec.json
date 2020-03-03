@@ -1,0 +1,22 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583234876658,
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 DOUBLE> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 DOUBLE> NOT NULL"
+  },
+  "inputs" : [ {
+    "topic" : "input",
+    "key" : "",
+    "value" : {
+      "c1" : 4.0
+    }
+  } ],
+  "outputs" : [ {
+    "topic" : "OUTPUT",
+    "key" : "",
+    "value" : {
+      "C1" : 4.0
+    }
+  } ]
+}

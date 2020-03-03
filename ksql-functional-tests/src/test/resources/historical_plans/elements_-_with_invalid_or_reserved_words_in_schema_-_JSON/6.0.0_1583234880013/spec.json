@@ -1,6 +1,6 @@
 {
-  "version" : "5.5.0",
-  "timestamp" : 1583183630550,
+  "version" : "6.0.0",
+  "timestamp" : 1583234880013,
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<@TIMESTAMP BIGINT, FROM BIGINT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<@TIMESTAMP BIGINT, FROM BIGINT> NOT NULL"

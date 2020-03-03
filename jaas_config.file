@@ -1,5 +1,0 @@
-KsqlServer-Props {
-  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
-  file="/Users/victoria.xia/ksql/pwd_file"
-  debug="false";
-};

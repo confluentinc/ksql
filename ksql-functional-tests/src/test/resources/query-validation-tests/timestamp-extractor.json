@@ -38,6 +38,7 @@
     },
     {
       "name": "KSQL throw on invalid timestamp extractor with format",
+      "enabled": false,
       "statements": [
         "CREATE STREAM TEST (ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');",
         "CREATE STREAM TS AS SELECT id FROM test;"

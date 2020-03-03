@@ -113,16 +113,15 @@ Note: the Avro schema must be registered in the {{ site.sr }} under the
 subject `users-avro-topic-value`.
 
 By default, the key of the data will be assumed to be a single `KAFKA`
-serialized `STRING` called `ROWKEY`. If the key schema differs, then you
-can provide just the key column in the statement. For example, the following
-creates the `users` table with a 64-bit integer key and infers the value
-columns from the Avro schema.
+serialized `STRING` called `ROWKEY`. ksqlDB does not support currently
+support key formats other than `KAFKA`. However, you can explicitly specify the type and name of the
+key column in the statement. For example, the following creates the `users` table with a 64-bit
+integer key column, called `userId`, and infers the value columns from the Avro schema.
 
 ```sql
-CREATE TABLE users (ROWKEY BIGINT KEY)
+CREATE TABLE users (userId BIGINT KEY)
   WITH (KAFKA_TOPIC='users-avro-topic',
-        VALUE_FORMAT='AVRO',
-        KEY='userid');
+        VALUE_FORMAT='AVRO');
 ```
 
 
@@ -138,7 +137,7 @@ the available fields in the Avro data. In this example, only the
 `viewtime` and `pageid` columns are picked.
 
 ```sql
-CREATE STREAM pageviews_reduced (viewtime BIGINT, pageid VARCHAR)
+CREATE STREAM pageviews_reduced (userId BIGINT KEY, viewtime BIGINT, pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews-avro-topic',
         VALUE_FORMAT='AVRO');
 ```
@@ -157,7 +156,7 @@ schema for the new `pageviews_avro` stream, and it registers the schema
 with {{ site.sr }}.
 
 ```sql
-CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
+CREATE STREAM pageviews_json (userId BIGINT KEY, viewtime BIGINT, pageid VARCHAR)
   WITH (KAFKA_TOPIC='pageviews_kafka_topic_json', VALUE_FORMAT='JSON');
 
 CREATE STREAM pageviews_avro

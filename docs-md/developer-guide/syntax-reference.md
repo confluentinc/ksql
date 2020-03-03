@@ -406,7 +406,7 @@ The `KEY` property is optional. ksqlDB uses it as an optimization hint to
 determine if repartitioning can be avoided when performing aggregations
 and joins.
 
-The type of the column named in the `KEY` property must match the type of the `ROWKEY` column.
+The type of the column named in the `KEY` property must match the type of the key column.
 
 !!! important
       Don't set the KEY property, unless you have validated that your

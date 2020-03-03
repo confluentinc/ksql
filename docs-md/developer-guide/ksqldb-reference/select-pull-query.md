@@ -15,7 +15,7 @@ Synopsis
 ```sql
 SELECT select_expr [, ...]
   FROM aggregate_table
-  WHERE ROWKEY=key
+  WHERE keyColumn=keyValue
   [AND window_bounds];
 ```
 
@@ -26,7 +26,7 @@ Pulls the current value from the materialized table and terminates. The result
 of this statement isn't persisted in a Kafka topic and is printed out only in
 the console.
 
-Pull queries enable you to fetch the current state of a materialized view.
+Pull queries enable you to query the current state of a materialized view.
 Because materialized views are incrementally updated as new events arrive,
 pull queries run with predictably low latency. They're a great match for
 request/response flows. For asynchronous application flows, see
@@ -35,7 +35,7 @@ request/response flows. For asynchronous application flows, see
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-The WHERE clause must contain a single value of `ROWKEY` to retrieve and may
+The WHERE clause must contain a single value for the key of the row(s) to retrieve and may
 optionally include bounds on WINDOWSTART if the materialized table is windowed.
 
 Example

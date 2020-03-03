@@ -85,6 +85,7 @@ final class GroupByParamsFactory {
       final SqlType rowKeyType
   ) {
     return LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, rowKeyType)
         .valueColumns(sourceSchema.value())

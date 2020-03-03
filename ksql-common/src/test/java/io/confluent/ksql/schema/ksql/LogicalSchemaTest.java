@@ -233,7 +233,8 @@ public class LogicalSchemaTest {
   public void shouldPreferKeyOverValueAndMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        // Implicit meta ROWTIME
+        .allowDuplicates()
+        .withRowTime()
         .valueColumn(ROWTIME_NAME, BIGINT)
         .keyColumn(ROWTIME_NAME, BIGINT)
         .build();
@@ -412,6 +413,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .withRowTime()
+        .allowDuplicates()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -441,6 +443,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .withRowTime()
+        .allowDuplicates()
         .keyColumn(K0, INTEGER)
         .keyColumn(K1, STRING)
         .valueColumn(F0, STRING)
@@ -476,6 +479,7 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
         .withRowTime()
+        .allowDuplicates()
         .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(K0, DOUBLE)
@@ -489,6 +493,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(result, is(LogicalSchema.builder()
         .withRowTime()
+        .allowDuplicates()
         .keyColumn(K0, INTEGER)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
@@ -570,6 +575,7 @@ public class LogicalSchemaTest {
   public void shouldRemoveKeyColumnsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .allowDuplicates()
         .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(K0, STRING)
@@ -648,7 +654,7 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(F0, DOUBLE)
-        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
         .build();
 
     // When:
@@ -665,7 +671,7 @@ public class LogicalSchemaTest {
   public void shouldGetValueConnectSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(F0, STRING)
+        .keyColumn(K0, STRING)
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, STRING)
         .build();
@@ -742,6 +748,23 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(schema.valueContainsAny(ImmutableSet.of(K0, V0, ROWTIME_NAME)), is(false));
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowOnDuplicateColumnName() {
+    LogicalSchema.builder()
+        .valueColumn(K0, STRING)
+        .keyColumn(K0, BIGINT)
+        .build();
+  }
+
+  @Test
+  public void shouldNotThrowOnDuplicateColumnName() {
+    LogicalSchema.builder()
+        .valueColumn(K0, STRING)
+        .keyColumn(K0, BIGINT)
+        .allowDuplicates()
+        .build();
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

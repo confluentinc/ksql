@@ -52,6 +52,7 @@ public final class Selection<K> {
       final SelectValueMapper<?> mapper
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime();
 
     final List<Column> keyCols = sourceSchema.key();

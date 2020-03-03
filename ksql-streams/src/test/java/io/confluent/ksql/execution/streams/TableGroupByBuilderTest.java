@@ -66,6 +66,7 @@ public class TableGroupByBuilderTest {
       .withMetaAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
+      .allowDuplicates()
       .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
@@ -190,6 +191,7 @@ public class TableGroupByBuilderTest {
 
     // Then:
     assertThat(result.getSchema(), is(is(LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumns(SCHEMA.value())

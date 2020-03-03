@@ -76,6 +76,7 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsRowKey() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)

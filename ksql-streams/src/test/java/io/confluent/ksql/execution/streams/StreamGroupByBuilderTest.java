@@ -69,6 +69,7 @@ public class StreamGroupByBuilderTest {
       .withMetaAndKeyColsInValue(false);
 
   private static final LogicalSchema REKEYED_SCHEMA = LogicalSchema.builder()
+      .allowDuplicates()
       .withRowTime()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumns(SCHEMA.value())
@@ -216,6 +217,7 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumns(SCHEMA.value())

@@ -387,7 +387,8 @@ public class LogicalPlanner {
     );
 
     final Builder builder = LogicalSchema.builder()
-        .withRowTime();
+        .withRowTime()
+        .allowDuplicates();
 
     final List<Column> keyColumns = schema.key();
 
@@ -444,6 +445,7 @@ public class LogicalPlanner {
     final SqlType keyType = typeManager.getExpressionSqlType(partitionBy);
 
     return LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())

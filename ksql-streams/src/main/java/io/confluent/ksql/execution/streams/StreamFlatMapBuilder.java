@@ -99,6 +99,7 @@ public final class StreamFlatMapBuilder {
       final FunctionRegistry functionRegistry
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder()
+        .allowDuplicates()
         .withRowTime();
 
     final List<Column> cols = inputSchema.value();

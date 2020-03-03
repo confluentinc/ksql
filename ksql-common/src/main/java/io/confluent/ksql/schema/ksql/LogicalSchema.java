@@ -310,8 +310,24 @@ public final class LogicalSchema {
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
 
+    private boolean failOnDuplicates = true;
+
     public Builder withRowTime() {
       columns.add(IMPLICIT_TIME_COLUMN);
+      return this;
+    }
+
+    /**
+     * Allows key and value columns with the same name.
+     *
+     * <p>This should only be used when building the schemas used by Kafka Streams, where
+     * the key columns are copied into the value schema. KSQL does not support duplicate column
+     * names in data sources.
+     *
+     * @return self.
+     */
+    public Builder allowDuplicates() {
+      failOnDuplicates = false;
       return this;
     }
 
@@ -344,7 +360,22 @@ public final class LogicalSchema {
     }
 
     public LogicalSchema build() {
-      return new LogicalSchema(columns.build());
+      final LogicalSchema schema = new LogicalSchema(columns.build());
+
+      if (failOnDuplicates) {
+        final String duplicates = schema.value().stream()
+            .map(Column::name)
+            .filter(schema::isKeyColumn)
+            .map(ColumnName::toString)
+            .collect(Collectors.joining(", "));
+
+        if (!duplicates.isEmpty()) {
+          throw new IllegalStateException("Value column name(s) " + duplicates
+              + " clashes with key column name(s).");
+        }
+      }
+
+      return schema;
     }
 
     private void addColumn(final Column column) {

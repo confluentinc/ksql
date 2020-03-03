@@ -74,6 +74,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+
+    server.getAuthHandler().ifPresent(authHandler -> router.route("/*").handler(authHandler));
+
     router.route(HttpMethod.POST, "/query-stream")
         .produces("application/vnd.ksqlapi.delimited.v1")
         .produces("application/json")

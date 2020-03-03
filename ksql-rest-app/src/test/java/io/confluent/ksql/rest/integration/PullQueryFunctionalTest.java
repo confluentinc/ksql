@@ -90,7 +90,7 @@ public class PullQueryFunctionalTest {
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
 
-  private static final TestBasicJaasConfig JASS_CONFIG = TestBasicJaasConfig
+  private static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
       .builder(PROPS_JAAS_REALM)
       .addUser(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, KSQL_CLUSTER_ID)
       .build();
@@ -115,7 +115,7 @@ public class PullQueryFunctionalTest {
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
-      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JASS_CONFIG.jaasFile().toString())
+      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
@@ -126,14 +126,14 @@ public class PullQueryFunctionalTest {
       .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
-      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JASS_CONFIG.jaasFile().toString())
+      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
-      .around(JASS_CONFIG)
+      .around(JAAS_CONFIG)
       .around(REST_APP_0)
       .around(REST_APP_1);
 

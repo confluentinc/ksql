@@ -19,7 +19,6 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -58,10 +57,6 @@ public class InsertInto
   @Override
   public Query getQuery() {
     return query;
-  }
-
-  public Optional<Expression> getPartitionByColumn() {
-    return query.getPartitionBy();
   }
 
   @Override

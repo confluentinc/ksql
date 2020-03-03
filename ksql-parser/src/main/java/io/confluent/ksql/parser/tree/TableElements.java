@@ -16,14 +16,15 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -81,13 +82,20 @@ public final class TableElements implements Iterable<TableElement> {
    * @return the logical schema.
    */
   public LogicalSchema toLogicalSchema(final boolean withImplicitColumns) {
-    if (Iterables.isEmpty(this)) {
+    if (elements.isEmpty()) {
       throw new KsqlException("No columns supplied.");
     }
 
-    final Builder builder = withImplicitColumns
-        ? LogicalSchema.builder()
-        : LogicalSchema.builder().noImplicitColumns();
+    final Builder builder = LogicalSchema.builder();
+
+    if (withImplicitColumns) {
+      builder.withRowTime();
+
+      final boolean noKey = elements.stream().noneMatch(e -> e.getNamespace() == Namespace.KEY);
+      if (noKey) {
+        builder.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+      }
+    }
 
     for (final TableElement tableElement : this) {
       final ColumnName fieldName = tableElement.getName();

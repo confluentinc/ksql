@@ -218,6 +218,7 @@ public final class StepSchemaResolver {
         .getExpressionSqlType(step.getKeyExpression());
 
     return LogicalSchema.builder()
+        .withRowTime()
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();

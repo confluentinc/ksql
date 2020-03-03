@@ -277,7 +277,9 @@ public class RowGenerator {
       throw new IllegalArgumentException("key field does not exist in schema: " + keyFieldName);
     }
 
-    final Builder schemaBuilder = LogicalSchema.builder();
+    final Builder schemaBuilder = LogicalSchema.builder()
+        .withRowTime();
+
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     schemaBuilder

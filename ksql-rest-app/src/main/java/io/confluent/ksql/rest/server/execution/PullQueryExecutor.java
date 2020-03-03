@@ -845,14 +845,13 @@ public final class PullQueryExecutor {
     }
   }
 
-  private LogicalSchema selectOutputSchema(
+  private static LogicalSchema selectOutputSchema(
       final Result input,
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis,
       final Optional<WindowType> windowType
   ) {
-    final Builder schemaBuilder = LogicalSchema.builder()
-        .noImplicitColumns();
+    final Builder schemaBuilder = LogicalSchema.builder();
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = input.schema

@@ -99,11 +99,8 @@ public class BaseApiTest {
 
   protected ApiServerConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
-    config.put("ksql.apiserver.listen.host", "localhost");
-    config.put("ksql.apiserver.listen.port", 0);
-    config.put("ksql.apiserver.tls.enabled", false);
-    config.put("ksql.apiserver.verticle.instances", 4);
-
+    config.put(ApiServerConfig.LISTENERS, "http://localhost:0");
+    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
     return new ApiServerConfig(config);
   }
 

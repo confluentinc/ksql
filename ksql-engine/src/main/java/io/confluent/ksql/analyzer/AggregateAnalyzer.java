@@ -107,7 +107,7 @@ class AggregateAnalyzer {
     }
 
     // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
-    if (SchemaUtil.isWindowBound(node.getReference())) {
+    if (SchemaUtil.isWindowBound(node.getColumnName())) {
       throw new KsqlException(
           "Window bounds column " + node + " can only be used in the SELECT clause of "
               + "windowed aggregations and can not be passed to aggregate functions."
@@ -169,7 +169,7 @@ class AggregateAnalyzer {
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
 
-      if (!SchemaUtil.isWindowBound(node.getReference())) {
+      if (!SchemaUtil.isWindowBound(node.getColumnName())) {
         aggregateAnalysis.addRequiredColumn(node);
       }
       return null;
@@ -182,7 +182,7 @@ class AggregateAnalyzer {
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
 
-      if (!SchemaUtil.isWindowBound(node.getReference())) {
+      if (!SchemaUtil.isWindowBound(node.getColumnName())) {
         aggregateAnalysis.addRequiredColumn(node);
       }
       return null;

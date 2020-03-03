@@ -182,7 +182,7 @@ public class ExpressionTypeManager {
     public Void visitColumnReference(
         final UnqualifiedColumnReferenceExp node, final ExpressionTypeContext expressionTypeContext
     ) {
-      final Optional<Column> possibleColumn = schema.findValueColumn(node.getReference());
+      final Optional<Column> possibleColumn = schema.findValueColumn(node.getColumnName());
 
       final Column schemaColumn = possibleColumn
           .orElseThrow(() -> new KsqlException("Unknown column " + node + "."));

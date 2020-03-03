@@ -308,10 +308,10 @@ public class SqlToJavaVisitor {
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
-      final ColumnName fieldName = node.getReference();
-      final Column schemaColumn = schema.findValueColumn(node.getReference())
+      final ColumnName fieldName = node.getColumnName();
+      final Column schemaColumn = schema.findValueColumn(node.getColumnName())
           .orElseThrow(() ->
-              new KsqlException("Field not found: " + node.getReference()));
+              new KsqlException("Field not found: " + node.getColumnName()));
 
       return new Pair<>(colRefToCodeName.apply(fieldName), schemaColumn.type());
     }

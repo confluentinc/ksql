@@ -118,7 +118,7 @@ public class ColumnReferenceValidatorTest {
     // Then:
     verify(sourceSchemas).sourcesWithField(
         Optional.of(expression.getQualifier()),
-        expression.getReference()
+        expression.getColumnName()
     );
     assertThat(
         Iterables.getOnlyElement(columnRefs),

@@ -62,7 +62,7 @@ class ColumnReferenceValidator {
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
-      final ColumnName reference = node.getReference();
+      final ColumnName reference = node.getColumnName();
       getSource(Optional.empty(), reference).ifPresent(referencedSources::add);
       return null;
     }
@@ -72,7 +72,7 @@ class ColumnReferenceValidator {
         final QualifiedColumnReferenceExp node,
         final Object context
     ) {
-      getSource(Optional.of(node.getQualifier()), node.getReference())
+      getSource(Optional.of(node.getQualifier()), node.getColumnName())
           .ifPresent(referencedSources::add);
       return null;
     }

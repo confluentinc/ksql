@@ -201,7 +201,7 @@ public final class ExpressionFormatter {
         final UnqualifiedColumnReferenceExp node,
         final Context context
     ) {
-      return node.getReference().toString(context.formatOptions);
+      return node.getColumnName().toString(context.formatOptions);
     }
 
     @Override
@@ -209,7 +209,7 @@ public final class ExpressionFormatter {
         final QualifiedColumnReferenceExp node,
         final Context context) {
       return formatName(node.getQualifier(), context)
-          + KsqlConstants.DOT + node.getReference().toString(context.formatOptions);
+          + KsqlConstants.DOT + node.getColumnName().toString(context.formatOptions);
     }
 
     @Override

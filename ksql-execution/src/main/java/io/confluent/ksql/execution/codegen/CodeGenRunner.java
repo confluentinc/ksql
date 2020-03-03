@@ -170,7 +170,7 @@ public class CodeGenRunner {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
-        addRequiredColumn(arrayBaseName.getReference());
+        addRequiredColumn(arrayBaseName.getColumnName());
       } else {
         process(node.getBase(), context);
       }
@@ -209,7 +209,7 @@ public class CodeGenRunner {
 
     @Override
     public Void visitColumnReference(final UnqualifiedColumnReferenceExp node, final Void context) {
-      addRequiredColumn(node.getReference());
+      addRequiredColumn(node.getColumnName());
       return null;
     }
 

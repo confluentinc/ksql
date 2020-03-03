@@ -729,7 +729,7 @@ public final class PullQueryExecutor {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getReference().toString(FormatOptions.noEscape());
+    final String fieldName = column.getColumnName().toString(FormatOptions.noEscape());
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());
@@ -965,7 +965,7 @@ public final class PullQueryExecutor {
         final QualifiedColumnReferenceExp node,
         final Context<Void> ctx
     ) {
-      return Optional.of(new UnqualifiedColumnReferenceExp(node.getReference()));
+      return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
     }
   }
 

@@ -598,7 +598,7 @@ public class ExpressionTypeManagerTest {
     final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
-    final SqlType sqlType = SCHEMA.findColumn(ADDRESS.getReference()).get().type();
+    final SqlType sqlType = SCHEMA.findColumn(ADDRESS.getColumnName()).get().type();
     assertThat(result, is(sqlType));
   }
 

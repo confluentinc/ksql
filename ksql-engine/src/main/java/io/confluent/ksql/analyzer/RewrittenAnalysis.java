@@ -88,7 +88,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getSelectColumnRefs().stream()
         .map(UnqualifiedColumnReferenceExp::new)
         .map(r -> ExpressionTreeRewriter.rewriteWith(rewriter, r))
-        .map(UnqualifiedColumnReferenceExp::getReference)
+        .map(UnqualifiedColumnReferenceExp::getColumnName)
         .collect(Collectors.toSet());
   }
 

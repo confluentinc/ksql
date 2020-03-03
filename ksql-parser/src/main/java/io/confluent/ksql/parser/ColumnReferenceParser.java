@@ -55,10 +55,10 @@ public final class ColumnReferenceParser {
 
     final PrimaryExpressionContext primaryExpression = parser.primaryExpression();
     if (primaryExpression instanceof ColumnReferenceContext) {
-      return resolve((ColumnReferenceContext) primaryExpression).getReference();
+      return resolve((ColumnReferenceContext) primaryExpression).getColumnName();
     }
     if (primaryExpression instanceof QualifiedColumnReferenceContext) {
-      return resolve((QualifiedColumnReferenceContext) primaryExpression).getReference();
+      return resolve((QualifiedColumnReferenceContext) primaryExpression).getColumnName();
     }
 
     throw new ParseFailedException("Cannot parse text that is not column reference: " + text);

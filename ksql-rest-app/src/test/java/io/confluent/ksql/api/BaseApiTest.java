@@ -20,31 +20,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.ApiServerConfig;
-import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaseApiTest {
+public class BaseApiTest extends BaseServerTest {
 
   private static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
 
@@ -61,59 +53,10 @@ public class BaseApiTest {
       .put("sql", DEFAULT_PUSH_QUERY)
       .put("properties", DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES);
 
-  protected Vertx vertx;
-  protected WebClient client;
-  protected Server server;
-  protected TestEndpoints testEndpoints;
-
   @Before
   public void setUp() throws Exception {
-
-    vertx = Vertx.vertx();
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-
-    testEndpoints = new TestEndpoints();
-    ApiServerConfig serverConfig = createServerConfig();
-    server = new Server(vertx, serverConfig, testEndpoints, false);
-    server.start();
-    this.client = createClient();
+    super.setUp();
     setDefaultRowGenerator();
-  }
-
-  @After
-  public void tearDown() {
-    if (client != null) {
-      client.close();
-    }
-    if (server != null) {
-      try {
-        server.stop();
-      } catch (Exception e) {
-        log.error("Failed to shutdown server", e);
-      }
-    }
-    if (vertx != null) {
-      vertx.close();
-    }
-  }
-
-  protected ApiServerConfig createServerConfig() {
-    final Map<String, Object> config = new HashMap<>();
-    config.put(ApiServerConfig.LISTENERS, "http://localhost:0");
-    config.put(ApiServerConfig.VERTICLE_INSTANCES, 4);
-    return new ApiServerConfig(config);
-  }
-
-  protected WebClientOptions createClientOptions() {
-    return new WebClientOptions()
-        .setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
-        .setDefaultHost("localhost")
-        .setDefaultPort(server.getListeners().get(0).getPort())
-        .setReusePort(true);
-  }
-
-  protected WebClient createClient() {
-    return WebClient.create(vertx, createClientOptions());
   }
 
   protected QueryResponse executePushQueryAndWaitForRows(final JsonObject requestBody)
@@ -148,7 +91,6 @@ public class BaseApiTest {
 
     return new QueryResponse(writeStream.getBody().toString());
   }
-
 
   protected HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
       throws Exception {

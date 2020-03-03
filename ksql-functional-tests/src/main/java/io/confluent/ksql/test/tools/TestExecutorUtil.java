@@ -220,9 +220,11 @@ public final class TestExecutorUtil {
         stubKafkaService
     );
 
-    testCase.expectedException().map(ee -> {
-      throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
-    });
+    if (testCase.getInputRecords().isEmpty()) {
+      testCase.expectedException().map(ee -> {
+        throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
+      });
+    }
 
     assertThat("test did not generate any queries.", queries, is(not(empty())));
     return queries;

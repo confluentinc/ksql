@@ -53,7 +53,7 @@ public final class UdafUtil {
       final Expression arg = functionCall.getArguments().get(0);
 
       final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
-          ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getReference())
+          ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getColumnName())
           // assume that it is a column reference with no alias
           : schema.findValueColumn(ColumnName.of(arg.toString()));
 

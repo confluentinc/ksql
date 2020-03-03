@@ -648,7 +648,7 @@ class Analyzer {
             final UnqualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnNames.add(node.getReference());
+          columnNames.add(node.getColumnName());
           return null;
         }
 
@@ -657,7 +657,7 @@ class Analyzer {
             final QualifiedColumnReferenceExp node,
             final Void context
         ) {
-          columnNames.add(node.getReference());
+          columnNames.add(node.getColumnName());
           return null;
         }
       };

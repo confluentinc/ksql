@@ -21,16 +21,18 @@ import java.util.Objects;
 import java.util.Optional;
 
 public abstract class ColumnReferenceExp extends Expression {
+
   final ColumnName name;
 
   ColumnReferenceExp(
       final Optional<NodeLocation> location,
-      final ColumnName name) {
+      final ColumnName name
+  ) {
     super(location);
     this.name = Objects.requireNonNull(name, "name");
   }
 
-  public ColumnName getReference() {
+  public ColumnName getColumnName() {
     return name;
   }
 }

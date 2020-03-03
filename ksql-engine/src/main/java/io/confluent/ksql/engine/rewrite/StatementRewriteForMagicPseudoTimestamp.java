@@ -136,6 +136,6 @@ public class StatementRewriteForMagicPseudoTimestamp {
       return false;
     }
 
-    return SUPPORTED_COLUMNS.contains(((ColumnReferenceExp) maybeColumnRef).getReference());
+    return SUPPORTED_COLUMNS.contains(((ColumnReferenceExp) maybeColumnRef).getColumnName());
   }
 }

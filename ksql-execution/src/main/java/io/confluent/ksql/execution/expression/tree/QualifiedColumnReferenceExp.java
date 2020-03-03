@@ -61,7 +61,6 @@ public class QualifiedColumnReferenceExp extends ColumnReferenceExp {
 
   @Override
   public int hashCode() {
-
     return Objects.hash(qualifier, name);
   }
 }

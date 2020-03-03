@@ -287,19 +287,6 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldSetValidLegacySchemaId() {
-    // When:
-    final CreateSourceProperties properties = CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.AVRO_SCHEMA_ID, new StringLiteral("1"))
-            .build());
-
-    // Then:
-    assertThat(properties.getSchemaId(), is(Optional.of(1)));
-  }
-
-  @Test
   public void shouldSetValidAvroSchemaName() {
     // When:
     final CreateSourceProperties properties = CreateSourceProperties.from(
@@ -451,6 +438,7 @@ public class CreateSourcePropertiesTest {
     );
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldProperlyImplementEqualsAndHashCode() {
     new EqualsTester()

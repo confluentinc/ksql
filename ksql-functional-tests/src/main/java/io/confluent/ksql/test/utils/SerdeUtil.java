@@ -24,7 +24,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
@@ -126,7 +126,7 @@ public final class SerdeUtil {
         public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
           final Serializer<T> serializer = inner.getSerializer(srClient);
           serializer.configure(ImmutableMap.of(
-              KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+              AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
           ), true);
           return new SessionWindowedSerializer<>(serializer);
         }
@@ -145,7 +145,7 @@ public final class SerdeUtil {
       public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
         final Serializer<T> serializer = inner.getSerializer(srClient);
         serializer.configure(ImmutableMap.of(
-            KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+            AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
         ), true);
         return new TimeWindowedSerializer<>(serializer);
       }

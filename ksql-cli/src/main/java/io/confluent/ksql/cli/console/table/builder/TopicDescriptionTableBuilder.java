@@ -19,28 +19,30 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.serde.FormatFactory;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TopicDescriptionTableBuilder implements TableBuilder<TopicDescription> {
 
-  private static final List<String> NON_AVRO_HEADERS =
+  private static final List<String> NON_SCHEMA_HEADERS =
       ImmutableList.of("Table Name", "Kafka Topic", "Type");
 
-  private static final List<String> AVRO_HEADERS =
-      ImmutableList.of("Table Name", "Kafka Topic", "Type", "AvroSchema");
+  private static final List<String> SCHEMA_HEADERS =
+      ImmutableList.of("Table Name", "Kafka Topic", "Type", "Schema");
 
   @Override
   public Table buildTable(final TopicDescription topicDescription) {
-    final boolean avro = topicDescription.getFormat().equalsIgnoreCase("AVRO");
+    final String format = topicDescription.getFormat();
+    final boolean supportsSchema = FormatFactory.fromName(format).supportsSchemaInference();
 
-    final List<String> headings = avro ? AVRO_HEADERS : NON_AVRO_HEADERS;
+    final List<String> headings = supportsSchema ? SCHEMA_HEADERS : NON_SCHEMA_HEADERS;
 
     final List<String> row = new ArrayList<>(4);
     row.add(topicDescription.getName());
     row.add(topicDescription.getKafkaTopic());
-    row.add(topicDescription.getFormat());
-    if (avro) {
+    row.add(format);
+    if (supportsSchema) {
       row.add(topicDescription.getSchemaString());
     }
 

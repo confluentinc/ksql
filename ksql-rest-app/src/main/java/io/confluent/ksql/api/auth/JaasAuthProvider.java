@@ -88,13 +88,18 @@ public class JaasAuthProvider implements AuthProvider {
     final String contextName = config.getString(ApiServerConfig.AUTHENTICATION_REALM_CONFIG);
     final List<String> allowedRoles = config.getList(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG);
 
-    getUser(contextName, username, password, allowedRoles, userResult -> {
-      if (userResult.succeeded()) {
-        resultHandler.handle(Future.succeededFuture(userResult.result()));
-      } else {
-        resultHandler.handle(Future.failedFuture("invalid username/password"));
-      }
-    });
+    server.getWorkerExecutor().executeBlocking(promise -> {
+      getUser(contextName, username, password, allowedRoles, userResult -> {
+        if (userResult.succeeded()) {
+          //resultHandler.handle(Future.succeededFuture(userResult.result()));
+          promise.complete(userResult.result());
+        } else {
+          promise.fail("invalid username/password");
+          //resultHandler.handle(Future.failedFuture("invalid username/password"));
+        }
+      });
+    }, resultHandler);
+
   }
 
   private void getUser(

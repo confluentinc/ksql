@@ -75,6 +75,11 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
+    router.route(HttpMethod.POST, "/inserts-stream").handler(rc -> {
+      rc.request().pause();
+      rc.next();
+    });
+
     server.getAuthHandler().ifPresent(authHandler -> router.route("/*").handler(authHandler));
 
     router.route(HttpMethod.POST, "/query-stream")
@@ -89,6 +94,12 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
     router.route(HttpMethod.POST, "/close-query").handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
+    router.route().failureHandler(routingContext -> {
+      if (routingContext.failure() != null) {
+        log.error("Unhandled exception in route", routingContext.failure());
+      }
+      routingContext.response().setStatusCode(routingContext.statusCode()).end();
+    });
     return router;
   }
 }

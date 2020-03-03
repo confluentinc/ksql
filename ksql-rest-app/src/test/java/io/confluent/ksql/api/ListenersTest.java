@@ -97,6 +97,32 @@ public class ListenersTest extends BaseApiTest {
 
   }
 
+  @Test
+  public void shouldFailToStartWithUnsupportedProtocol() {
+    // Given:
+    init();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("Invalid URI scheme should be http or https");
+
+    // When:
+    createServer(createConfig("ftp://localhost:8088", false));
+  }
+
+  @Test
+  public void shouldFailToStartWithInvalidURI() {
+    // Given:
+    init();
+
+    // Then:
+    expectedException.expect(ConfigException.class);
+    expectedException.expectMessage("Invalid listener URI");
+
+    // When:
+    createServer(createConfig("http:: uiqhwduihqwduhi:8989", false));
+  }
+
   private ApiServerConfig createConfig(String listeners, boolean tls) {
     Map<String, Object> config = new HashMap<>();
     config.put(ApiServerConfig.LISTENERS, listeners);

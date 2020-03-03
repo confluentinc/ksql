@@ -24,6 +24,8 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.core.streams.ReadStream;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -34,9 +36,9 @@ public class ProxyHandler implements Handler<RoutingContext> {
 
   private static final Logger log = LoggerFactory.getLogger(ProxyHandler.class);
 
-  private SocketAddress proxyTarget;
   private final HttpClient proxyClient;
   private final Server server;
+  private SocketAddress proxyTarget;
 
   public ProxyHandler(final SocketAddress proxyTarget, final HttpClient proxyClient,
       final Server server) {
@@ -55,51 +57,69 @@ public class ProxyHandler implements Handler<RoutingContext> {
         proxyTarget, proxyTarget.port(), proxyTarget.host(),
         serverRequest.path(),
         resp -> responseHandler(resp, serverRequest))
-        .exceptionHandler(this::exceptionHandler);
-    RequestPipe.pipe(serverRequest, clientRequest);
+        .exceptionHandler(ProxyHandler::exceptionHandler);
+
+    final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    for (Map.Entry<String, String> header : serverRequest.headers()) {
+      if (!header.getKey().equalsIgnoreCase("host")) {
+        headers.add(header.getKey(), header.getValue());
+      }
+    }
+    clientRequest.headers().setAll(headers);
+
+    if (serverRequest.isEnded()) {
+      clientRequest.end();
+    } else {
+      Pipe.pipe(serverRequest, clientRequest);
+    }
   }
 
-  private void responseHandler(final HttpClientResponse clientResponse,
+  private static void responseHandler(final HttpClientResponse clientResponse,
       final HttpServerRequest serverRequest) {
     // If the target server closes the connection we need to close ours too
     clientResponse.request().connection().closeHandler(v -> serverRequest.connection().close());
+
+    final HttpServerResponse serverResponse = serverRequest.response();
+    serverResponse.setStatusCode(clientResponse.statusCode());
+    serverResponse.setStatusMessage(clientResponse.statusMessage());
+    serverResponse.headers().setAll(clientResponse.headers());
+
     // We do our own pipe as we need to intercept end to add any trailers
-    ResponsePipe.pipe(clientResponse, serverRequest.response());
+    Pipe.pipe(clientResponse, serverResponse, () -> {
+      final MultiMap trailers = clientResponse.trailers();
+      serverResponse.trailers().setAll(trailers);
+    });
   }
 
-  private void exceptionHandler(final Throwable t) {
+  private static void exceptionHandler(final Throwable t) {
     log.error("Exception in making proxy request", t);
   }
 
-  private static final class RequestPipe {
+  private static final class Pipe {
 
-    private final HttpServerRequest from;
-    private final HttpClientRequest to;
+    private final ReadStream<Buffer> from;
+    private final WriteStream<Buffer> to;
     private boolean drainHandlerSet;
+    private final Runnable beforeEndHook;
 
-    private static void pipe(final HttpServerRequest from, final HttpClientRequest to) {
-      new RequestPipe(from, to);
+    private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to) {
+      new Pipe(from, to, null);
     }
 
-    private RequestPipe(final HttpServerRequest from, final HttpClientRequest to) {
+    private static void pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
+        final Runnable beforeEndHook) {
+      new Pipe(from, to, beforeEndHook);
+    }
+
+    private Pipe(final ReadStream<Buffer> from, final WriteStream<Buffer> to,
+        final Runnable beforeEndHook) {
       this.from = from;
       this.to = to;
-      final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-      for (Map.Entry<String, String> header : from.headers()) {
-        if (!header.getKey().equalsIgnoreCase("host")) {
-          headers.add(header.getKey(), header.getValue());
-        }
-      }
-      to.headers().setAll(headers);
-
+      this.beforeEndHook = beforeEndHook;
+      from.endHandler(this::requestEnded);
+      from.handler(this::handler);
       from.exceptionHandler(this::exceptionHandler);
-      if (from.isEnded()) {
-        to.end();
-      } else {
-        from.endHandler(this::requestEnded);
-        from.handler(this::handler);
-      }
-
+      to.exceptionHandler(this::exceptionHandler);
     }
 
     private void handler(final Buffer buffer) {
@@ -117,59 +137,12 @@ public class ProxyHandler implements Handler<RoutingContext> {
     }
 
     private void requestEnded(final Void v) {
+      beforeEndHook.run();
       to.end();
     }
 
     private void exceptionHandler(final Throwable t) {
-      log.error("Exception in proxy request", t);
-    }
-
-  }
-
-  private static final class ResponsePipe {
-
-    private final HttpClientResponse from;
-    private final HttpServerResponse to;
-    private boolean drainHandlerSet;
-
-    private static void pipe(final HttpClientResponse from, final HttpServerResponse to) {
-      new ResponsePipe(from, to);
-    }
-
-    private ResponsePipe(final HttpClientResponse from, final HttpServerResponse to) {
-      this.from = from;
-      this.to = to;
-      to.setStatusCode(from.statusCode());
-      to.setStatusMessage(from.statusMessage());
-      to.headers().setAll(from.headers());
-
-      from.exceptionHandler(this::exceptionHandler);
-      from.endHandler(this::responseEnded);
-      from.handler(this::handler);
-    }
-
-    private void handler(final Buffer buffer) {
-      to.write(buffer);
-      if (!drainHandlerSet && to.writeQueueFull()) {
-        drainHandlerSet = true;
-        from.pause();
-        to.drainHandler(this::drainHandler);
-      }
-    }
-
-    private void drainHandler(final Void v) {
-      drainHandlerSet = false;
-      from.resume();
-    }
-
-    private void responseEnded(final Void v) {
-      final MultiMap trailers = from.trailers();
-      to.trailers().setAll(trailers);
-      to.end();
-    }
-
-    private void exceptionHandler(final Throwable t) {
-      log.error("Exception in proxy response", t);
+      log.error("Exception in proxying", t);
     }
 
   }

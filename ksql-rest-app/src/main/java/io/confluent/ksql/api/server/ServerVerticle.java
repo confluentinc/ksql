@@ -71,7 +71,6 @@ public class ServerVerticle extends AbstractVerticle {
             new HttpClientOptions().setMaxPoolSize(10).setMaxInitialLineLength(65536));
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
-        //  .webSocketHandler(this::websocketHandlerOld)
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
@@ -157,29 +156,6 @@ public class ServerVerticle extends AbstractVerticle {
     });
   }
 
-  private void websocketHandlerOld(final ServerWebSocket serverWebSocket) {
-    if (proxyTarget == null) {
-      proxyTarget = server.getProxyTarget();
-    }
-    serverWebSocket.pause();
-    final WebSocketConnectOptions options = new WebSocketConnectOptions()
-        .setHost(proxyTarget.host())
-        .setPort(proxyTarget.port())
-        .setHeaders(serverWebSocket.headers())
-        .setURI(serverWebSocket.uri());
-    proxyClient.webSocket(options, ar -> {
-      if (ar.succeeded()) {
-        final WebSocket webSocket = ar.result();
-        WebsocketPipe.pipe(serverWebSocket, webSocket);
-        WebsocketPipe.pipe(webSocket, serverWebSocket);
-        serverWebSocket.resume();
-      } else {
-        log.error("Failed to proxy websocket", ar.cause());
-        serverWebSocket.close();
-      }
-    });
-  }
-
   private static final class WebsocketPipe {
 
     private final WebSocketBase from;
@@ -220,8 +196,6 @@ public class ServerVerticle extends AbstractVerticle {
     private void exceptionHandler(final Throwable t) {
       log.error("Exception in proxying websocket", t);
     }
-
   }
-
 
 }

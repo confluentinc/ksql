@@ -73,34 +73,6 @@ public class Server {
     this.proxyEnabled = proxyEnabled;
   }
 
-  public synchronized SocketAddress getProxyTarget() {
-    return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
-  }
-
-  private List<URI> parseListeners(final ApiServerConfig config) {
-    final List<String> sListeners = config.getList(ApiServerConfig.LISTENERS);
-    final List<URI> listeners = new ArrayList<>();
-    for (String listenerName : sListeners) {
-      try {
-        final URI uri = new URI(listenerName);
-        final String scheme = uri.getScheme();
-        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
-          throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
-        }
-        if ("https".equalsIgnoreCase(scheme)) {
-          final String keyStoreLocation = config.getString(ApiServerConfig.TLS_KEY_STORE_PATH);
-          if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
-            throw new ConfigException("https listener specified but no keystore provided");
-          }
-        }
-        listeners.add(uri);
-      } catch (URISyntaxException e) {
-        throw new ConfigException("Invalid listener URI: " + listenerName);
-      }
-    }
-    return listeners;
-  }
-
   public synchronized void start() {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
@@ -117,6 +89,8 @@ public class Server {
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
 
+    final Map<URI, URI> uris = new ConcurrentHashMap<>();
+
     for (URI listener : listenUris) {
 
       for (int i = 0; i < instances; i++) {
@@ -132,7 +106,7 @@ public class Server {
             try {
               final URI uriWithPort = new URI(listener.getScheme(), null, listener.getHost(),
                   serverVerticle.actualPort(), null, null, null);
-              listeners.add(uriWithPort);
+              uris.put(listener, uriWithPort);
             } catch (URISyntaxException e) {
               throw new KsqlException(e);
             }
@@ -153,6 +127,9 @@ public class Server {
       }
     } catch (Exception e) {
       throw new KsqlException("Failed to start API server", e);
+    }
+    for (URI uri : listenUris) {
+      listeners.add(uris.get(uri));
     }
     log.info("API server started");
   }
@@ -181,6 +158,10 @@ public class Server {
 
   public WorkerExecutor getWorkerExecutor() {
     return workerExecutor;
+  }
+
+  synchronized SocketAddress getProxyTarget() {
+    return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
   }
 
   synchronized void registerQuery(final PushQueryHolder query) {
@@ -214,10 +195,6 @@ public class Server {
 
   public int queryConnectionCount() {
     return connections.size();
-  }
-
-  synchronized void addListener(final URI uri) {
-    listeners.add(uri);
   }
 
   public synchronized List<URI> getListeners() {
@@ -261,4 +238,29 @@ public class Server {
 
     return options;
   }
+
+  private static List<URI> parseListeners(final ApiServerConfig config) {
+    final List<String> sListeners = config.getList(ApiServerConfig.LISTENERS);
+    final List<URI> listeners = new ArrayList<>();
+    for (String listenerName : sListeners) {
+      try {
+        final URI uri = new URI(listenerName);
+        final String scheme = uri.getScheme();
+        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+          throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
+        }
+        if ("https".equalsIgnoreCase(scheme)) {
+          final String keyStoreLocation = config.getString(ApiServerConfig.TLS_KEY_STORE_PATH);
+          if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
+            throw new ConfigException("https listener specified but no keystore provided");
+          }
+        }
+        listeners.add(uri);
+      } catch (URISyntaxException e) {
+        throw new ConfigException("Invalid listener URI: " + listenerName);
+      }
+    }
+    return listeners;
+  }
+
 }

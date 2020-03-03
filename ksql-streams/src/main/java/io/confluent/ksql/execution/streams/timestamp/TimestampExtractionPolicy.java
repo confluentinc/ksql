@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 
 @Immutable
@@ -33,6 +34,14 @@ import io.confluent.ksql.name.ColumnName;
     @Type(value = LongColumnTimestampExtractionPolicy.class, name = "longColumnv1")
 })
 public interface TimestampExtractionPolicy {
+
+  default KsqlTimestampExtractor create(
+      final int columnIndex,
+      final boolean throwOnInvalid,
+      final ProcessingLogger logger
+  ) {
+    return new LoggingTimestampExtractor(create(columnIndex), logger, throwOnInvalid);
+  }
 
   KsqlTimestampExtractor create(int columnIndex);
 

@@ -1,13 +1,18 @@
 {
+  "version" : "5.5.0",
+  "timestamp" : 1582672993973,
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (ID BIGINT, TS STRING) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='ts', TIMESTAMP_FORMAT='yy-MM-dd HH:mm:ss', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` STRING",
       "keyField" : null,
-      "timestampColumn" : null,
+      "timestampColumn" : {
+        "column" : "TS",
+        "format" : "yy-MM-dd HH:mm:ss"
+      },
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -76,8 +81,11 @@
               },
               "options" : [ ]
             },
-            "timestampColumn" : null,
-            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+            "timestampColumn" : {
+              "column" : "TS",
+              "format" : "yy-MM-dd HH:mm:ss"
+            },
+            "sourceSchema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` STRING"
           },
           "selectExpressions" : [ "ID AS ID" ]
         },
@@ -97,6 +105,10 @@
       "queryId" : "CSAS_TS_0"
     }
   } ],
+  "schemas" : {
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS VARCHAR> NOT NULL",
+    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
+  },
   "configs" : {
     "ksql.extension.dir" : "ext",
     "ksql.streams.cache.max.bytes.buffering" : "0",
@@ -114,7 +126,7 @@
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
     "ksql.new.api.enabled" : "false",
-    "ksql.streams.state.dir" : "/var/folders/p9/bk8xks6s2lndncftdbq36xh80000gp/T/confluent8393051053551629823",
+    "ksql.streams.state.dir" : "/var/folders/bz/qnz23q_j6v12b3b_tm9ztv700000gn/T/confluent8169473536565142001",
     "ksql.internal.topic.replicas" : "1",
     "ksql.insert.into.values.enabled" : "true",
     "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
@@ -129,6 +141,7 @@
     "ksql.query.pull.streamsstore.rebalancing.timeout.ms" : "10000",
     "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
     "ksql.authorization.cache.max.entries" : "10000",
     "ksql.metrics.tags.custom" : "",
     "ksql.pull.queries.enable" : "true",

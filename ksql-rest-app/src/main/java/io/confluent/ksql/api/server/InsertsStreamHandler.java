@@ -65,7 +65,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    // Un-pause body handling once async auth provider calls have completed
+    // Un-pause body handling as async auth provider calls have completed by this point
     routingContext.request().resume();
 
     // The record parser takes in potentially fragmented buffers from the request and spits

@@ -292,8 +292,7 @@ A post condition can define the list of sources that must exist in the metastore
 {
   "name": "S1",
   "type": "table",
-  "keyField": "FOO",
-  "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO INT, KSQL_COL_1 BIGINT>"
+  "schema": "ID BIGINT KEY, FOO STRING, KSQL_COL_1 BIGINT"
 }
 ```
 
@@ -303,8 +302,7 @@ Each source can define the following attributes:
 |-------------|:------------|
 | name        | (Required) The name of the source. |
 | type        | (Required) Specifies if the source is a STREAM or TABLE. |
-| keyField    | (Optional) Specifies the keyField for the source. If present, but set to `null`, the name of the key field is expected to not be set. If not supplied, the name of the key field will not be checked. |
-| valueSchema | (Optional) Specifies the value SQL schema for the source. |
+| schema      | (Optional) Specifies the SQL schema for the source. |
 
 #### Topics
 A post condition can define a check against the set of topics the case creates

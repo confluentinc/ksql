@@ -64,7 +64,7 @@ public class StreamSelectKeyBuilderTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
@@ -79,17 +79,16 @@ public class StreamSelectKeyBuilderTest {
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of(SchemaUtil.ROWTIME_NAME.text()), SqlTypes.BIGINT)
-      // Note: Type of ROWKEY is old key's type:
-      .valueColumn(ColumnName.of(SchemaUtil.ROWKEY_NAME.text()), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 
   private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);
 
-
   private static final long A_BOI = 5000;
   private static final long A_BIG = 3000;
 
-  private static final Struct SOURCE_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING)
+  private static final Struct SOURCE_KEY = StructKeyUtil
+      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
       .build("dre");
 
   @Mock

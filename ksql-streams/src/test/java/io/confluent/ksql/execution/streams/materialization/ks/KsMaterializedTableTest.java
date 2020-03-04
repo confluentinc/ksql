@@ -52,11 +52,12 @@ public class KsMaterializedTableTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("x");
+  private static final Struct A_KEY = StructKeyUtil
+      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

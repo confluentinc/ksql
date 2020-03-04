@@ -863,8 +863,12 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnKeyColumnThatIsNotCalledRowKey() {
+  public void shouldNotThrowOnKeyColumnThatIsNotCalledRowKey() {
     // Given:
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_ANY_KEY_NAME_ENABLED, true
+    ));
+
     final CreateStream statement = new CreateStream(
         SOME_NAME,
         TableElements.of(tableElement(KEY, "someKey", new Type(SqlTypes.STRING))),
@@ -872,13 +876,14 @@ public class CreateSourceFactoryTest {
         withProperties
     );
 
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'someKey' is an invalid KEY column name. "
-        + "KSQL currently only supports KEY columns named ROWKEY.");
-
     // When:
-    createSourceFactory.createStreamCommand(statement, ksqlConfig);
+    final CreateStreamCommand result = createSourceFactory
+        .createStreamCommand(statement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSchema().key(), contains(
+        keyColumn(ColumnName.of("someKey"), SqlTypes.STRING)
+    ));
   }
 
   private void givenProperty(final String name, final Literal value) {

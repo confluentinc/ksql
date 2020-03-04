@@ -187,7 +187,30 @@
       "post": {
         "topics": {
           "blacklist": ".*-repartition"
-        }
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "partition by only key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob"}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
       }
     },
     {
@@ -302,6 +325,66 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ]
+      }
+    },
+    {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ID;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"name": "a"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"name": "b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 11, "value": {"name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "a"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "b"}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID INT KEY, NAME STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "should handled quoted key and value",
+      "statements": [
+        "CREATE STREAM INPUT (`Key` STRING KEY, `Name` STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT *, `Name` AS `Name2` FROM INPUT PARTITION BY `Key`;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "x", "value": {"Name": "a"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "y", "value": {"Name": "b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "x", "value": {"Name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": {"Name": "a", "Name2": "a"}},
+        {"topic": "OUTPUT", "key": "y", "value": {"Name": "b", "Name2": "b"}},
+        {"topic": "OUTPUT", "key": "x", "value": {"Name": "c", "Name2": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "`Key` STRING KEY, `Name` STRING, `Name2` STRING"
+          }
         ]
       }
     }

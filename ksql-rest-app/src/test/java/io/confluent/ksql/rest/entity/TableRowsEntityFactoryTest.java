@@ -41,17 +41,20 @@ import org.junit.Test;
 
 public class TableRowsEntityFactoryTest {
 
-  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil.keyBuilder(SqlTypes.STRING);
+  private static final ColumnName K0 = ColumnName.of("k0");
+
+  private static final KeyBuilder KEY_BUILDER = StructKeyUtil
+      .keyBuilder(K0, SqlTypes.STRING);
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(K0, SqlTypes.STRING)
       .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
@@ -59,7 +62,7 @@ public class TableRowsEntityFactoryTest {
 
   private static final LogicalSchema SCHEMA_NULL = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v2"), SqlTypes.DOUBLE)
@@ -74,7 +77,7 @@ public class TableRowsEntityFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         Row.of(
             SIMPLE_SCHEMA,
-            STRING_KEY_BUILDER.build("x"),
+            KEY_BUILDER.build("x"),
             genericRow(false),
             ROWTIME
         )
@@ -98,13 +101,13 @@ public class TableRowsEntityFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(STRING_KEY_BUILDER.build("x"), window0),
+            new Windowed<>(KEY_BUILDER.build("x"), window0),
             genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(STRING_KEY_BUILDER.build("y"), window1),
+            new Windowed<>(KEY_BUILDER.build("y"), window1),
             genericRow(false),
             ROWTIME
         )
@@ -127,7 +130,7 @@ public class TableRowsEntityFactoryTest {
     final GenericRow row = genericRow(null, null, null, null);
 
     final Builder<Row> builder = ImmutableList.builder();
-    builder.add(Row.of(SCHEMA_NULL, STRING_KEY_BUILDER.build("k"), row, ROWTIME));
+    builder.add(Row.of(SCHEMA_NULL, KEY_BUILDER.build("k"), row, ROWTIME));
 
     // When:
     final List<List<?>> output = TableRowsEntityFactory.createRows(builder.build());
@@ -144,7 +147,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(K0, SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
@@ -160,7 +163,7 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(K0, SqlTypes.STRING)
         .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
         .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
         .keyColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)

@@ -319,6 +319,59 @@
     {
       "name": "explicit key field named other than ROWKEY",
       "statements": [
+        "CREATE STREAM INPUT (OTHER DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, OTHER as KEY FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": 3.0, "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3.0, "value": {"ID": 1, "KEY": 3.0}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "OTHER DOUBLE KEY, ID BIGINT, KEY DOUBLE"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KEY key field name",
+      "comment": "tests that `KEY` is allowed as a KEY column name",
+      "statements": [
+        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, KEY as KEY2 FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": "a", "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"ID": 1, "KEY2": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "KEY STRING KEY, ID BIGINT, KEY2 STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "explicit key field named other than ROWKEY - old",
+      "statements": [
         "CREATE STREAM INPUT (OTHER STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
       "expectedException": {
@@ -327,7 +380,7 @@
       }
     },
     {
-      "name": "KEY key field name",
+      "name": "KEY key field name- old",
       "comment": "tests that `KEY` is allowed as a KEY column name",
       "statements": [
         "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"

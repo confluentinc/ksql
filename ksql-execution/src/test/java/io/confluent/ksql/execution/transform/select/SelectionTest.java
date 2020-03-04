@@ -44,6 +44,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectionTest {
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
       .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
@@ -114,12 +115,12 @@ public class SelectionTest {
     final LogicalSchema resultSchema = selection.getSchema();
 
     // Then:
-    final LogicalSchema expected = new LogicalSchema.Builder()
+    assertThat(resultSchema, equalTo(LogicalSchema.builder()
         .withRowTime()
         .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
-        .build();
-    assertThat(resultSchema, equalTo(expected));
+        .build()
+    ));
   }
 }

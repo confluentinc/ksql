@@ -153,6 +153,27 @@
       ]
     },
     {
+      "name": "test_udtf - key column",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TEST_UDTF(ID) FROM TEST;"
+      ],
+      "properties": {
+        "ksql.any.key.name.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 10, "value": {"NAME": "bob"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"KSQL_COL_0": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, KSQL_COL_0 INT"}
+        ]
+      }
+    },
+    {
       "name": "test_udtf - array params",
       "statements": [
         "CREATE STREAM TEST (F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<STRING>, F5 ARRAY<DECIMAL(20, 10)>, F6 ARRAY<STRUCT<A VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",

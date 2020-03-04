@@ -59,11 +59,12 @@ public class KsMaterializedSessionTableTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("x");
+  private static final Struct A_KEY = StructKeyUtil
+      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x");
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
 
   private static final Instant LOWER_INSTANT = Instant.now();

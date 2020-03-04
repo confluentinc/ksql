@@ -59,7 +59,7 @@ public class TableGroupByBuilderTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
@@ -94,7 +94,8 @@ public class TableGroupByBuilderTest {
       SerdeOption.none()
   );
 
-  private static final Struct KEY = StructKeyUtil.keyBuilder(SqlTypes.STRING).build("key");
+  private static final Struct KEY = StructKeyUtil
+      .keyBuilder(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING).build("key");
 
   @Mock
   private KsqlQueryBuilder queryBuilder;

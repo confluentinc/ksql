@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +40,7 @@ public class TableElementTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
@@ -55,7 +55,7 @@ public class TableElementTest {
             new TableElement(VALUE, NAME, new Type(SqlTypes.INTEGER))
         )
         .addEqualityGroup(
-            new TableElement(KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING))
+            new TableElement(KEY, NAME, new Type(SqlTypes.STRING))
         )
         .testEquals();
   }

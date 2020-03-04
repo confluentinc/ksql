@@ -92,7 +92,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -136,7 +135,7 @@ public class KsqlParserTest {
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
@@ -43,7 +45,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -56,18 +58,16 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
 
   private static final String QUERY_ID_VALUE = "output-test";
-  private static final QueryId QUERY_ID = new QueryId(QUERY_ID_VALUE);
 
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .withRowTime()
-      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
@@ -93,26 +93,18 @@ public class KsqlStructuredDataOutputNodeTest {
   @Mock
   private SchemaKStream<String> sourceStream;
   @Mock
-  private SchemaKStream<String> resultStream;
-  @Mock
   private SchemaKStream<?> sinkStream;
-  @Mock
-  private SchemaKStream<?> resultWithKeySelected;
-  @Mock
-  private SchemaKStream<?> sinkStreamWithKeySelected;
   @Mock
   private KsqlTopic ksqlTopic;
   @Captor
   private ArgumentCaptor<QueryContext.Stacker> stackerCaptor;
 
   private KsqlStructuredDataOutputNode outputNode;
-  private LogicalSchema schema;
   private boolean createInto;
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void before() {
-    schema = SCHEMA;
     createInto = true;
 
     when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
@@ -129,6 +121,24 @@ public class KsqlStructuredDataOutputNodeTest {
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
     when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
 
+    buildNode();
+  }
+
+  @Test
+  public void shouldThrowIfSelectExpressionsHaveSameNameAsAnyKeyColumn() {
+    // Given:
+    givenSourceSelectExpressions(
+        selectExpression("field1"),
+        selectExpression("k0"),
+        selectExpression("field2")
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Value column name(s) `k0` "
+        + "clashes with key column name(s). Please remove or alias the column(s).");
+
+    // When:
     buildNode();
   }
 
@@ -155,7 +165,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldComputeQueryIdCorrectlyForTable() {
     // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
-    givenNodeWithSchema(SCHEMA);
+    buildNode();
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -198,7 +208,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCallInto() {
     // When:
-    final SchemaKStream result = outputNode.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(sourceStream).into(
@@ -220,16 +230,11 @@ public class KsqlStructuredDataOutputNodeTest {
     buildNode();
   }
 
-  private void givenNodeWithSchema(final LogicalSchema schema) {
-    this.schema = schema;
-    buildNode();
-  }
-
   private void buildNode() {
     outputNode = new KsqlStructuredDataOutputNode(
         PLAN_NODE_ID,
         sourceNode,
-        schema,
+        SCHEMA,
         Optional.empty(),
         KEY_FIELD,
         ksqlTopic,
@@ -237,5 +242,16 @@ public class KsqlStructuredDataOutputNodeTest {
         createInto,
         SerdeOption.none(),
         SourceName.of(PLAN_NODE_ID.toString()));
+  }
+
+  private void givenSourceSelectExpressions(final SelectExpression... selectExpressions) {
+    when(sourceNode.getSelectExpressions())
+        .thenReturn(ImmutableList.copyOf(selectExpressions));
+  }
+
+  private static SelectExpression selectExpression(final String alias) {
+    final SelectExpression mock = mock(SelectExpression.class);
+    when(mock.getAlias()).thenReturn(ColumnName.of(alias));
+    return mock;
   }
 }

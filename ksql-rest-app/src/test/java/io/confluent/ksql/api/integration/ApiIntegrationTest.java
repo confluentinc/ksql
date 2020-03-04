@@ -308,7 +308,7 @@ public class ApiIntegrationTest {
     String sql = "SELECT * from " + AGG_TABLE + " WHERE ROWTIME=12345;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported field: ROWTIME.");
+    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: ROWTIME.");
   }
 
   @Test

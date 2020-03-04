@@ -100,7 +100,7 @@ public class ApiServerConfig extends AbstractConfig {
       "Comma-delimited list of JAAS roles authorized to access this cluster. "
           + "Defaults to '*' meaning all roles will be allowed.";
   public static final List<String> AUTHENTICATION_ROLES_DEFAULT =
-      Collections.unmodifiableList(Collections.singletonList("*"));
+      Collections.unmodifiableList(Collections.emptyList());
 
   public static final String WORKER_POOL_SIZE = propertyName("worker.pool.size");
   public static final String WORKER_POOL_DOC =

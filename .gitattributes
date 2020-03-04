@@ -1,0 +1,2 @@
+ksql-functional-tests/src/test/resources/historical_plans/** linguist-generated=true
+ksql-functional-tests/src/test/resources/historical_plans/** -diff -merge

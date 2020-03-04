@@ -156,6 +156,9 @@ public class ApiServerConfig extends AbstractConfig {
     super(CONFIG_DEF, map);
   }
 
+  // Note that this expects config value that is not standard Confluent as defined in BaseConfig.
+  // For "request" client auth, confluent value is "REQUESTED" where value expected here is
+  // "REQUEST"
   public ClientAuth getClientAuth() {
     return ClientAuth.valueOf(getString(TLS_CLIENT_AUTH_REQUIRED).toUpperCase());
   }

@@ -51,6 +51,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -173,8 +174,11 @@ public class LogicalPlanner {
         ? groupByExps.get(0)
         : null;
 
-    final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
-            expression.equals(groupBy) && !SchemaUtil.isSystemColumn(alias),
+    final Optional<ColumnName> keyFieldName = getSelectAliasMatching(
+        (expression, alias) ->
+            expression.equals(groupBy)
+                && !SchemaUtil.isSystemColumn(alias)
+                && !schema.isKeyColumn(alias),
         sourcePlanNode.getSelectExpressions());
 
     return new AggregateNode(
@@ -389,9 +393,7 @@ public class LogicalPlanner {
     final Builder builder = LogicalSchema.builder()
         .withRowTime();
 
-    final List<Column> keyColumns = schema.key();
-
-    builder.keyColumns(keyColumns);
+    builder.keyColumns(schema.key());
 
     for (int i = 0; i < projection.size(); i++) {
       final SelectExpression select = projection.get(i);
@@ -409,26 +411,36 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final List<Expression> groupByExps
   ) {
+    final LogicalSchema sourceSchema = sourcePlanNode.getSchema();
+
+    final ColumnName keyName;
     final SqlType keyType;
     if (groupByExps.size() != 1) {
+      keyName = SchemaUtil.ROWKEY_NAME;
       keyType = SqlTypes.STRING;
     } else {
-      final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourcePlanNode.getSchema(), functionRegistry);
+      final Expression expression = groupByExps.get(0);
 
-      keyType = typeManager.getExpressionSqlType(groupByExps.get(0));
+      keyName = exactlyMatchesKeyColumns(expression, sourceSchema)
+          ? ((ColumnReferenceExp) expression).getColumnName()
+          : SchemaUtil.ROWKEY_NAME;
+
+      final ExpressionTypeManager typeManager =
+          new ExpressionTypeManager(sourceSchema, functionRegistry);
+
+      keyType = typeManager.getExpressionSqlType(expression);
     }
 
-    final LogicalSchema sourceSchema = buildProjectionSchema(
-        sourcePlanNode.getSchema()
+    final LogicalSchema projectionSchema = buildProjectionSchema(
+        sourceSchema
             .withMetaAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         sourcePlanNode.getSelectExpressions()
     );
 
     return LogicalSchema.builder()
         .withRowTime()
-        .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
-        .valueColumns(sourceSchema.value())
+        .keyColumn(keyName, keyType)
+        .valueColumns(projectionSchema.value())
         .build();
   }
 
@@ -437,6 +449,11 @@ public class LogicalPlanner {
       final Expression partitionBy
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
+
+    if (exactlyMatchesKeyColumns(partitionBy, sourceSchema)) {
+      // No-op:
+      return sourceSchema;
+    }
 
     final ExpressionTypeManager typeManager =
         new ExpressionTypeManager(sourceSchema, functionRegistry);
@@ -448,6 +465,30 @@ public class LogicalPlanner {
         .keyColumn(SchemaUtil.ROWKEY_NAME, keyType)
         .valueColumns(sourceSchema.value())
         .build();
+  }
+
+  private static boolean exactlyMatchesKeyColumns(
+      final Expression expression,
+      final LogicalSchema schema
+  ) {
+    if (schema.key().size() != 1) {
+      // Currently only support single key column:
+      return false;
+    }
+
+    if (!(expression instanceof ColumnReferenceExp)) {
+      // Anything not a column ref can't be a match:
+      return false;
+    }
+
+    final ColumnName columnName = ((ColumnReferenceExp) expression).getColumnName();
+
+    final Namespace ns = schema
+        .findColumn(columnName)
+        .map(Column::namespace)
+        .orElse(Namespace.VALUE);
+
+    return ns == Namespace.KEY;
   }
 
   private static List<SelectExpression> selectWithPrependAlias(

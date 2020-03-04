@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -35,7 +34,6 @@ public class RepartitionNode extends PlanNode {
   private final PlanNode source;
   private final Expression partitionBy;
   private final KeyField keyField;
-  private final LogicalSchema schema;
 
   public RepartitionNode(
       final PlanNodeId id,
@@ -44,16 +42,10 @@ public class RepartitionNode extends PlanNode {
       final Expression partitionBy,
       final KeyField keyField
   ) {
-    super(id, source.getNodeOutputType());
+    super(id, source.getNodeOutputType(), schema, source.getSelectExpressions());
     this.source = requireNonNull(source, "source");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.keyField = requireNonNull(keyField, "keyField");
-    this.schema = requireNonNull(schema, "schema");
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return schema;
   }
 
   @Override
@@ -64,11 +56,6 @@ public class RepartitionNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of(source);
-  }
-
-  @Override
-  public List<SelectExpression> getSelectExpressions() {
-    return source.getSelectExpressions();
   }
 
   @Override

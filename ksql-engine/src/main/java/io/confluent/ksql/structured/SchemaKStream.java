@@ -358,7 +358,7 @@ public class SchemaKStream<K> {
     }
 
     final ColumnName columnName = ((UnqualifiedColumnReferenceExp) expression).getColumnName();
-    final KeyField newKeyField = isRowKey(columnName) ? keyField : KeyField.of(columnName);
+    final KeyField newKeyField = isKeyColumn(columnName) ? keyField : KeyField.of(columnName);
     return getSchema().isMetaColumn(columnName) ? KeyField.none() : newKeyField;
   }
 
@@ -381,12 +381,12 @@ public class SchemaKStream<K> {
         .map(kf -> kf.name().equals(proposedKey.name()))
         .orElse(false);
 
-    return namesMatch || isRowKey(columnName);
+    return namesMatch || isKeyColumn(columnName);
   }
 
-  private boolean isRowKey(final ColumnName fieldName) {
-    // until we support structured keys, there will never be any key column other
-    // than "ROWKEY" - furthermore, that key column is always prefixed at this point
+  private boolean isKeyColumn(final ColumnName fieldName) {
+    // until we support structured keys, there will only be a single key column
+    // - furthermore, that key column is always prefixed at this point
     // unless it is a join, in which case every other source field is prefixed
     return fieldName.equals(schema.key().get(0).name());
   }
@@ -404,12 +404,16 @@ public class SchemaKStream<K> {
       return true;
     }
 
+    if (schema.key().size() != 1) {
+      return true;
+    }
+
     final ColumnName groupByField = fieldNameFromExpression(groupByExpressions.get(0));
     if (groupByField == null) {
       return true;
     }
 
-    if (groupByField.equals(SchemaUtil.ROWKEY_NAME)) {
+    if (groupByField.equals(schema.key().get(0).name())) {
       return false;
     }
 

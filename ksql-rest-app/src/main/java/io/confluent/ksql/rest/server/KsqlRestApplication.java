@@ -192,7 +192,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     return new KsqlRestConfig(origs);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static KsqlRestConfig convertToApiServerConfig(final KsqlRestConfig config) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
     final List<String> listeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
     final Map<String, Object> origs = config.getOriginals();
@@ -218,6 +220,24 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           origs.put(ApiServerConfig.TLS_CLIENT_AUTH_REQUIRED, "required");
         }
       }
+    }
+
+    final String authMethod = config.getString("authentication.method");
+    if (authMethod != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_METHOD_CONFIG, authMethod);
+    }
+    final List<String> authRoles = config.getList("authentication.roles");
+    if (authRoles != null) {
+      if (authRoles.size() == 1 && authRoles.get(0).equals("**")) {
+        // "**" in old config means "*" in new config
+        origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, ImmutableList.of("*"));
+      } else {
+        origs.put(ApiServerConfig.AUTHENTICATION_ROLES_CONFIG, authRoles);
+      }
+    }
+    final String authRealm = config.getString("authentication.realm");
+    if (authRealm != null) {
+      origs.put(ApiServerConfig.AUTHENTICATION_REALM_CONFIG, authRealm);
     }
 
     return new KsqlRestConfig(origs);
@@ -335,7 +355,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlEngine,
         ksqlConfigWithPort,
         pullQueryExecutor,
-        ksqlSecurityContextProvider
+        ksqlSecurityContextProvider,
+        ksqlResource
     );
     apiServerConfig = new ApiServerConfig(ksqlConfigWithPort.originals());
     apiServer = new Server(vertx, apiServerConfig, endpoints, true, securityExtension);

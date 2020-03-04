@@ -18,10 +18,12 @@ package io.confluent.ksql.api.perf;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -32,6 +34,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -148,7 +151,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
   private class InsertsStreamEndpoints implements Endpoints {
 
     @Override
-    public QueryPublisher createQueryPublisher(final String sql, final JsonObject properties,
+    public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+        final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
@@ -156,12 +160,18 @@ public class InsertsStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+    public CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
-      return new InsertsSubscriber(context, acksSubscriber);
+      return CompletableFuture.completedFuture(new InsertsSubscriber(context, acksSubscriber));
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
+      return null;
     }
   }
 

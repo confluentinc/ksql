@@ -15,21 +15,16 @@
 
 package io.confluent.ksql.api.server;
 
-import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.server.protocol.QueryResponseMetadata;
 import io.confluent.ksql.api.server.protocol.QueryStreamArgs;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +73,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return;
     }
 
-    createQueryPublisherAsync(queryStreamArgs.get().sql, queryStreamArgs.get().properties, context,
-        DefaultApiSecurityContext.create(routingContext))
+    endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
+        context, server.getWorkerExecutor(), DefaultApiSecurityContext.create(routingContext))
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;
@@ -135,18 +130,4 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     return null;
   }
 
-  // We execute the query publisher creation on a worker thread as it can be slow and we don't
-  // want to hold up an event loop
-  private CompletableFuture<QueryPublisher> createQueryPublisherAsync(final String sql,
-      final JsonObject properties, final Context context,
-      final ApiSecurityContext apiSecurityContext) {
-    final VertxCompletableFuture<QueryPublisher> vcf = new VertxCompletableFuture<>();
-    server.getWorkerExecutor().executeBlocking(
-        p -> p.complete(
-            endpoints.createQueryPublisher(sql, properties, context, server.getWorkerExecutor(),
-                apiSecurityContext)),
-        false,
-        vcf);
-    return vcf;
-  }
 }

@@ -118,22 +118,10 @@ public class JaasAuthProvider implements AuthProvider {
       return;
     }
 
-    if (!validateRoles(lc, allowedRoles)) {
-      log.error("Failed to log in: Invalid roles.");
-      promise.fail("Failed to log in: Invalid roles.");
-      return;
-    }
+    // We do the actual authorization here not in the User class
+    final boolean authorized = validateRoles(lc, allowedRoles);
 
-    promise.complete(new JaasUser(username, this));
-  }
-
-  private void checkUserPermission(
-      final String username,
-      final Handler<AsyncResult<Boolean>> resultHandler
-  ) {
-    // no authorization yet (besides JAAS role check during login)
-    // consequently, authenticated users have all permissions
-    resultHandler.handle(Future.succeededFuture(true));
+    promise.complete(new JaasUser(username, authorized));
   }
 
   private static boolean validateRoles(final LoginContext lc, final List<String> allowedRoles) {
@@ -152,12 +140,12 @@ public class JaasAuthProvider implements AuthProvider {
   static class JaasUser extends io.vertx.ext.auth.AbstractUser {
 
     private final String username;
-    private JaasAuthProvider authProvider;
     private JsonObject principal;
+    private boolean authorized;
 
-    JaasUser(final String username, final JaasAuthProvider authProvider) {
+    JaasUser(final String username, final boolean authorized) {
       this.username = Objects.requireNonNull(username, "username");
-      this.authProvider = Objects.requireNonNull(authProvider, "authProvider");
+      this.authorized = authorized;
     }
 
     @Override
@@ -165,7 +153,7 @@ public class JaasAuthProvider implements AuthProvider {
         final String permission,
         final Handler<AsyncResult<Boolean>> resultHandler
     ) {
-      authProvider.checkUserPermission(username, resultHandler);
+      resultHandler.handle(Future.succeededFuture(authorized));
     }
 
     @Override
@@ -178,11 +166,6 @@ public class JaasAuthProvider implements AuthProvider {
 
     @Override
     public void setAuthProvider(final AuthProvider authProvider) {
-      if (authProvider instanceof JaasAuthProvider) {
-        this.authProvider = (JaasAuthProvider)authProvider;
-      } else {
-        throw new IllegalArgumentException("Not a JaasAuthProvider");
-      }
     }
   }
 }

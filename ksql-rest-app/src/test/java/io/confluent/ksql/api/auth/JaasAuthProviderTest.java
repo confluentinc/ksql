@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +52,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
+@Ignore
 public class JaasAuthProviderTest {
 
   private static final String REALM = "realm";

@@ -24,8 +24,10 @@ import io.confluent.ksql.api.endpoints.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.spi.EndpointResponse;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
@@ -35,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
 
 public class QueryStreamRunner extends BasePerfRunner {
@@ -81,7 +84,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     private final Set<QueryStreamPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized QueryPublisher createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
@@ -91,15 +94,21 @@ public class QueryStreamRunner extends BasePerfRunner {
       publisher.setQueryHandle(new TestQueryHandle());
       publishers.add(publisher);
       publisher.start();
-      return publisher;
+      return CompletableFuture.completedFuture(publisher);
     }
 
     @Override
-    public InsertsStreamSubscriber createInsertsSubscriber(final String target,
+    public CompletableFuture<InsertsStreamSubscriber> createInsertsSubscriber(final String target,
         final JsonObject properties,
         final Subscriber<InsertResult> acksSubscriber, final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeKsqlRequest(final KsqlRequest request,
+        final WorkerExecutor workerExecutor, final ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

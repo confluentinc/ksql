@@ -132,47 +132,47 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldFailQueryWithBadCredentials() throws Exception {
-    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401);
   }
 
   @Test
   public void shouldFailCloseQueryWithBadCredentials() throws Exception {
-    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailCloseQuery(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401);
   }
 
   @Test
   public void shouldFailInsertRequestWithBadCredentials() throws Exception {
-    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD);
+    shouldFailInsertRequest(USER_WITHOUT_ACCESS, USER_WITHOUT_ACCESS_PWD, 401);
   }
 
   @Test
   public void shouldFailQueryWithNoCredentials() throws Exception {
-    shouldFailQuery(null, null);
+    shouldFailQuery(null, null, 401);
   }
 
   @Test
   public void shouldFailCloseQueryWithNoCredentials() throws Exception {
-    shouldFailCloseQuery(null, null);
+    shouldFailCloseQuery(null, null, 401);
   }
 
   @Test
   public void shouldFailInsertRequestWithNoCredentials() throws Exception {
-    shouldFailInsertRequest(null, null);
+    shouldFailInsertRequest(null, null, 401);
   }
 
   @Test
   public void shouldFailQueryWithIncorrectRole() throws Exception {
-    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403);
   }
 
   @Test
   public void shouldFailCloseQueryWithIncorrectRole() throws Exception {
-    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailCloseQuery(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403);
   }
 
   @Test
   public void shouldFailInsertRequestWithIncorrectRole() throws Exception {
-    shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD);
+    shouldFailInsertRequest(USER_WITH_INCORRECT_ROLE, USER_WITH_INCORRECT_ROLE_PWD, 403);
   }
 
   @Test
@@ -214,22 +214,23 @@ public class AuthTest extends ApiTest {
   @Test
   public void shouldNotAllowQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403));
   }
 
   @Test
   public void shouldNotAllowInsertsIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailInsertRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403));
   }
 
   @Test
   public void shouldNotAllowCloseQueryIfPermissionCheckThrowsException() throws Exception {
     shouldNotAllowAccessIfPermissionCheckThrowsException(
-        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+        () -> shouldFailCloseQuery(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, 403));
   }
 
-  private void shouldFailQuery(final String username, final String password) throws Exception {
+  private void shouldFailQuery(final String username, final String password,
+      final int expectedStatus) throws Exception {
     // When
     HttpResponse<Buffer> response = sendRequestWithCreds(
         "/query-stream",
@@ -239,11 +240,11 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
   }
 
-  private void shouldFailCloseQuery(final String username, final String password) throws Exception {
+  private void shouldFailCloseQuery(final String username, final String password,
+      final int expectedStatus) throws Exception {
     // Given
     JsonObject requestBody = new JsonObject().put("queryId", "foo");
 
@@ -256,11 +257,11 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
   }
 
-  private void shouldFailInsertRequest(final String username, final String password) throws Exception {
+  private void shouldFailInsertRequest(final String username, final String password,
+      int expectedStatus) throws Exception {
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
     Buffer requestBody = Buffer.buffer();
@@ -278,8 +279,7 @@ public class AuthTest extends ApiTest {
     );
 
     // Then
-    assertThat(response.statusCode(), is(401));
-    assertThat(response.statusMessage(), is("Unauthorized"));
+    assertThat(response.statusCode(), is(expectedStatus));
   }
 
   private HttpResponse<Buffer> sendRequestWithCreds(

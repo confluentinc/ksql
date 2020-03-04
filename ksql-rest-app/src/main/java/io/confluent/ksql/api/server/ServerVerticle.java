@@ -66,9 +66,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void start(final Promise<Void> startPromise) {
-    this.proxyClient = vertx
+    this.proxyClient = proxyEnabled ? vertx
         .createHttpClient(
-            new HttpClientOptions().setMaxPoolSize(10).setMaxInitialLineLength(65536));
+            new HttpClientOptions().setMaxPoolSize(10).setMaxInitialLineLength(65536)) : null;
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerUtils::unhandledExceptonHandler);
@@ -113,6 +113,8 @@ public class ServerVerticle extends AbstractVerticle {
 
     if (proxyEnabled) {
       // Everything else is proxied
+      // The proxying is temporary and will go away once all the Jetty endpoints have been
+      // migrated to Vert.x
       router.route().handler(new ProxyHandler(proxyTarget, proxyClient, server));
     }
     router.route().failureHandler(this::handleFailure);
@@ -151,6 +153,7 @@ public class ServerVerticle extends AbstractVerticle {
               .end();
         } else {
           log.error("Failed to proxy websocket", ar.cause());
+          request.response().setStatusCode(500).end();
         }
       }
     });
@@ -195,6 +198,17 @@ public class ServerVerticle extends AbstractVerticle {
 
     private void exceptionHandler(final Throwable t) {
       log.error("Exception in proxying websocket", t);
+      try {
+        to.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+      try {
+        from.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+
     }
   }
 

@@ -80,5 +80,8 @@ public interface SimpleKsqlClient {
       LagReportingMessage lagReportingMessage
   );
 
+  /*
+  Close this client
+   */
   void close();
 }

@@ -203,15 +203,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final Password keyStorePassword = config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
       origs.put(ApiServerConfig.TLS_KEY_STORE_PASSWORD,
           keyStorePassword == null ? "" : keyStorePassword.value());
-    }
 
-    final String trustStoreLocation = config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
-      origs.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStoreLocation);
-      final Password trustStorePassword = config
-          .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-      origs.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD,
-          trustStorePassword == null ? "" : trustStorePassword.value());
+      final String trustStoreLocation = config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+      if (trustStoreLocation != null && !trustStoreLocation.isEmpty()) {
+        origs.put(ApiServerConfig.TLS_TRUST_STORE_PATH, trustStoreLocation);
+        final Password trustStorePassword = config
+            .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        origs.put(ApiServerConfig.TLS_TRUST_STORE_PASSWORD,
+            trustStorePassword == null ? "" : trustStorePassword.value());
+      }
     }
 
     return new KsqlRestConfig(origs);

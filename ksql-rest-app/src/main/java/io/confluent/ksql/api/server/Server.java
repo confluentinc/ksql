@@ -161,6 +161,9 @@ public class Server {
   }
 
   synchronized SocketAddress getProxyTarget() {
+    if (jettyPort == -1) {
+      throw new IllegalStateException("jetty port not set");
+    }
     return SocketAddress.inetSocketAddress(jettyPort, "127.0.0.1");
   }
 

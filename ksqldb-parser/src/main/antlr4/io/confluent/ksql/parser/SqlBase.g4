@@ -114,21 +114,29 @@ limitClause
     : LIMIT number
     ;
 
+retentionClause
+    : ',' RETENTION number windowUnit
+    ;
+
+gracePeriodClause
+    : ',' GRACE PERIOD number windowUnit
+    ;
+
 windowExpression
     : (IDENTIFIER)?
      ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression )
     ;
 
 tumblingWindowExpression
-    : TUMBLING '(' SIZE number windowUnit')'
+    : TUMBLING '(' SIZE number windowUnit (retentionClause)? (gracePeriodClause)?')'
     ;
 
 hoppingWindowExpression
-    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit ')'
+    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit (retentionClause)? (gracePeriodClause)?')'
     ;
 
 sessionWindowExpression
-    : SESSION '(' number windowUnit ')'
+    : SESSION '(' number windowUnit (retentionClause)? (gracePeriodClause)?')'
     ;
 
 windowUnit
@@ -387,6 +395,9 @@ TUMBLING: 'TUMBLING';
 HOPPING: 'HOPPING';
 SIZE: 'SIZE';
 ADVANCE: 'ADVANCE';
+RETENTION: 'RETENTION';
+GRACE: 'GRACE';
+PERIOD: 'PERIOD';
 CASE: 'CASE';
 WHEN: 'WHEN';
 THEN: 'THEN';

@@ -257,19 +257,22 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow>  visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-      final TimeWindows windows = TimeWindows
+      TimeWindows windows = TimeWindows
           .of(Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())))
-          .advanceBy(
-              Duration.ofMillis(window.getAdvanceByUnit().toMillis(window.getAdvanceBy()))
-          );
+          .advanceBy(Duration.ofMillis(window.getAdvanceByUnit().toMillis(window.getAdvanceBy())));
+      windows = window.getGracePeriod().isPresent()
+          ? windows.grace(window.getGracePeriod().get())
+          : windows;
 
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention())
           );
     }
 
@@ -277,17 +280,22 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow>  visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      final SessionWindows windows = SessionWindows.with(
+      SessionWindows windows = SessionWindows.with(
           Duration.ofMillis(window.getSizeUnit().toMillis(window.getGap()))
       );
+      windows = window.getGracePeriod().isPresent()
+          ? windows.grace(window.getGracePeriod().get())
+          : windows;
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               aggregateParams.getAggregator().getMerger(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention())
           );
     }
 
@@ -295,15 +303,21 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<Struct>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-      final TimeWindows windows = TimeWindows.of(
+      TimeWindows windows = TimeWindows.of(
           Duration.ofMillis(window.getSizeUnit().toMillis(window.getSize())));
+      windows = window.getGracePeriod().isPresent()
+          ? windows.grace(window.getGracePeriod().get())
+          : windows;
+
       return groupedStream
           .windowedBy(windows)
           .aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
-              materializedFactory.create(
-                  keySerde, valueSerde, StreamsUtil.buildOpName(queryContext))
+              materializedFactory.create(keySerde,
+                  valueSerde,
+                  StreamsUtil.buildOpName(queryContext),
+                  window.getRetention())
           );
     }
   }

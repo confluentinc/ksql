@@ -216,7 +216,7 @@ public class SourceBuilderTest {
     when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
-    when(materializationFactory.create(any(), any(), any()))
+    when(materializationFactory.create(any(), any(), any(), any()))
         .thenReturn((Materialized) materialized);
 
     planBuilder = new KSPlanBuilder(
@@ -656,7 +656,7 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder);
 
     // Then:
-    verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
+    verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce", Optional.empty());
   }
 
   @SuppressWarnings("unchecked")

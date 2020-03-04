@@ -46,8 +46,8 @@ public class HoppingWindowExpressionTest {
             // Note: At the moment location does not take part in equality testing
             new HoppingWindowExpression(10, SECONDS, 20, MINUTES),
             new HoppingWindowExpression(10, SECONDS, 20, MINUTES),
-            new HoppingWindowExpression(Optional.of(SOME_LOCATION), 10, SECONDS, 20, MINUTES),
-            new HoppingWindowExpression(Optional.of(OTHER_LOCATION), 10, SECONDS, 20, MINUTES)
+            new HoppingWindowExpression(Optional.of(SOME_LOCATION), 10, SECONDS, 20, MINUTES, Optional.empty(), Optional.empty()),
+            new HoppingWindowExpression(Optional.of(OTHER_LOCATION), 10, SECONDS, 20, MINUTES, Optional.empty(), Optional.empty())
         )
         .addEqualityGroup(
             new HoppingWindowExpression(30, SECONDS, 20, MINUTES)

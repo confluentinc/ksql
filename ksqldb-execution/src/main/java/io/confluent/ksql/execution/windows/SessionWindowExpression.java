@@ -21,6 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -32,15 +33,17 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   private final TimeUnit sizeUnit;
 
   public SessionWindowExpression(final long gap, final TimeUnit sizeUnit) {
-    this(Optional.empty(), gap, sizeUnit);
+    this(Optional.empty(), gap, sizeUnit, Optional.empty(), Optional.empty());
   }
 
   public SessionWindowExpression(
       final Optional<NodeLocation> location,
       final long gap,
-      final TimeUnit sizeUnit
+      final TimeUnit sizeUnit,
+      final Optional<Duration> retention,
+      final Optional<Duration> gracePeriod
   ) {
-    super(location);
+    super(location, retention, gracePeriod);
     this.gap = gap;
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }

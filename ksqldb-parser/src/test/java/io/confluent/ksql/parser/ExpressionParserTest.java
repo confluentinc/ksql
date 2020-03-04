@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
@@ -100,7 +101,8 @@ public class ExpressionParserTest {
     // Then:
     assertThat(
         parsed,
-        equalTo(new TumblingWindowExpression(parsed.getLocation(), 1, TimeUnit.DAYS))
+        equalTo(new TumblingWindowExpression(parsed.getLocation(), 1, TimeUnit.DAYS,
+            Optional.empty(), Optional.empty()))
     );
   }
 }

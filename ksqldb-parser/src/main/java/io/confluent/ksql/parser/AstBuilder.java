@@ -69,16 +69,20 @@ import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.GracePeriodClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
+import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.SqlBaseParser.WindowUnitContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -139,6 +143,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -450,6 +455,27 @@ public class AstBuilder {
       throw new KsqlException("Window description is not correct.");
     }
 
+    private static Duration getDuration(final NumberContext number,
+                                        final WindowUnitContext unitCtx) {
+      final TimeUnit retainUnit = WindowExpression.getWindowUnit(unitCtx.getText().toUpperCase());
+      if (retainUnit == null) {
+        throw new KsqlException("Units is not correct");
+      }
+      return Duration.ofMillis(retainUnit.toMillis(Long.parseLong(number.getText())));
+    }
+
+    private static Optional<Duration> gracePeriodDuration(final GracePeriodClauseContext graceCtx) {
+      return graceCtx != null
+          ? Optional.of(getDuration(graceCtx.number(), graceCtx.windowUnit()))
+          : Optional.empty();
+    }
+
+    private static Optional<Duration> retentionDuration(final RetentionClauseContext retentionCtx) {
+      return retentionCtx != null
+          ? Optional.of(getDuration(retentionCtx.number(), retentionCtx.windowUnit()))
+          : Optional.empty();
+    }
+
     @Override
     public Node visitHoppingWindowExpression(
         final SqlBaseParser.HoppingWindowExpressionContext ctx) {
@@ -461,12 +487,15 @@ public class AstBuilder {
 
       final String sizeUnit = windowUnits.get(0).getText();
       final String advanceByUnit = windowUnits.get(1).getText();
+
       return new HoppingWindowExpression(
           getLocation(ctx),
           Long.parseLong(sizeStr),
           WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
           Long.parseLong(advanceByStr),
-          WindowExpression.getWindowUnit(advanceByUnit.toUpperCase())
+          WindowExpression.getWindowUnit(advanceByUnit.toUpperCase()),
+          retentionDuration(ctx.retentionClause()),
+          gracePeriodDuration(ctx.gracePeriodClause())
       );
     }
 
@@ -479,7 +508,9 @@ public class AstBuilder {
       return new TumblingWindowExpression(
           getLocation(ctx),
           Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
+          retentionDuration(ctx.retentionClause()),
+          gracePeriodDuration(ctx.gracePeriodClause())
       );
     }
 
@@ -492,7 +523,9 @@ public class AstBuilder {
       return new SessionWindowExpression(
           getLocation(ctx),
           Long.parseLong(sizeStr),
-          WindowExpression.getWindowUnit(sizeUnit.toUpperCase())
+          WindowExpression.getWindowUnit(sizeUnit.toUpperCase()),
+          retentionDuration(ctx.retentionClause()),
+          gracePeriodDuration(ctx.gracePeriodClause())
       );
     }
 

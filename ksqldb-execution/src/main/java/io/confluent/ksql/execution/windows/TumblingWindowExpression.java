@@ -33,15 +33,17 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   private final TimeUnit sizeUnit;
 
   public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
-    this(Optional.empty(), size, sizeUnit);
+    this(Optional.empty(), size, sizeUnit, Optional.empty(), Optional.empty());
   }
 
   public TumblingWindowExpression(
       final Optional<NodeLocation> location,
       final long size,
-      final TimeUnit sizeUnit
+      final TimeUnit sizeUnit,
+      final Optional<Duration> retention,
+      final Optional<Duration> gracePeriod
   ) {
-    super(location);
+    super(location, retention, gracePeriod);
     this.size = size;
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }

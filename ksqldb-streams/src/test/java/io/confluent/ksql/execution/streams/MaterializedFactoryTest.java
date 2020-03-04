@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
@@ -47,7 +48,7 @@ public class MaterializedFactoryTest {
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
     final Materialized asName = mock(Materialized.class);
-    when(materializer.materializedAs(OP_NAME)).thenReturn(asName);
+    when(materializer.materializedAs(OP_NAME, Optional.empty())).thenReturn(asName);
     final Materialized withKeySerde = mock(Materialized.class);
     when(asName.withKeySerde(keySerde)).thenReturn(withKeySerde);
     final Materialized withRowSerde = mock(Materialized.class);
@@ -56,11 +57,11 @@ public class MaterializedFactoryTest {
     // When:
     final Materialized<String, GenericRow, StateStore> returned
         = MaterializedFactory.create(materializer).create(
-        keySerde, rowSerde, OP_NAME);
+        keySerde, rowSerde, OP_NAME, Optional.empty());
 
     // Then:
     assertThat(returned, is(withRowSerde));
-    verify(materializer).materializedAs(OP_NAME);
+    verify(materializer).materializedAs(OP_NAME, Optional.empty());
     verify(asName).withKeySerde(keySerde);
     verify(withKeySerde).withValueSerde(rowSerde);
   }

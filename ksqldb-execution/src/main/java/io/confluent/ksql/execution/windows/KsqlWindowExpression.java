@@ -19,13 +19,29 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.Node;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
+import java.time.Duration;
 import java.util.Optional;
 
 @Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation) {
+  protected final Optional<Duration> retention;
+  protected final Optional<Duration> gracePeriod;
+
+  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation,
+                       final Optional<Duration> retention,
+                       final Optional<Duration> gracePeriod) {
     super(nodeLocation);
+    this.retention = retention;
+    this.gracePeriod = gracePeriod;
+  }
+
+  public Optional<Duration> getRetention() {
+    return retention;
+  }
+
+  public Optional<Duration> getGracePeriod() {
+    return gracePeriod;
   }
 
   public abstract WindowInfo getWindowInfo();

@@ -40,7 +40,13 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       final long advanceBy,
       final TimeUnit advanceByUnit
   ) {
-    this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
+    this(Optional.empty(),
+         size,
+         sizeUnit,
+         advanceBy,
+         advanceByUnit,
+         Optional.empty(),
+         Optional.empty());
   }
 
   public HoppingWindowExpression(
@@ -48,9 +54,11 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       final long size,
       final TimeUnit sizeUnit,
       final long advanceBy,
-      final TimeUnit advanceByUnit
+      final TimeUnit advanceByUnit,
+      final Optional<Duration> retention,
+      final Optional<Duration> gracePeriod
   ) {
-    super(location);
+    super(location, retention, gracePeriod);
     this.size = size;
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
     this.advanceBy = advanceBy;
